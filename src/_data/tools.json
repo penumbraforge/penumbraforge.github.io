@@ -581,5 +581,85 @@
     "badge": "local",
     "relatedTools": ["secrets-scanner", "entropy-calculator", "shell-explainer"],
     "status": "live"
+  },
+  {
+    "name": "Breach Checker",
+    "slug": "breach-checker",
+    "description": "Check if your API keys have been exposed in known breaches.",
+    "longDescription": "Check if your API keys, tokens, or credentials have appeared in known data breaches — without sending them to a server. Uses k-anonymity so your secrets never leave your browser.",
+    "category": "intelligence",
+    "keywords": ["breach", "api key", "leaked", "credential", "exposure", "pwned", "check", "k-anonymity"],
+    "badge": "worker",
+    "relatedTools": ["secrets-scanner", "env-analyzer", "hash-generator"],
+    "status": "preview",
+    "featured": true
+  },
+  {
+    "name": "IR Timeline Builder",
+    "slug": "ir-timeline",
+    "description": "Build visual incident response timelines for post-incident reports.",
+    "longDescription": "Build visual incident response timelines from timestamps and events. Drag, reorder, and annotate entries, then export to PDF or JSON for your post-incident reports. Runs entirely in your browser.",
+    "category": "intelligence",
+    "keywords": ["incident response", "timeline", "DFIR", "forensics", "post-incident", "report", "security", "SOC"],
+    "badge": "local",
+    "relatedTools": ["log-parser", "secrets-scanner", "breach-checker"],
+    "status": "preview",
+    "featured": true
+  },
+  {
+    "name": "Site Score",
+    "slug": "site-score",
+    "description": "Scan any URL for security headers, SSL config, and privacy posture.",
+    "longDescription": "Scan any URL and get an instant security grade — checks HTTP security headers, SSL/TLS configuration, and privacy posture. Get actionable fix suggestions with ready-to-use header values.",
+    "category": "intelligence",
+    "keywords": ["security score", "scan", "headers", "ssl", "tls", "grade", "audit", "pentest", "privacy"],
+    "badge": "worker",
+    "relatedTools": ["security-headers", "csp-generator", "header-analyzer"],
+    "status": "preview",
+    "featured": true
+  },
+  {
+    "name": "Header Analyzer",
+    "slug": "header-analyzer",
+    "description": "Paste raw HTTP headers and get a plain-English security breakdown.",
+    "longDescription": "Paste raw HTTP response headers from curl or browser DevTools and get a color-coded, plain-English security analysis. No live URL required — works for localhost, staging, and captured headers.",
+    "category": "intelligence",
+    "keywords": ["http headers", "security", "analyze", "explain", "csp", "hsts", "curl", "plain english"],
+    "badge": "local",
+    "relatedTools": ["security-headers", "csp-generator", "site-score"],
+    "status": "preview"
+  },
+  {
+    "name": ".env Exposure Analyzer",
+    "slug": "env-analyzer",
+    "description": "Identify every secret type in your .env and map the blast radius.",
+    "longDescription": "Paste your .env file to identify every secret type, see which services are exposed, learn the blast radius of each leaked credential, and get step-by-step rotation instructions.",
+    "category": "intelligence",
+    "keywords": [".env", "exposure", "secret", "blast radius", "rotate", "api key", "credential", "environment"],
+    "badge": "local",
+    "relatedTools": ["env-linter", "secrets-scanner", "breach-checker"],
+    "status": "preview"
+  },
+  {
+    "name": "Privacy Scan",
+    "slug": "privacy-scan",
+    "description": "Scan any website and get a plain-English privacy nutrition label.",
+    "longDescription": "Scan any URL to discover trackers, cookies, fingerprinting scripts, and data collection. Get a plain-English privacy nutrition label — what data is collected, who gets it, and how to opt out.",
+    "category": "intelligence",
+    "keywords": ["privacy", "tracker", "cookies", "fingerprint", "data collection", "audit", "gdpr", "nutrition label"],
+    "badge": "worker",
+    "relatedTools": ["site-score", "security-headers", "header-analyzer"],
+    "status": "preview"
+  },
+  {
+    "name": "CT Monitor",
+    "slug": "ct-monitor",
+    "description": "Get alerts when new SSL certificates are issued for your domain.",
+    "longDescription": "Monitor Certificate Transparency logs for your domain and get alerts when new certificates are issued — catch phishing, typosquatting, and unauthorized issuance. Free, no account needed.",
+    "category": "intelligence",
+    "keywords": ["certificate transparency", "ssl", "monitor", "alert", "phishing", "typosquat", "domain", "ct logs"],
+    "badge": "worker",
+    "relatedTools": ["site-score", "dns-builder", "dmarc-builder"],
+    "status": "preview"
   }
 ]

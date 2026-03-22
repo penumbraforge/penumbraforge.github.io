@@ -89,18 +89,17 @@
     </nav>
   </header>
 
-  <nav class="tool-nav" aria-label="Breadcrumb">
-    <div class="container">
-      <a href="/tools/">Tools</a>
-      <span class="tool-nav-sep">&rsaquo;</span>
-      <a href="/tools/?cat={{ toolData.category }}">{{ toolData.category | capitalize }}</a>
-      <span class="tool-nav-sep">&rsaquo;</span>
-      <span class="tool-nav-current">{{ toolData.name }}</span>
-    </div>
-  </nav>
+  <div class="tools-layout">
+    {% include "sidebar.njk" %}
 
-  <main class="tool-main">
-    <div class="container">
+    <div class="tools-content">
+      <nav class="tool-nav" aria-label="Breadcrumb">
+        <a href="/tools/">Tools</a>
+        <span class="tool-nav-sep">&rsaquo;</span>
+        <a href="/tools/?cat={{ toolData.category }}">{{ toolData.category | capitalize }}</a>
+        <span class="tool-nav-sep">&rsaquo;</span>
+        <span class="tool-nav-current">{{ toolData.name }}</span>
+      </nav>
 
       <div class="tool-header">
         <h1>{{ toolData.name }}</h1>
@@ -115,35 +114,33 @@
         {{ content | safe }}
       </div>
 
-    </div>
-  </main>
+      {% if toolData.relatedTools and toolData.relatedTools.length %}
+      <section class="tool-related" style="margin-top: 40px;">
+        <div class="section-divider"><span>Related tools</span></div>
+        <div class="tool-related-grid">
+          {% for relatedSlug in toolData.relatedTools %}
+            {% set relatedTool = tools | find("slug", relatedSlug) %}
+            {% if relatedTool and relatedTool.status == "live" %}
+            <a href="/tools/{{ relatedTool.slug }}/" class="t-card tool-related-card">
+              <h4>{{ relatedTool.name }}</h4>
+              <p>{{ relatedTool.description }}</p>
+            </a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
 
-  {% if toolData.relatedTools and toolData.relatedTools.length %}
-  <section class="tool-related">
-    <div class="container">
-      <div class="section-divider"><span>Related tools</span></div>
-      <div class="tool-related-grid">
-        {% for relatedSlug in toolData.relatedTools %}
-          {% set relatedTool = tools | find("slug", relatedSlug) %}
-          {% if relatedTool and relatedTool.status == "live" %}
-          <a href="/tools/{{ relatedTool.slug }}/" class="t-card tool-related-card">
-            <h4>{{ relatedTool.name }}</h4>
-            <p>{{ relatedTool.description }}</p>
-          </a>
-          {% endif %}
-        {% endfor %}
-      </div>
+      <section class="tool-cta">
+        <a href="/">Penumbra Forge</a> &mdash;
+        <a href="/gate">Gate</a> &mdash;
+        <a href="/librarian">Librarian</a>
+      </section>
     </div>
-  </section>
-  {% endif %}
-
-  <section class="tool-cta">
-    <a href="/">Penumbra Forge</a> &mdash;
-    <a href="/gate">Gate</a> &mdash;
-    <a href="/librarian">Librarian</a>
-  </section>
+  </div>
 
   {% include "footer.njk" %}
-
 </div>
+
+{% include "sidebar-js.njk" %}
 {% endblock %}

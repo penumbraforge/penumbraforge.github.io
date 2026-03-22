@@ -19,90 +19,92 @@ permalink: /tools/
   </nav>
 </header>
 
-<section class="tools-hub">
-  <div class="tools-hub-hero">
-    <div class="section-divider"><span>Developer Tools</span></div>
-    <h1>Tool Kits</h1>
-    <p class="tools-hub-subtitle">Free developer &amp; security tools. No accounts, no tracking, your data stays in your browser.</p>
-    <input type="text" class="tools-hub-search" id="toolSearch" placeholder="Search tools..." aria-label="Search tools" autocomplete="off">
-  </div>
+<div class="tools-layout">
+  {% include "sidebar.njk" %}
 
-  <div class="tools-hub-filters" role="tablist" aria-label="Filter by category">
-    <button class="tools-hub-filter active" data-category="all" role="tab" aria-selected="true">All</button>
-    <button class="tools-hub-filter" data-category="security" role="tab" aria-selected="false">Security</button>
-    <button class="tools-hub-filter" data-category="encoding" role="tab" aria-selected="false">Encoding</button>
-    <button class="tools-hub-filter" data-category="devops" role="tab" aria-selected="false">DevOps</button>
-    <button class="tools-hub-filter" data-category="web" role="tab" aria-selected="false">Web</button>
-    <button class="tools-hub-filter" data-category="text" role="tab" aria-selected="false">Text</button>
-  </div>
+  <main class="tools-content">
+    <h1 class="tools-content-title">Tool Kits</h1>
+    <p class="tools-content-subtitle">Free developer &amp; security tools. No accounts, no tracking, your data stays in your browser.</p>
 
-  <p class="tools-hub-count" id="toolCount" aria-live="polite">{{ tools | length }} tools available</p>
+    {# Featured section #}
+    {% set featuredTools = [] %}
+    {% for tool in tools %}{% if tool.featured %}{% set featuredTools = (featuredTools.push(tool), featuredTools) %}{% endif %}{% endfor %}
+    {% if featuredTools.length > 0 %}
+    <div class="featured-label">&#9733; Featured</div>
+    <div class="featured-grid">
+      {% for tool in featuredTools %}
+      <a class="featured-card" href="/tools/{{ tool.slug }}/">
+        <div class="featured-card-header">
+          <h3>{{ tool.name }}</h3>
+          {% if tool.badge == "worker" %}
+          <span class="featured-card-badge badge-worker">cf worker</span>
+          {% else %}
+          <span class="featured-card-badge badge-new">new</span>
+          {% endif %}
+        </div>
+        <p>{{ tool.longDescription }}</p>
+        <span class="local-badge">
+          {% if tool.badge == "local" %}runs in your browser{% elif tool.badge == "worker" %}scans via edge worker{% else %}{{ tool.badge }}{% endif %}
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
 
-  <div class="tools-hub-grid" id="toolGrid">
-    {% for tool in tools %}{% if tool.status == "live" %}
-    <a href="/tools/{{ tool.slug }}/" class="t-card tools-hub-card" data-category="{{ tool.category }}" data-keywords="{{ tool.keywords | join(' ') }} {{ tool.name | lower }}" data-name="{{ tool.name }}">
-      <div class="t-icon" aria-hidden="true">
-        {% if tool.category == "security" %}&#x1f6e1;{% elif tool.category == "encoding" %}{&thinsp;}{% elif tool.category == "devops" %}&#x2699;{% elif tool.category == "web" %}&#x1f310;{% elif tool.category == "text" %}&#x270e;{% else %}&#x2726;{% endif %}
+    {# Category sections #}
+    {% set categoryOrder = [
+      { key: "intelligence", label: "Intelligence", icon: "🔍" },
+      { key: "security", label: "Security", icon: "🛡" },
+      { key: "encoding", label: "Encoding", icon: "{}" },
+      { key: "devops", label: "DevOps", icon: "⚙" },
+      { key: "web", label: "Web", icon: "🌐" },
+      { key: "text", label: "Text", icon: "✎" }
+    ] %}
+
+    {% for cat in categoryOrder %}
+    {% set catTools = [] %}
+    {% for tool in tools %}{% if tool.category == cat.key and tool.status == "live" %}{% set catTools = (catTools.push(tool), catTools) %}{% endif %}{% endfor %}
+    {% if catTools.length > 0 %}
+    <div class="category-section" id="cat-{{ cat.key }}">
+      <div class="category-header">
+        <span class="category-icon" aria-hidden="true">{{ cat.icon }}</span>
+        <span class="category-name">{{ cat.label }}</span>
+        <span class="category-count">{{ catTools.length }} tools</span>
       </div>
-      <h4>{{ tool.name }}</h4>
-      <p>{{ tool.description }}</p>
-      <span class="local-badge">
-        {% if tool.badge == "local" %}runs in your browser{% elif tool.badge == "cloud" %}cloud-assisted{% else %}{{ tool.badge }}{% endif %}
-      </span>
-    </a>
-    {% endif %}{% endfor %}
-  </div>
+      <div class="tools-sidebar-grid">
+        {% for tool in catTools %}
+        <a href="/tools/{{ tool.slug }}/" class="t-card" data-category="{{ tool.category }}" data-keywords="{{ tool.keywords | join(' ') }} {{ tool.name | lower }}">
+          <div class="t-icon" aria-hidden="true">
+            {% if tool.category == "security" %}&#x1f6e1;{% elif tool.category == "encoding" %}{&thinsp;}{% elif tool.category == "devops" %}&#x2699;{% elif tool.category == "web" %}&#x1f310;{% elif tool.category == "text" %}&#x270e;{% elif tool.category == "intelligence" %}&#x1f50d;{% else %}&#x2726;{% endif %}
+          </div>
+          <h4>{{ tool.name }}</h4>
+          <p>{{ tool.description }}</p>
+          <span class="local-badge">
+            {% if tool.badge == "local" %}runs in your browser{% elif tool.badge == "worker" %}scans via edge worker{% elif tool.badge == "cloud" %}cloud-assisted{% else %}{{ tool.badge }}{% endif %}
+          </span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </main>
+</div>
 
-  <p class="tools-hub-empty" id="toolEmpty">No tools match your search.</p>
+{% include "sidebar-js.njk" %}
 
-  <p class="tools-hub-terminal-link"><a href="/terminal/">Power user? Try the terminal &rarr;</a></p>
-</section>
-
-<script>
-  (function () {
-    var searchInput = document.getElementById('toolSearch');
-    var grid = document.getElementById('toolGrid');
-    var cards = Array.prototype.slice.call(grid.querySelectorAll('.tools-hub-card'));
-    var filterButtons = Array.prototype.slice.call(document.querySelectorAll('.tools-hub-filter'));
-    var countEl = document.getElementById('toolCount');
-    var emptyEl = document.getElementById('toolEmpty');
-    var activeCategory = 'all';
-
-    function filterCards() {
-      var query = searchInput.value.toLowerCase().trim();
-      var visible = 0;
-
-      cards.forEach(function (card) {
-        var category = card.getAttribute('data-category');
-        var keywords = card.getAttribute('data-keywords');
-        var categoryMatch = activeCategory === 'all' || category === activeCategory;
-        var queryMatch = query === '' || keywords.indexOf(query) !== -1;
-
-        if (categoryMatch && queryMatch) {
-          card.style.display = '';
-          visible++;
-        } else {
-          card.style.display = 'none';
-        }
-      });
-
-      countEl.textContent = visible + ' tool' + (visible !== 1 ? 's' : '') + (query || activeCategory !== 'all' ? ' found' : ' available');
-      emptyEl.style.display = visible === 0 ? '' : 'none';
-    }
-
-    searchInput.addEventListener('input', filterCards);
-
-    filterButtons.forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        filterButtons.forEach(function (b) {
-          b.classList.remove('active');
-          b.setAttribute('aria-selected', 'false');
-        });
-        btn.classList.add('active');
-        btn.setAttribute('aria-selected', 'true');
-        activeCategory = btn.getAttribute('data-category');
-        filterCards();
-      });
-    });
-  })();
-</script>
+<style>
+  .tools-content-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--text-1);
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+  .tools-content-subtitle {
+    color: var(--text-3);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+</style>

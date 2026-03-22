@@ -1,0 +1,53 @@
+{# Tools sidebar — used by both tools index and individual tool pages #}
+{% set categoryOrder = [
+  { key: "intelligence", label: "Intelligence", icon: "🔍" },
+  { key: "security", label: "Security", icon: "🛡" },
+  { key: "encoding", label: "Encoding", icon: "{}" },
+  { key: "devops", label: "DevOps", icon: "⚙" },
+  { key: "web", label: "Web", icon: "🌐" },
+  { key: "text", label: "Text", icon: "✎" }
+] %}
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-search">
+    <span class="sidebar-search-icon">&#x1f50d;</span>
+    <input type="text" placeholder="Search tools..." id="sidebarSearch" autocomplete="off">
+    <span class="sidebar-search-kbd">&#8984;K</span>
+  </div>
+
+  {# Favorites — populated via JS from localStorage #}
+  <div class="sidebar-section sidebar-favorites" id="favoritesSection" style="display:none;">
+    <div class="sidebar-section-header">
+      <span class="sidebar-section-label">&#9733; Favorites</span>
+    </div>
+    <div id="favoritesList"></div>
+  </div>
+
+  <div class="sidebar-divider sidebar-favorites-divider" id="favoritesDivider" style="display:none;"></div>
+
+  {# Categories #}
+  {% for cat in categoryOrder %}
+  {% set catTools = [] %}
+  {% for tool in tools %}{% if tool.category == cat.key %}{% set catTools = (catTools.push(tool), catTools) %}{% endif %}{% endfor %}
+  {% if catTools.length > 0 %}
+  <div class="sidebar-section" data-category="{{ cat.key }}">
+    <div class="sidebar-section-header">
+      <span class="sidebar-section-label">{{ cat.label }}</span>
+      <span class="sidebar-section-count">{{ catTools.length }}</span>
+    </div>
+    {% for tool in catTools %}
+    <a class="sidebar-item{% if toolSlug == tool.slug %} active{% endif %}" href="/tools/{{ tool.slug }}/" data-slug="{{ tool.slug }}" data-name="{{ tool.name | lower }}" data-keywords="{{ tool.keywords | join(' ') }}">
+      <span class="sidebar-item-name">{{ tool.name }}</span>
+      {% if tool.status == "preview" %}<span class="sidebar-badge-soon">soon</span>
+      {% elif tool.isNew %}<span class="sidebar-badge-new">new</span>{% endif %}
+      <span class="sidebar-item-star" data-slug="{{ tool.slug }}" title="Toggle favorite">&#9734;</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% if not loop.last %}<div class="sidebar-divider"></div>{% endif %}
+  {% endif %}
+  {% endfor %}
+</aside>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle tools menu">&#9776;</button>
