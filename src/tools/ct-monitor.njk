@@ -1,0 +1,297 @@
+---
+toolSlug: ct-monitor
+permalink: /tools/ct-monitor/
+---
+
+<div class="tool-group">
+  <label for="ct-domain">Enter a domain to check</label>
+  <p class="tool-hint">Searches Certificate Transparency logs via <a href="https://crt.sh" target="_blank" rel="noopener">crt.sh</a> for all certificates issued for your domain and subdomains.</p>
+  <div class="ss-input-row">
+    <input type="text" id="ct-domain" placeholder="penumbraforge.com" autocomplete="off" spellcheck="false">
+    <button class="btn" id="btn-search">Search CT Logs</button>
+  </div>
+</div>
+
+<div id="ct-status" class="ss-status" style="display:none;"></div>
+<div id="ct-error" class="ss-error" style="display:none;"></div>
+
+<div id="ct-results" style="display:none;">
+  <div class="ct-summary" id="ct-summary"></div>
+  <div class="ct-certs" id="ct-certs"></div>
+</div>
+
+<div id="turnstile-container"></div>
+
+<style>
+.ct-summary {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.ct-summary-count {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 400;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.ct-summary-text {
+  flex: 1;
+}
+
+.ct-summary-label {
+  font-size: 14px;
+  color: var(--text-1);
+  margin-bottom: 2px;
+}
+
+.ct-summary-sub {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.ct-cert {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.ct-cert-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.ct-cert-row:hover {
+  background: rgba(184, 165, 214, 0.03);
+}
+
+.ct-cert-cn {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-1);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ct-cert-issuer {
+  font-size: 11px;
+  color: var(--text-3);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ct-cert-date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.ct-cert-age {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.ct-age-recent { color: var(--sage); background: rgba(107, 207, 143, 0.1); }
+.ct-age-old { color: var(--text-3); background: rgba(102, 102, 102, 0.1); }
+.ct-age-new { color: #e8b84d; background: rgba(232, 184, 77, 0.1); }
+
+.ct-chevron {
+  color: var(--muted);
+  font-size: 12px;
+  transition: transform 200ms;
+  flex-shrink: 0;
+}
+
+.ct-cert.open .ct-chevron { transform: rotate(90deg); }
+
+.ct-cert-detail {
+  display: none;
+  padding: 0 16px 14px;
+  font-size: 12px;
+}
+
+.ct-cert.open .ct-cert-detail { display: block; }
+
+.ct-detail-grid {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 6px 12px;
+}
+
+.ct-detail-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.ct-detail-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  word-break: break-all;
+}
+
+.ct-detail-value a { color: var(--accent); }
+
+.ct-wildcard-warn {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(232, 184, 77, 0.04);
+  border: 1px solid rgba(232, 184, 77, 0.1);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+</style>
+
+<script>
+(function () {
+  var WORKER_URL = 'https://ct-monitor.penumbraforge.workers.dev';
+  var TURNSTILE_SITE_KEY = '0x4AAAAAACukxXg8l2ppbG35';
+
+  var domainInput = document.getElementById('ct-domain');
+  var btnSearch = document.getElementById('btn-search');
+  var statusEl = document.getElementById('ct-status');
+  var errorEl = document.getElementById('ct-error');
+  var resultsEl = document.getElementById('ct-results');
+  var summaryEl = document.getElementById('ct-summary');
+  var certsEl = document.getElementById('ct-certs');
+  var turnstileToken = null;
+
+  var tsScript = document.createElement('script');
+  tsScript.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoadCT';
+  tsScript.async = true;
+  document.head.appendChild(tsScript);
+
+  window.onTurnstileLoadCT = function () {
+    if (window.turnstile) {
+      window.turnstile.render('#turnstile-container', {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: function (t) { turnstileToken = t; },
+        'expired-callback': function () { turnstileToken = null; },
+        size: 'invisible',
+      });
+    }
+  };
+
+  function esc(s) { var d = document.createElement('div'); d.appendChild(document.createTextNode(s || '')); return d.innerHTML; }
+
+  function daysAgo(dateStr) {
+    if (!dateStr) return null;
+    var d = new Date(dateStr);
+    var now = new Date();
+    return Math.floor((now - d) / 86400000);
+  }
+
+  function render(data) {
+    resultsEl.style.display = '';
+    statusEl.style.display = 'none';
+
+    var certs = data.certificates;
+
+    summaryEl.innerHTML =
+      '<div class="ct-summary-count">' + data.totalFound + '</div>' +
+      '<div class="ct-summary-text">' +
+        '<div class="ct-summary-label">Certificates found for *.' + esc(data.domain) + '</div>' +
+        '<div class="ct-summary-sub">Showing ' + certs.length + ' most recent entries from Certificate Transparency logs</div>' +
+      '</div>';
+
+    if (certs.length === 0) {
+      certsEl.innerHTML = '<p style="color:var(--text-3);text-align:center;padding:20px;">No certificates found in CT logs for this domain.</p>';
+      return;
+    }
+
+    var html = '';
+    certs.forEach(function (cert, i) {
+      var days = daysAgo(cert.notBefore);
+      var ageClass = 'ct-age-old';
+      var ageText = days !== null ? days + 'd ago' : '';
+      if (days !== null && days <= 7) { ageClass = 'ct-age-new'; ageText = days + 'd ago'; }
+      else if (days !== null && days <= 90) { ageClass = 'ct-age-recent'; }
+
+      var names = (cert.nameValue || '').split('\n').filter(Boolean);
+      var hasWildcard = names.some(function (n) { return n.startsWith('*.'); });
+      var issuerShort = (cert.issuer || '').replace(/^.*?CN=/, '').replace(/,.*/, '').substring(0, 40);
+
+      html += '<div class="ct-cert" id="ct-cert-' + i + '">' +
+        '<div class="ct-cert-row" onclick="document.getElementById(\'ct-cert-' + i + '\').classList.toggle(\'open\')">' +
+          '<span class="ct-cert-cn">' + esc(cert.commonName || names[0] || '') + '</span>' +
+          '<span class="ct-cert-issuer">' + esc(issuerShort) + '</span>' +
+          '<span class="ct-cert-age ' + ageClass + '">' + ageText + '</span>' +
+          '<span class="ct-cert-date">' + esc((cert.notBefore || '').substring(0, 10)) + '</span>' +
+          '<span class="ct-chevron">&#x203a;</span>' +
+        '</div>' +
+        '<div class="ct-cert-detail">' +
+          '<div class="ct-detail-grid">' +
+            '<span class="ct-detail-label">Common Name</span><span class="ct-detail-value">' + esc(cert.commonName) + '</span>' +
+            '<span class="ct-detail-label">SAN Names</span><span class="ct-detail-value">' + names.map(esc).join(', ') + '</span>' +
+            '<span class="ct-detail-label">Issuer</span><span class="ct-detail-value">' + esc(cert.issuer) + '</span>' +
+            '<span class="ct-detail-label">Not Before</span><span class="ct-detail-value">' + esc(cert.notBefore) + '</span>' +
+            '<span class="ct-detail-label">Not After</span><span class="ct-detail-value">' + esc(cert.notAfter) + '</span>' +
+            '<span class="ct-detail-label">Serial</span><span class="ct-detail-value">' + esc(cert.serialNumber) + '</span>' +
+            '<span class="ct-detail-label">crt.sh</span><span class="ct-detail-value"><a href="https://crt.sh/?id=' + cert.id + '" target="_blank" rel="noopener">View on crt.sh &#x2197;</a></span>' +
+          '</div>' +
+          (hasWildcard ? '<div class="ct-wildcard-warn">&#x26a0; This certificate includes wildcard domains (*.domain). Wildcard certs cover all subdomains.</div>' : '') +
+        '</div>' +
+      '</div>';
+    });
+
+    certsEl.innerHTML = html;
+  }
+
+  btnSearch.addEventListener('click', function () {
+    var domain = domainInput.value.trim().replace(/^https?:\/\//, '').replace(/\/.*/, '').replace(/^www\./, '');
+    if (!domain) { domainInput.focus(); return; }
+    domainInput.value = domain;
+
+    errorEl.style.display = 'none';
+    resultsEl.style.display = 'none';
+    statusEl.style.display = '';
+    statusEl.innerHTML = '<div class="ss-spinner"></div> Searching Certificate Transparency logs for ' + esc(domain) + '...';
+
+    fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: domain, token: turnstileToken || '' }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          statusEl.style.display = 'none';
+          errorEl.style.display = '';
+          errorEl.textContent = data.error;
+          return;
+        }
+        render(data);
+        if (window.turnstile) window.turnstile.reset();
+        turnstileToken = null;
+      })
+      .catch(function () {
+        statusEl.style.display = 'none';
+        errorEl.style.display = '';
+        errorEl.textContent = 'Worker unavailable. The CT Monitor worker may not be deployed yet.';
+      });
+  });
+
+  domainInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') btnSearch.click(); });
+})();
+</script>

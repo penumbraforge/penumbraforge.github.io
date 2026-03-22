@@ -1,0 +1,283 @@
+---
+toolSlug: breach-checker
+permalink: /tools/breach-checker/
+---
+
+<div class="tool-group">
+  <label for="bc-input">Enter a password or secret to check</label>
+  <p class="tool-hint">Uses <a href="https://haveibeenpwned.com/API/v3#PwnedPasswords" target="_blank" rel="noopener">k-anonymity</a> — only the first 5 characters of the SHA-1 hash are sent. Your secret never leaves your browser.</p>
+  <div class="bc-input-row">
+    <input type="password" id="bc-input" placeholder="Paste a password, API key, or token..." autocomplete="off" spellcheck="false">
+    <button class="btn btn--secondary bc-toggle-vis" id="btn-toggle" title="Show/hide">&#x1f441;</button>
+    <button class="btn" id="btn-check">Check</button>
+  </div>
+</div>
+
+<div id="bc-status" class="ss-status" style="display:none;"></div>
+
+<div id="bc-result" style="display:none;">
+  <div class="bc-result-card" id="bc-card"></div>
+</div>
+
+<div class="bc-how">
+  <div class="ha-section-label">How it works</div>
+  <div class="bc-steps">
+    <div class="bc-step">
+      <div class="bc-step-num">1</div>
+      <div class="bc-step-text"><strong>SHA-1 hash</strong> is computed locally in your browser</div>
+    </div>
+    <div class="bc-step">
+      <div class="bc-step-num">2</div>
+      <div class="bc-step-text">Only the <strong>first 5 characters</strong> of the hash are sent to the API</div>
+    </div>
+    <div class="bc-step">
+      <div class="bc-step-num">3</div>
+      <div class="bc-step-text">API returns all hash <strong>suffixes that match</strong> that prefix</div>
+    </div>
+    <div class="bc-step">
+      <div class="bc-step-num">4</div>
+      <div class="bc-step-text">Your browser checks for a match <strong>locally</strong> — the full hash is never transmitted</div>
+    </div>
+  </div>
+</div>
+
+<style>
+.tool-hint {
+  font-size: 12px;
+  color: var(--text-3);
+  margin: -4px 0 10px;
+}
+
+.tool-hint a { color: var(--accent); }
+
+.bc-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.bc-input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 300;
+  outline: none;
+}
+
+.bc-input-row input:focus { border-color: var(--border-active); }
+
+.bc-toggle-vis {
+  width: 42px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.bc-result-card {
+  padding: 24px;
+  border-radius: 12px;
+  margin-top: 20px;
+  border: 1px solid var(--border);
+}
+
+.bc-result-card.bc-safe {
+  background: rgba(107, 207, 143, 0.04);
+  border-color: rgba(107, 207, 143, 0.15);
+}
+
+.bc-result-card.bc-breached {
+  background: rgba(235, 87, 87, 0.04);
+  border-color: rgba(235, 87, 87, 0.15);
+}
+
+.bc-result-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.bc-result-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  margin-bottom: 6px;
+}
+
+.bc-safe .bc-result-title { color: var(--sage); }
+.bc-breached .bc-result-title { color: #eb5757; }
+
+.bc-result-detail {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.bc-result-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.bc-safe .bc-result-count { color: var(--sage); background: rgba(107, 207, 143, 0.08); }
+.bc-breached .bc-result-count { color: #eb5757; background: rgba(235, 87, 87, 0.08); }
+
+.bc-hash-info {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 12px;
+  word-break: break-all;
+}
+
+.bc-how {
+  margin-top: 36px;
+}
+
+.bc-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.bc-step {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.bc-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(184, 165, 214, 0.08);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bc-step-text {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.bc-step-text strong {
+  color: var(--text-1);
+  font-weight: 500;
+}
+</style>
+
+<script>
+(function () {
+  var inputEl = document.getElementById('bc-input');
+  var btnCheck = document.getElementById('btn-check');
+  var btnToggle = document.getElementById('btn-toggle');
+  var statusEl = document.getElementById('bc-status');
+  var resultEl = document.getElementById('bc-result');
+  var cardEl = document.getElementById('bc-card');
+
+  /* Toggle visibility */
+  btnToggle.addEventListener('click', function () {
+    inputEl.type = inputEl.type === 'password' ? 'text' : 'password';
+  });
+
+  /* SHA-1 hash using Web Crypto */
+  async function sha1(str) {
+    var buf = new TextEncoder().encode(str);
+    var hash = await crypto.subtle.digest('SHA-1', buf);
+    var arr = Array.from(new Uint8Array(hash));
+    return arr.map(function (b) { return b.toString(16).padStart(2, '0'); }).join('').toUpperCase();
+  }
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(s || ''));
+    return d.innerHTML;
+  }
+
+  function formatNum(n) {
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  async function check() {
+    var value = inputEl.value;
+    if (!value) { inputEl.focus(); return; }
+
+    resultEl.style.display = 'none';
+    statusEl.style.display = '';
+    statusEl.innerHTML = '<div class="ss-spinner"></div> Computing hash and checking breach databases...';
+
+    try {
+      var hash = await sha1(value);
+      var prefix = hash.substring(0, 5);
+      var suffix = hash.substring(5);
+
+      var resp = await fetch('https://api.pwnedpasswords.com/range/' + prefix, {
+        headers: { 'Add-Padding': 'true' },
+      });
+
+      if (!resp.ok) throw new Error('API returned ' + resp.status);
+
+      var text = await resp.text();
+      var lines = text.split('\n');
+      var found = 0;
+
+      for (var i = 0; i < lines.length; i++) {
+        var parts = lines[i].split(':');
+        if (parts[0] && parts[0].trim().toUpperCase() === suffix) {
+          found = parseInt(parts[1], 10) || 1;
+          break;
+        }
+      }
+
+      statusEl.style.display = 'none';
+      resultEl.style.display = '';
+
+      if (found > 0) {
+        cardEl.className = 'bc-result-card bc-breached';
+        cardEl.innerHTML =
+          '<div class="bc-result-icon">&#x26a0;</div>' +
+          '<div class="bc-result-title">This secret has been exposed</div>' +
+          '<div class="bc-result-detail">This value has appeared in known data breaches. If you are actively using it, rotate it immediately. Do not reuse it anywhere.</div>' +
+          '<div class="bc-result-count">Found in ' + formatNum(found) + ' breach' + (found !== 1 ? 'es' : '') + '</div>' +
+          '<div class="bc-hash-info">SHA-1 prefix sent: ' + esc(prefix) + '... (full hash never transmitted)</div>';
+      } else {
+        cardEl.className = 'bc-result-card bc-safe';
+        cardEl.innerHTML =
+          '<div class="bc-result-icon">&#x2705;</div>' +
+          '<div class="bc-result-title">Not found in known breaches</div>' +
+          '<div class="bc-result-detail">This value was not found in any known data breach in the Have I Been Pwned database. This does not guarantee it has never been exposed, but it has not appeared in any publicly known breach dataset.</div>' +
+          '<div class="bc-result-count">0 breaches found</div>' +
+          '<div class="bc-hash-info">SHA-1 prefix sent: ' + esc(prefix) + '... (full hash never transmitted)</div>';
+      }
+    } catch (err) {
+      statusEl.style.display = 'none';
+      resultEl.style.display = '';
+      cardEl.className = 'bc-result-card';
+      cardEl.innerHTML =
+        '<div class="bc-result-title" style="color:#eb5757;">Check failed</div>' +
+        '<div class="bc-result-detail">' + esc(err.message || 'Could not reach breach database') + '</div>';
+    }
+  }
+
+  btnCheck.addEventListener('click', check);
+  inputEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') check();
+  });
+})();
+</script>

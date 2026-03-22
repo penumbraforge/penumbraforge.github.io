@@ -1,0 +1,7 @@
+name = "ct-monitor"
+main = "worker.js"
+compatibility_date = "2026-03-22"
+account_id = "e32f51ad99dc43fb5249086282786c6f"
+
+[vars]
+ALLOWED_ORIGIN = "https://penumbraforge.com"

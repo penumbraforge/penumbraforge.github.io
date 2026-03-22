@@ -1,0 +1,357 @@
+---
+toolSlug: privacy-scan
+permalink: /tools/privacy-scan/
+---
+
+<div class="tool-group">
+  <label for="ps-url">Enter a URL to scan</label>
+  <div class="ss-input-row">
+    <input type="text" id="ps-url" placeholder="https://example.com" autocomplete="off" spellcheck="false">
+    <button class="btn" id="btn-scan">Scan Privacy</button>
+  </div>
+</div>
+
+<div id="ps-status" class="ss-status" style="display:none;"></div>
+<div id="ps-error" class="ss-error" style="display:none;"></div>
+
+<div id="ps-results" style="display:none;">
+  <div class="ps-label-card" id="ps-label"></div>
+  <div id="ps-trackers"></div>
+  <div id="ps-fingerprinting"></div>
+  <div id="ps-cookies"></div>
+  <div id="ps-thirdparty"></div>
+</div>
+
+<div id="turnstile-container"></div>
+
+<style>
+.ps-label-card {
+  padding: 24px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.ps-label-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text-1);
+  margin-bottom: 10px;
+}
+
+.ps-label-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ps-label-stat {
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.ps-label-stat-num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.ps-label-stat-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ps-stat-red .ps-label-stat-num { color: #eb5757; }
+.ps-stat-red .ps-label-stat-label { color: rgba(235, 87, 87, 0.6); }
+.ps-stat-red { background: rgba(235, 87, 87, 0.04); }
+
+.ps-stat-orange .ps-label-stat-num { color: #e8a87c; }
+.ps-stat-orange .ps-label-stat-label { color: rgba(232, 168, 124, 0.6); }
+.ps-stat-orange { background: rgba(232, 168, 124, 0.04); }
+
+.ps-stat-yellow .ps-label-stat-num { color: #e8b84d; }
+.ps-stat-yellow .ps-label-stat-label { color: rgba(232, 184, 77, 0.6); }
+.ps-stat-yellow { background: rgba(232, 184, 77, 0.04); }
+
+.ps-stat-green .ps-label-stat-num { color: var(--sage); }
+.ps-stat-green .ps-label-stat-label { color: rgba(107, 207, 143, 0.6); }
+.ps-stat-green { background: rgba(107, 207, 143, 0.04); }
+
+.ps-verdict {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.ps-section {
+  margin-bottom: 24px;
+}
+
+.ps-tracker-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.ps-tracker-sev {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.ps-sev-critical { color: #eb5757; background: rgba(235, 87, 87, 0.1); }
+.ps-sev-high { color: #e8a87c; background: rgba(232, 168, 124, 0.1); }
+.ps-sev-medium { color: #e8b84d; background: rgba(232, 184, 77, 0.1); }
+.ps-sev-low { color: var(--sage); background: rgba(107, 207, 143, 0.1); }
+
+.ps-tracker-name {
+  font-size: 13px;
+  color: var(--text-1);
+  flex: 1;
+}
+
+.ps-tracker-cat {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.ps-tracker-domain {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.ps-cookie-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ps-cookie-table th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-3);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ps-cookie-table td {
+  padding: 8px 10px;
+  color: var(--text-2);
+  border-bottom: 1px solid rgba(30, 30, 53, 0.5);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.ps-good { color: var(--sage); }
+.ps-bad { color: #eb5757; }
+
+.ps-domain-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ps-domain-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+</style>
+
+<script>
+(function () {
+  var WORKER_URL = 'https://privacy-scan.penumbraforge.workers.dev';
+  var TURNSTILE_SITE_KEY = '0x4AAAAAACukxXg8l2ppbG35';
+
+  var urlInput = document.getElementById('ps-url');
+  var btnScan = document.getElementById('btn-scan');
+  var statusEl = document.getElementById('ps-status');
+  var errorEl = document.getElementById('ps-error');
+  var resultsEl = document.getElementById('ps-results');
+  var labelEl = document.getElementById('ps-label');
+  var trackersEl = document.getElementById('ps-trackers');
+  var fpEl = document.getElementById('ps-fingerprinting');
+  var cookiesEl = document.getElementById('ps-cookies');
+  var tpEl = document.getElementById('ps-thirdparty');
+  var turnstileToken = null;
+
+  var tsScript = document.createElement('script');
+  tsScript.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoadPS';
+  tsScript.async = true;
+  document.head.appendChild(tsScript);
+
+  window.onTurnstileLoadPS = function () {
+    if (window.turnstile) {
+      window.turnstile.render('#turnstile-container', {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: function (t) { turnstileToken = t; },
+        'expired-callback': function () { turnstileToken = null; },
+        size: 'invisible',
+      });
+    }
+  };
+
+  function esc(s) { var d = document.createElement('div'); d.appendChild(document.createTextNode(s || '')); return d.innerHTML; }
+
+  function render(data) {
+    resultsEl.style.display = '';
+    statusEl.style.display = 'none';
+
+    var trackerCount = data.trackers.length;
+    var fpCount = data.fingerprinting.length;
+    var cookieCount = data.cookies.length;
+    var tpCount = data.thirdPartyCount;
+
+    /* Privacy nutrition label */
+    var score = 'Good';
+    var scoreColor = 'green';
+    if (data.hasSessionRecording) { score = 'Poor'; scoreColor = 'red'; }
+    else if (data.hasAdvertising || trackerCount > 5) { score = 'Poor'; scoreColor = 'red'; }
+    else if (trackerCount > 2 || fpCount > 0) { score = 'Fair'; scoreColor = 'yellow'; }
+    else if (trackerCount > 0) { score = 'Moderate'; scoreColor = 'orange'; }
+
+    var verdicts = [];
+    if (data.hasSessionRecording) verdicts.push('This site records your browsing session (mouse movements, clicks, scrolls).');
+    if (data.hasAdvertising) verdicts.push('This site loads advertising trackers that follow you across the web.');
+    if (data.hasAnalytics) verdicts.push('This site uses analytics that track your behavior.');
+    if (fpCount > 0) verdicts.push('This site uses browser fingerprinting techniques to identify you without cookies.');
+    if (trackerCount === 0 && fpCount === 0) verdicts.push('No known trackers or fingerprinting detected. This site appears to respect your privacy.');
+
+    labelEl.innerHTML =
+      '<div class="ps-label-title">Privacy Nutrition Label — ' + esc(data.url) + '</div>' +
+      '<div class="ps-label-grid">' +
+        '<div class="ps-label-stat ps-stat-' + scoreColor + '"><div class="ps-label-stat-num">' + score + '</div><div class="ps-label-stat-label">Rating</div></div>' +
+        '<div class="ps-label-stat ' + (trackerCount > 2 ? 'ps-stat-red' : trackerCount > 0 ? 'ps-stat-yellow' : 'ps-stat-green') + '"><div class="ps-label-stat-num">' + trackerCount + '</div><div class="ps-label-stat-label">Trackers</div></div>' +
+        '<div class="ps-label-stat ' + (fpCount > 0 ? 'ps-stat-red' : 'ps-stat-green') + '"><div class="ps-label-stat-num">' + fpCount + '</div><div class="ps-label-stat-label">Fingerprinting</div></div>' +
+        '<div class="ps-label-stat ' + (cookieCount > 5 ? 'ps-stat-orange' : 'ps-stat-green') + '"><div class="ps-label-stat-num">' + cookieCount + '</div><div class="ps-label-stat-label">Cookies</div></div>' +
+        '<div class="ps-label-stat ' + (tpCount > 10 ? 'ps-stat-orange' : 'ps-stat-green') + '"><div class="ps-label-stat-num">' + tpCount + '</div><div class="ps-label-stat-label">3rd Parties</div></div>' +
+      '</div>' +
+      '<div class="ps-verdict">' + verdicts.join(' ') + '</div>';
+
+    /* Trackers */
+    if (trackerCount > 0) {
+      var thtml = '<div class="ps-section"><div class="ha-section-label">Trackers Detected</div>';
+      data.trackers.forEach(function (t) {
+        thtml += '<div class="ps-tracker-card">' +
+          '<span class="ps-tracker-sev ps-sev-' + t.severity + '">' + t.severity + '</span>' +
+          '<span class="ps-tracker-name">' + esc(t.name) + '</span>' +
+          '<span class="ps-tracker-cat">' + esc(t.category) + '</span>' +
+          '<span class="ps-tracker-domain">' + esc(t.domain) + '</span>' +
+        '</div>';
+      });
+      thtml += '</div>';
+      trackersEl.innerHTML = thtml;
+    } else {
+      trackersEl.innerHTML = '<div class="ps-section"><div class="ha-section-label">Trackers</div><p style="color:var(--sage);font-size:13px;">No known trackers detected.</p></div>';
+    }
+
+    /* Fingerprinting */
+    if (fpCount > 0) {
+      var fhtml = '<div class="ps-section"><div class="ha-section-label">Fingerprinting Techniques</div>';
+      data.fingerprinting.forEach(function (f) {
+        fhtml += '<div class="ps-tracker-card">' +
+          '<span class="ps-tracker-sev ps-sev-' + f.severity + '">' + f.severity + '</span>' +
+          '<span class="ps-tracker-name">' + esc(f.name) + '</span>' +
+        '</div>';
+      });
+      fhtml += '</div>';
+      fpEl.innerHTML = fhtml;
+    } else {
+      fpEl.innerHTML = '';
+    }
+
+    /* Cookies */
+    if (cookieCount > 0) {
+      var chtml = '<div class="ps-section"><div class="ha-section-label">Cookies Set</div>' +
+        '<table class="ps-cookie-table"><thead><tr><th>Name</th><th>Duration</th><th>HttpOnly</th><th>Secure</th><th>SameSite</th></tr></thead><tbody>';
+      data.cookies.forEach(function (c) {
+        chtml += '<tr>' +
+          '<td>' + esc(c.name) + '</td>' +
+          '<td>' + esc(c.duration) + '</td>' +
+          '<td class="' + (c.httpOnly ? 'ps-good' : 'ps-bad') + '">' + (c.httpOnly ? 'Yes' : 'No') + '</td>' +
+          '<td class="' + (c.secure ? 'ps-good' : 'ps-bad') + '">' + (c.secure ? 'Yes' : 'No') + '</td>' +
+          '<td>' + esc(c.sameSite) + '</td>' +
+        '</tr>';
+      });
+      chtml += '</tbody></table></div>';
+      cookiesEl.innerHTML = chtml;
+    } else {
+      cookiesEl.innerHTML = '';
+    }
+
+    /* Third-party domains */
+    if (tpCount > 0) {
+      var dhtml = '<div class="ps-section"><div class="ha-section-label">Third-Party Domains (' + tpCount + ')</div><div class="ps-domain-list">';
+      data.thirdPartyDomains.forEach(function (d) {
+        dhtml += '<span class="ps-domain-chip">' + esc(d) + '</span>';
+      });
+      dhtml += '</div></div>';
+      tpEl.innerHTML = dhtml;
+    } else {
+      tpEl.innerHTML = '';
+    }
+  }
+
+  btnScan.addEventListener('click', function () {
+    var url = urlInput.value.trim();
+    if (!url) { urlInput.focus(); return; }
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    urlInput.value = url;
+
+    errorEl.style.display = 'none';
+    resultsEl.style.display = 'none';
+    statusEl.style.display = '';
+    statusEl.innerHTML = '<div class="ss-spinner"></div> Scanning ' + esc(url) + ' for trackers, cookies, and fingerprinting...';
+
+    fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url, token: turnstileToken || '' }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          statusEl.style.display = 'none';
+          errorEl.style.display = '';
+          errorEl.textContent = data.error;
+          return;
+        }
+        render(data);
+        if (window.turnstile) window.turnstile.reset();
+        turnstileToken = null;
+      })
+      .catch(function () {
+        statusEl.style.display = 'none';
+        errorEl.style.display = '';
+        errorEl.textContent = 'Worker unavailable. The Privacy Scan worker may not be deployed yet.';
+      });
+  });
+
+  urlInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') btnScan.click(); });
+})();
+</script>

@@ -585,14 +585,15 @@
   {
     "name": "Breach Checker",
     "slug": "breach-checker",
-    "description": "Check if your API keys have been exposed in known breaches.",
-    "longDescription": "Check if your API keys, tokens, or credentials have appeared in known data breaches — without sending them to a server. Uses k-anonymity so your secrets never leave your browser.",
+    "description": "Check if your passwords or secrets have been exposed in known breaches.",
+    "longDescription": "Check if your passwords, tokens, or secrets have appeared in known data breaches — without sending them to a server. Uses k-anonymity via the Have I Been Pwned API so your secrets never leave your browser.",
     "category": "intelligence",
-    "keywords": ["breach", "api key", "leaked", "credential", "exposure", "pwned", "check", "k-anonymity"],
-    "badge": "worker",
+    "keywords": ["breach", "password", "leaked", "credential", "exposure", "pwned", "check", "k-anonymity", "haveibeenpwned"],
+    "badge": "local",
     "relatedTools": ["secrets-scanner", "env-analyzer", "hash-generator"],
-    "status": "preview",
-    "featured": true
+    "status": "live",
+    "featured": true,
+    "isNew": true
   },
   {
     "name": "IR Timeline Builder",
@@ -653,17 +654,19 @@
     "keywords": ["privacy", "tracker", "cookies", "fingerprint", "data collection", "audit", "gdpr", "nutrition label"],
     "badge": "worker",
     "relatedTools": ["site-score", "security-headers", "header-analyzer"],
-    "status": "preview"
+    "status": "live",
+    "isNew": true
   },
   {
     "name": "CT Monitor",
     "slug": "ct-monitor",
-    "description": "Get alerts when new SSL certificates are issued for your domain.",
-    "longDescription": "Monitor Certificate Transparency logs for your domain and get alerts when new certificates are issued — catch phishing, typosquatting, and unauthorized issuance. Free, no account needed.",
+    "description": "Search Certificate Transparency logs for certificates issued for your domain.",
+    "longDescription": "Search Certificate Transparency logs for all certificates issued for your domain and subdomains. Spot unauthorized issuance, phishing domains, and typosquatting attempts. Powered by crt.sh.",
     "category": "intelligence",
-    "keywords": ["certificate transparency", "ssl", "monitor", "alert", "phishing", "typosquat", "domain", "ct logs"],
+    "keywords": ["certificate transparency", "ssl", "monitor", "crt.sh", "phishing", "typosquat", "domain", "ct logs"],
     "badge": "worker",
     "relatedTools": ["site-score", "dns-builder", "dmarc-builder"],
-    "status": "preview"
+    "status": "live",
+    "isNew": true
   }
 ]
