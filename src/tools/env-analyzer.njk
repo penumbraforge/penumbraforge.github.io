@@ -1,0 +1,457 @@
+---
+toolSlug: env-analyzer
+permalink: /tools/env-analyzer/
+---
+
+<div class="tool-group">
+  <label for="env-input">Paste your .env file</label>
+  <textarea id="env-input" rows="14" placeholder="AWS_ACCESS_KEY_ID=AKIA_EXAMPLE_KEY_HERE
+AWS_SECRET_ACCESS_KEY=example_secret_key_replace_me_1234567890
+DATABASE_URL=postgres://admin:secret@db.example.com:5432/myapp
+GITHUB_TOKEN=ghp_example_replace_with_your_token_here
+STRIPE_KEY=sk_live_example_replace_this_value
+OPENAI_API_KEY=sk-example-replace-with-your-key-here-now" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <button class="btn" id="btn-analyze">Analyze Exposure</button>
+  <button class="btn btn--secondary" id="btn-clear">Clear</button>
+</div>
+
+<div id="env-results" style="display:none;">
+  <div class="env-summary" id="env-summary"></div>
+  <div class="env-findings" id="env-findings"></div>
+</div>
+
+<style>
+.env-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.env-stat {
+  padding: 16px;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.env-stat-num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.env-stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.env-stat--critical { background: rgba(235, 87, 87, 0.06); }
+.env-stat--critical .env-stat-num { color: #eb5757; }
+.env-stat--critical .env-stat-label { color: rgba(235, 87, 87, 0.7); }
+
+.env-stat--high { background: rgba(232, 168, 124, 0.06); }
+.env-stat--high .env-stat-num { color: #e8a87c; }
+.env-stat--high .env-stat-label { color: rgba(232, 168, 124, 0.7); }
+
+.env-stat--medium { background: rgba(232, 184, 77, 0.06); }
+.env-stat--medium .env-stat-num { color: #e8b84d; }
+.env-stat--medium .env-stat-label { color: rgba(232, 184, 77, 0.7); }
+
+.env-stat--ok { background: rgba(107, 207, 143, 0.06); }
+.env-stat--ok .env-stat-num { color: var(--sage); }
+.env-stat--ok .env-stat-label { color: rgba(107, 207, 143, 0.7); }
+
+.env-finding {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.env-finding-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 150ms;
+}
+
+.env-finding-header:hover {
+  background: rgba(184, 165, 214, 0.03);
+}
+
+.env-severity {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.env-severity--critical { color: #eb5757; background: rgba(235, 87, 87, 0.1); }
+.env-severity--high { color: #e8a87c; background: rgba(232, 168, 124, 0.1); }
+.env-severity--medium { color: #e8b84d; background: rgba(232, 184, 77, 0.1); }
+.env-severity--low { color: var(--text-3); background: rgba(102, 102, 102, 0.1); }
+
+.env-finding-key {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-1);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.env-finding-type {
+  font-size: 12px;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+.env-finding-chevron {
+  color: var(--muted);
+  font-size: 12px;
+  transition: transform 200ms;
+  flex-shrink: 0;
+}
+
+.env-finding.open .env-finding-chevron {
+  transform: rotate(90deg);
+}
+
+.env-finding-detail {
+  display: none;
+  padding: 0 18px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.env-finding.open .env-finding-detail {
+  display: block;
+}
+
+.env-detail-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.env-detail-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.env-detail-value {
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.env-detail-value a {
+  color: var(--accent);
+}
+
+.env-blast {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(235, 87, 87, 0.04);
+  border: 1px solid rgba(235, 87, 87, 0.08);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.env-blast strong {
+  color: #eb5757;
+  font-weight: 500;
+}
+
+.env-rotate-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  padding: 4px 10px;
+  border: 1px solid rgba(184, 165, 214, 0.15);
+  border-radius: 6px;
+  transition: all 200ms;
+}
+
+.env-rotate-link:hover {
+  background: rgba(184, 165, 214, 0.08);
+  color: var(--accent-strong);
+}
+
+.env-no-issues {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--sage);
+  font-size: 14px;
+}
+</style>
+
+<script>
+(function () {
+  var inputEl = document.getElementById('env-input');
+  var resultsEl = document.getElementById('env-results');
+  var summaryEl = document.getElementById('env-summary');
+  var findingsEl = document.getElementById('env-findings');
+  var btnAnalyze = document.getElementById('btn-analyze');
+  var btnClear = document.getElementById('btn-clear');
+
+  /* ── Secret patterns ── */
+  var patterns = [
+    // AWS
+    { regex: /(?:^|=\s*)AKIA[0-9A-Z]{16}/m, type: 'AWS Access Key', service: 'Amazon Web Services', severity: 'critical',
+      blast: 'Full access to AWS services under this IAM user. An attacker can provision infrastructure, access S3 buckets, read databases, and incur unlimited charges on your account.',
+      rotate: 'https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_RotateAccessKey' },
+    { regex: /(?:aws.?secret.?access.?key|aws.?secret)\s*[=:]\s*[A-Za-z0-9/+=]{40}/i, type: 'AWS Secret Key', service: 'Amazon Web Services', severity: 'critical',
+      blast: 'Combined with an access key, this grants full programmatic access to your AWS account. Treat as a root compromise of all AWS resources.',
+      rotate: 'https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_RotateAccessKey' },
+
+    // GitHub
+    { regex: /(?:^|=\s*)ghp_[a-zA-Z0-9]{36}/m, type: 'GitHub Personal Access Token', service: 'GitHub', severity: 'critical',
+      blast: 'Access to all repositories and organizations the token owner can reach. Can push code, read private repos, manage settings, and access GitHub API on behalf of the user.',
+      rotate: 'https://github.com/settings/tokens' },
+    { regex: /(?:^|=\s*)gho_[a-zA-Z0-9]{36}/m, type: 'GitHub OAuth Token', service: 'GitHub', severity: 'critical',
+      blast: 'OAuth-scoped access to GitHub resources. Scope depends on the app that issued it, but may include repo access, org membership, and user data.',
+      rotate: 'https://github.com/settings/applications' },
+    { regex: /(?:^|=\s*)ghs_[a-zA-Z0-9]{36}/m, type: 'GitHub App Installation Token', service: 'GitHub', severity: 'high',
+      blast: 'Temporary token for a GitHub App installation. Grants the permissions configured for that app across its installed repos.',
+      rotate: 'https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app' },
+    { regex: /(?:^|=\s*)github_pat_[a-zA-Z0-9_]{82}/m, type: 'GitHub Fine-Grained PAT', service: 'GitHub', severity: 'critical',
+      blast: 'Fine-grained access to specific repositories with specific permissions. Check the token settings to understand the exact scope of exposure.',
+      rotate: 'https://github.com/settings/tokens?type=beta' },
+
+    // Stripe
+    { regex: /(?:^|=\s*)sk_live_[a-zA-Z0-9]{24,}/m, type: 'Stripe Live Secret Key', service: 'Stripe', severity: 'critical',
+      blast: 'Full access to your live Stripe account. An attacker can create charges, issue refunds, access customer payment data, modify subscriptions, and transfer funds.',
+      rotate: 'https://dashboard.stripe.com/apikeys' },
+    { regex: /(?:^|=\s*)sk_test_[a-zA-Z0-9]{24,}/m, type: 'Stripe Test Secret Key', service: 'Stripe', severity: 'low',
+      blast: 'Access to Stripe test mode only. No real money or customer data at risk, but reveals your account structure.',
+      rotate: 'https://dashboard.stripe.com/apikeys' },
+    { regex: /(?:^|=\s*)pk_live_[a-zA-Z0-9]{24,}/m, type: 'Stripe Live Publishable Key', service: 'Stripe', severity: 'low',
+      blast: 'This key is designed to be public (used in frontend code). Limited risk, but confirms you use Stripe.',
+      rotate: 'https://dashboard.stripe.com/apikeys' },
+
+    // OpenAI / Anthropic
+    { regex: /(?:^|=\s*)sk-[a-zA-Z0-9]{32,}/m, type: 'OpenAI API Key', service: 'OpenAI', severity: 'high',
+      blast: 'Full access to your OpenAI account. An attacker can make API calls, consume your credits, access fine-tuned models, and view usage data.',
+      rotate: 'https://platform.openai.com/api-keys' },
+    { regex: /(?:^|=\s*)sk-ant-[a-zA-Z0-9-]{80,}/m, type: 'Anthropic API Key', service: 'Anthropic', severity: 'high',
+      blast: 'Full access to your Anthropic account. An attacker can make Claude API calls and consume your credits.',
+      rotate: 'https://console.anthropic.com/settings/keys' },
+
+    // Slack
+    { regex: /(?:^|=\s*)xoxb-[0-9]{10,}-[a-zA-Z0-9-]+/m, type: 'Slack Bot Token', service: 'Slack', severity: 'high',
+      blast: 'Access to your Slack workspace as a bot. Can read channels, send messages, upload files, and access user info depending on scopes.',
+      rotate: 'https://api.slack.com/apps' },
+    { regex: /(?:^|=\s*)xoxp-[0-9]{10,}-[a-zA-Z0-9-]+/m, type: 'Slack User Token', service: 'Slack', severity: 'critical',
+      blast: 'Access to Slack as a specific user. Can read all channels the user has access to, send messages as them, and access private conversations.',
+      rotate: 'https://api.slack.com/apps' },
+    { regex: /(?:^|=\s*)xoxs-[0-9]{10,}-[a-zA-Z0-9-]+/m, type: 'Slack Session Token', service: 'Slack', severity: 'critical',
+      blast: 'Full session access to a Slack workspace. Equivalent to being logged in as the user.',
+      rotate: 'https://api.slack.com/apps' },
+
+    // Database URLs
+    { regex: /(?:^|=\s*)postgres(?:ql)?:\/\/[^\s'"]+/mi, type: 'PostgreSQL Connection String', service: 'PostgreSQL', severity: 'critical',
+      blast: 'Direct database access. An attacker can read, modify, or delete all data. If the connection includes admin credentials, they can drop tables or exfiltrate the entire database.',
+      rotate: 'Rotate the database user password and update all connection strings.' },
+    { regex: /(?:^|=\s*)mysql:\/\/[^\s'"]+/mi, type: 'MySQL Connection String', service: 'MySQL', severity: 'critical',
+      blast: 'Direct database access with the privileges of the connection user. Full read/write/delete capability on accessible databases.',
+      rotate: 'Rotate the database user password and update all connection strings.' },
+    { regex: /(?:^|=\s*)mongodb(\+srv)?:\/\/[^\s'"]+/mi, type: 'MongoDB Connection String', service: 'MongoDB', severity: 'critical',
+      blast: 'Direct access to your MongoDB instance. An attacker can read, modify, or delete all documents in accessible collections.',
+      rotate: 'Rotate the database user password in MongoDB Atlas or your self-hosted instance.' },
+    { regex: /(?:^|=\s*)redis:\/\/[^\s'"]+/mi, type: 'Redis Connection String', service: 'Redis', severity: 'high',
+      blast: 'Access to your Redis instance. Can read cached data, session tokens, and queue contents. May allow command execution if not sandboxed.',
+      rotate: 'Rotate the Redis password and update all connection strings.' },
+
+    // Private Keys
+    { regex: /-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/m, type: 'Private Key', service: 'SSH / TLS', severity: 'critical',
+      blast: 'A private key can be used to authenticate as the key owner. If this is an SSH key, an attacker can access any server it is authorized on. If TLS, they can impersonate your service.',
+      rotate: 'Generate a new key pair, replace the public key everywhere the old one was authorized, and revoke the old key.' },
+
+    // SendGrid
+    { regex: /(?:^|=\s*)SG\.[a-zA-Z0-9_-]{22}\.[a-zA-Z0-9_-]{43}/m, type: 'SendGrid API Key', service: 'SendGrid', severity: 'high',
+      blast: 'Can send emails from your domain. An attacker can send phishing emails that appear to come from your organization, damaging reputation and trust.',
+      rotate: 'https://app.sendgrid.com/settings/api_keys' },
+
+    // Twilio
+    { regex: /(?:^|=\s*)AC[a-f0-9]{32}/m, type: 'Twilio Account SID', service: 'Twilio', severity: 'medium',
+      blast: 'Account identifier — not secret alone, but combined with an auth token grants full Twilio access including sending SMS and making calls.',
+      rotate: 'https://www.twilio.com/console' },
+
+    // Mailgun
+    { regex: /(?:^|=\s*)key-[a-zA-Z0-9]{32}/m, type: 'Mailgun API Key', service: 'Mailgun', severity: 'high',
+      blast: 'Can send emails from your Mailgun domains. Enables phishing attacks using your legitimate email infrastructure.',
+      rotate: 'https://app.mailgun.com/settings/api_security' },
+
+    // Firebase
+    { regex: /(?:^|=\s*)AIza[0-9A-Za-z_-]{35}/m, type: 'Google / Firebase API Key', service: 'Google Cloud / Firebase', severity: 'medium',
+      blast: 'Depending on API restrictions, may allow access to Google Cloud services, Firebase databases, or Maps APIs. Can incur billing charges.',
+      rotate: 'https://console.cloud.google.com/apis/credentials' },
+
+    // Cloudflare
+    { regex: /(?:^|=\s*)v1\.0-[a-f0-9]{24}-[a-f0-9]{146}/m, type: 'Cloudflare API Token', service: 'Cloudflare', severity: 'high',
+      blast: 'Scoped access to Cloudflare resources. Depending on token permissions, may allow DNS changes, firewall modifications, or cache purging.',
+      rotate: 'https://dash.cloudflare.com/profile/api-tokens' },
+
+    // Heroku
+    { regex: /(?:^|=\s*)[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/m, type: 'Possible Heroku API Key / UUID', service: 'Heroku / Generic', severity: 'low',
+      blast: 'If this is a Heroku API key, it grants full access to your Heroku account. If it is a generic UUID, it may not be sensitive.',
+      rotate: 'https://dashboard.heroku.com/account' },
+
+    // Generic password/secret patterns
+    { regex: /(?:password|passwd|pwd)\s*[=:]\s*[^\s]{8,}/i, type: 'Hardcoded Password', service: 'Unknown', severity: 'high',
+      blast: 'A hardcoded password. Impact depends on what service it authenticates to. If it is a database or admin password, treat as critical.',
+      rotate: 'Change the password for the service this authenticates to.' },
+    { regex: /(?:secret|auth.?token|access.?token|bearer)\s*[=:]\s*[^\s]{16,}/i, type: 'Secret / Auth Token', service: 'Unknown', severity: 'high',
+      blast: 'An authentication token or secret. Impact depends on the service it belongs to. Investigate what service uses this variable name.',
+      rotate: 'Identify the service and rotate the token through its dashboard.' },
+    { regex: /(?:private.?key|signing.?key|encryption.?key)\s*[=:]\s*[^\s]{16,}/i, type: 'Encryption / Signing Key', service: 'Unknown', severity: 'critical',
+      blast: 'A cryptographic key used for signing or encryption. Compromise may allow forging signatures, decrypting data, or impersonating your service.',
+      rotate: 'Generate a new key, re-encrypt or re-sign all dependent data, and revoke the old key.' }
+  ];
+
+  function analyze(input) {
+    var lines = input.split('\n');
+    var findings = [];
+    var seen = {};
+
+    lines.forEach(function (line, lineIdx) {
+      var trimmed = line.trim();
+      if (!trimmed || trimmed.charAt(0) === '#') return;
+
+      var eqIdx = trimmed.indexOf('=');
+      var key = eqIdx > 0 ? trimmed.substring(0, eqIdx).trim() : '';
+      var val = eqIdx > 0 ? trimmed.substring(eqIdx + 1).trim() : '';
+
+      /* Remove surrounding quotes */
+      if ((val.charAt(0) === '"' && val.charAt(val.length - 1) === '"') ||
+          (val.charAt(0) === "'" && val.charAt(val.length - 1) === "'")) {
+        val = val.substring(1, val.length - 1);
+      }
+
+      if (!val) return;
+
+      patterns.forEach(function (p) {
+        if (p.regex.test(line) || p.regex.test(val)) {
+          var id = key + ':' + p.type;
+          if (seen[id]) return;
+          seen[id] = true;
+          findings.push({
+            line: lineIdx + 1,
+            key: key || '(inline)',
+            value: val.length > 40 ? val.substring(0, 20) + '...' + val.substring(val.length - 8) : val,
+            type: p.type,
+            service: p.service,
+            severity: p.severity,
+            blast: p.blast,
+            rotate: p.rotate
+          });
+        }
+      });
+    });
+
+    /* Sort: critical > high > medium > low */
+    var order = { critical: 0, high: 1, medium: 2, low: 3 };
+    findings.sort(function (a, b) { return (order[a.severity] || 9) - (order[b.severity] || 9); });
+
+    return findings;
+  }
+
+  function render(findings) {
+    resultsEl.style.display = '';
+
+    if (findings.length === 0) {
+      summaryEl.innerHTML = '';
+      findingsEl.innerHTML = '<div class="env-no-issues">No secrets detected. Your .env looks clean.</div>';
+      return;
+    }
+
+    /* Summary stats */
+    var counts = { critical: 0, high: 0, medium: 0, low: 0 };
+    findings.forEach(function (f) { counts[f.severity] = (counts[f.severity] || 0) + 1; });
+
+    summaryEl.innerHTML =
+      '<div class="env-stat env-stat--critical"><div class="env-stat-num">' + counts.critical + '</div><div class="env-stat-label">Critical</div></div>' +
+      '<div class="env-stat env-stat--high"><div class="env-stat-num">' + counts.high + '</div><div class="env-stat-label">High</div></div>' +
+      '<div class="env-stat env-stat--medium"><div class="env-stat-num">' + counts.medium + '</div><div class="env-stat-label">Medium</div></div>' +
+      '<div class="env-stat env-stat--ok"><div class="env-stat-num">' + counts.low + '</div><div class="env-stat-label">Low</div></div>';
+
+    /* Findings list */
+    var html = '';
+    findings.forEach(function (f, i) {
+      html += '<div class="env-finding" id="finding-' + i + '">' +
+        '<div class="env-finding-header" onclick="document.getElementById(\'finding-' + i + '\').classList.toggle(\'open\')">' +
+          '<span class="env-severity env-severity--' + f.severity + '">' + f.severity + '</span>' +
+          '<span class="env-finding-key">' + escHtml(f.key) + '</span>' +
+          '<span class="env-finding-type">' + escHtml(f.type) + '</span>' +
+          '<span class="env-finding-chevron">&#x203a;</span>' +
+        '</div>' +
+        '<div class="env-finding-detail">' +
+          '<div class="env-detail-row"><span class="env-detail-label">Line</span><span class="env-detail-value">' + f.line + '</span></div>' +
+          '<div class="env-detail-row"><span class="env-detail-label">Service</span><span class="env-detail-value">' + escHtml(f.service) + '</span></div>' +
+          '<div class="env-detail-row"><span class="env-detail-label">Detected as</span><span class="env-detail-value">' + escHtml(f.type) + '</span></div>' +
+          '<div class="env-detail-row"><span class="env-detail-label">Value preview</span><span class="env-detail-value" style="font-family:var(--font-mono);font-size:12px;">' + escHtml(f.value) + '</span></div>' +
+          '<div class="env-blast"><strong>Blast radius:</strong> ' + escHtml(f.blast) + '</div>' +
+          (f.rotate.indexOf('http') === 0
+            ? '<a class="env-rotate-link" href="' + escHtml(f.rotate) + '" target="_blank" rel="noopener">Rotate this credential &#x2197;</a>'
+            : '<div style="margin-top:8px;font-size:12px;color:var(--text-3);">' + escHtml(f.rotate) + '</div>') +
+        '</div>' +
+      '</div>';
+    });
+
+    findingsEl.innerHTML = html;
+  }
+
+  function escHtml(str) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(str));
+    return d.innerHTML;
+  }
+
+  btnAnalyze.addEventListener('click', function () {
+    var input = inputEl.value.trim();
+    if (!input) return;
+    var findings = analyze(input);
+    render(findings);
+  });
+
+  btnClear.addEventListener('click', function () {
+    inputEl.value = '';
+    resultsEl.style.display = 'none';
+    summaryEl.innerHTML = '';
+    findingsEl.innerHTML = '';
+  });
+
+  /* Auto-analyze on paste */
+  inputEl.addEventListener('paste', function () {
+    setTimeout(function () {
+      if (inputEl.value.trim()) {
+        var findings = analyze(inputEl.value.trim());
+        render(findings);
+      }
+    }, 50);
+  });
+})();
+</script>

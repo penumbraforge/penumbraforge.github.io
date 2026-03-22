@@ -638,7 +638,8 @@
     "keywords": [".env", "exposure", "secret", "blast radius", "rotate", "api key", "credential", "environment"],
     "badge": "local",
     "relatedTools": ["env-linter", "secrets-scanner", "breach-checker"],
-    "status": "preview"
+    "status": "live",
+    "isNew": true
   },
   {
     "name": "Privacy Scan",
