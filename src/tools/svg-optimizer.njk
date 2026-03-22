@@ -1,0 +1,249 @@
+---
+toolSlug: svg-optimizer
+permalink: /tools/svg-optimizer/
+---
+
+<style>
+  .svo-split { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:680px) { .svo-split { grid-template-columns:1fr; } }
+  .svo-stat { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0.75rem 1rem; background:var(--color-surface-2,#1e293b); border-radius:8px; min-width:100px; }
+  .svo-stat-val { font-size:1.3rem; font-weight:700; color:var(--color-accent,#6366f1); font-family:var(--font-mono,monospace); }
+  .svo-stat-label { font-size:0.7rem; color:var(--color-muted,#94a3b8); margin-top:0.2rem; text-transform:uppercase; letter-spacing:0.05em; }
+  .svo-reduction { font-size:1.3rem; font-weight:700; color:#4ade80; font-family:var(--font-mono,monospace); }
+  .svo-preview-box { border:1px dashed var(--color-border,#334155); border-radius:8px; padding:1rem; display:flex; align-items:center; justify-content:center; min-height:120px; background:var(--color-surface-2,#1e293b); overflow:hidden; }
+  .svo-check { display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; }
+  .svo-check input { width:16px; height:16px; cursor:pointer; accent-color:var(--color-accent,#6366f1); }
+</style>
+
+<div class="svo-split">
+  <div class="tool-group" style="margin-bottom:0;">
+    <label for="svo-input">Paste SVG code</label>
+    <textarea id="svo-input" rows="14" placeholder='<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">&#10;  <!-- comment -->&#10;  <circle cx="50" cy="50" r="40" fill="red" />&#10;</svg>' spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+  <div class="output-area" style="margin-bottom:0;">
+    <button class="btn btn--copy" id="svo-copy">Copy</button>
+    <label style="display:block; font-size:0.8rem; color:var(--color-muted,#888); margin-bottom:0.4rem;">Optimized SVG</label>
+    <pre id="svo-output" style="min-height:8rem;"></pre>
+  </div>
+</div>
+
+<div style="display:flex; flex-wrap:wrap; gap:0.6rem; margin:1rem 0 0.75rem; align-items:center;">
+  <label class="svo-check"><input type="checkbox" id="svo-opt-comments" checked> Remove comments</label>
+  <label class="svo-check"><input type="checkbox" id="svo-opt-metadata" checked> Remove metadata/editor tags</label>
+  <label class="svo-check"><input type="checkbox" id="svo-opt-empty-groups" checked> Remove empty groups</label>
+  <label class="svo-check"><input type="checkbox" id="svo-opt-default-attrs" checked> Remove default attributes</label>
+  <label class="svo-check"><input type="checkbox" id="svo-opt-whitespace" checked> Collapse whitespace</label>
+  <label class="svo-check"><input type="checkbox" id="svo-opt-decimals" checked> Round decimals (4 places)</label>
+</div>
+
+<div id="svo-stats" style="display:none; margin-bottom:1rem;">
+  <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+    <div class="svo-stat"><div class="svo-stat-val" id="svo-orig-size">—</div><div class="svo-stat-label">Original</div></div>
+    <div style="font-size:1.5rem; color:var(--color-muted,#94a3b8);">→</div>
+    <div class="svo-stat"><div class="svo-stat-val" id="svo-opt-size">—</div><div class="svo-stat-label">Optimized</div></div>
+    <div class="svo-stat"><div class="svo-reduction" id="svo-reduction">—</div><div class="svo-stat-label">Reduction</div></div>
+  </div>
+</div>
+
+<div style="margin-bottom:0.5rem; font-size:0.8rem; font-weight:600; color:var(--color-muted,#94a3b8);">Preview</div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+  <div>
+    <div style="font-size:0.75rem; color:var(--color-muted,#94a3b8); margin-bottom:0.3rem;">Original</div>
+    <div class="svo-preview-box" id="svo-preview-orig"><span style="color:var(--color-muted,#94a3b8); font-size:0.8rem;">Paste SVG to preview</span></div>
+  </div>
+  <div>
+    <div style="font-size:0.75rem; color:var(--color-muted,#94a3b8); margin-bottom:0.3rem;">Optimized</div>
+    <div class="svo-preview-box" id="svo-preview-opt"><span style="color:var(--color-muted,#94a3b8); font-size:0.8rem;">Optimized SVG will appear here</span></div>
+  </div>
+</div>
+
+<div id="svo-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<script>
+(function () {
+  var inputEl    = document.getElementById('svo-input');
+  var outputEl   = document.getElementById('svo-output');
+  var copyBtn    = document.getElementById('svo-copy');
+  var statsEl    = document.getElementById('svo-stats');
+  var origSizeEl = document.getElementById('svo-orig-size');
+  var optSizeEl  = document.getElementById('svo-opt-size');
+  var reductionEl = document.getElementById('svo-reduction');
+  var prevOrig   = document.getElementById('svo-preview-orig');
+  var prevOpt    = document.getElementById('svo-preview-opt');
+  var errorEl    = document.getElementById('svo-error');
+
+  var opts = {
+    comments:     document.getElementById('svo-opt-comments'),
+    metadata:     document.getElementById('svo-opt-metadata'),
+    emptyGroups:  document.getElementById('svo-opt-empty-groups'),
+    defaultAttrs: document.getElementById('svo-opt-default-attrs'),
+    whitespace:   document.getElementById('svo-opt-whitespace'),
+    decimals:     document.getElementById('svo-opt-decimals'),
+  };
+
+  /* Default attribute values that can be removed safely */
+  var DEFAULT_ATTRS = {
+    fill: 'black', stroke: 'none', 'stroke-width': '1', opacity: '1',
+    'fill-opacity': '1', 'stroke-opacity': '1', 'font-size': 'medium',
+    'text-anchor': 'start', 'font-style': 'normal', 'font-weight': 'normal',
+    overflow: 'visible', visibility: 'visible', display: 'inline',
+    'fill-rule': 'nonzero', 'clip-rule': 'nonzero',
+  };
+
+  /* Editor/metadata tags to remove entirely */
+  var EDITOR_TAGS = ['metadata', 'sodipodi:namedview', 'inkscape:perspective',
+                     'dc:format', 'dc:type', 'cc:Work', 'rdf:RDF'];
+
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    return (b / 1024).toFixed(1) + ' KB';
+  }
+
+  function roundDecimals(svg) {
+    return svg.replace(/(\d+\.\d{5,})/g, function (m) {
+      return parseFloat(parseFloat(m).toFixed(4)).toString();
+    });
+  }
+
+  function optimize(svg) {
+    var result = svg;
+
+    // Remove XML declaration and doctype
+    result = result.replace(/<\?xml[^>]*\?>/g, '');
+    result = result.replace(/<!DOCTYPE[^>]*>/g, '');
+
+    if (opts.comments.checked) {
+      result = result.replace(/<!--[\s\S]*?-->/g, '');
+    }
+
+    if (opts.metadata.checked) {
+      EDITOR_TAGS.forEach(function (tag) {
+        var tagName = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        result = result.replace(new RegExp('<' + tagName + '[^>]*>[\\s\\S]*?<\\/' + tagName + '>', 'gi'), '');
+        result = result.replace(new RegExp('<' + tagName + '[^/]*/>', 'gi'), '');
+      });
+      // Remove inkscape/sodipodi namespaced attributes
+      result = result.replace(/\s(?:inkscape|sodipodi|dc|cc|rdf):[a-z:A-Z-]+=["'][^"']*["']/g, '');
+      // Remove xmlns declarations for removed namespaces
+      result = result.replace(/\s+xmlns:(?:inkscape|sodipodi|dc|cc|rdf)="[^"]*"/g, '');
+    }
+
+    if (opts.defaultAttrs.checked) {
+      Object.keys(DEFAULT_ATTRS).forEach(function (attr) {
+        var val = DEFAULT_ATTRS[attr];
+        var re = new RegExp('\\s' + attr + '=["\']' + val + '["\']', 'g');
+        result = result.replace(re, '');
+      });
+    }
+
+    if (opts.emptyGroups.checked) {
+      // Repeatedly remove empty groups (may be nested)
+      var prev;
+      do {
+        prev = result;
+        result = result.replace(/<g[^>]*>\s*<\/g>/g, '');
+        result = result.replace(/<g>\s*<\/g>/g, '');
+      } while (result !== prev);
+    }
+
+    if (opts.decimals.checked) {
+      result = roundDecimals(result);
+    }
+
+    if (opts.whitespace.checked) {
+      // Collapse whitespace between tags
+      result = result.replace(/>\s+</g, '><');
+      // Collapse multiple spaces in attribute values (but not in text)
+      result = result.replace(/\s{2,}/g, ' ');
+      result = result.trim();
+    }
+
+    return result;
+  }
+
+  function isSVG(text) {
+    return /<svg[\s>]/i.test(text.trim());
+  }
+
+  function setSVGPreview(container, svgText) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    if (!svgText) return;
+    // Render SVG safely using a data URI or img element approach
+    // We parse and restrict to SVG namespace only to display
+    try {
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(svgText, 'image/svg+xml');
+      var svgEl = doc.documentElement;
+      if (svgEl && svgEl.tagName.toLowerCase() === 'svg') {
+        // Clone into a wrapper with constrained size
+        var clone = document.importNode(svgEl, true);
+        clone.style.maxWidth = '100%';
+        clone.style.maxHeight = '180px';
+        container.appendChild(clone);
+      }
+    } catch (e) {}
+  }
+
+  function process() {
+    var raw = inputEl.value.trim();
+    if (!raw) {
+      outputEl.textContent = '';
+      statsEl.style.display = 'none';
+      hideError();
+      while (prevOrig.firstChild) prevOrig.removeChild(prevOrig.firstChild);
+      while (prevOpt.firstChild) prevOpt.removeChild(prevOpt.firstChild);
+      return;
+    }
+
+    if (!isSVG(raw)) {
+      showError('Input does not appear to be valid SVG.');
+      return;
+    }
+    hideError();
+
+    var optimized = optimize(raw);
+    outputEl.textContent = optimized;
+
+    var origSize = new Blob([raw]).size;
+    var optSize  = new Blob([optimized]).size;
+    var reduction = origSize > 0 ? Math.round((1 - optSize / origSize) * 100) : 0;
+
+    origSizeEl.textContent = formatBytes(origSize);
+    optSizeEl.textContent  = formatBytes(optSize);
+    reductionEl.textContent = reduction + '%';
+    reductionEl.style.color = reduction > 0 ? '#4ade80' : (reduction < 0 ? '#f87171' : '#94a3b8');
+    statsEl.style.display = '';
+
+    setSVGPreview(prevOrig, raw);
+    setSVGPreview(prevOpt, optimized);
+  }
+
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = ''; }
+  function hideError() { errorEl.textContent = ''; errorEl.style.display = 'none'; }
+
+  inputEl.addEventListener('input', process);
+  Object.keys(opts).forEach(function (k) { opts[k].addEventListener('change', process); });
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; } catch (e) { copyBtn.textContent = 'Failed'; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+  });
+
+  // Sample SVG
+  inputEl.value = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="100" height="100" viewBox="0 0 100 100">\n  <!-- Created by Inkscape -->\n  <metadata>Sample metadata</metadata>\n  <g inkscape:label="Layer 1">\n    <circle cx="50" cy="50.0000000" r="40.000000" fill="red" stroke="none" opacity="1" />\n    <rect x="10" y="10" width="20" height="20.0000" fill="blue" />\n    <g></g>\n  </g>\n</svg>';
+  process();
+})();
+</script>

@@ -1,0 +1,623 @@
+---
+toolSlug: shell-explainer
+permalink: /tools/shell-explainer/
+---
+
+<div class="tool-group">
+  <label for="shell-input">Paste a shell command</label>
+  <textarea id="shell-input" rows="5" placeholder="grep -rn 'TODO' ./src --include='*.js' | sort | head -20" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Example commands">
+    <button class="tool-option" id="ex-find">find</button>
+    <button class="tool-option" id="ex-grep">grep</button>
+    <button class="tool-option" id="ex-tar">tar</button>
+    <button class="tool-option" id="ex-curl">curl</button>
+    <button class="tool-option" id="ex-docker">docker</button>
+    <button class="tool-option" id="ex-git">git</button>
+  </div>
+</div>
+
+<div id="shell-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+<div id="shell-results" style="display:none;"></div>
+
+<style>
+  .shell-segment {
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .shell-segment-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface-0);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .shell-pipe-label {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    padding: 2px 8px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+
+  .shell-cmd-name {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .shell-cmd-desc {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-2);
+    flex: 1;
+  }
+
+  .shell-tokens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 10px 14px;
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+
+  .shell-token {
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .shell-token--cmd   { background: rgba(var(--accent-rgb, 91,141,184), 0.15); color: var(--accent); font-weight: 700; }
+  .shell-token--flag  { background: rgba(100,180,130,0.15); color: #64b482; }
+  .shell-token--arg   { background: var(--surface-0); color: var(--text-1); border: 1px solid var(--border); }
+  .shell-token--redir { background: rgba(200,140,80,0.15); color: #c8a050; font-weight: 600; }
+  .shell-token--env   { background: rgba(160,100,200,0.15); color: #a070c8; }
+
+  .shell-parts {
+    padding: 10px 14px;
+  }
+
+  .shell-part {
+    display: flex;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+
+  .shell-part:last-child { border-bottom: none; }
+
+  .shell-part-token {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    flex-shrink: 0;
+    min-width: 120px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--surface-0);
+    border: 1px solid var(--border);
+    color: var(--text-1);
+    word-break: break-all;
+  }
+
+  .shell-part-kind {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-top: 2px;
+  }
+
+  .shell-part-kind--flag  { background: rgba(100,180,130,0.15); color: #64b482; }
+  .shell-part-kind--arg   { background: var(--surface-1); color: var(--text-3); }
+  .shell-part-kind--redir { background: rgba(200,140,80,0.15); color: #c8a050; }
+  .shell-part-kind--env   { background: rgba(160,100,200,0.15); color: #a070c8; }
+
+  .shell-part-desc {
+    color: var(--text-2);
+    flex: 1;
+    line-height: 1.5;
+  }
+
+  .shell-redirect-block {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(200,140,80,0.06);
+    border-top: 1px solid var(--border);
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+
+  .shell-redirect-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    margin-bottom: 6px;
+  }
+
+  .shell-pipe-connector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--text-3);
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    margin-top: -12px;
+  }
+
+  .shell-pipe-arrow {
+    font-size: 18px;
+    color: var(--text-3);
+    flex-shrink: 0;
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var inputEl  = document.getElementById("shell-input");
+  var errorEl  = document.getElementById("shell-error");
+  var resultsEl = document.getElementById("shell-results");
+
+  var EXAMPLES = {
+    "ex-find":   "find /var/log -name '*.log' -mtime +7 -size +1M -exec gzip {} \\;",
+    "ex-grep":   "grep -rn --color=auto 'TODO\\|FIXME' ./src --include='*.js' | sort -t: -k2 -n",
+    "ex-tar":    "tar -czf backup-$(date +%Y%m%d).tar.gz --exclude='node_modules' ./project",
+    "ex-curl":   "curl -fsSL -X POST https://api.example.com/data -H 'Authorization: Bearer $TOKEN' -d '{\"key\":\"val\"}' -o output.json",
+    "ex-docker": "docker run -d --name myapp -p 8080:80 -v $(pwd)/data:/app/data --restart unless-stopped nginx:alpine",
+    "ex-git":    "git log --oneline --graph --decorate --all --since='2 weeks ago'"
+  };
+
+  Object.keys(EXAMPLES).forEach(function (id) {
+    var btn = document.getElementById(id);
+    if (btn) btn.addEventListener("click", function () {
+      inputEl.value = EXAMPLES[id];
+      explain();
+    });
+  });
+
+  // ── Command database ──────────────────────────────────────────────────────
+  var CMD_DB = {
+    ls:     { desc: "List directory contents", flags: { a: "Show all files including hidden (starting with .)", l: "Long listing format with permissions, size, date", h: "Human-readable file sizes (KB, MB, GB)", r: "Reverse sort order", t: "Sort by modification time, newest first", S: "Sort by file size, largest first", "1": "One file per line", R: "Recursively list subdirectories", d: "List directories themselves, not their contents", F: "Append indicator (/, *, @) to entries" } },
+    grep:   { desc: "Search for text patterns in files", flags: { r: "Recursively search through directories", R: "Recursively follow symbolic links too", n: "Show line numbers in output", i: "Case-insensitive matching", v: "Invert match — show non-matching lines", l: "Only print filenames with matches", c: "Count matching lines instead of showing them", o: "Only print the matched part of the line", e: "Use next argument as pattern (for multiple patterns)", f: "Read patterns from a file", w: "Match whole words only", x: "Match whole lines only", A: "Show N lines after each match", B: "Show N lines before each match", C: "Show N lines of context around each match", m: "Stop after N matches", q: "Quiet — exit 0 if match found, no output", P: "Use Perl-compatible regex (PCRE)", E: "Use extended regular expressions (ERE)", "color": "Highlight matching text with color", "include": "Only search files matching the glob pattern", "exclude": "Skip files matching the glob pattern" } },
+    find:   { desc: "Search for files and directories in a directory hierarchy", flags: { name: "Search by filename (supports globs like *.log)", iname: "Case-insensitive filename search", type: "Filter by type: f=file, d=directory, l=symlink", mtime: "Files modified N*24h ago (+N=older, -N=newer)", atime: "Files accessed N*24h ago", size: "Filter by size (k=KB, M=MB, G=GB, +N=larger)", maxdepth: "Limit search depth to N levels", mindepth: "Start search at depth N", user: "Files owned by this user", group: "Files owned by this group", perm: "Files with these permissions", exec: "Execute command on each found file ({} = filename, \\; = end)", execdir: "Like -exec but run command in file's directory", delete: "Delete found files (use with care!)", print: "Print matched paths (default behavior)", print0: "Print paths separated by null byte (for xargs -0)", newer: "Files newer than this reference file", empty: "Find empty files or directories", not: "Negate the next expression", o: "OR — either condition can match", prune: "Exclude this directory from search" } },
+    awk:    { desc: "Text processing language — processes files line by line", flags: { F: "Set the field separator (e.g., -F: for colon-delimited)", v: "Set a variable (e.g., -v OFS=,)", f: "Read awk program from a file", "NR": "Current record (line) number", "NF": "Number of fields in current record", "FS": "Field separator (default: whitespace)", "OFS": "Output field separator", "RS": "Record separator (default: newline)", "ORS": "Output record separator" } },
+    sed:    { desc: "Stream editor — transform text line by line", flags: { n: "Suppress automatic printing of lines", e: "Add a script expression (for multiple commands)", i: "Edit file in-place (add suffix for backup: -i.bak)", r: "Use extended regular expressions", E: "Use extended regular expressions (alias for -r)", f: "Read sed script from a file", "s/": "Substitute: s/pattern/replacement/flags (g=global, i=case-insensitive)", "d": "Delete matching lines", p: "Print matching lines", q: "Quit after first match" } },
+    curl:   { desc: "Transfer data from or to a server using various protocols", flags: { X: "HTTP method (GET, POST, PUT, DELETE, PATCH)", H: "Add a request header (can be used multiple times)", d: "Send data in request body (implies POST)", f: "Fail silently on HTTP errors (return exit code)", s: "Silent mode — suppress progress meter", S: "Show errors even in silent mode", L: "Follow HTTP redirects automatically", o: "Save output to file instead of stdout", O: "Save output to file named after the remote file", u: "User credentials for authentication (user:password)", k: "Allow insecure SSL connections", v: "Verbose — show request and response headers", I: "Send HEAD request only", G: "Send data as query string with GET", "data-urlencode": "URL-encode the data before sending", "retry": "Retry N times on transient failure", "max-time": "Maximum time for the operation in seconds", "connect-timeout": "Timeout for the connection phase", "compressed": "Request compressed response (gzip)", b: "Send cookies from string or file", c: "Save cookies to file", "upload-file": "Upload file using PUT" } },
+    wget:   { desc: "Download files from the web non-interactively", flags: { O: "Save to specified filename", q: "Quiet — suppress output", r: "Recursive download", p: "Download all page requisites", "no-check-certificate": "Skip SSL certificate verification", "no-parent": "Do not ascend to parent directory", P: "Save files to specified directory", c: "Continue partially downloaded files", "limit-rate": "Limit download speed", t: "Number of retries", T: "Timeout in seconds", "user-agent": "Set custom User-Agent header", "header": "Add custom HTTP header" } },
+    chmod:  { desc: "Change file permissions", flags: { R: "Recursively change permissions in directory", v: "Verbose — print each file as it is processed", "755": "Owner: rwx, Group: r-x, Others: r-x (typical for executables)", "644": "Owner: rw-, Group: r--, Others: r-- (typical for files)", "600": "Owner: rw-, Group: ---, Others: --- (private files)", "777": "Everyone has full permissions (dangerous)", "u+x": "Add execute permission for owner", "g-w": "Remove write permission from group", "o-r": "Remove read permission from others", "a+r": "Add read permission for all" } },
+    chown:  { desc: "Change file owner and group", flags: { R: "Recursively change ownership in directory", v: "Verbose — print each file as it is changed", h: "Change symlink itself, not the file it points to", "from": "Only change files with this current owner:group" } },
+    tar:    { desc: "Archive utility — create, extract, and list archive files", flags: { c: "Create a new archive", x: "Extract files from archive", t: "List contents of archive", z: "Compress/decompress with gzip (.tar.gz, .tgz)", j: "Compress/decompress with bzip2 (.tar.bz2)", J: "Compress/decompress with xz (.tar.xz)", v: "Verbose — list files as they are processed", f: "Use archive file (must specify filename after this flag)", C: "Change to directory before performing operations", "exclude": "Exclude files matching pattern", "strip-components": "Strip N leading components from file names", p: "Preserve file permissions", P: "Don't strip leading / from file names", r: "Append files to end of archive" } },
+    ssh:    { desc: "Secure Shell — connect to a remote host securely", flags: { i: "Identity file (private key) to use for authentication", p: "Port to connect to on remote host", L: "Local port forwarding: localport:host:remoteport", R: "Remote port forwarding: remoteport:localhost:localport", D: "Dynamic SOCKS proxy on specified local port", N: "Don't execute remote command (useful for tunnels)", T: "Disable pseudo-terminal allocation", v: "Verbose — show connection details for debugging", A: "Enable SSH agent forwarding", X: "Enable X11 forwarding", C: "Enable compression", o: "Set an option (e.g., -o StrictHostKeyChecking=no)", "no-strict-host-key-checking": "Skip host key verification (insecure)" } },
+    scp:    { desc: "Secure Copy — copy files between hosts over SSH", flags: { r: "Recursively copy entire directories", p: "Preserve file modification times and permissions", P: "Port to connect to on remote host", i: "Identity file (private key) to use", C: "Enable compression", q: "Quiet — suppress progress meter", v: "Verbose — show connection details" } },
+    rsync:  { desc: "Fast, versatile file synchronization and transfer tool", flags: { a: "Archive mode: preserves permissions, timestamps, symlinks, owner, group", v: "Verbose — show files being transferred", z: "Compress data during transfer", r: "Recursively sync directories", n: "Dry run — show what would be transferred without doing it", P: "Show progress and keep partially transferred files", "delete": "Delete destination files not present in source", e: "Use specified shell (e.g., -e ssh)", "exclude": "Exclude files matching pattern", "include": "Include files matching pattern", h: "Human-readable sizes in output", "progress": "Show progress during transfer", u: "Skip files newer on destination (update mode)", l: "Copy symlinks as symlinks", "checksum": "Compare by checksum instead of mod-time and size" } },
+    docker: { desc: "Manage Docker containers, images, networks, and volumes", flags: { d: "Detached mode — run container in background", p: "Publish ports: hostPort:containerPort", v: "Mount volume: hostPath:containerPath", e: "Set environment variable", "name": "Assign a name to the container", "rm": "Remove container when it exits", it: "Interactive with pseudo-TTY (for shells)", "restart": "Restart policy (no, always, unless-stopped, on-failure)", "network": "Connect to a network", "env-file": "Read environment variables from file", "memory": "Memory limit (e.g., 512m, 2g)", "cpus": "Number of CPUs to use", u: "Username or UID to run container as", w: "Working directory inside the container" } },
+    git:    { desc: "Distributed version control system", flags: { oneline: "Compact single-line format for log", graph: "Display branch topology as ASCII graph", decorate: "Show ref names (branches, tags) in log", all: "Show all branches and tags", since: "Show commits more recent than a specific date", until: "Show commits older than a specific date", author: "Filter commits by author name or email", grep: "Filter commits where message matches pattern", p: "Show patch (diff) for each commit", stat: "Show diffstat for each commit", n: "Limit number of commits shown", follow: "Follow file renames in log", "no-merges": "Exclude merge commits", "reverse": "Show commits in reverse chronological order", S: "Search commits that added/removed the string (pickaxe)", m: "Show diffs for merge commits too", f: "Force the operation", q: "Quiet — suppress extra output" } },
+    ps:     { desc: "Report a snapshot of current running processes", flags: { a: "Show processes for all users", u: "Display in user-oriented format with CPU/memory", x: "Include processes without a terminal", e: "Select all processes", f: "Full-format listing", l: "Long format listing", p: "Select by PID", "sort": "Sort by column (e.g., --sort=-%cpu)", o: "Define output format columns", aux: "Show all processes with user/CPU/memory info (common combo)", ef: "Show all processes in full format" } },
+    kill:   { desc: "Send a signal to a process", flags: { "9": "SIGKILL — force kill, cannot be caught or ignored", "15": "SIGTERM — graceful termination request (default)", "1": "SIGHUP — hangup, often used to reload config", l: "List available signal names" } },
+    sort:   { desc: "Sort lines of text", flags: { r: "Reverse — sort in descending order", n: "Numeric sort (compare as numbers, not text)", k: "Sort by key field (e.g., -k2 = second field)", t: "Field separator (e.g., -t: for colon-delimited)", u: "Unique — remove duplicate lines", h: "Human numeric sort (understand KB, MB, GB)", f: "Case-insensitive sort", "stable": "Preserve original order for equal lines" } },
+    head:   { desc: "Output the first N lines of a file", flags: { n: "Number of lines to show (default: 10)", c: "Number of bytes to show", q: "Quiet — don't print file headers with multiple files" } },
+    tail:   { desc: "Output the last N lines of a file", flags: { n: "Number of lines to show (default: 10)", f: "Follow — keep watching file for new lines (great for logs)", F: "Follow by filename, even if file is rotated/recreated", c: "Number of bytes to show from the end", q: "Quiet — don't print file headers" } },
+    xargs:  { desc: "Build and execute commands from standard input", flags: { "0": "Input items are null-terminated (pairs with find -print0)", n: "Maximum number of arguments per command", I: "Replace-string placeholder (e.g., -I{} uses {} as placeholder)", p: "Prompt before running each command", t: "Print each command before executing", d: "Input delimiter character", L: "Maximum number of lines per command", P: "Run up to N processes in parallel" } },
+    cut:    { desc: "Remove sections from each line of files", flags: { f: "Select fields (e.g., -f1,3 or -f2-4)", d: "Field delimiter character (default: tab)", c: "Select characters by position", "complement": "Complement the selection (select everything NOT specified)" } },
+    wc:     { desc: "Count lines, words, and characters in files", flags: { l: "Count lines only", w: "Count words only", c: "Count bytes only", m: "Count characters only", L: "Print length of longest line" } },
+    uniq:   { desc: "Filter adjacent duplicate lines from a file", flags: { c: "Prefix lines with count of occurrences", d: "Only print duplicate lines", u: "Only print unique lines (those that appear once)", i: "Case-insensitive comparison", f: "Skip first N fields before comparing", s: "Skip first N characters before comparing" } },
+    diff:   { desc: "Compare files line by line", flags: { u: "Unified format — standard patch format with context", r: "Recursively compare directories", i: "Ignore case", w: "Ignore all whitespace", b: "Ignore changes in whitespace amount", q: "Only report whether files differ", "color": "Colorize output", c: "Context format (alternative to unified)" } },
+    chmod_r:{ desc: "Change permissions", flags: {} },
+    ping:   { desc: "Send ICMP echo requests to a host to test connectivity", flags: { c: "Send N packets then stop", i: "Wait N seconds between packets", t: "Set time-to-live (TTL)", s: "Packet size in bytes", q: "Quiet — only show summary at end", "4": "Use IPv4", "6": "Use IPv6" } },
+    systemctl: { desc: "Control the systemd system and service manager", flags: { start: "Start (activate) a service", stop: "Stop (deactivate) a service", restart: "Stop then start a service", reload: "Reload configuration without restarting", enable: "Enable service to start at boot", disable: "Disable service from starting at boot", status: "Show status and recent logs of a service", "is-active": "Check if service is currently running", "is-enabled": "Check if service is enabled at boot", list: "List units", daemon-reload: "Reload systemd manager configuration" } },
+    journalctl: { desc: "Query the systemd journal (log system)", flags: { u: "Filter by unit (service) name", f: "Follow — show new log entries in real time", n: "Show last N lines", since: "Show entries since date/time", until: "Show entries until date/time", p: "Filter by priority (err, warning, info, debug)", e: "Jump to end of journal", x: "Add message catalog explanations", b: "Show entries from current boot (or -b-1 for last boot)" } },
+    jq:     { desc: "Command-line JSON processor", flags: { r: "Raw output — don't quote strings", c: "Compact output on one line", n: "Don't read input (use 'null' as input)", s: "Slurp — read all input into an array", e: "Set exit status based on output value", R: "Raw input — read as strings, not JSON", f: "Read filter from a file", "arg": "Set a variable ($name=value)", "argjson": "Set a variable with JSON value" } },
+    kubectl: { desc: "Control Kubernetes clusters", flags: { n: "Specify namespace", "all-namespaces": "Operate across all namespaces", f: "Filename/URL to apply or use", o: "Output format (json, yaml, wide, name)", l: "Label selector", "dry-run": "Preview changes without applying", "watch": "Watch for changes", "context": "Use specific kubeconfig context" } },
+    npm:    { desc: "Node.js package manager", flags: { g: "Global installation/operation", D: "Save as devDependency", S: "Save as dependency (default in npm 5+)", "save-exact": "Pin exact version instead of semver range", prefix: "Set location for global installs", "no-package-lock": "Don't create or update package-lock.json" } },
+    pip:    { desc: "Python package installer", flags: { r: "Install from requirements file", U: "Upgrade package to latest version", q: "Quiet output", "no-cache-dir": "Don't use cached package data", "user": "Install to user's home directory", "index-url": "Base URL of Python package index", "extra-index-url": "Additional package index URL", t: "Install to target directory" } },
+    make:   { desc: "Build automation tool using Makefile rules", flags: { n: "Dry run — print commands without running them", f: "Use specified Makefile", j: "Run N jobs in parallel", k: "Continue on errors (don't stop)", B: "Unconditionally rebuild all targets", C: "Change to directory before doing anything", s: "Silent — don't print commands", v: "Print make version" } }
+  };
+
+  // ── Redirect database ─────────────────────────────────────────────────────
+  var REDIRECT_DB = {
+    ">":  "Redirect stdout to file (overwrite)",
+    ">>": "Redirect stdout to file (append)",
+    "2>": "Redirect stderr to file (overwrite)",
+    "2>>":"Redirect stderr to file (append)",
+    "&>": "Redirect both stdout and stderr to file",
+    "2>&1": "Redirect stderr to wherever stdout is going",
+    "1>&2": "Redirect stdout to wherever stderr is going",
+    "<":  "Read stdin from file",
+    "<<": "Here document — read stdin until delimiter",
+    "<<<":"Here string — pass string as stdin",
+    "<(": "Process substitution — treat command output as a file",
+    ">(": "Process substitution — treat command input as a file"
+  };
+
+  // ── Tokenizer ─────────────────────────────────────────────────────────────
+  function tokenizeShell(cmd) {
+    var tokens = [];
+    var i = 0;
+    var n = cmd.length;
+
+    while (i < n) {
+      // skip whitespace
+      while (i < n && (cmd[i] === " " || cmd[i] === "\t")) i++;
+      if (i >= n) break;
+
+      var tok = "";
+      var ch = cmd[i];
+
+      if (ch === "'") {
+        i++;
+        while (i < n && cmd[i] !== "'") { tok += cmd[i]; i++; }
+        i++;
+        tokens.push({ val: tok, quoted: true });
+      } else if (ch === '"') {
+        i++;
+        while (i < n && cmd[i] !== '"') {
+          if (cmd[i] === '\\' && i + 1 < n) { i++; tok += cmd[i]; }
+          else tok += cmd[i];
+          i++;
+        }
+        i++;
+        tokens.push({ val: tok, quoted: true });
+      } else if (ch === '$' && i + 1 < n && cmd[i+1] === '(') {
+        var depth = 1; i += 2; tok = "$(";
+        while (i < n && depth > 0) {
+          if (cmd[i] === '(') depth++;
+          else if (cmd[i] === ')') depth--;
+          if (depth > 0) tok += cmd[i];
+          i++;
+        }
+        tok += ")";
+        tokens.push({ val: tok, quoted: false, subshell: true });
+      } else if (ch === '\\' && i + 1 < n && cmd[i+1] === '\n') {
+        i += 2; // continuation
+      } else {
+        while (i < n && cmd[i] !== " " && cmd[i] !== "\t") {
+          if (cmd[i] === "'" || cmd[i] === '"') break;
+          if (cmd[i] === '\\' && i + 1 < n) { i++; tok += cmd[i]; }
+          else tok += cmd[i];
+          i++;
+        }
+        if (tok !== "") tokens.push({ val: tok, quoted: false });
+      }
+    }
+    return tokens;
+  }
+
+  // ── Split on pipes ────────────────────────────────────────────────────────
+  function splitPipes(raw) {
+    // handle backslash continuations
+    var joined = raw.replace(/\\\s*\n\s*/g, " ").trim();
+
+    var segments = [];
+    var current = "";
+    var i = 0;
+    var n = joined.length;
+    var depth = 0;
+    var inSingle = false;
+    var inDouble = false;
+
+    while (i < n) {
+      var c = joined[i];
+      if (c === "'" && !inDouble) { inSingle = !inSingle; current += c; i++; continue; }
+      if (c === '"' && !inSingle) { inDouble = !inDouble; current += c; i++; continue; }
+      if (inSingle || inDouble) { current += c; i++; continue; }
+      if (c === '(' || c === '{') { depth++; current += c; i++; continue; }
+      if (c === ')' || c === '}') { depth--; current += c; i++; continue; }
+      if (c === '|' && depth === 0 && joined[i+1] !== '|') {
+        segments.push(current.trim());
+        current = "";
+        i++;
+        continue;
+      }
+      current += c;
+      i++;
+    }
+    if (current.trim()) segments.push(current.trim());
+    return segments;
+  }
+
+  // ── Parse one segment ─────────────────────────────────────────────────────
+  function parseSegment(seg) {
+    var result = { cmd: "", cmdDesc: "", parts: [], redirects: [], envVars: [] };
+    var tokens = tokenizeShell(seg);
+    if (!tokens.length) return result;
+
+    var idx = 0;
+
+    // Collect leading env vars (KEY=VALUE before command)
+    while (idx < tokens.length && /^[A-Z_][A-Z0-9_]*=/.test(tokens[idx].val) && !tokens[idx].quoted) {
+      result.envVars.push(tokens[idx].val);
+      idx++;
+    }
+
+    if (idx >= tokens.length) return result;
+
+    // Command name
+    result.cmd = tokens[idx].val;
+    idx++;
+
+    var cmdKey = result.cmd.replace(/^.*[\\/]/, "").toLowerCase().split(" ")[0];
+    var info = CMD_DB[cmdKey] || { desc: "External command or script", flags: {} };
+    result.cmdDesc = info.desc;
+
+    var flagDB = info.flags || {};
+    var sawDashDash = false;
+
+    // Skip sudo/env/time prefix
+    if (["sudo","su","env","time","nice","nohup","strace"].indexOf(cmdKey) !== -1 && idx < tokens.length) {
+      result.parts.push({ token: result.cmd, kind: "arg", desc: "Prefix: runs the next command with special privileges or context" });
+      result.cmd = tokens[idx].val;
+      idx++;
+      cmdKey = result.cmd.replace(/^.*[\\/]/, "").toLowerCase();
+      var info2 = CMD_DB[cmdKey] || { desc: "External command or script", flags: {} };
+      result.cmdDesc = info2.desc;
+      flagDB = info2.flags || {};
+    }
+
+    while (idx < tokens.length) {
+      var tok = tokens[idx].val;
+      idx++;
+
+      // Redirects
+      var isRedir = false;
+      for (var r in REDIRECT_DB) {
+        if (tok === r || tok.startsWith(r) && tok.length > r.length && !tokens[idx-1].quoted) {
+          result.redirects.push({ token: tok, desc: REDIRECT_DB[r] });
+          isRedir = true;
+          break;
+        }
+      }
+      if (isRedir) continue;
+
+      if (tok === "--") { sawDashDash = true; result.parts.push({ token: tok, kind: "flag", desc: "End of options — everything after this is treated as a positional argument, even if it starts with -" }); continue; }
+
+      if (!sawDashDash && tok.startsWith("--")) {
+        // Long flag
+        var eq = tok.indexOf("=");
+        var flagName, flagVal;
+        if (eq !== -1) { flagName = tok.slice(2, eq); flagVal = tok.slice(eq + 1); }
+        else { flagName = tok.slice(2); flagVal = null; }
+
+        var desc = flagDB[flagName] || null;
+        if (!desc) {
+          // fuzzy: try partial match
+          for (var k in flagDB) {
+            if (k === flagName || k.replace(/-/g,"") === flagName.replace(/-/g,"")) { desc = flagDB[k]; break; }
+          }
+        }
+        var display = tok;
+        result.parts.push({ token: display, kind: "flag", desc: desc || ("Long option: " + flagName + (flagVal ? " = " + flagVal : "")) });
+
+      } else if (!sawDashDash && tok.startsWith("-") && tok.length > 1 && !/^\-\d+$/.test(tok)) {
+        // Short flags — may be combined like -czf
+        var flagStr = tok.slice(1);
+        var chars = [];
+        for (var fi = 0; fi < flagStr.length; fi++) chars.push(flagStr[fi]);
+
+        if (chars.length === 1) {
+          var fd = flagDB[chars[0]] || null;
+          result.parts.push({ token: tok, kind: "flag", desc: fd || ("Flag: -" + chars[0]) });
+        } else {
+          // Try to treat as combined flags
+          var allKnown = chars.every(function(c) { return !!flagDB[c]; });
+          if (allKnown || chars.length <= 4) {
+            chars.forEach(function (c) {
+              var fdesc = flagDB[c];
+              result.parts.push({ token: "-" + c, kind: "flag", desc: fdesc || ("Flag: -" + c) });
+            });
+          } else {
+            result.parts.push({ token: tok, kind: "flag", desc: "Combined short flags" });
+          }
+        }
+      } else {
+        // Positional argument
+        var argDesc = describeArg(tok, result.cmd, result.parts.length);
+        result.parts.push({ token: tok, kind: "arg", desc: argDesc });
+      }
+    }
+
+    return result;
+  }
+
+  function describeArg(tok, cmd, pos) {
+    // Try to guess what the argument is
+    if (tok.startsWith("$(") && tok.endsWith(")")) return "Command substitution — result of running: " + tok.slice(2, -1);
+    if (/^https?:\/\//.test(tok)) return "URL: " + tok;
+    if (/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/.test(tok)) return "Remote host (user@host)";
+    if (tok.startsWith("/") || tok.startsWith("./") || tok.startsWith("../")) return "File or directory path: " + tok;
+    if (/^\d+\.\d+\.\d+\.\d+(:\d+)?$/.test(tok)) return "IP address" + (tok.includes(":") ? " with port" : "");
+    if (/^\d+:\d+$/.test(tok)) return "Port mapping: host port → container port";
+    if (/^[A-Z_][A-Z0-9_]*=/.test(tok)) return "Environment variable assignment";
+    if (/\*|\?|\[/.test(tok)) return "Glob pattern matching files: " + tok;
+    if (pos === 0) return "First positional argument to " + cmd;
+    return "Argument: " + tok;
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function renderResults(segments) {
+    while (resultsEl.firstChild) resultsEl.removeChild(resultsEl.firstChild);
+
+    segments.forEach(function (seg, segIdx) {
+      if (segIdx > 0) {
+        var connector = document.createElement("div");
+        connector.className = "shell-pipe-connector";
+        var arrow = document.createElement("span");
+        arrow.className = "shell-pipe-arrow";
+        arrow.textContent = "|";
+        var desc = document.createElement("span");
+        desc.textContent = "stdout of the command above is piped as stdin to the command below";
+        connector.appendChild(arrow);
+        connector.appendChild(desc);
+        resultsEl.appendChild(connector);
+      }
+
+      var parsed = parseSegment(seg);
+      if (!parsed.cmd) return;
+
+      var block = document.createElement("div");
+      block.className = "shell-segment";
+
+      // Header
+      var header = document.createElement("div");
+      header.className = "shell-segment-header";
+
+      if (segments.length > 1) {
+        var pipeLabel = document.createElement("span");
+        pipeLabel.className = "shell-pipe-label";
+        pipeLabel.textContent = "cmd " + (segIdx + 1);
+        header.appendChild(pipeLabel);
+      }
+
+      var cmdName = document.createElement("span");
+      cmdName.className = "shell-cmd-name";
+      cmdName.textContent = parsed.cmd;
+      header.appendChild(cmdName);
+
+      var cmdDesc = document.createElement("span");
+      cmdDesc.className = "shell-cmd-desc";
+      cmdDesc.textContent = parsed.cmdDesc;
+      header.appendChild(cmdDesc);
+
+      block.appendChild(header);
+
+      // Token strip
+      var tokStrip = document.createElement("div");
+      tokStrip.className = "shell-tokens";
+
+      // Add env vars to strip
+      parsed.envVars.forEach(function (ev) {
+        var t = document.createElement("span");
+        t.className = "shell-token shell-token--env";
+        t.textContent = ev;
+        tokStrip.appendChild(t);
+      });
+
+      var cmdTok = document.createElement("span");
+      cmdTok.className = "shell-token shell-token--cmd";
+      cmdTok.textContent = parsed.cmd;
+      tokStrip.appendChild(cmdTok);
+
+      parsed.parts.forEach(function (p) {
+        var t = document.createElement("span");
+        t.className = "shell-token shell-token--" + p.kind;
+        t.textContent = p.token;
+        tokStrip.appendChild(t);
+      });
+
+      parsed.redirects.forEach(function (r) {
+        var t = document.createElement("span");
+        t.className = "shell-token shell-token--redir";
+        t.textContent = r.token;
+        tokStrip.appendChild(t);
+      });
+
+      block.appendChild(tokStrip);
+
+      // Parts breakdown
+      var allParts = [];
+
+      parsed.envVars.forEach(function (ev) {
+        allParts.push({ token: ev, kind: "env", desc: "Environment variable set only for this command" });
+      });
+
+      parsed.parts.forEach(function (p) { allParts.push(p); });
+
+      parsed.redirects.forEach(function (r) {
+        allParts.push({ token: r.token, kind: "redir", desc: r.desc });
+      });
+
+      if (allParts.length > 0) {
+        var parts = document.createElement("div");
+        parts.className = "shell-parts";
+
+        allParts.forEach(function (p) {
+          var row = document.createElement("div");
+          row.className = "shell-part";
+
+          var tokenEl = document.createElement("code");
+          tokenEl.className = "shell-part-token";
+          tokenEl.textContent = p.token;
+          row.appendChild(tokenEl);
+
+          var kindEl = document.createElement("span");
+          kindEl.className = "shell-part-kind shell-part-kind--" + p.kind;
+          kindEl.textContent = p.kind === "env" ? "env var" : p.kind;
+          row.appendChild(kindEl);
+
+          var descEl = document.createElement("span");
+          descEl.className = "shell-part-desc";
+          descEl.textContent = p.desc || "";
+          row.appendChild(descEl);
+
+          parts.appendChild(row);
+        });
+
+        block.appendChild(parts);
+      }
+
+      resultsEl.appendChild(block);
+    });
+
+    resultsEl.style.display = "";
+  }
+
+  // ── Main ──────────────────────────────────────────────────────────────────
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = "";
+  }
+  function hideError() {
+    errorEl.textContent = "";
+    errorEl.style.display = "none";
+  }
+
+  function explain() {
+    var raw = inputEl.value;
+    if (!raw.trim()) {
+      hideError();
+      resultsEl.style.display = "none";
+      return;
+    }
+
+    hideError();
+    var segments = splitPipes(raw);
+    if (!segments.length || !segments[0].trim()) {
+      showError("No command found.");
+      return;
+    }
+
+    renderResults(segments);
+  }
+
+  inputEl.addEventListener("input", explain);
+})();
+</script>

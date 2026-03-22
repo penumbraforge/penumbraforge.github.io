@@ -1,0 +1,559 @@
+---
+toolSlug: hcl-formatter
+permalink: /tools/hcl-formatter/
+---
+
+<div class="tool-group">
+  <label for="hcl-input">Paste Terraform HCL</label>
+  <textarea id="hcl-input" rows="14" placeholder='resource "aws_instance" "web" {&#10;ami = "ami-0c55b159cbfafe1f0"&#10;instance_type= "t3.micro"&#10;tags = {&#10;Name = "WebServer"&#10;Environment="production"&#10;}&#10;}' spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Examples">
+    <button class="tool-option" id="ex-basic">Basic resource</button>
+    <button class="tool-option" id="ex-module">Module</button>
+    <button class="tool-option" id="ex-variable">Variables</button>
+    <button class="tool-option" id="ex-messy">Messy input</button>
+  </div>
+  <div class="tool-options" role="group" aria-label="Indent size">
+    <button class="tool-option active" data-indent="2" aria-pressed="true">2 spaces</button>
+    <button class="tool-option" data-indent="4" aria-pressed="false">4 spaces</button>
+  </div>
+</div>
+
+<div id="hcl-stats" style="display:none;" class="hcl-stats"></div>
+<div id="hcl-issues" style="display:none;"></div>
+
+<div class="output-area">
+  <button class="btn btn--copy" id="hcl-copy" aria-label="Copy formatted HCL">Copy</button>
+  <pre id="hcl-output" aria-label="Formatted HCL output" style="font-size:12px; max-height:480px; overflow:auto;"></pre>
+</div>
+
+<style>
+  .hcl-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+  }
+
+  .hcl-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface-0);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 10px;
+    color: var(--text-2);
+  }
+
+  .hcl-stat-num {
+    font-weight: 700;
+    color: var(--text-1);
+    font-family: var(--font-mono);
+  }
+
+  .hcl-issues-list {
+    margin-bottom: 12px;
+  }
+
+  .hcl-issue {
+    display: flex;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface-0);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 5px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    align-items: flex-start;
+  }
+
+  .hcl-issue--warn { border-left: 3px solid #c8a838; }
+  .hcl-issue--info { border-left: 3px solid #5b8db8; }
+
+  .hcl-issue-sev {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-top: 1px;
+  }
+
+  .hcl-issue--warn .hcl-issue-sev { background: rgba(200,168,56,0.15); color: #c8a838; }
+  .hcl-issue--info .hcl-issue-sev { background: rgba(91,141,184,0.15); color: #5b8db8; }
+
+  .hcl-issue-text {
+    color: var(--text-2);
+    flex: 1;
+    line-height: 1.5;
+  }
+
+  .hcl-issue-line {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var inputEl   = document.getElementById("hcl-input");
+  var outputEl  = document.getElementById("hcl-output");
+  var statsEl   = document.getElementById("hcl-stats");
+  var issuesEl  = document.getElementById("hcl-issues");
+  var copyBtn   = document.getElementById("hcl-copy");
+  var indentBtns = Array.prototype.slice.call(document.querySelectorAll(".tool-option[data-indent]"));
+
+  var indentSize = 2;
+
+  // ── Examples ──────────────────────────────────────────────────────────────
+  var EXAMPLES = {
+    "ex-basic": [
+      'terraform {',
+      '  required_version = ">= 1.0"',
+      '  required_providers {',
+      '    aws = {',
+      '      source  = "hashicorp/aws"',
+      '      version = "~> 5.0"',
+      '    }',
+      '  }',
+      '}',
+      '',
+      'provider "aws" {',
+      '  region = var.aws_region',
+      '}',
+      '',
+      'resource "aws_instance" "web_server" {',
+      '  ami           = "ami-0c55b159cbfafe1f0"',
+      '  instance_type = "t3.micro"',
+      '',
+      '  vpc_security_group_ids = [aws_security_group.web.id]',
+      '  subnet_id              = aws_subnet.public.id',
+      '',
+      '  user_data = <<-EOF',
+      '    #!/bin/bash',
+      '    yum update -y',
+      '    yum install -y httpd',
+      '    systemctl start httpd',
+      '  EOF',
+      '',
+      '  tags = {',
+      '    Name        = "WebServer"',
+      '    Environment = var.environment',
+      '    ManagedBy   = "Terraform"',
+      '  }',
+      '}'
+    ].join("\n"),
+
+    "ex-module": [
+      'module "vpc" {',
+      '  source  = "terraform-aws-modules/vpc/aws"',
+      '  version = "5.0.0"',
+      '',
+      '  name = "my-vpc"',
+      '  cidr = "10.0.0.0/16"',
+      '',
+      '  azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]',
+      '  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]',
+      '  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]',
+      '',
+      '  enable_nat_gateway = true',
+      '  single_nat_gateway = false',
+      '',
+      '  tags = {',
+      '    Environment = "production"',
+      '    Terraform   = "true"',
+      '  }',
+      '}'
+    ].join("\n"),
+
+    "ex-variable": [
+      'variable "environment" {',
+      '  description = "Environment name (dev, staging, production)"',
+      '  type        = string',
+      '  default     = "dev"',
+      '',
+      '  validation {',
+      '    condition     = contains(["dev", "staging", "production"], var.environment)',
+      '    error_message = "Environment must be dev, staging, or production."',
+      '  }',
+      '}',
+      '',
+      'variable "instance_count" {',
+      '  description = "Number of EC2 instances"',
+      '  type        = number',
+      '  default     = 1',
+      '}',
+      '',
+      'output "instance_ip" {',
+      '  description = "Public IP of the web server"',
+      '  value       = aws_instance.web_server.public_ip',
+      '}'
+    ].join("\n"),
+
+    "ex-messy": [
+      'resource "aws_s3_bucket" "data" {',
+      'bucket= "my-data-bucket-12345"',
+      '  force_destroy=true',
+      '',
+      '',
+      '',
+      '  tags={',
+      'Name="DataBucket"',
+      '    Environment   =   "production"',
+      'owner="devops-team"',
+      '  }',
+      '}',
+      '',
+      'resource "aws_s3_bucket_versioning" "data" {',
+      '  bucket = aws_s3_bucket.data.id',
+      'versioning_configuration  {',
+      'status = "Enabled"',
+      '  }',
+      '}'
+    ].join("\n")
+  };
+
+  Object.keys(EXAMPLES).forEach(function (id) {
+    var btn = document.getElementById(id);
+    if (btn) btn.addEventListener("click", function () {
+      inputEl.value = EXAMPLES[id];
+      process();
+    });
+  });
+
+  indentBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      indentBtns.forEach(function (b) {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+      indentSize = parseInt(btn.getAttribute("data-indent"), 10);
+      process();
+    });
+  });
+
+  // ── Formatter ─────────────────────────────────────────────────────────────
+  function format(text) {
+    var INDENT = "";
+    for (var i = 0; i < indentSize; i++) INDENT += " ";
+
+    var lines = text.split("\n");
+    var result = [];
+    var depth = 0;
+    var inHeredoc = false;
+    var heredocMarker = null;
+    var prevBlankCount = 0;
+
+    for (var li = 0; li < lines.length; li++) {
+      var raw = lines[li];
+      var line = raw;
+
+      // Heredoc passthrough
+      if (inHeredoc) {
+        result.push(line);
+        var trimmed = line.trimRight();
+        if (trimmed === heredocMarker || trimmed === "  " + heredocMarker) {
+          inHeredoc = false;
+          heredocMarker = null;
+        }
+        continue;
+      }
+
+      // Detect heredoc start
+      var heredocMatch = line.match(/<<[-~]?([A-Z_]+)/);
+      if (heredocMatch && !line.match(/^#/)) {
+        // will handle the opener line normally, then enter heredoc mode
+        inHeredoc = false; // don't activate yet — process the line first, then activate
+        heredocMarker = heredocMatch[1];
+      }
+
+      var trimmed = line.trim();
+
+      // Skip and collapse blank lines
+      if (!trimmed) {
+        prevBlankCount++;
+        if (prevBlankCount <= 1 && result.length > 0 && result[result.length-1] !== "") {
+          result.push("");
+        }
+        if (heredocMarker) {
+          inHeredoc = true;
+          heredocMarker = null;
+        }
+        continue;
+      }
+
+      prevBlankCount = 0;
+
+      // Comment lines — preserve at current depth
+      if (trimmed.charAt(0) === "#") {
+        result.push(repeat(INDENT, depth) + trimmed);
+        continue;
+      }
+
+      // Detect closing brace/bracket (must decrease depth before indenting)
+      var isClose = /^[}\]]/.test(trimmed);
+      var isOpen  = /[{[]$/.test(trimmed.replace(/#.*$/, ""));
+      // heredoc doesn't count as open brace
+      var hasHeredoc = /<<[-~]?[A-Z_"'`]+/.test(trimmed);
+      if (hasHeredoc) isOpen = false;
+
+      if (isClose) depth = Math.max(0, depth - 1);
+
+      // Normalize spacing around = in attribute assignments
+      var formatted = trimmed;
+
+      // Only normalize = for simple attribute lines (not blocks, not conditions)
+      if (!isOpen && !isClose && !formatted.startsWith("for") && !formatted.startsWith("if") && !formatted.startsWith("#")) {
+        // Normalize spaces around = (but not == != <= >= => <<- << )
+        formatted = formatted.replace(/([^!<>=])=([^>=])/g, function (m, before, after) {
+          return before + " = " + after;
+        });
+        // Clean up multiple spaces around = that we may have over-expanded
+        formatted = formatted.replace(/\s{2,}=\s{2,}/g, " = ");
+        formatted = formatted.replace(/([^\s])  =/g, "$1 =");
+        formatted = formatted.replace(/=  ([^\s])/g, "= $1");
+      }
+
+      result.push(repeat(INDENT, depth) + formatted);
+
+      if (isOpen) depth++;
+
+      // Activate heredoc mode after processing the opener line
+      if (heredocMarker) {
+        inHeredoc = true;
+        heredocMarker = null;
+      }
+    }
+
+    // Trim trailing blanks
+    while (result.length && result[result.length - 1] === "") result.pop();
+
+    return result.join("\n");
+  }
+
+  function repeat(s, n) {
+    var out = "";
+    for (var i = 0; i < n; i++) out += s;
+    return out;
+  }
+
+  // ── Linter / analyzer ─────────────────────────────────────────────────────
+  function analyze(text) {
+    var lines = text.split("\n");
+    var issues = [];
+    var blockCount = 0;
+    var lineCount = lines.length;
+    var inHeredoc = false;
+
+    var BLOCK_RE = /^\s*(resource|data|module|provider|variable|output|locals|terraform|moved|import)\s/;
+
+    lines.forEach(function (raw, idx) {
+      var lineNum = idx + 1;
+      var trimmed = raw.trim();
+
+      // Heredoc detection
+      if (inHeredoc) {
+        if (/^[A-Z_]+$/.test(trimmed)) inHeredoc = false;
+        return;
+      }
+      if (/<<[-~]?[A-Z_"'`]+/.test(trimmed)) {
+        inHeredoc = true;
+      }
+
+      if (!trimmed || trimmed.startsWith("#")) return;
+
+      // Count blocks
+      if (BLOCK_RE.test(raw)) blockCount++;
+
+      // Check: deprecated syntax
+      if (/\blist\s*\(/.test(trimmed) && !/#/.test(trimmed.slice(0, trimmed.indexOf("list(")))) {
+        issues.push({ sev: "warn", line: lineNum, text: "Deprecated type() function — use list(string) or just 'list' type notation" });
+      }
+      if (/\bmap\s*\(/.test(trimmed) && !/^\s*#/.test(raw)) {
+        issues.push({ sev: "warn", line: lineNum, text: "Deprecated map() type — use map(string) or map(any)" });
+      }
+      if (/\$\{[^}]+\}/.test(trimmed) && /"\s*\$\{[^}]+\}\s*"/.test(trimmed)) {
+        // String with only interpolation (unnecessary wrapping)
+        var stripped = trimmed.replace(/"\s*\$\{([^}]+)\}\s*"/, "$1");
+        if (!stripped.includes("${")) {
+          issues.push({ sev: "info", line: lineNum, text: "Unnecessary string interpolation — use the value directly instead of wrapping in \"${...}\"" });
+        }
+      }
+
+      // Check: hardcoded credentials patterns
+      if (/(?:password|secret|key|token)\s*=\s*"[^"]{4,}"/.test(trimmed) && !/var\.|data\.|local\./.test(trimmed)) {
+        if (!/^\s*#/.test(raw)) {
+          issues.push({ sev: "warn", line: lineNum, text: "Possible hardcoded credential — consider using var.* or a secrets manager" });
+        }
+      }
+
+      // Check: missing description on variable
+      if (/^\s*variable\s+"/.test(raw)) {
+        // Look ahead for description
+        var hasDesc = false;
+        for (var j = idx + 1; j < Math.min(idx + 6, lines.length); j++) {
+          if (/description\s*=/.test(lines[j])) { hasDesc = true; break; }
+          if (/^\s*}/.test(lines[j])) break;
+        }
+        if (!hasDesc) {
+          issues.push({ sev: "info", line: lineNum, text: "Variable is missing a 'description' field" });
+        }
+      }
+
+      // Check: missing description on output
+      if (/^\s*output\s+"/.test(raw)) {
+        var hasDesc2 = false;
+        for (var k = idx + 1; k < Math.min(idx + 6, lines.length); k++) {
+          if (/description\s*=/.test(lines[k])) { hasDesc2 = true; break; }
+          if (/^\s*}/.test(lines[k])) break;
+        }
+        if (!hasDesc2) {
+          issues.push({ sev: "info", line: lineNum, text: "Output is missing a 'description' field" });
+        }
+      }
+
+      // Check: resource names with hyphens (use underscores)
+      var resourceMatch = raw.match(/^\s*resource\s+"[^"]+"\s+"([^"]+)"/);
+      if (resourceMatch && resourceMatch[1].includes("-")) {
+        issues.push({ sev: "info", line: lineNum, text: "Resource name \"" + resourceMatch[1] + "\" uses hyphens — Terraform convention is to use underscores" });
+      }
+
+      // Check: source without version pin for registry modules
+      if (/^\s*source\s*=\s*"[^.\/][^"]*"/.test(raw)) {
+        var hasVersion = false;
+        for (var m2 = idx + 1; m2 < Math.min(idx + 4, lines.length); m2++) {
+          if (/version\s*=/.test(lines[m2])) { hasVersion = true; break; }
+          if (/^\s*}/.test(lines[m2])) break;
+        }
+        if (!hasVersion) {
+          issues.push({ sev: "warn", line: lineNum, text: "Module is missing a 'version' constraint — pin the version for reproducible builds" });
+        }
+      }
+    });
+
+    return { lineCount: lineCount, blockCount: blockCount, issues: issues };
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  function renderStats(stats) {
+    while (statsEl.firstChild) statsEl.removeChild(statsEl.firstChild);
+
+    function stat(num, label) {
+      var span = document.createElement("span");
+      span.className = "hcl-stat";
+      var n = document.createElement("span");
+      n.className = "hcl-stat-num";
+      n.textContent = num;
+      span.appendChild(n);
+      span.appendChild(document.createTextNode(" " + label));
+      return span;
+    }
+
+    statsEl.appendChild(stat(stats.lineCount, stats.lineCount === 1 ? "line" : "lines"));
+    statsEl.appendChild(stat(stats.blockCount, stats.blockCount === 1 ? "block" : "blocks"));
+    statsEl.appendChild(stat(stats.issues.length, stats.issues.length === 1 ? "suggestion" : "suggestions"));
+    statsEl.style.display = "";
+  }
+
+  function renderIssues(issues) {
+    while (issuesEl.firstChild) issuesEl.removeChild(issuesEl.firstChild);
+
+    if (!issues.length) {
+      issuesEl.style.display = "none";
+      return;
+    }
+
+    var list = document.createElement("div");
+    list.className = "hcl-issues-list";
+
+    issues.forEach(function (iss) {
+      var div = document.createElement("div");
+      div.className = "hcl-issue hcl-issue--" + iss.sev;
+
+      var sev = document.createElement("span");
+      sev.className = "hcl-issue-sev";
+      sev.textContent = iss.sev === "warn" ? "warn" : "info";
+      div.appendChild(sev);
+
+      var text = document.createElement("span");
+      text.className = "hcl-issue-text";
+      text.textContent = iss.text;
+      div.appendChild(text);
+
+      var lineEl = document.createElement("span");
+      lineEl.className = "hcl-issue-line";
+      lineEl.textContent = "L" + iss.line;
+      div.appendChild(lineEl);
+
+      list.appendChild(div);
+    });
+
+    issuesEl.appendChild(list);
+    issuesEl.style.display = "";
+  }
+
+  // ── Main ──────────────────────────────────────────────────────────────────
+  function process() {
+    var raw = inputEl.value;
+
+    if (!raw.trim()) {
+      outputEl.textContent = "";
+      statsEl.style.display = "none";
+      issuesEl.style.display = "none";
+      return;
+    }
+
+    var formatted = format(raw);
+    outputEl.textContent = formatted;
+
+    var stats = analyze(formatted);
+    renderStats(stats);
+    renderIssues(stats.issues);
+  }
+
+  inputEl.addEventListener("input", process);
+
+  // ── Copy ──────────────────────────────────────────────────────────────────
+  copyBtn.addEventListener("click", function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = "Copied!";
+        setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+      }).catch(function () {
+        copyBtn.textContent = "Failed";
+        setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); copyBtn.textContent = "Copied!"; } catch (e) { copyBtn.textContent = "Failed"; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+    }
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  inputEl.value = EXAMPLES["ex-messy"];
+  process();
+})();
+</script>

@@ -1,0 +1,192 @@
+---
+toolSlug: subnet-calculator
+permalink: /tools/subnet-calculator/
+---
+
+<div class="tool-group">
+  <label for="cidr-input">CIDR notation</label>
+  <input type="text" id="cidr-input" placeholder="e.g. 192.168.1.0/24" spellcheck="false" autocomplete="off" style="font-family:monospace; max-width:280px;">
+</div>
+
+<div class="tool-group">
+  <label for="prefix-slider">Prefix length: /<span id="prefix-display">24</span></label>
+  <input type="range" id="prefix-slider" min="0" max="32" value="24" style="width:100%; max-width:400px;">
+</div>
+
+<div id="subnet-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div id="subnet-results" style="display:none; margin-top:1rem;">
+  <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+    <tbody id="subnet-table">
+    </tbody>
+  </table>
+</div>
+
+<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border, #e5e7eb);">
+
+<div class="tool-group">
+  <label>Common subnets reference</label>
+  <table style="width:100%; border-collapse:collapse; font-size:0.875rem; margin-top:0.5rem;">
+    <thead>
+      <tr style="border-bottom:2px solid var(--border, #e5e7eb);">
+        <th style="text-align:left; padding:0.4rem 0.75rem;">CIDR</th>
+        <th style="text-align:left; padding:0.4rem 0.75rem;">Subnet mask</th>
+        <th style="text-align:right; padding:0.4rem 0.75rem;">Usable hosts</th>
+        <th style="text-align:left; padding:0.4rem 0.75rem;">Common use</th>
+      </tr>
+    </thead>
+    <tbody id="ref-table"></tbody>
+  </table>
+</div>
+
+<script>
+(function () {
+  var cidrEl      = document.getElementById('cidr-input');
+  var sliderEl    = document.getElementById('prefix-slider');
+  var prefixDisp  = document.getElementById('prefix-display');
+  var errorEl     = document.getElementById('subnet-error');
+  var resultsEl   = document.getElementById('subnet-results');
+  var tableBody   = document.getElementById('subnet-table');
+  var refBody     = document.getElementById('ref-table');
+
+  var TR_STYLE = 'border-bottom:1px solid var(--border, #e5e7eb);';
+  var TD_LABEL = 'padding:0.4rem 0.75rem; color:var(--text-secondary, #6b7280); white-space:nowrap;';
+  var TD_VALUE = 'padding:0.4rem 0.75rem; font-family:monospace; word-break:break-all;';
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+    resultsEl.style.display = 'none';
+  }
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+
+  function ip4ToInt(str) {
+    var parts = str.split('.');
+    if (parts.length !== 4) return null;
+    var n = 0;
+    for (var i = 0; i < 4; i++) {
+      var b = parseInt(parts[i], 10);
+      if (isNaN(b) || b < 0 || b > 255) return null;
+      n = (n * 256 + b) >>> 0;
+    }
+    return n;
+  }
+
+  function intToIp4(n) {
+    return [
+      (n >>> 24) & 0xff,
+      (n >>> 16) & 0xff,
+      (n >>> 8)  & 0xff,
+       n         & 0xff
+    ].join('.');
+  }
+
+  function prefixToMask(prefix) {
+    if (prefix === 0) return 0;
+    return (0xffffffff << (32 - prefix)) >>> 0;
+  }
+
+  function usableHosts(prefix) {
+    if (prefix >= 31) return prefix === 31 ? 2 : 1;
+    var total = Math.pow(2, 32 - prefix);
+    return total - 2;
+  }
+
+  function addRow(label, value) {
+    var tr = document.createElement('tr');
+    tr.setAttribute('style', TR_STYLE);
+    var tdL = document.createElement('td');
+    tdL.setAttribute('style', TD_LABEL);
+    tdL.textContent = label;
+    var tdV = document.createElement('td');
+    tdV.setAttribute('style', TD_VALUE);
+    tdV.textContent = value;
+    tr.appendChild(tdL);
+    tr.appendChild(tdV);
+    tableBody.appendChild(tr);
+  }
+
+  function calculate(cidr) {
+    var parts = cidr.trim().split('/');
+    if (parts.length !== 2) { showError('Enter a valid CIDR (e.g. 192.168.1.0/24).'); return; }
+    var ipStr  = parts[0];
+    var prefix = parseInt(parts[1], 10);
+    if (isNaN(prefix) || prefix < 0 || prefix > 32) { showError('Prefix must be 0–32.'); return; }
+    var ipInt = ip4ToInt(ipStr);
+    if (ipInt === null) { showError('Invalid IP address.'); return; }
+    hideError();
+
+    var mask      = prefixToMask(prefix);
+    var wildcard  = (~mask) >>> 0;
+    var network   = (ipInt & mask) >>> 0;
+    var broadcast = (network | wildcard) >>> 0;
+    var firstHost = prefix < 31 ? (network + 1) >>> 0 : network;
+    var lastHost  = prefix < 31 ? (broadcast - 1) >>> 0 : broadcast;
+    var hosts     = usableHosts(prefix);
+
+    // Update slider silently
+    sliderEl.value    = prefix;
+    prefixDisp.textContent = prefix;
+
+    tableBody.textContent = '';
+    addRow('Network address',    intToIp4(network));
+    addRow('Broadcast address',  intToIp4(broadcast));
+    addRow('First usable host',  prefix < 31 ? intToIp4(firstHost) : 'N/A (/31 point-to-point)');
+    addRow('Last usable host',   prefix < 31 ? intToIp4(lastHost)  : 'N/A (/31 point-to-point)');
+    addRow('Total usable hosts', hosts.toLocaleString());
+    addRow('Subnet mask',        intToIp4(mask));
+    addRow('Wildcard mask',      intToIp4(wildcard));
+    addRow('CIDR notation',      intToIp4(network) + '/' + prefix);
+    resultsEl.style.display = '';
+  }
+
+  cidrEl.addEventListener('input', function () {
+    var val = cidrEl.value.trim();
+    if (!val) { hideError(); resultsEl.style.display = 'none'; return; }
+    calculate(val);
+  });
+
+  sliderEl.addEventListener('input', function () {
+    prefixDisp.textContent = sliderEl.value;
+    var val = cidrEl.value.trim();
+    if (!val) return;
+    // Replace or append prefix
+    var base = val.split('/')[0];
+    cidrEl.value = base + '/' + sliderEl.value;
+    calculate(cidrEl.value);
+  });
+
+  // Reference table
+  var REF = [
+    { cidr:  8, use: 'Large private network (Class A)' },
+    { cidr: 16, use: 'Medium network (Class B)' },
+    { cidr: 24, use: 'Small network (Class C, ~254 hosts)' },
+    { cidr: 28, use: 'Small segment (~14 hosts)' },
+    { cidr: 30, use: 'Point-to-point link (~2 hosts)' },
+    { cidr: 32, use: 'Single host / loopback' },
+  ];
+
+  REF.forEach(function (row) {
+    var mask = prefixToMask(row.cidr);
+    var hosts = usableHosts(row.cidr);
+    var tr = document.createElement('tr');
+    tr.setAttribute('style', TR_STYLE);
+
+    function td(text, right) {
+      var el = document.createElement('td');
+      el.setAttribute('style', 'padding:0.4rem 0.75rem;' + (right ? 'text-align:right;' : ''));
+      el.textContent = text;
+      return el;
+    }
+
+    tr.appendChild(td('/' + row.cidr));
+    tr.appendChild(td(intToIp4(mask)));
+    tr.appendChild(td(hosts.toLocaleString(), true));
+    tr.appendChild(td(row.use));
+    refBody.appendChild(tr);
+  });
+})();
+</script>

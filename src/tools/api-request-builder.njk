@@ -1,0 +1,340 @@
+---
+toolSlug: api-request-builder
+permalink: /tools/api-request-builder/
+---
+
+<style>
+  .arb-section { margin-bottom:1rem; }
+  .arb-label { font-size:0.8rem; font-weight:600; color:var(--color-muted,#94a3b8); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block; }
+  .arb-input { width:100%; padding:0.55rem 0.75rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:6px; color:var(--color-text,#e2e8f0); font-size:0.9rem; box-sizing:border-box; }
+  .arb-input:focus { outline:none; border-color:var(--color-accent,#6366f1); }
+  .arb-headers-table { width:100%; border-collapse:collapse; }
+  .arb-headers-table td { padding:0.25rem 0.3rem; }
+  .arb-headers-table input { width:100%; padding:0.35rem 0.5rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:4px; color:var(--color-text,#e2e8f0); font-size:0.85rem; box-sizing:border-box; font-family:var(--font-mono,monospace); }
+  .arb-headers-table .del-btn { background:none; border:none; cursor:pointer; color:var(--color-muted,#94a3b8); font-size:1.1rem; padding:0.2rem 0.4rem; }
+  .arb-headers-table .del-btn:hover { color:#f87171; }
+  .arb-status { display:inline-block; padding:0.15rem 0.5rem; border-radius:4px; font-family:var(--font-mono,monospace); font-size:0.82rem; font-weight:700; }
+  .arb-status.ok { background:rgba(34,197,94,0.15); color:#4ade80; }
+  .arb-status.err { background:rgba(248,113,113,0.15); color:#f87171; }
+  .arb-status.warn { background:rgba(251,191,36,0.15); color:#fbbf24; }
+  .arb-resp-headers { font-family:var(--font-mono,monospace); font-size:0.78rem; line-height:1.8; color:var(--color-muted,#94a3b8); max-height:8rem; overflow:auto; }
+  .arb-timing { font-size:0.78rem; color:var(--color-muted,#94a3b8); }
+  .arb-tab-bar { display:flex; gap:0; margin-bottom:-1px; }
+  .arb-tab { padding:0.35rem 0.9rem; background:none; border:1px solid transparent; border-bottom:none; cursor:pointer; font-size:0.82rem; color:var(--color-muted,#94a3b8); border-radius:4px 4px 0 0; }
+  .arb-tab.active { background:var(--color-surface-2,#1e293b); border-color:var(--color-border,#334155); color:var(--color-text,#e2e8f0); }
+  .arb-tab-content { background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:0 6px 6px 6px; padding:0.75rem; display:none; }
+  .arb-tab-content.active { display:block; }
+  .cors-note { font-size:0.75rem; color:var(--color-muted,#94a3b8); margin-top:0.5rem; padding:0.5rem 0.75rem; background:rgba(251,191,36,0.08); border-left:3px solid #fbbf24; border-radius:0 4px 4px 0; }
+</style>
+
+<div class="arb-section">
+  <div style="display:flex; gap:0.5rem; align-items:stretch; flex-wrap:wrap;">
+    <select id="arb-method" style="padding:0.55rem 0.6rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:6px; color:var(--color-text,#e2e8f0); font-size:0.9rem; font-weight:700; cursor:pointer; flex-shrink:0;">
+      <option>GET</option>
+      <option>POST</option>
+      <option>PUT</option>
+      <option>PATCH</option>
+      <option>DELETE</option>
+      <option>HEAD</option>
+      <option>OPTIONS</option>
+    </select>
+    <input id="arb-url" class="arb-input" type="url" placeholder="https://api.example.com/endpoint" style="flex:1; min-width:200px;">
+    <button class="btn btn--primary" id="arb-send" style="flex-shrink:0;">Send</button>
+  </div>
+</div>
+
+<div class="arb-section">
+  <div class="arb-tab-bar">
+    <button class="arb-tab active" data-tab="headers">Headers</button>
+    <button class="arb-tab" data-tab="body" id="arb-body-tab">Body</button>
+    <button class="arb-tab" data-tab="params">Query Params</button>
+  </div>
+  <div class="arb-tab-content active" id="arb-tab-headers">
+    <table class="arb-headers-table" id="arb-headers-tbl">
+      <thead><tr>
+        <td style="width:42%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--color-muted,#94a3b8);">Key</td>
+        <td style="width:50%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--color-muted,#94a3b8);">Value</td>
+        <td style="width:8%;"></td>
+      </tr></thead>
+      <tbody id="arb-headers-body"></tbody>
+    </table>
+    <button class="btn" id="arb-add-header" style="margin-top:0.4rem; font-size:0.8rem; padding:0.25rem 0.7rem;">+ Add Header</button>
+  </div>
+  <div class="arb-tab-content" id="arb-tab-body">
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+      <label style="font-size:0.8rem; color:var(--color-muted,#94a3b8);">Content-Type:</label>
+      <select id="arb-content-type" style="padding:0.3rem 0.5rem; background:var(--color-surface,#0f172a); border:1px solid var(--color-border,#334155); border-radius:4px; color:var(--color-text,#e2e8f0); font-size:0.82rem; cursor:pointer;">
+        <option value="application/json">application/json</option>
+        <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+        <option value="text/plain">text/plain</option>
+        <option value="text/xml">text/xml</option>
+      </select>
+    </div>
+    <textarea id="arb-body" rows="6" class="arb-input" style="resize:vertical; font-family:var(--font-mono,monospace);" placeholder='{"key": "value"}'></textarea>
+  </div>
+  <div class="arb-tab-content" id="arb-tab-params">
+    <table class="arb-headers-table" id="arb-params-tbl">
+      <thead><tr>
+        <td style="width:42%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--color-muted,#94a3b8);">Key</td>
+        <td style="width:50%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--color-muted,#94a3b8);">Value</td>
+        <td style="width:8%;"></td>
+      </tr></thead>
+      <tbody id="arb-params-body"></tbody>
+    </table>
+    <button class="btn" id="arb-add-param" style="margin-top:0.4rem; font-size:0.8rem; padding:0.25rem 0.7rem;">+ Add Param</button>
+  </div>
+</div>
+
+<div class="cors-note">
+  Note: Requests run directly from your browser. CORS restrictions apply — the target server must allow cross-origin requests. Same-origin and public APIs with CORS headers will work fine.
+</div>
+
+<div id="arb-response" style="display:none; margin-top:1rem;">
+  <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+    <div>
+      <span class="arb-label" style="display:inline;">Status: </span>
+      <span id="arb-resp-status" class="arb-status"></span>
+    </div>
+    <div class="arb-timing" id="arb-resp-time"></div>
+    <div class="arb-timing" id="arb-resp-size"></div>
+    <button class="btn btn--copy" id="arb-copy-resp" style="margin-left:auto;">Copy Response</button>
+  </div>
+
+  <div class="arb-tab-bar" id="arb-resp-tabs">
+    <button class="arb-tab active" data-resp-tab="body">Body</button>
+    <button class="arb-tab" data-resp-tab="headers">Headers</button>
+  </div>
+  <div class="arb-tab-content active" id="arb-resp-body-tab">
+    <pre id="arb-resp-body" style="max-height:20rem; overflow:auto; margin:0; font-size:0.83rem;"></pre>
+  </div>
+  <div class="arb-tab-content" id="arb-resp-headers-tab">
+    <div id="arb-resp-headers-list" class="arb-resp-headers"></div>
+  </div>
+</div>
+
+<div id="arb-error" style="display:none; margin-top:0.75rem;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<script>
+(function () {
+  var methodEl   = document.getElementById('arb-method');
+  var urlEl      = document.getElementById('arb-url');
+  var sendBtn    = document.getElementById('arb-send');
+  var bodyEl     = document.getElementById('arb-body');
+  var ctypeEl    = document.getElementById('arb-content-type');
+  var headersBody = document.getElementById('arb-headers-body');
+  var paramsBody  = document.getElementById('arb-params-body');
+  var addHeaderBtn = document.getElementById('arb-add-header');
+  var addParamBtn  = document.getElementById('arb-add-param');
+  var responseDiv  = document.getElementById('arb-response');
+  var respStatus   = document.getElementById('arb-resp-status');
+  var respTime     = document.getElementById('arb-resp-time');
+  var respSize     = document.getElementById('arb-resp-size');
+  var respBodyEl   = document.getElementById('arb-resp-body');
+  var respHeadersEl = document.getElementById('arb-resp-headers-list');
+  var copyRespBtn  = document.getElementById('arb-copy-resp');
+  var errorEl      = document.getElementById('arb-error');
+  var bodyTab      = document.getElementById('arb-body-tab');
+
+  // Tab switching
+  document.querySelectorAll('.arb-tab[data-tab]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var tab = btn.getAttribute('data-tab');
+      document.querySelectorAll('.arb-tab[data-tab]').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelectorAll('.arb-tab-content').forEach(function (c) {
+        if (c.id === 'arb-tab-' + tab) c.classList.add('active');
+        else if (['arb-tab-headers','arb-tab-body','arb-tab-params'].indexOf(c.id) !== -1) c.classList.remove('active');
+      });
+    });
+  });
+
+  document.querySelectorAll('.arb-tab[data-resp-tab]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var tab = btn.getAttribute('data-resp-tab');
+      document.querySelectorAll('.arb-tab[data-resp-tab]').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var bodyC = document.getElementById('arb-resp-body-tab');
+      var headC = document.getElementById('arb-resp-headers-tab');
+      if (tab === 'body') { bodyC.classList.add('active'); headC.classList.remove('active'); }
+      else { headC.classList.add('active'); bodyC.classList.remove('active'); }
+    });
+  });
+
+  // Update body tab visibility
+  function updateBodyTabVisibility() {
+    var m = methodEl.value;
+    var hasBody = ['POST','PUT','PATCH'].indexOf(m) !== -1;
+    bodyTab.style.display = hasBody ? '' : 'none';
+  }
+  methodEl.addEventListener('change', updateBodyTabVisibility);
+  updateBodyTabVisibility();
+
+  // Header / param rows
+  function addRow(tbody) {
+    var tr = document.createElement('tr');
+    var tdKey = document.createElement('td');
+    var tdVal = document.createElement('td');
+    var tdDel = document.createElement('td');
+    var inpKey = document.createElement('input');
+    inpKey.type = 'text'; inpKey.placeholder = 'Key';
+    var inpVal = document.createElement('input');
+    inpVal.type = 'text'; inpVal.placeholder = 'Value';
+    var delBtn = document.createElement('button');
+    delBtn.className = 'del-btn'; delBtn.textContent = '×'; delBtn.title = 'Remove';
+    delBtn.addEventListener('click', function () { tbody.removeChild(tr); });
+    tdKey.appendChild(inpKey); tdVal.appendChild(inpVal); tdDel.appendChild(delBtn);
+    tr.appendChild(tdKey); tr.appendChild(tdVal); tr.appendChild(tdDel);
+    tbody.appendChild(tr);
+    inpKey.focus();
+  }
+
+  addHeaderBtn.addEventListener('click', function () { addRow(headersBody); });
+  addParamBtn.addEventListener('click', function () { addRow(paramsBody); });
+
+  // Add default headers row
+  addRow(headersBody);
+  headersBody.querySelector('input').value = 'Accept';
+  headersBody.querySelectorAll('input')[1].value = 'application/json';
+
+  function getRows(tbody) {
+    var rows = [];
+    tbody.querySelectorAll('tr').forEach(function (tr) {
+      var inputs = tr.querySelectorAll('input');
+      var k = inputs[0] ? inputs[0].value.trim() : '';
+      var v = inputs[1] ? inputs[1].value.trim() : '';
+      if (k) rows.push({ key: k, value: v });
+    });
+    return rows;
+  }
+
+  // Send request
+  sendBtn.addEventListener('click', function () {
+    var method = methodEl.value;
+    var url    = urlEl.value.trim();
+    if (!url) { showError('Please enter a URL.'); return; }
+
+    // Build URL with query params
+    try {
+      var parsed = new URL(url);
+      getRows(paramsBody).forEach(function (p) { parsed.searchParams.set(p.key, p.value); });
+      url = parsed.toString();
+    } catch (e) {
+      showError('Invalid URL: ' + e.message); return;
+    }
+
+    // Build headers
+    var headers = {};
+    getRows(headersBody).forEach(function (h) { headers[h.key] = h.value; });
+
+    var hasBody = ['POST','PUT','PATCH'].indexOf(method) !== -1;
+    var body = undefined;
+    if (hasBody && bodyEl.value.trim()) {
+      headers['Content-Type'] = ctypeEl.value;
+      body = bodyEl.value;
+    }
+
+    sendBtn.textContent = 'Sending…';
+    sendBtn.disabled = true;
+    hideError();
+    responseDiv.style.display = 'none';
+
+    var startTime = Date.now();
+
+    fetch(url, { method: method, headers: headers, body: body, redirect: 'follow' })
+      .then(function (resp) {
+        var elapsed = Date.now() - startTime;
+        var statusCode = resp.status;
+        var statusText = resp.statusText;
+
+        // Collect response headers
+        var respHeaders = [];
+        resp.headers.forEach(function (val, key) { respHeaders.push({ key: key, value: val }); });
+
+        return resp.text().then(function (text) {
+          var size = new Blob([text]).size;
+          displayResponse(statusCode, statusText, elapsed, size, respHeaders, text);
+        });
+      })
+      .catch(function (err) {
+        var elapsed = Date.now() - startTime;
+        showError('Request failed: ' + err.message + '\n(Check CORS settings or network connectivity)');
+      })
+      .finally(function () {
+        sendBtn.textContent = 'Send';
+        sendBtn.disabled = false;
+      });
+  });
+
+  function displayResponse(status, statusText, elapsed, size, headers, body) {
+    // Status badge
+    while (respStatus.firstChild) respStatus.removeChild(respStatus.firstChild);
+    var statusNode = document.createTextNode(status + ' ' + statusText);
+    respStatus.appendChild(statusNode);
+    respStatus.className = 'arb-status ' + (status >= 200 && status < 300 ? 'ok' : status >= 400 ? 'err' : 'warn');
+
+    respTime.textContent = elapsed + ' ms';
+    respSize.textContent = formatBytes(size);
+
+    // Response body
+    var formatted = body;
+    try {
+      formatted = JSON.stringify(JSON.parse(body), null, 2);
+    } catch (e) {}
+    respBodyEl.textContent = formatted;
+
+    // Response headers
+    while (respHeadersEl.firstChild) respHeadersEl.removeChild(respHeadersEl.firstChild);
+    headers.forEach(function (h) {
+      var div = document.createElement('div');
+      var keySpan = document.createElement('span');
+      keySpan.textContent = h.key + ': ';
+      keySpan.style.color = 'var(--color-accent,#6366f1)';
+      var valSpan = document.createElement('span');
+      valSpan.textContent = h.value;
+      div.appendChild(keySpan); div.appendChild(valSpan);
+      respHeadersEl.appendChild(div);
+    });
+
+    responseDiv.style.display = '';
+    responseDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  copyRespBtn.addEventListener('click', function () {
+    var text = respBodyEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyRespBtn.textContent = 'Copied!';
+        setTimeout(function () { copyRespBtn.textContent = 'Copy Response'; }, 2000);
+      }).catch(function () {
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  });
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); copyRespBtn.textContent = 'Copied!'; } catch (e) { copyRespBtn.textContent = 'Failed'; }
+    document.body.removeChild(ta);
+    setTimeout(function () { copyRespBtn.textContent = 'Copy Response'; }, 2000);
+  }
+
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = ''; }
+  function hideError() { errorEl.textContent = ''; errorEl.style.display = 'none'; }
+
+  // Allow Enter in URL field to send
+  urlEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') sendBtn.click();
+  });
+})();
+</script>

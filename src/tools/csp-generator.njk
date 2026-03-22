@@ -1,0 +1,442 @@
+---
+toolSlug: csp-generator
+permalink: /tools/csp-generator/
+---
+
+<div class="csp-layout">
+  <div class="csp-builder" id="csp-builder">
+
+    <div class="csp-warning" id="csp-warning" style="display:none;" role="alert">
+      <strong>Security warning:</strong> <span id="csp-warning-text"></span>
+    </div>
+
+    <!-- Directives -->
+    <div id="csp-directives"></div>
+
+    <!-- Custom domain input -->
+    <div class="tool-group" style="margin-top:1rem;">
+      <label for="csp-custom-domain">Add custom domain to a directive</label>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <input type="text" id="csp-custom-domain" placeholder="https://cdn.example.com" style="flex:1;min-width:180px;font-family:monospace;" spellcheck="false" autocomplete="off">
+        <select id="csp-custom-directive" style="min-width:140px;">
+          <option value="script-src">script-src</option>
+          <option value="style-src">style-src</option>
+          <option value="img-src">img-src</option>
+          <option value="font-src">font-src</option>
+          <option value="connect-src">connect-src</option>
+          <option value="frame-src">frame-src</option>
+          <option value="default-src">default-src</option>
+        </select>
+        <button class="btn" id="csp-add-domain-btn">Add</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="csp-preview-col">
+    <div class="csp-preview-wrap">
+      <div class="csp-preview-label">Generated CSP</div>
+      <div class="tool-options" role="group" aria-label="Output format" style="margin-bottom:0.75rem;">
+        <button class="tool-option active" data-fmt="header" aria-pressed="true">HTTP Header</button>
+        <button class="tool-option" data-fmt="meta" aria-pressed="false">Meta Tag</button>
+      </div>
+      <div class="output-area" style="position:relative;">
+        <button class="btn btn--copy" id="csp-copy-btn" aria-label="Copy CSP">Copy</button>
+        <pre id="csp-output" style="white-space:pre-wrap;word-break:break-all;min-height:80px;"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .csp-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.25rem;
+    align-items: start;
+  }
+  @media (max-width: 700px) {
+    .csp-layout { grid-template-columns: 1fr; }
+  }
+  .csp-builder { min-width: 0; }
+  .csp-preview-col { position: sticky; top: 1rem; }
+  .csp-preview-wrap {
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+  .csp-preview-label { font-size: 0.8125rem; font-weight: 700; color: var(--text-2,#94a3b8); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .csp-warning {
+    padding: 0.75rem 1rem;
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.3);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #fbbf24;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+  .csp-directive-block {
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    margin-bottom: 0.6rem;
+    overflow: hidden;
+  }
+  .csp-directive-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.875rem;
+    background: var(--surface-1,#1a1a2e);
+    cursor: pointer;
+    user-select: none;
+  }
+  .csp-directive-name { font-size: 0.875rem; font-weight: 600; font-family: var(--font-mono,monospace); color: var(--text-1,#e2e8f0); flex: 1; }
+  .csp-directive-preview { font-size: 0.75rem; font-family: var(--font-mono,monospace); color: var(--text-3,#888); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .csp-directive-toggle { font-size: 0.75rem; color: var(--text-3,#888); flex-shrink: 0; }
+  .csp-directive-body { padding: 0.75rem 0.875rem; display: none; flex-wrap: wrap; gap: 0.5rem; }
+  .csp-directive-body.open { display: flex; }
+  .csp-option-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    font-family: var(--font-mono,monospace);
+    color: var(--text-2,#94a3b8);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .csp-option-chip.active {
+    background: rgba(99,102,241,0.15);
+    border-color: rgba(99,102,241,0.4);
+    color: #a5b4fc;
+  }
+  .csp-option-chip.warn.active {
+    background: rgba(251,191,36,0.1);
+    border-color: rgba(251,191,36,0.35);
+    color: #fbbf24;
+  }
+  .csp-option-chip input[type="checkbox"] { display: none; }
+  .csp-custom-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid rgba(99,102,241,0.35);
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    font-family: var(--font-mono,monospace);
+    color: #a5b4fc;
+    background: rgba(99,102,241,0.1);
+  }
+  .csp-custom-chip-remove {
+    cursor: pointer;
+    color: #f87171;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0 1px;
+  }
+  .csp-custom-chip-remove:hover { color: #ef4444; }
+</style>
+
+<script>
+(function () {
+  var DIRECTIVES = [
+    {
+      name: 'default-src',
+      desc: 'Fallback for all resource types not explicitly listed.',
+      options: ["'self'", "'none'", '*'],
+      warnOn: ["'unsafe-inline'", "'unsafe-eval'", '*']
+    },
+    {
+      name: 'script-src',
+      desc: 'Controls which scripts can be loaded and executed.',
+      options: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "'none'", "'strict-dynamic'"],
+      warnOn: ["'unsafe-inline'", "'unsafe-eval'"]
+    },
+    {
+      name: 'style-src',
+      desc: 'Controls which stylesheets can be applied.',
+      options: ["'self'", "'unsafe-inline'", "'none'"],
+      warnOn: ["'unsafe-inline'"]
+    },
+    {
+      name: 'img-src',
+      desc: 'Controls image sources.',
+      options: ["'self'", 'data:', '*', "'none'"],
+      warnOn: ['*']
+    },
+    {
+      name: 'font-src',
+      desc: 'Controls font sources.',
+      options: ["'self'", 'https://fonts.gstatic.com', 'data:', "'none'"],
+      warnOn: []
+    },
+    {
+      name: 'connect-src',
+      desc: 'Restricts which URLs can be loaded via fetch, XHR, WebSocket.',
+      options: ["'self'", "'none'", '*'],
+      warnOn: ['*']
+    },
+    {
+      name: 'frame-src',
+      desc: 'Controls valid sources for nested browsing contexts (iframes).',
+      options: ["'self'", "'none'", '*'],
+      warnOn: ['*']
+    },
+    {
+      name: 'object-src',
+      desc: "Controls valid sources for <object>, <embed>, and <applet>.",
+      options: ["'none'", "'self'"],
+      warnOn: []
+    },
+    {
+      name: 'base-uri',
+      desc: "Restricts the URLs in a document's <base> element.",
+      options: ["'self'", "'none'"],
+      warnOn: []
+    },
+    {
+      name: 'form-action',
+      desc: 'Restricts valid endpoints for form submissions.',
+      options: ["'self'", "'none'"],
+      warnOn: []
+    }
+  ];
+
+  var state = {};
+  var customDomains = {}; // directive -> [domain, ...]
+  DIRECTIVES.forEach(function (d) {
+    state[d.name] = {};
+    customDomains[d.name] = [];
+  });
+
+  var builderEl  = document.getElementById('csp-directives');
+  var warningEl  = document.getElementById('csp-warning');
+  var warnTextEl = document.getElementById('csp-warning-text');
+  var outputEl   = document.getElementById('csp-output');
+  var copyBtn    = document.getElementById('csp-copy-btn');
+  var customInput= document.getElementById('csp-custom-domain');
+  var customDir  = document.getElementById('csp-custom-directive');
+  var addBtn     = document.getElementById('csp-add-domain-btn');
+  var fmtBtns    = Array.prototype.slice.call(document.querySelectorAll('[data-fmt]'));
+  var currentFmt = 'header';
+
+  // Build directive UI
+  DIRECTIVES.forEach(function (d) {
+    var block = document.createElement('div');
+    block.className = 'csp-directive-block';
+
+    var hdr = document.createElement('div');
+    hdr.className = 'csp-directive-header';
+    hdr.setAttribute('role', 'button');
+    hdr.setAttribute('tabindex', '0');
+
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'csp-directive-name';
+    nameSpan.textContent = d.name;
+
+    var previewSpan = document.createElement('span');
+    previewSpan.className = 'csp-directive-preview';
+    previewSpan.id = 'csp-prev-' + d.name;
+
+    var toggleSpan = document.createElement('span');
+    toggleSpan.className = 'csp-directive-toggle';
+    toggleSpan.textContent = '▸';
+
+    hdr.appendChild(nameSpan);
+    hdr.appendChild(previewSpan);
+    hdr.appendChild(toggleSpan);
+
+    var body = document.createElement('div');
+    body.className = 'csp-directive-body';
+    body.id = 'csp-body-' + d.name;
+
+    // Option chips
+    d.options.forEach(function (opt) {
+      var chip = document.createElement('label');
+      chip.className = 'csp-option-chip' + (d.warnOn.includes(opt) ? ' warn' : '');
+      chip.setAttribute('title', d.desc);
+
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = opt;
+      cb.addEventListener('change', function () {
+        state[d.name][opt] = cb.checked;
+        if (cb.checked) chip.classList.add('active');
+        else chip.classList.remove('active');
+        updateAll();
+      });
+
+      chip.appendChild(cb);
+      chip.appendChild(document.createTextNode(opt));
+      body.appendChild(chip);
+    });
+
+    // Custom domains container
+    var customContainer = document.createElement('span');
+    customContainer.id = 'csp-custom-' + d.name;
+    body.appendChild(customContainer);
+
+    hdr.addEventListener('click', function () {
+      var open = body.classList.contains('open');
+      body.classList.toggle('open', !open);
+      toggleSpan.textContent = open ? '▸' : '▾';
+    });
+    hdr.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hdr.click(); }
+    });
+
+    block.appendChild(hdr);
+    block.appendChild(body);
+    builderEl.appendChild(block);
+  });
+
+  function buildCSPValue() {
+    var parts = [];
+    DIRECTIVES.forEach(function (d) {
+      var vals = Object.keys(state[d.name]).filter(function (k) { return state[d.name][k]; });
+      var customs = customDomains[d.name] || [];
+      var all = vals.concat(customs);
+      if (all.length > 0) {
+        parts.push(d.name + ' ' + all.join(' '));
+      }
+    });
+    return parts.join('; ');
+  }
+
+  function updateAll() {
+    var csp = buildCSPValue();
+
+    // Warnings
+    var warns = [];
+    DIRECTIVES.forEach(function (d) {
+      d.warnOn.forEach(function (w) {
+        if (state[d.name][w]) warns.push(d.name + ": " + w);
+      });
+    });
+    if (warns.length > 0) {
+      warnTextEl.textContent = "Unsafe directive values selected: " + warns.join(', ') + ". These weaken your XSS protection.";
+      warningEl.style.display = '';
+    } else {
+      warningEl.style.display = 'none';
+    }
+
+    // Update previews
+    DIRECTIVES.forEach(function (d) {
+      var el = document.getElementById('csp-prev-' + d.name);
+      if (!el) return;
+      var vals = Object.keys(state[d.name]).filter(function (k) { return state[d.name][k]; });
+      var customs = customDomains[d.name] || [];
+      el.textContent = vals.concat(customs).join(' ') || '';
+    });
+
+    // Format output
+    if (!csp) {
+      outputEl.textContent = '(no directives selected)';
+      return;
+    }
+    if (currentFmt === 'header') {
+      outputEl.textContent = 'Content-Security-Policy: ' + csp;
+    } else {
+      outputEl.textContent = '<meta http-equiv="Content-Security-Policy"\n      content="' + csp + '">';
+    }
+  }
+
+  fmtBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      fmtBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      currentFmt = btn.getAttribute('data-fmt');
+      updateAll();
+    });
+  });
+
+  addBtn.addEventListener('click', function () {
+    var domain = customInput.value.trim();
+    var dir = customDir.value;
+    if (!domain) return;
+    customDomains[dir] = customDomains[dir] || [];
+    if (customDomains[dir].includes(domain)) { customInput.value = ''; return; }
+    customDomains[dir].push(domain);
+    customInput.value = '';
+
+    // Add chip to body
+    var container = document.getElementById('csp-custom-' + dir);
+    if (container) {
+      var chip = document.createElement('span');
+      chip.className = 'csp-custom-chip';
+      chip.textContent = domain + ' ';
+      var rm = document.createElement('span');
+      rm.className = 'csp-custom-chip-remove';
+      rm.textContent = '×';
+      rm.setAttribute('aria-label', 'Remove ' + domain);
+      rm.addEventListener('click', function () {
+        var idx = customDomains[dir].indexOf(domain);
+        if (idx > -1) customDomains[dir].splice(idx, 1);
+        container.removeChild(chip);
+        updateAll();
+      });
+      chip.appendChild(rm);
+      container.appendChild(chip);
+    }
+    updateAll();
+  });
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text || text === '(no directives selected)') return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      }).catch(function () {
+        copyBtn.textContent = 'Failed';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; }
+      catch (e) { copyBtn.textContent = 'Failed'; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+  });
+
+  // Set sensible defaults
+  var defaultsMap = {
+    'default-src': ["'self'"],
+    'object-src': ["'none'"],
+    'base-uri': ["'self'"],
+    'form-action': ["'self'"]
+  };
+  Object.keys(defaultsMap).forEach(function (dir) {
+    defaultsMap[dir].forEach(function (val) {
+      state[dir][val] = true;
+      var body = document.getElementById('csp-body-' + dir);
+      if (body) {
+        body.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+          if (cb.value === val) {
+            cb.checked = true;
+            cb.closest('.csp-option-chip').classList.add('active');
+          }
+        });
+      }
+    });
+  });
+  updateAll();
+})();
+</script>

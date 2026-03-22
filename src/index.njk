@@ -1,0 +1,380 @@
+---
+layout: base.njk
+---
+<section class="hero">
+  <div class="eclipse-row reveal">
+    <div class="penumbra-mark">
+      <div class="penumbra-backlight"></div>
+      <div class="penumbra-corona"></div>
+      <div class="penumbra-light"></div>
+      <div class="penumbra-edge"></div>
+      <div class="penumbra-shadow"></div>
+      <canvas id="eclipse-particles" width="500" height="500"></canvas>
+    </div>
+  </div>
+
+  <div class="hero-split">
+    <div>
+      <p class="hero-label reveal reveal-delay-1">Penumbra Forge</p>
+      <h1 class="reveal reveal-delay-2">Security tools &amp; software,<br>forged by <strong>Shadoe</strong></h1>
+      <p class="hero-subtitle reveal reveal-delay-3">One-person studio. Open source security tools, local AI, and developer utilities. No compromises, no cloud dependency.</p>
+      <div class="hero-stats reveal reveal-delay-4">
+        <div><div class="stat-num">53</div><div class="stat-label">Browser Tools</div></div>
+        <div><div class="stat-num">4</div><div class="stat-label">Products</div></div>
+        <div><div class="stat-num">0</div><div class="stat-label">Cloud Deps</div></div>
+      </div>
+    </div>
+    <div class="reveal reveal-delay-3">
+      <div class="live-tool">
+        <div class="tool-titlebar">
+          <span class="tool-dot"></span><span class="tool-dot"></span><span class="tool-dot"></span>
+          <span class="tool-name" id="demo-tool-name">secrets-scanner</span>
+        </div>
+        <div class="tool-body" id="demo-carousel">
+          <pre class="demo-slide demo-slide--active" data-tool="secrets-scanner"><span class="hl-dim">$</span> <span class="hl-key">scanning input</span> <span class="hl-dim">...</span>
+
+<span class="hl-str">&#x2714; Line 3</span>  AWS Access Key detected
+  <span class="hl-dim">pattern:</span> <span class="hl-key">AKIA[0-9A-Z]{16}</span>
+  <span class="hl-dim">match:</span>   <span class="hl-str">AKIAIOSFODNN7EXAMPLE</span>
+
+<span class="hl-str">&#x2714; Line 7</span>  GitHub Token detected
+  <span class="hl-dim">pattern:</span> <span class="hl-key">ghp_[a-zA-Z0-9]{36}</span>
+  <span class="hl-dim">match:</span>   <span class="hl-str">ghp_xxxxxxxxxxxxxxxxxxxx</span>
+
+<span class="hl-dim">───────────────────────────</span>
+<span class="hl-warn">2 secrets found</span> in <span class="hl-warn">12ms</span></pre>
+          <pre class="demo-slide" data-tool="json-formatter"><span class="hl-dim">{</span>
+  <span class="hl-key">"name"</span><span class="hl-dim">:</span> <span class="hl-str">"gate"</span><span class="hl-dim">,</span>
+  <span class="hl-key">"version"</span><span class="hl-dim">:</span> <span class="hl-str">"2.0.0"</span><span class="hl-dim">,</span>
+  <span class="hl-key">"description"</span><span class="hl-dim">:</span> <span class="hl-str">"Pre-commit secret defense"</span><span class="hl-dim">,</span>
+  <span class="hl-key">"license"</span><span class="hl-dim">:</span> <span class="hl-str">"AGPL-3.0"</span><span class="hl-dim">,</span>
+  <span class="hl-key">"dependencies"</span><span class="hl-dim">:</span> <span class="hl-dim">{}</span>
+<span class="hl-dim">}</span></pre>
+          <pre class="demo-slide" data-tool="hash-generator"><span class="hl-dim">Input:</span>  <span class="hl-str">penumbraforge</span>
+<span class="hl-dim">Algorithm:</span> <span class="hl-key">SHA-256</span>
+
+<span class="hl-dim">Output:</span>
+<span class="hl-str">7f3a8c2e1d4b5690...</span>
+<span class="hl-str">a8e3f1c2d4b57698...</span>
+
+<span class="hl-str">&#x2714;</span> Hash computed in <span class="hl-warn">0.3ms</span></pre>
+        </div>
+        <div class="tool-footer">
+          <span class="tool-badge">client-side only</span>
+          <div class="demo-dots" id="demo-dots">
+            <button class="demo-dot demo-dot--active" data-index="0" aria-label="Secrets Scanner demo"></button>
+            <button class="demo-dot" data-index="1" aria-label="JSON Formatter demo"></button>
+            <button class="demo-dot" data-index="2" aria-label="Hash Generator demo"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-gap section-gap-lg"></div>
+
+<div class="section">
+  <div class="section-divider reveal"><span>From the Forge</span></div>
+
+  <div class="station reveal">
+    <div class="station-content">
+      <div class="station-tag">Pre-commit Defense</div>
+      <h3>Gate</h3>
+      <p>Catches secrets before they reach your repository — and fixes them automatically. Installs in one command, scans in milliseconds.</p>
+      <div class="station-features">
+        <span class="station-feature">30+ secret detection patterns</span>
+        <span class="station-feature">Auto-fix — redacts secrets in place</span>
+        <span class="station-feature">Pre-commit hook integration</span>
+        <span class="station-feature">Zero cloud dependency</span>
+      </div>
+      <a href="/gate/" class="station-cta">Learn more &rarr;</a>
+    </div>
+    <a href="/gate/" class="station-terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
+        <span class="terminal-title">gate scan --fix</span>
+      </div>
+      <pre class="terminal-body"><span class="hl-dim">$</span> <span class="hl-key">gate scan --fix</span>
+
+<span class="hl-warn">&#x2718;</span> <span class="hl-str">config/db.yml</span><span class="hl-dim">:12</span>
+  AWS Secret Key detected
+  <span class="hl-dim">before:</span> <span class="hl-warn">AKIAIOSFODNN7EXAMPLE</span>
+  <span class="hl-dim"> after:</span> <span class="hl-str">REDACTED_AWS_SECRET_KEY</span>
+
+<span class="hl-warn">&#x2718;</span> <span class="hl-str">.env.production</span><span class="hl-dim">:4</span>
+  GitHub Token detected
+  <span class="hl-dim">before:</span> <span class="hl-warn">ghp_a1b2c3d4e5f6g7h8</span>
+  <span class="hl-dim"> after:</span> <span class="hl-str">REDACTED_GITHUB_TOKEN</span>
+
+<span class="hl-dim">───────────────────────────────</span>
+<span class="hl-str">&#x2714; 2 secrets found and fixed</span>
+<span class="hl-dim">  commit safe to proceed</span></pre>
+    </a>
+  </div>
+
+  <div class="station reveal">
+    <div class="station-content">
+      <div class="station-tag">MCP Skills Server</div>
+      <h3>mcp-librarian</h3>
+      <p>A self-growing knowledge library for AI coding agents. When no skill exists, it researches from authoritative sources and creates one permanently.</p>
+      <div class="station-features">
+        <span class="station-feature">Auto-research from official docs</span>
+        <span class="station-feature">Skills persist across sessions</span>
+        <span class="station-feature">Ed25519 signing &amp; content guard</span>
+        <span class="station-feature">Node.js built-ins only — zero deps</span>
+      </div>
+      <a href="/librarian/" class="station-cta">Learn more &rarr;</a>
+    </div>
+    <a href="/librarian/" class="station-terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
+        <span class="terminal-title">mcp-librarian</span>
+      </div>
+      <pre class="terminal-body"><span class="hl-dim">agent:</span> <span class="hl-key">find skill</span> <span class="hl-str">"react testing patterns"</span>
+
+<span class="hl-dim">&#x21BB;</span> searching local skills<span class="hl-dim">...</span>
+<span class="hl-dim">&#x21BB;</span> no match found
+
+<span class="hl-key">&#x21BB; researching</span> <span class="hl-str">testing-library.com</span><span class="hl-dim">...</span>
+<span class="hl-key">&#x21BB; researching</span> <span class="hl-str">react.dev/testing</span><span class="hl-dim">...</span>
+
+<span class="hl-str">&#x2714; skill created:</span> <span class="hl-key">react-testing-patterns</span>
+  <span class="hl-dim">sources:</span>  2 authoritative docs
+  <span class="hl-dim">patterns:</span> 7 extracted
+  <span class="hl-dim">signed:</span>  <span class="hl-str">Ed25519 &#x2714;</span>
+
+<span class="hl-dim">  skill permanently available</span></pre>
+    </a>
+  </div>
+
+  <div class="station station-umbra reveal">
+    <div class="station-content">
+      <div class="station-tag">Local AI Studio</div>
+      <h3>Umbra</h3>
+      <p>A local-first AI creation studio for Apple Silicon. Run large language models on your hardware. No cloud. No subscriptions.</p>
+      <div class="umbra-status">
+        <span class="status-dot"></span>
+        <span class="status-text">in development</span>
+      </div>
+    </div>
+    <div class="station-visual station-visual-umbra">
+      <div class="umbra-atmosphere"></div>
+      <span>umbra</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-gap section-gap-lg"></div>
+
+<div class="section">
+  <div class="section-divider reveal"><span>Developer Tools</span></div>
+
+  <div class="section-head reveal">
+    <div>
+      <h2>Built for developers who care</h2>
+      <p class="section-desc">Client-side utilities that run entirely in your browser. No accounts, no tracking — your data never leaves your machine.</p>
+    </div>
+    <span class="section-count">53 tools &amp; counting</span>
+  </div>
+
+  <div class="tools-grid">
+    <a href="/tools/json-formatter/" class="t-card reveal reveal-delay-1"><div class="t-icon">{&thinsp;}</div><h4>JSON Formatter</h4><p>Pretty-print, minify, validate</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/jwt-decoder/" class="t-card reveal reveal-delay-2"><div class="t-icon">&#x1f511;</div><h4>JWT Decoder</h4><p>Inspect tokens and claims</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/secrets-scanner/" class="t-card reveal reveal-delay-3"><div class="t-icon">&#x1f6e1;</div><h4>Secrets Scanner</h4><p>Detect exposed API keys</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/subnet-calculator/" class="t-card reveal reveal-delay-4"><div class="t-icon">&#x1f310;</div><h4>Subnet Calculator</h4><p>Visual CIDR and IP ranges</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/cron-builder/" class="t-card reveal reveal-delay-5"><div class="t-icon">&#x23f0;</div><h4>Cron Builder</h4><p>Visual cron expression editor</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/hash-generator/" class="t-card reveal reveal-delay-6"><div class="t-icon">#</div><h4>Hash Generator</h4><p>SHA-256, SHA-512, MD5</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/regex-tester/" class="t-card reveal reveal-delay-7"><div class="t-icon">&#x1f50d;</div><h4>Regex Tester</h4><p>Live pattern matching</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/password-generator/" class="t-card reveal"><div class="t-icon">&#x1f512;</div><h4>Password Generator</h4><p>Cryptographic randomness</p><span class="local-badge">runs in your browser</span></a>
+  </div>
+
+  <div class="tools-cta-row reveal">
+    <a href="/tools/" class="tools-cta">Browse all 53 tools &rarr;</a>
+  </div>
+</div>
+
+<div class="section-gap"></div>
+
+<div class="section">
+  <div class="section-divider reveal"><span>About</span></div>
+  <div class="about-layout reveal">
+    <div>
+      <p class="about-name">Shadoe Myers</p>
+      <p class="about-role">Senior InfoSec Engineer</p>
+      <p class="about-location">Arizona</p>
+    </div>
+    <div>
+      <div class="about-body">
+        <p>Penumbra Forge is a one-person software studio. By day, I'm a senior information security engineer on a CIRT team, building SOAR automations that my team uses every single day. By night, I build the tools I wish existed — things that respect your privacy, run on your hardware, and don't need a cloud account to function.</p>
+        <p>Everything I ship is shaped by years in datacenters, NOCs, and incident response: secure by default, minimal attack surface, no unnecessary dependencies.</p>
+      </div>
+      <div class="tech-row">
+        <span class="tech-chip">Python</span>
+        <span class="tech-chip">Swift</span>
+        <span class="tech-chip">TypeScript</span>
+        <span class="tech-chip">MLX</span>
+        <span class="tech-chip">Cloudflare Workers</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Eclipse corona — flowing light wisps
+// Light bleeding off the edge of shadow
+(function() {
+  const canvas = document.getElementById('eclipse-particles');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = 250;
+  const cy = 250;
+  const eclipseR = 70;
+
+  const wisps = [];
+
+  function spawnWisp() {
+    const angle = Math.random() * Math.PI * 2;
+    return {
+      angle: angle,
+      angleSpeed: (Math.random() - 0.5) * 0.001,
+      startR: eclipseR - 4,
+      r: eclipseR - 4,
+      driftSpeed: 0.03 + Math.random() * 0.08,
+      maxR: eclipseR + 20 + Math.random() * 60,
+      size: 16 + Math.random() * 35,
+      opacity: 0.015 + Math.random() * 0.03,
+      life: 0,
+      maxLife: 300 + Math.random() * 500,
+      hue: 260 + Math.random() * 25,
+      lightness: 60 + Math.random() * 15,
+      stretch: 0.5 + Math.random() * 0.7,
+    };
+  }
+
+  for (let i = 0; i < 12; i++) {
+    const w = spawnWisp();
+    w.life = Math.random() * w.maxLife;
+    w.r = w.startR + w.driftSpeed * w.life;
+    wisps.push(w);
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, 500, 500);
+
+    for (let i = wisps.length - 1; i >= 0; i--) {
+      const w = wisps[i];
+      w.life++;
+      w.r += w.driftSpeed;
+      w.angle += w.angleSpeed;
+
+      const progress = w.life / w.maxLife;
+
+      let alpha;
+      if (progress < 0.15) {
+        alpha = w.opacity * (progress / 0.15);
+      } else if (progress > 0.7) {
+        alpha = w.opacity * (1 - (progress - 0.7) / 0.3);
+      } else {
+        alpha = w.opacity;
+      }
+
+      const currentSize = w.size * (0.6 + progress * 0.8);
+
+      if (w.life >= w.maxLife || alpha < 0.003) {
+        wisps.splice(i, 1);
+        wisps.push(spawnWisp());
+        continue;
+      }
+
+      const x = cx + Math.cos(w.angle) * w.r;
+      const y = cy + Math.sin(w.angle) * w.r;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(w.angle);
+      ctx.scale(1, w.stretch);
+
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, currentSize);
+      grad.addColorStop(0, `hsla(${w.hue}, 35%, ${w.lightness}%, ${alpha * 1.5})`);
+      grad.addColorStop(0.4, `hsla(${w.hue}, 30%, ${w.lightness}%, ${alpha * 0.6})`);
+      grad.addColorStop(1, `hsla(${w.hue}, 25%, ${w.lightness}%, 0)`);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, currentSize, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+})();
+
+// Hero tool demo — rotating carousel
+(function() {
+  const slides = document.querySelectorAll('.demo-slide');
+  const dots = document.querySelectorAll('.demo-dot');
+  const toolName = document.getElementById('demo-tool-name');
+  const carousel = document.getElementById('demo-carousel');
+  if (!slides.length || !toolName) return;
+
+  let current = 0;
+  let timer = null;
+  let paused = false;
+
+  function show(index) {
+    slides.forEach(function(s, i) {
+      if (i === index) {
+        s.classList.add('demo-slide--active');
+      } else {
+        s.classList.remove('demo-slide--active');
+      }
+    });
+    dots.forEach(function(d, i) {
+      if (i === index) {
+        d.classList.add('demo-dot--active');
+      } else {
+        d.classList.remove('demo-dot--active');
+      }
+    });
+    toolName.textContent = slides[index].getAttribute('data-tool');
+    current = index;
+  }
+
+  function next() {
+    show((current + 1) % slides.length);
+  }
+
+  function startTimer() {
+    stopTimer();
+    timer = setInterval(function() {
+      if (!paused) next();
+    }, 5000);
+  }
+
+  function stopTimer() {
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  // Pause on hover
+  var liveTool = document.querySelector('.live-tool');
+  if (liveTool) {
+    liveTool.addEventListener('mouseenter', function() { paused = true; });
+    liveTool.addEventListener('mouseleave', function() { paused = false; });
+  }
+
+  // Dot click navigation
+  dots.forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      show(parseInt(dot.getAttribute('data-index'), 10));
+      startTimer();
+    });
+  });
+
+  startTimer();
+})();
+</script>

@@ -1,0 +1,455 @@
+---
+toolSlug: ascii-unicode-table
+permalink: /tools/ascii-unicode-table/
+---
+
+<div class="tool-row" style="align-items:flex-end; flex-wrap:wrap; gap:12px;">
+  <div class="tool-group" style="flex:2; min-width:180px; margin-bottom:0;">
+    <label for="ascii-search">Search by character, name, decimal, or hex</label>
+    <input type="text" id="ascii-search" placeholder="e.g. A, 65, 0x41, LATIN SMALL" autocomplete="off" autocorrect="off" spellcheck="false" style="width:100%;">
+  </div>
+  <div class="tool-options" role="group" aria-label="Range filter" style="margin-bottom:0; align-self:flex-end;">
+    <button class="tool-option active" data-range="all" aria-pressed="true">All (0–127)</button>
+    <button class="tool-option" data-range="printable" aria-pressed="false">Printable (32–126)</button>
+    <button class="tool-option" data-range="control" aria-pressed="false">Control (0–31)</button>
+    <button class="tool-option" data-range="extended" aria-pressed="false">Extended (128–255)</button>
+  </div>
+</div>
+
+<p class="ascii-hint" id="ascii-hint">Click any row to copy the character.</p>
+<p class="ascii-hint" id="ascii-copy-feedback" style="display:none;"></p>
+
+<div class="ascii-table-wrap">
+  <table class="ascii-table" id="ascii-table" aria-label="ASCII and Unicode character table">
+    <thead>
+      <tr>
+        <th>Dec</th>
+        <th>Hex</th>
+        <th>Binary</th>
+        <th>Char</th>
+        <th>HTML Entity</th>
+        <th>Name</th>
+      </tr>
+    </thead>
+    <tbody id="ascii-tbody"></tbody>
+  </table>
+  <p class="ascii-empty" id="ascii-empty" style="display:none;">No characters match your search.</p>
+</div>
+
+<style>
+  .ascii-hint {
+    font-size: 12px;
+    color: var(--text-3, #888);
+    margin: 0 0 12px;
+    font-family: var(--font-sans);
+  }
+
+  .ascii-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .ascii-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .ascii-table thead {
+    background: var(--surface-0);
+  }
+
+  .ascii-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    font-family: var(--font-sans);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .ascii-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-1);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .ascii-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .ascii-table tbody tr {
+    cursor: pointer;
+    transition: background 100ms ease;
+  }
+
+  .ascii-table tbody tr:hover {
+    background: rgba(184, 165, 214, 0.06);
+  }
+
+  .ascii-table tbody tr.copied {
+    background: rgba(100, 180, 130, 0.08);
+  }
+
+  .ascii-char-cell {
+    font-size: 16px;
+    text-align: center;
+    min-width: 28px;
+  }
+
+  .ascii-ctrl-label {
+    font-size: 10px;
+    font-family: var(--font-sans);
+    color: var(--text-3, #888);
+    background: rgba(155, 127, 212, 0.1);
+    border: 1px solid rgba(155, 127, 212, 0.2);
+    border-radius: 3px;
+    padding: 1px 5px;
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .ascii-empty {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-2);
+    padding: 20px;
+    text-align: center;
+  }
+
+  .ascii-col-dec  { width: 56px; }
+  .ascii-col-hex  { width: 56px; }
+  .ascii-col-bin  { width: 86px; }
+  .ascii-col-char { width: 60px; }
+  .ascii-col-html { width: 96px; }
+</style>
+
+<script>
+(function () {
+  /* ------------------------------------------------------------------ */
+  /* Character data                                                       */
+  /* ------------------------------------------------------------------ */
+  var CTRL_NAMES = [
+    'NUL','SOH','STX','ETX','EOT','ENQ','ACK','BEL',
+    'BS', 'HT', 'LF', 'VT', 'FF', 'CR', 'SO', 'SI',
+    'DLE','DC1','DC2','DC3','DC4','NAK','SYN','ETB',
+    'CAN','EM', 'SUB','ESC','FS', 'GS', 'RS', 'US'
+  ];
+
+  var CTRL_FULL = [
+    'Null','Start of Heading','Start of Text','End of Text',
+    'End of Transmission','Enquiry','Acknowledge','Bell',
+    'Backspace','Horizontal Tab','Line Feed','Vertical Tab',
+    'Form Feed','Carriage Return','Shift Out','Shift In',
+    'Data Link Escape','Device Control 1 (XON)','Device Control 2','Device Control 3 (XOFF)',
+    'Device Control 4','Negative Acknowledge','Synchronous Idle','End of Transmission Block',
+    'Cancel','End of Medium','Substitute','Escape',
+    'File Separator','Group Separator','Record Separator','Unit Separator'
+  ];
+
+  // Extended Latin-1 names (128–255) — abbreviated set
+  var EXT_NAMES = {
+    128:'PAD',129:'HOP',130:'BPH',131:'NBH',132:'IND',133:'NEL',134:'SSA',135:'ESA',
+    136:'HTS',137:'HTJ',138:'VTS',139:'PLD',140:'PLU',141:'RI',142:'SS2',143:'SS3',
+    144:'DCS',145:'PU1',146:'PU2',147:'STS',148:'CCH',149:'MW',150:'SPA',151:'EPA',
+    152:'SOS',153:'SGCI',154:'SCI',155:'CSI',156:'ST',157:'OSC',158:'PM',159:'APC',
+    160:'Non-breaking Space',161:'Inverted !',162:'Cent Sign',163:'Pound Sign',
+    164:'Currency Sign',165:'Yen Sign',166:'Broken Bar',167:'Section Sign',
+    168:'Diaeresis',169:'Copyright Sign',170:'Feminine Ordinal',171:'Left Guillemet',
+    172:'Not Sign',173:'Soft Hyphen',174:'Registered Sign',175:'Macron',
+    176:'Degree Sign',177:'Plus-Minus',178:'Superscript Two',179:'Superscript Three',
+    180:'Acute Accent',181:'Micro Sign',182:'Pilcrow Sign',183:'Middle Dot',
+    184:'Cedilla',185:'Superscript One',186:'Masculine Ordinal',187:'Right Guillemet',
+    188:'One Quarter',189:'One Half',190:'Three Quarters',191:'Inverted ?',
+    192:'A Grave',193:'A Acute',194:'A Circumflex',195:'A Tilde',
+    196:'A Diaeresis',197:'A Ring',198:'AE',199:'C Cedilla',
+    200:'E Grave',201:'E Acute',202:'E Circumflex',203:'E Diaeresis',
+    204:'I Grave',205:'I Acute',206:'I Circumflex',207:'I Diaeresis',
+    208:'ETH',209:'N Tilde',210:'O Grave',211:'O Acute',
+    212:'O Circumflex',213:'O Tilde',214:'O Diaeresis',215:'Multiplication Sign',
+    216:'O Stroke',217:'U Grave',218:'U Acute',219:'U Circumflex',
+    220:'U Diaeresis',221:'Y Acute',222:'THORN',223:'Sharp S',
+    224:'a Grave',225:'a Acute',226:'a Circumflex',227:'a Tilde',
+    228:'a Diaeresis',229:'a Ring',230:'ae',231:'c Cedilla',
+    232:'e Grave',233:'e Acute',234:'e Circumflex',235:'e Diaeresis',
+    236:'i Grave',237:'i Acute',238:'i Circumflex',239:'i Diaeresis',
+    240:'eth',241:'n Tilde',242:'o Grave',243:'o Acute',
+    244:'o Circumflex',245:'o Tilde',246:'o Diaeresis',247:'Division Sign',
+    248:'o Stroke',249:'u Grave',250:'u Acute',251:'u Circumflex',
+    252:'u Diaeresis',253:'y Acute',254:'thorn',255:'y Diaeresis'
+  };
+
+  function getCharName(code) {
+    if (code < 32)        return CTRL_FULL[code] + ' (' + CTRL_NAMES[code] + ')';
+    if (code === 32)      return 'Space';
+    if (code === 127)     return 'Delete (DEL)';
+    if (code >= 128 && EXT_NAMES[code]) return EXT_NAMES[code];
+    return 'LATIN-' + String.fromCharCode(code).toUpperCase();
+  }
+
+  function htmlEntity(code) {
+    if (code === 38)  return '&amp;';
+    if (code === 60)  return '&lt;';
+    if (code === 62)  return '&gt;';
+    if (code === 34)  return '&quot;';
+    if (code === 39)  return '&#39;';
+    if (code === 160) return '&nbsp;';
+    if (code === 169) return '&copy;';
+    if (code === 174) return '&reg;';
+    if (code === 176) return '&deg;';
+    if (code === 177) return '&plusmn;';
+    if (code === 215) return '&times;';
+    if (code === 247) return '&divide;';
+    if (code === 198) return '&AElig;';
+    if (code === 230) return '&aelig;';
+    if (code === 165) return '&yen;';
+    if (code === 163) return '&pound;';
+    if (code === 162) return '&cent;';
+    if (code === 181) return '&micro;';
+    if (code < 33 || code === 127) return '&#' + code + ';';
+    return '';
+  }
+
+  /* Build rows array: code, dec, hex, bin, charDisplay, entity, name */
+  function buildRows(minCode, maxCode) {
+    var rows = [];
+    for (var c = minCode; c <= maxCode; c++) {
+      rows.push(c);
+    }
+    return rows;
+  }
+
+  var allCodes = buildRows(0, 255);
+
+  /* ------------------------------------------------------------------ */
+  /* DOM refs                                                             */
+  /* ------------------------------------------------------------------ */
+  var searchEl    = document.getElementById('ascii-search');
+  var tbodyEl     = document.getElementById('ascii-tbody');
+  var emptyEl     = document.getElementById('ascii-empty');
+  var feedbackEl  = document.getElementById('ascii-copy-feedback');
+  var filterBtns  = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-range]'));
+
+  var currentRange  = 'all';
+  var currentQuery  = '';
+  var feedbackTimer = null;
+
+  /* ------------------------------------------------------------------ */
+  /* Rendering                                                            */
+  /* ------------------------------------------------------------------ */
+  function padBin(n) {
+    var b = n.toString(2);
+    while (b.length < 8) b = '0' + b;
+    return b;
+  }
+
+  function padHex(n) {
+    var h = n.toString(16).toUpperCase();
+    return h.length < 2 ? '0' + h : h;
+  }
+
+  function getCopyChar(code) {
+    // For control chars we copy the actual character
+    return String.fromCharCode(code);
+  }
+
+  function renderRows(codes) {
+    // Remove all existing rows
+    while (tbodyEl.firstChild) {
+      tbodyEl.removeChild(tbodyEl.firstChild);
+    }
+
+    if (codes.length === 0) {
+      emptyEl.style.display = '';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    var fragment = document.createDocumentFragment();
+
+    for (var i = 0; i < codes.length; i++) {
+      var code = codes[i];
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-code', String(code));
+
+      // Dec
+      var tdDec = document.createElement('td');
+      tdDec.className = 'ascii-col-dec';
+      tdDec.textContent = String(code);
+
+      // Hex
+      var tdHex = document.createElement('td');
+      tdHex.className = 'ascii-col-hex';
+      tdHex.textContent = '0x' + padHex(code);
+
+      // Binary
+      var tdBin = document.createElement('td');
+      tdBin.className = 'ascii-col-bin';
+      tdBin.textContent = padBin(code);
+
+      // Char
+      var tdChar = document.createElement('td');
+      tdChar.className = 'ascii-col-char ascii-char-cell';
+      if (code < 32 || code === 127) {
+        var ctrlSpan = document.createElement('span');
+        ctrlSpan.className = 'ascii-ctrl-label';
+        ctrlSpan.textContent = code === 127 ? 'DEL' : CTRL_NAMES[code];
+        tdChar.appendChild(ctrlSpan);
+      } else if (code === 32) {
+        var spaceSpan = document.createElement('span');
+        spaceSpan.className = 'ascii-ctrl-label';
+        spaceSpan.textContent = 'SP';
+        tdChar.appendChild(spaceSpan);
+      } else {
+        tdChar.textContent = String.fromCharCode(code);
+      }
+
+      // HTML Entity
+      var tdEnt = document.createElement('td');
+      tdEnt.className = 'ascii-col-html';
+      var ent = htmlEntity(code);
+      tdEnt.textContent = ent || '—';
+
+      // Name
+      var tdName = document.createElement('td');
+      tdName.textContent = getCharName(code);
+
+      tr.appendChild(tdDec);
+      tr.appendChild(tdHex);
+      tr.appendChild(tdBin);
+      tr.appendChild(tdChar);
+      tr.appendChild(tdEnt);
+      tr.appendChild(tdName);
+
+      // Click to copy
+      (function (row, charCode) {
+        row.addEventListener('click', function () {
+          copyChar(charCode, row);
+        });
+      })(tr, code);
+
+      fragment.appendChild(tr);
+    }
+
+    tbodyEl.appendChild(fragment);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Filtering                                                            */
+  /* ------------------------------------------------------------------ */
+  function getRangeCodes() {
+    if (currentRange === 'printable') return buildRows(32, 126);
+    if (currentRange === 'control')   return buildRows(0, 31);
+    if (currentRange === 'extended')  return buildRows(128, 255);
+    return buildRows(0, 127);  // 'all' = ASCII 0-127
+  }
+
+  function applyFilter() {
+    var base = getRangeCodes();
+    var q = currentQuery.toLowerCase().trim();
+
+    if (!q) {
+      renderRows(base);
+      return;
+    }
+
+    var filtered = base.filter(function (code) {
+      var dec  = String(code);
+      var hex  = '0x' + padHex(code);
+      var hex2 = padHex(code).toLowerCase();
+      var ch   = String.fromCharCode(code).toLowerCase();
+      var name = getCharName(code).toLowerCase();
+
+      return (
+        dec.indexOf(q) !== -1 ||
+        hex.indexOf(q) !== -1 ||
+        hex2.indexOf(q) !== -1 ||
+        ch.indexOf(q) !== -1 ||
+        name.indexOf(q) !== -1
+      );
+    });
+
+    renderRows(filtered);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Copy                                                                 */
+  /* ------------------------------------------------------------------ */
+  function copyChar(code, row) {
+    var char = getCopyChar(code);
+    var label = code < 32 || code === 127
+      ? 'Copied ' + (code === 127 ? 'DEL' : CTRL_NAMES[code]) + ' (code ' + code + ')'
+      : 'Copied "' + char + '" (code ' + code + ')';
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(char).then(function () {
+        showCopied(row, label);
+      }).catch(function () {
+        showCopied(row, 'Copy failed');
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = char;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showCopied(row, label);
+      } catch (e) {
+        showCopied(row, 'Copy failed');
+      }
+      document.body.removeChild(ta);
+    }
+  }
+
+  function showCopied(row, msg) {
+    row.classList.add('copied');
+    feedbackEl.textContent = msg;
+    feedbackEl.style.display = '';
+    document.getElementById('ascii-hint').style.display = 'none';
+
+    if (feedbackTimer) clearTimeout(feedbackTimer);
+    feedbackTimer = setTimeout(function () {
+      row.classList.remove('copied');
+      feedbackEl.style.display = 'none';
+      document.getElementById('ascii-hint').style.display = '';
+      feedbackEl.textContent = '';
+    }, 2000);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Event listeners                                                      */
+  /* ------------------------------------------------------------------ */
+  searchEl.addEventListener('input', function () {
+    currentQuery = searchEl.value;
+    applyFilter();
+  });
+
+  filterBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      filterBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      currentRange = btn.getAttribute('data-range');
+      applyFilter();
+    });
+  });
+
+  /* Initial render */
+  applyFilter();
+})();
+</script>

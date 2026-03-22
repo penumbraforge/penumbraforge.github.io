@@ -1,0 +1,8 @@
+[
+  {
+    "name": "gate",
+    "description": "Pre-commit secret defense. Catches API keys, tokens, and credentials before they reach your repo.",
+    "url": "/gate",
+    "repo": null
+  }
+]

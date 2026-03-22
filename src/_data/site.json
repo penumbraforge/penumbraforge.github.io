@@ -1,0 +1,14 @@
+{
+  "name": "Penumbra Forge",
+  "url": "https://penumbraforge.com",
+  "title": "Penumbra Forge — Security Tools, Local AI, Automation",
+  "description": "Independent software studio by Shadoe Myers. Building privacy-first security tools, local AI applications, and developer utilities.",
+  "author": {
+    "name": "Shadoe Myers",
+    "email": "shadoe@penumbraforge.com",
+    "jobTitle": "Senior Information Security Engineer"
+  },
+  "umbra": {
+    "launched": false
+  }
+}

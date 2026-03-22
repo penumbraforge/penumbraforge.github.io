@@ -1,0 +1,108 @@
+---
+layout: base.njk
+title: "Free Developer & Security Tools — No Tracking, No Accounts | Penumbra Forge"
+description: "50+ free online developer and security tools. JSON formatter, JWT decoder, hash generator, subnet calculator, and more. All client-side — your data never leaves your browser."
+permalink: /tools/
+---
+
+<header class="site-header">
+  <a href="/" class="site-header-brand">
+    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+    <span class="site-header-name">Penumbra Forge</span>
+  </a>
+  <nav class="site-header-nav">
+    <a href="/">Home</a>
+    <a href="/tools/" class="active">Tools</a>
+    <a href="/gate/">Gate</a>
+    <a href="/librarian/">Librarian</a>
+    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<section class="tools-hub">
+  <div class="tools-hub-hero">
+    <div class="section-divider"><span>Developer Tools</span></div>
+    <h1>Tool Kits</h1>
+    <p class="tools-hub-subtitle">Free developer &amp; security tools. No accounts, no tracking, your data stays in your browser.</p>
+    <input type="text" class="tools-hub-search" id="toolSearch" placeholder="Search tools..." aria-label="Search tools" autocomplete="off">
+  </div>
+
+  <div class="tools-hub-filters" role="tablist" aria-label="Filter by category">
+    <button class="tools-hub-filter active" data-category="all" role="tab" aria-selected="true">All</button>
+    <button class="tools-hub-filter" data-category="security" role="tab" aria-selected="false">Security</button>
+    <button class="tools-hub-filter" data-category="encoding" role="tab" aria-selected="false">Encoding</button>
+    <button class="tools-hub-filter" data-category="devops" role="tab" aria-selected="false">DevOps</button>
+    <button class="tools-hub-filter" data-category="web" role="tab" aria-selected="false">Web</button>
+    <button class="tools-hub-filter" data-category="text" role="tab" aria-selected="false">Text</button>
+  </div>
+
+  <p class="tools-hub-count" id="toolCount" aria-live="polite">{{ tools | length }} tools available</p>
+
+  <div class="tools-hub-grid" id="toolGrid">
+    {% for tool in tools %}{% if tool.status == "live" %}
+    <a href="/tools/{{ tool.slug }}/" class="t-card tools-hub-card" data-category="{{ tool.category }}" data-keywords="{{ tool.keywords | join(' ') }} {{ tool.name | lower }}" data-name="{{ tool.name }}">
+      <div class="t-icon" aria-hidden="true">
+        {% if tool.category == "security" %}&#x1f6e1;{% elif tool.category == "encoding" %}{&thinsp;}{% elif tool.category == "devops" %}&#x2699;{% elif tool.category == "web" %}&#x1f310;{% elif tool.category == "text" %}&#x270e;{% else %}&#x2726;{% endif %}
+      </div>
+      <h4>{{ tool.name }}</h4>
+      <p>{{ tool.description }}</p>
+      <span class="local-badge">
+        {% if tool.badge == "local" %}runs in your browser{% elif tool.badge == "cloud" %}cloud-assisted{% else %}{{ tool.badge }}{% endif %}
+      </span>
+    </a>
+    {% endif %}{% endfor %}
+  </div>
+
+  <p class="tools-hub-empty" id="toolEmpty">No tools match your search.</p>
+
+  <p class="tools-hub-terminal-link"><a href="/terminal/">Power user? Try the terminal &rarr;</a></p>
+</section>
+
+<script>
+  (function () {
+    var searchInput = document.getElementById('toolSearch');
+    var grid = document.getElementById('toolGrid');
+    var cards = Array.prototype.slice.call(grid.querySelectorAll('.tools-hub-card'));
+    var filterButtons = Array.prototype.slice.call(document.querySelectorAll('.tools-hub-filter'));
+    var countEl = document.getElementById('toolCount');
+    var emptyEl = document.getElementById('toolEmpty');
+    var activeCategory = 'all';
+
+    function filterCards() {
+      var query = searchInput.value.toLowerCase().trim();
+      var visible = 0;
+
+      cards.forEach(function (card) {
+        var category = card.getAttribute('data-category');
+        var keywords = card.getAttribute('data-keywords');
+        var categoryMatch = activeCategory === 'all' || category === activeCategory;
+        var queryMatch = query === '' || keywords.indexOf(query) !== -1;
+
+        if (categoryMatch && queryMatch) {
+          card.style.display = '';
+          visible++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      countEl.textContent = visible + ' tool' + (visible !== 1 ? 's' : '') + (query || activeCategory !== 'all' ? ' found' : ' available');
+      emptyEl.style.display = visible === 0 ? '' : 'none';
+    }
+
+    searchInput.addEventListener('input', filterCards);
+
+    filterButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        filterButtons.forEach(function (b) {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        activeCategory = btn.getAttribute('data-category');
+        filterCards();
+      });
+    });
+  })();
+</script>

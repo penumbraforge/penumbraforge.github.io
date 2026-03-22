@@ -1,0 +1,322 @@
+---
+toolSlug: totp-generator
+permalink: /tools/totp-generator/
+---
+
+<div class="tool-group">
+  <label for="totp-secret">Base32 secret key</label>
+  <input type="text" id="totp-secret" placeholder="JBSWY3DPEHPK3PXP" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="font-family:monospace;letter-spacing:0.08em;">
+  <span style="font-size:0.75rem;color:var(--text-3,#888);margin-top:0.3rem;display:block;">Enter the secret key from your authenticator setup QR code (Base32, e.g. JBSWY3DPEHPK3PXP). All computation is local — this key never leaves your browser.</span>
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Digits">
+    <button class="tool-option active" data-digits="6" aria-pressed="true">6 digits</button>
+    <button class="tool-option" data-digits="8" aria-pressed="false">8 digits</button>
+  </div>
+  <div class="tool-options" role="group" aria-label="Period" style="margin-left:0.75rem;">
+    <button class="tool-option active" data-period="30" aria-pressed="true">30s</button>
+    <button class="tool-option" data-period="60" aria-pressed="false">60s</button>
+  </div>
+</div>
+
+<div id="totp-error" style="display:none;" class="tool-error" role="alert" aria-live="polite"></div>
+
+<div id="totp-display" style="display:none;">
+  <div class="totp-card-row">
+    <div class="totp-card totp-card--prev">
+      <span class="totp-card-label">Previous</span>
+      <span class="totp-card-code" id="totp-prev"></span>
+    </div>
+    <div class="totp-card totp-card--current">
+      <span class="totp-card-label">Current code</span>
+      <span class="totp-card-code" id="totp-current"></span>
+      <div class="totp-timer-wrap">
+        <svg class="totp-ring" viewBox="0 0 44 44" aria-hidden="true">
+          <circle class="totp-ring-bg" cx="22" cy="22" r="18"/>
+          <circle class="totp-ring-fill" id="totp-ring-fill" cx="22" cy="22" r="18"/>
+        </svg>
+        <span class="totp-timer-num" id="totp-timer">—</span>
+      </div>
+      <button class="btn btn--copy" id="totp-copy-btn" style="margin-top:0.5rem;">Copy</button>
+    </div>
+    <div class="totp-card totp-card--next">
+      <span class="totp-card-label">Next</span>
+      <span class="totp-card-code" id="totp-next"></span>
+    </div>
+  </div>
+
+  <div class="totp-progress-bar-wrap" aria-hidden="true">
+    <div class="totp-progress-bar" id="totp-progress-bar"></div>
+  </div>
+</div>
+
+<div id="totp-empty" class="totp-empty-msg">Enter a valid Base32 secret key above to generate TOTP codes.</div>
+
+<style>
+  .totp-card-row {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  @media (max-width: 480px) {
+    .totp-card-row { grid-template-columns: 1fr; }
+  }
+  .totp-card {
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .totp-card--current {
+    border-color: rgba(99,102,241,0.4);
+    background: rgba(99,102,241,0.07);
+  }
+  .totp-card-label { font-size: 0.75rem; font-weight: 600; color: var(--text-3,#888); text-transform: uppercase; letter-spacing: 0.06em; }
+  .totp-card-code { font-size: 2rem; font-weight: 800; font-family: var(--font-mono,monospace); color: var(--text-1,#e2e8f0); letter-spacing: 0.12em; }
+  .totp-card--prev .totp-card-code, .totp-card--next .totp-card-code {
+    font-size: 1.5rem;
+    color: var(--text-3,#888);
+  }
+  .totp-timer-wrap {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .totp-ring { position: absolute; top: 0; left: 0; width: 44px; height: 44px; transform: rotate(-90deg); }
+  .totp-ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 4; }
+  .totp-ring-fill {
+    fill: none;
+    stroke: #818cf8;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 113.1;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.9s linear, stroke 0.3s;
+  }
+  .totp-timer-num { font-size: 0.9rem; font-weight: 700; font-family: var(--font-mono,monospace); color: var(--text-1,#e2e8f0); position: relative; z-index: 1; }
+  .totp-progress-bar-wrap {
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  .totp-progress-bar {
+    height: 100%;
+    background: #818cf8;
+    border-radius: 2px;
+    transition: width 0.9s linear, background 0.3s;
+  }
+  .totp-empty-msg { text-align: center; padding: 2.5rem; color: var(--text-3,#888); font-size: 0.9rem; }
+</style>
+
+<script>
+(function () {
+  var secretEl  = document.getElementById('totp-secret');
+  var errorEl   = document.getElementById('totp-error');
+  var displayEl = document.getElementById('totp-display');
+  var emptyEl   = document.getElementById('totp-empty');
+  var prevEl    = document.getElementById('totp-prev');
+  var currEl    = document.getElementById('totp-current');
+  var nextEl    = document.getElementById('totp-next');
+  var timerEl   = document.getElementById('totp-timer');
+  var ringFill  = document.getElementById('totp-ring-fill');
+  var progressBar= document.getElementById('totp-progress-bar');
+  var copyBtn   = document.getElementById('totp-copy-btn');
+  var digitBtns = Array.prototype.slice.call(document.querySelectorAll('[data-digits]'));
+  var periodBtns= Array.prototype.slice.call(document.querySelectorAll('[data-period]'));
+
+  var digits = 6;
+  var period = 30;
+  var tickInterval = null;
+  var CIRCUMFERENCE = 2 * Math.PI * 18; // r=18
+
+  digitBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      digitBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
+      digits = parseInt(btn.getAttribute('data-digits'), 10);
+      tryGenerate();
+    });
+  });
+  periodBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      periodBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
+      period = parseInt(btn.getAttribute('data-period'), 10);
+      tryGenerate();
+    });
+  });
+
+  // Base32 decode
+  function base32decode(input) {
+    var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    var clean = input.toUpperCase().replace(/=+$/, '').replace(/\s/g, '');
+    var bits = 0, value = 0, index = 0;
+    var output = new Uint8Array(Math.floor(clean.length * 5 / 8));
+    for (var i = 0; i < clean.length; i++) {
+      var idx = alphabet.indexOf(clean[i]);
+      if (idx < 0) throw new Error('Invalid Base32 character: ' + clean[i]);
+      value = (value << 5) | idx;
+      bits += 5;
+      if (bits >= 8) {
+        output[index++] = (value >>> (bits - 8)) & 0xff;
+        bits -= 8;
+      }
+    }
+    return output.slice(0, index);
+  }
+
+  function numToBytes(num) {
+    var arr = new Uint8Array(8);
+    for (var i = 7; i >= 0; i--) {
+      arr[i] = num & 0xff;
+      num = Math.floor(num / 256);
+    }
+    return arr;
+  }
+
+  function generateTOTP(keyBytes, counter, digitCount) {
+    var counterBytes = numToBytes(counter);
+    return crypto.subtle.importKey(
+      'raw', keyBytes, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']
+    ).then(function (key) {
+      return crypto.subtle.sign('HMAC', key, counterBytes);
+    }).then(function (sig) {
+      var hash = new Uint8Array(sig);
+      var offset = hash[hash.length - 1] & 0x0f;
+      var code = ((hash[offset] & 0x7f) << 24) |
+                 ((hash[offset + 1] & 0xff) << 16) |
+                 ((hash[offset + 2] & 0xff) << 8)  |
+                 (hash[offset + 3] & 0xff);
+      var mod = Math.pow(10, digitCount);
+      return String(code % mod).padStart(digitCount, '0');
+    });
+  }
+
+  function formatCode(code, digitCount) {
+    // Add space in middle for readability (6 -> 3+3, 8 -> 4+4)
+    var half = Math.floor(digitCount / 2);
+    return code.substring(0, half) + ' ' + code.substring(half);
+  }
+
+  var lastCounter = -1;
+
+  function tick() {
+    var secret = secretEl.value.trim();
+    if (!secret) return;
+
+    var now = Math.floor(Date.now() / 1000);
+    var timeLeft = period - (now % period);
+    var counter = Math.floor(now / period);
+
+    // Update timer display
+    timerEl.textContent = timeLeft;
+
+    // Progress ring (full = just refreshed, empty = about to refresh)
+    var pct = timeLeft / period;
+    var dashOffset = CIRCUMFERENCE * (1 - pct);
+    ringFill.style.strokeDashoffset = dashOffset;
+    ringFill.style.strokeDasharray = CIRCUMFERENCE;
+
+    // Color warning when <7 seconds left
+    var color = timeLeft <= 7 ? '#f87171' : '#818cf8';
+    ringFill.style.stroke = color;
+    progressBar.style.background = color;
+    progressBar.style.width = (pct * 100).toFixed(1) + '%';
+
+    // Only regenerate when counter changes
+    if (counter === lastCounter) return;
+    lastCounter = counter;
+
+    var keyBytes;
+    try {
+      keyBytes = base32decode(secret);
+    } catch (e) {
+      showError(e.message);
+      return;
+    }
+
+    var prevCounter = counter - 1;
+    var nextCounter = counter + 1;
+
+    Promise.all([
+      generateTOTP(keyBytes, prevCounter, digits),
+      generateTOTP(keyBytes, counter, digits),
+      generateTOTP(keyBytes, nextCounter, digits)
+    ]).then(function (codes) {
+      hideError();
+      displayEl.style.display = '';
+      emptyEl.style.display = 'none';
+      prevEl.textContent = formatCode(codes[0], digits);
+      currEl.textContent = formatCode(codes[1], digits);
+      nextEl.textContent = formatCode(codes[2], digits);
+    }).catch(function (e) {
+      showError('Failed to generate TOTP: ' + e.message);
+    });
+  }
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+    displayEl.style.display = 'none';
+  }
+
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+
+  function tryGenerate() {
+    var secret = secretEl.value.trim();
+    if (!secret) {
+      displayEl.style.display = 'none';
+      emptyEl.style.display = '';
+      hideError();
+      lastCounter = -1;
+      if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+      return;
+    }
+    // Validate base32
+    try { base32decode(secret); } catch (e) { showError(e.message); return; }
+    hideError();
+
+    if (tickInterval) clearInterval(tickInterval);
+    lastCounter = -1;
+    tick();
+    tickInterval = setInterval(tick, 500);
+  }
+
+  secretEl.addEventListener('input', tryGenerate);
+
+  copyBtn.addEventListener('click', function () {
+    var code = currEl.textContent.replace(/\s/g, '');
+    if (!code) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = code;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; } catch(e) {}
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+  });
+})();
+</script>

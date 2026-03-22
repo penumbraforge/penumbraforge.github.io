@@ -1,0 +1,1037 @@
+---
+toolSlug: github-actions-generator
+permalink: /tools/github-actions-generator/
+---
+
+<div class="gha-wizard">
+  <div class="gha-steps">
+    <div class="gha-step active" data-step="1">
+      <span class="gha-step-num">1</span>
+      <span class="gha-step-label">Language</span>
+    </div>
+    <div class="gha-step-connector"></div>
+    <div class="gha-step" data-step="2">
+      <span class="gha-step-num">2</span>
+      <span class="gha-step-label">Actions</span>
+    </div>
+    <div class="gha-step-connector"></div>
+    <div class="gha-step" data-step="3">
+      <span class="gha-step-num">3</span>
+      <span class="gha-step-label">Deploy</span>
+    </div>
+    <div class="gha-step-connector"></div>
+    <div class="gha-step" data-step="4">
+      <span class="gha-step-num">4</span>
+      <span class="gha-step-label">Configure</span>
+    </div>
+  </div>
+
+  <div id="gha-panel-1" class="gha-panel">
+    <h3 class="gha-panel-title">Select language / framework</h3>
+    <div class="gha-grid" id="gha-lang-grid"></div>
+  </div>
+
+  <div id="gha-panel-2" class="gha-panel" style="display:none;">
+    <h3 class="gha-panel-title">Select CI steps</h3>
+    <div class="gha-grid" id="gha-actions-grid"></div>
+  </div>
+
+  <div id="gha-panel-3" class="gha-panel" style="display:none;">
+    <h3 class="gha-panel-title">Select deploy target</h3>
+    <div class="gha-grid" id="gha-deploy-grid"></div>
+    <div style="margin-top:10px; font-family:var(--font-sans); font-size:12px; color:var(--text-3);">Select "None" to skip deployment.</div>
+  </div>
+
+  <div id="gha-panel-4" class="gha-panel" style="display:none;">
+    <h3 class="gha-panel-title">Configure options</h3>
+    <div id="gha-config-fields"></div>
+  </div>
+
+  <div class="gha-nav">
+    <button class="btn" id="gha-prev" disabled>Back</button>
+    <div id="gha-step-indicator" style="font-family:var(--font-sans);font-size:13px;color:var(--text-3);">Step 1 of 4</div>
+    <button class="btn btn--primary" id="gha-next">Next</button>
+  </div>
+</div>
+
+<div class="output-area" style="margin-top:16px;">
+  <button class="btn btn--copy" id="gha-copy" aria-label="Copy workflow YAML">Copy</button>
+  <button class="btn" id="gha-download" style="right:80px; position:absolute;" aria-label="Download workflow YAML">Download</button>
+  <pre id="gha-output" aria-label="Generated GitHub Actions workflow" style="font-size:11px; max-height:560px; overflow:auto;"></pre>
+</div>
+
+<style>
+  .gha-wizard {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 0;
+  }
+
+  .gha-steps {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--surface-0);
+    border-bottom: 1px solid var(--border);
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .gha-step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    cursor: default;
+  }
+
+  .gha-step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-3);
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .gha-step-label {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-3);
+    transition: color 0.2s;
+    white-space: nowrap;
+  }
+
+  .gha-step.active .gha-step-num {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .gha-step.active .gha-step-label { color: var(--text-1); font-weight: 600; }
+
+  .gha-step.done .gha-step-num {
+    background: rgba(90,170,120,0.2);
+    border-color: #5aaa78;
+    color: #5aaa78;
+  }
+
+  .gha-step-connector {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    margin: 0 8px;
+    min-width: 16px;
+  }
+
+  .gha-panel {
+    padding: 20px;
+    background: var(--surface-1);
+  }
+
+  .gha-panel-title {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin: 0 0 14px;
+  }
+
+  .gha-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+
+  .gha-card {
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-1);
+    background: var(--surface-0);
+    transition: all 0.15s;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .gha-card:hover { border-color: var(--text-3); }
+
+  .gha-card.selected {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb,91,141,184),0.08);
+    color: var(--accent);
+  }
+
+  .gha-card-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .gha-card-label {
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  .gha-card-sub {
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
+  .gha-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface-0);
+    border-top: 1px solid var(--border);
+  }
+
+  .gha-config-field {
+    margin-bottom: 12px;
+  }
+
+  .gha-config-field label {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-2);
+    margin-bottom: 4px;
+  }
+
+  .gha-config-field input,
+  .gha-config-field select {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-0);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+
+  .gha-config-field input:focus,
+  .gha-config-field select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .gha-config-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .gha-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    margin-bottom: 8px;
+  }
+
+  .gha-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+
+  .gha-toggle label {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-1);
+    cursor: pointer;
+    margin: 0;
+  }
+
+  .output-area { position: relative; }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── Data ──────────────────────────────────────────────────────────────────
+  var LANGUAGES = [
+    { id: "nodejs",  label: "Node.js",      icon: "\u2b22", sub: "npm / yarn / pnpm" },
+    { id: "python",  label: "Python",       icon: "\ud83d\udc0d", sub: "pip / poetry" },
+    { id: "go",      label: "Go",           icon: "\ud83d\udcdb", sub: "go build/test" },
+    { id: "rust",    label: "Rust",         icon: "\ud83e\uddc1", sub: "cargo" },
+    { id: "java",    label: "Java",         icon: "\u2615", sub: "Maven / Gradle" },
+    { id: "ruby",    label: "Ruby",         icon: "\ud83d\udc8e", sub: "bundler / rspec" },
+    { id: "docker",  label: "Docker",       icon: "\ud83d\udc33", sub: "build & push" },
+    { id: "static",  label: "Static Site",  icon: "\ud83d\udcf0", sub: "HTML / Eleventy" }
+  ];
+
+  var ACTIONS = [
+    { id: "lint",   label: "Lint",    icon: "\ud83d\udd0d", sub: "Code style checks" },
+    { id: "test",   label: "Test",    icon: "\u2705", sub: "Unit / integration tests" },
+    { id: "build",  label: "Build",   icon: "\ud83d\udce6", sub: "Compile / bundle" },
+    { id: "deploy", label: "Deploy",  icon: "\ud83d\ude80", sub: "Push to target" }
+  ];
+
+  var DEPLOY_TARGETS = [
+    { id: "none",       label: "None",          icon: "\u26d4", sub: "Skip deployment" },
+    { id: "pages",      label: "GitHub Pages",  icon: "\ud83d\udccc", sub: "Static hosting" },
+    { id: "aws",        label: "AWS S3/ECS",    icon: "\u2601\ufe0f", sub: "Amazon Web Services" },
+    { id: "vercel",     label: "Vercel",        icon: "\u25b2", sub: "Serverless platform" },
+    { id: "netlify",    label: "Netlify",       icon: "\ud83d\udd37", sub: "JAMstack platform" },
+    { id: "dockerhub",  label: "Docker Hub",    icon: "\ud83d\udc33", sub: "Container registry" },
+    { id: "npm",        label: "npm Registry",  label: "npm",          icon: "\ud83d\udce6", sub: "Publish package" }
+  ];
+
+  var state = {
+    step: 1,
+    lang: null,
+    actions: { lint: true, test: true, build: true, deploy: false },
+    deploy: "none",
+    config: {}
+  };
+
+  var outputEl = document.getElementById("gha-output");
+  var copyBtn  = document.getElementById("gha-copy");
+  var dlBtn    = document.getElementById("gha-download");
+  var prevBtn  = document.getElementById("gha-prev");
+  var nextBtn  = document.getElementById("gha-next");
+  var stepIndicator = document.getElementById("gha-step-indicator");
+
+  // ── Render grids ──────────────────────────────────────────────────────────
+  function renderGrid(containerId, items, isMulti, getSelected, setSelected) {
+    var container = document.getElementById(containerId);
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    items.forEach(function (item) {
+      var card = document.createElement("div");
+      card.className = "gha-card" + (getSelected(item.id) ? " selected" : "");
+      card.setAttribute("tabindex", "0");
+      card.setAttribute("role", isMulti ? "checkbox" : "radio");
+      card.setAttribute("aria-checked", getSelected(item.id) ? "true" : "false");
+
+      var icon = document.createElement("div");
+      icon.className = "gha-card-icon";
+      icon.textContent = item.icon;
+
+      var label = document.createElement("div");
+      label.className = "gha-card-label";
+      label.textContent = item.label;
+
+      var sub = document.createElement("div");
+      sub.className = "gha-card-sub";
+      sub.textContent = item.sub;
+
+      card.appendChild(icon);
+      card.appendChild(label);
+      card.appendChild(sub);
+
+      function toggle() {
+        setSelected(item.id, !getSelected(item.id), isMulti);
+        renderGrid(containerId, items, isMulti, getSelected, setSelected);
+        generate();
+      }
+
+      card.addEventListener("click", toggle);
+      card.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  function renderLangGrid() {
+    renderGrid("gha-lang-grid", LANGUAGES, false,
+      function (id) { return state.lang === id; },
+      function (id) { state.lang = id; }
+    );
+  }
+
+  function renderActionsGrid() {
+    renderGrid("gha-actions-grid", ACTIONS, true,
+      function (id) { return !!state.actions[id]; },
+      function (id, val) {
+        if (id === "deploy" && !val) {
+          state.actions.deploy = false;
+        } else {
+          state.actions[id] = val;
+        }
+      }
+    );
+  }
+
+  function renderDeployGrid() {
+    renderGrid("gha-deploy-grid", DEPLOY_TARGETS, false,
+      function (id) { return state.deploy === id; },
+      function (id) { state.deploy = id; }
+    );
+  }
+
+  // ── Config fields ──────────────────────────────────────────────────────────
+  var CONFIG_DEFAULTS = {
+    nodejs:  { nodeVersion: "20", packageManager: "npm", cacheEnabled: true, matrixEnabled: false, matrixVersions: "18, 20, 22" },
+    python:  { pythonVersion: "3.12", packageManager: "pip", cacheEnabled: true, matrixEnabled: false, matrixVersions: "3.10, 3.11, 3.12" },
+    go:      { goVersion: "1.22", cacheEnabled: true, matrixEnabled: false },
+    rust:    { toolchain: "stable", cacheEnabled: true },
+    java:    { javaVersion: "17", buildTool: "maven", cacheEnabled: true },
+    ruby:    { rubyVersion: "3.3", cacheEnabled: true },
+    docker:  { imageName: "myorg/myapp", platforms: "linux/amd64,linux/arm64" },
+    static:  { buildCommand: "npm run build", outputDir: "_site", nodeVersion: "20" }
+  };
+
+  function buildConfigFields() {
+    var container = document.getElementById("gha-config-fields");
+    while (container.firstChild) container.removeChild(container.firstChild);
+
+    var lang = state.lang || "nodejs";
+    var defaults = CONFIG_DEFAULTS[lang] || CONFIG_DEFAULTS.nodejs;
+
+    // Initialize config
+    if (!state.config[lang]) {
+      state.config[lang] = Object.assign({}, defaults);
+    }
+    var cfg = state.config[lang];
+
+    function field(id, label, type, optionsOrHint) {
+      var div = document.createElement("div");
+      div.className = "gha-config-field";
+
+      var lbl = document.createElement("label");
+      lbl.setAttribute("for", "gcf-" + id);
+      lbl.textContent = label;
+      div.appendChild(lbl);
+
+      if (type === "select") {
+        var sel = document.createElement("select");
+        sel.id = "gcf-" + id;
+        optionsOrHint.forEach(function (opt) {
+          var o = document.createElement("option");
+          o.value = opt.value || opt;
+          o.textContent = opt.label || opt;
+          if ((opt.value || opt) === String(cfg[id])) o.selected = true;
+          sel.appendChild(o);
+        });
+        sel.addEventListener("change", function () {
+          cfg[id] = sel.value;
+          generate();
+        });
+        div.appendChild(sel);
+      } else {
+        var inp = document.createElement("input");
+        inp.type = "text";
+        inp.id = "gcf-" + id;
+        inp.value = String(cfg[id] !== undefined ? cfg[id] : defaults[id]);
+        inp.autocomplete = "off";
+        inp.addEventListener("input", function () {
+          cfg[id] = inp.value;
+          generate();
+        });
+        div.appendChild(inp);
+      }
+
+      return div;
+    }
+
+    function toggle(id, label) {
+      var div = document.createElement("div");
+      div.className = "gha-toggle";
+
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = "gcf-" + id;
+      cb.checked = !!cfg[id];
+
+      var lbl = document.createElement("label");
+      lbl.setAttribute("for", "gcf-" + id);
+      lbl.textContent = label;
+
+      cb.addEventListener("change", function () {
+        cfg[id] = cb.checked;
+        generate();
+      });
+
+      div.appendChild(cb);
+      div.appendChild(lbl);
+      return div;
+    }
+
+    // General settings
+    var genLabel = document.createElement("div");
+    genLabel.style.cssText = "font-family:var(--font-sans);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-3);border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:10px;";
+    genLabel.textContent = "General";
+    container.appendChild(genLabel);
+
+    var row1 = document.createElement("div");
+    row1.className = "gha-config-row";
+
+    var triggerBranch = document.createElement("div");
+    triggerBranch.className = "gha-config-field";
+    var tbl = document.createElement("label");
+    tbl.textContent = "Trigger branch";
+    tbl.setAttribute("for", "gcf-branch");
+    var tbi = document.createElement("input");
+    tbi.type = "text";
+    tbi.id = "gcf-branch";
+    tbi.value = cfg.branch || "main";
+    tbi.autocomplete = "off";
+    tbi.addEventListener("input", function () { cfg.branch = tbi.value; generate(); });
+    triggerBranch.appendChild(tbl);
+    triggerBranch.appendChild(tbi);
+
+    var prField = document.createElement("div");
+    prField.className = "gha-config-field";
+    var prl = document.createElement("label");
+    prl.textContent = "PR trigger";
+    prl.setAttribute("for", "gcf-pr");
+    var pri = document.createElement("input");
+    pri.type = "text";
+    pri.id = "gcf-pr";
+    pri.value = cfg.prBranch || "main";
+    pri.autocomplete = "off";
+    pri.addEventListener("input", function () { cfg.prBranch = pri.value; generate(); });
+    prField.appendChild(prl);
+    prField.appendChild(pri);
+
+    row1.appendChild(triggerBranch);
+    row1.appendChild(prField);
+    container.appendChild(row1);
+
+    // Language-specific fields
+    var langLabel = document.createElement("div");
+    langLabel.style.cssText = "font-family:var(--font-sans);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-3);border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:10px;margin-top:16px;";
+    langLabel.textContent = "Language settings";
+    container.appendChild(langLabel);
+
+    if (lang === "nodejs" || lang === "static") {
+      var row2 = document.createElement("div");
+      row2.className = "gha-config-row";
+      row2.appendChild(field("nodeVersion", "Node.js version", "text"));
+      if (lang === "nodejs") {
+        row2.appendChild(field("packageManager", "Package manager", "select", ["npm", "yarn", "pnpm"]));
+      } else {
+        row2.appendChild(field("buildCommand", "Build command", "text"));
+      }
+      container.appendChild(row2);
+      if (lang === "static") {
+        var row3 = document.createElement("div");
+        row3.className = "gha-config-row";
+        row3.appendChild(field("outputDir", "Output directory", "text"));
+        container.appendChild(row3);
+      }
+    } else if (lang === "python") {
+      var row2 = document.createElement("div");
+      row2.className = "gha-config-row";
+      row2.appendChild(field("pythonVersion", "Python version", "text"));
+      row2.appendChild(field("packageManager", "Package manager", "select", ["pip", "poetry", "pipenv"]));
+      container.appendChild(row2);
+    } else if (lang === "go") {
+      container.appendChild(field("goVersion", "Go version", "text"));
+    } else if (lang === "rust") {
+      container.appendChild(field("toolchain", "Rust toolchain", "select", ["stable", "beta", "nightly"]));
+    } else if (lang === "java") {
+      var row2 = document.createElement("div");
+      row2.className = "gha-config-row";
+      row2.appendChild(field("javaVersion", "Java version", "text"));
+      row2.appendChild(field("buildTool", "Build tool", "select", ["maven", "gradle"]));
+      container.appendChild(row2);
+    } else if (lang === "ruby") {
+      container.appendChild(field("rubyVersion", "Ruby version", "text"));
+    } else if (lang === "docker") {
+      container.appendChild(field("imageName", "Image name", "text"));
+      container.appendChild(field("platforms", "Platforms", "text"));
+    }
+
+    container.appendChild(toggle("cacheEnabled", "Enable dependency caching"));
+    container.appendChild(toggle("matrixEnabled", "Enable matrix builds (multiple versions)"));
+
+    if (cfg.matrixEnabled) {
+      container.appendChild(field("matrixVersions", "Matrix versions (comma-separated)", "text"));
+    }
+
+    // Deploy options
+    if (state.deploy !== "none") {
+      var depLabel = document.createElement("div");
+      depLabel.style.cssText = "font-family:var(--font-sans);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-3);border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:10px;margin-top:16px;";
+      depLabel.textContent = "Deploy settings";
+      container.appendChild(depLabel);
+
+      if (state.deploy === "aws") {
+        var arow = document.createElement("div");
+        arow.className = "gha-config-row";
+        var awsRegionDiv = document.createElement("div");
+        awsRegionDiv.className = "gha-config-field";
+        var awsLbl = document.createElement("label");
+        awsLbl.textContent = "AWS region";
+        awsLbl.setAttribute("for", "gcf-awsRegion");
+        var awsInp = document.createElement("input");
+        awsInp.type = "text";
+        awsInp.id = "gcf-awsRegion";
+        awsInp.value = cfg.awsRegion || "us-east-1";
+        awsInp.addEventListener("input", function () { cfg.awsRegion = awsInp.value; generate(); });
+        awsRegionDiv.appendChild(awsLbl);
+        awsRegionDiv.appendChild(awsInp);
+
+        var awsBucketDiv = document.createElement("div");
+        awsBucketDiv.className = "gha-config-field";
+        var bktLbl = document.createElement("label");
+        bktLbl.textContent = "S3 bucket";
+        bktLbl.setAttribute("for", "gcf-s3Bucket");
+        var bktInp = document.createElement("input");
+        bktInp.type = "text";
+        bktInp.id = "gcf-s3Bucket";
+        bktInp.value = cfg.s3Bucket || "my-app-bucket";
+        bktInp.addEventListener("input", function () { cfg.s3Bucket = bktInp.value; generate(); });
+        awsBucketDiv.appendChild(bktLbl);
+        awsBucketDiv.appendChild(bktInp);
+
+        arow.appendChild(awsRegionDiv);
+        arow.appendChild(awsBucketDiv);
+        container.appendChild(arow);
+      }
+    }
+  }
+
+  // ── Generate YAML ─────────────────────────────────────────────────────────
+  function indent(n, str) {
+    var pad = "";
+    for (var i = 0; i < n; i++) pad += " ";
+    return str.split("\n").map(function (l) { return l === "" ? "" : pad + l; }).join("\n");
+  }
+
+  function generate() {
+    var lang = state.lang || "nodejs";
+    var cfg = state.config[lang] || CONFIG_DEFAULTS[lang] || {};
+    var branch = cfg.branch || "main";
+    var prBranch = cfg.prBranch || "main";
+
+    var lines = [
+      "name: CI/CD",
+      "",
+      "on:",
+      "  push:",
+      "    branches: [ \"" + branch + "\" ]",
+      "  pull_request:",
+      "    branches: [ \"" + prBranch + "\" ]",
+      "",
+      "jobs:"
+    ];
+
+    var setupSteps = getSetupSteps(lang, cfg);
+    var ciSteps = getCiSteps(lang, cfg);
+    var deploySteps = getDeploySteps(lang, cfg);
+
+    // Matrix config
+    var matrixEnabled = cfg.matrixEnabled;
+    var matrixVersions = cfg.matrixVersions || "";
+    var versions = matrixVersions.split(",").map(function (v) { return v.trim(); }).filter(Boolean);
+
+    // CI job
+    if (state.actions.lint || state.actions.test || state.actions.build) {
+      lines.push("  ci:");
+      lines.push("    name: Build & Test");
+      lines.push("    runs-on: ubuntu-latest");
+
+      if (matrixEnabled && versions.length > 1) {
+        lines.push("    strategy:");
+        lines.push("      matrix:");
+        var matrixKey = lang === "python" ? "python-version" : lang === "go" ? "go-version" : "node-version";
+        lines.push("        " + matrixKey + ": [ " + versions.map(function (v) { return '"' + v + '"'; }).join(", ") + " ]");
+      }
+
+      lines.push("    steps:");
+      lines.push("      - name: Checkout code");
+      lines.push("        uses: actions/checkout@v4");
+
+      setupSteps.forEach(function (s) { lines.push(s); });
+
+      if (state.actions.lint && ciSteps.lint) {
+        lines.push("");
+        lines.push("      - name: Lint");
+        ciSteps.lint.forEach(function (s) { lines.push(s); });
+      }
+
+      if (state.actions.test && ciSteps.test) {
+        lines.push("");
+        lines.push("      - name: Test");
+        ciSteps.test.forEach(function (s) { lines.push(s); });
+      }
+
+      if (state.actions.build && ciSteps.build) {
+        lines.push("");
+        lines.push("      - name: Build");
+        ciSteps.build.forEach(function (s) { lines.push(s); });
+      }
+    }
+
+    // Deploy job
+    if (state.deploy !== "none" && deploySteps.length) {
+      lines.push("");
+      lines.push("  deploy:");
+      lines.push("    name: Deploy");
+      lines.push("    runs-on: ubuntu-latest");
+
+      if (state.actions.lint || state.actions.test || state.actions.build) {
+        lines.push("    needs: ci");
+      }
+
+      lines.push("    if: github.ref == 'refs/heads/" + branch + "'");
+
+      if (deploySteps.some(function (s) { return s.indexOf("environment") !== -1; })) {
+        lines.push("    environment: production");
+      }
+
+      lines.push("    steps:");
+      lines.push("      - name: Checkout code");
+      lines.push("        uses: actions/checkout@v4");
+
+      setupSteps.forEach(function (s) { lines.push(s); });
+
+      if (state.actions.build && ciSteps.build) {
+        lines.push("");
+        lines.push("      - name: Build");
+        ciSteps.build.forEach(function (s) { lines.push(s); });
+      }
+
+      lines.push("");
+      lines.push("      - name: Deploy");
+      deploySteps.forEach(function (s) { lines.push(s); });
+    }
+
+    outputEl.textContent = lines.join("\n");
+  }
+
+  function getSetupSteps(lang, cfg) {
+    var lines = [];
+
+    if (lang === "nodejs" || lang === "static") {
+      lines.push("");
+      lines.push("      - name: Setup Node.js");
+      lines.push("        uses: actions/setup-node@v4");
+      lines.push("        with:");
+      lines.push("          node-version: \"" + (cfg.nodeVersion || "20") + "\"");
+
+      if (cfg.cacheEnabled) {
+        var pm = cfg.packageManager || "npm";
+        lines.push("          cache: \"" + pm + "\"");
+      }
+
+      lines.push("");
+      var pm = cfg.packageManager || "npm";
+      var installCmd = pm === "npm" ? "npm ci" : pm === "yarn" ? "yarn install --frozen-lockfile" : "pnpm install --frozen-lockfile";
+      lines.push("      - name: Install dependencies");
+      lines.push("        run: " + installCmd);
+
+    } else if (lang === "python") {
+      lines.push("");
+      lines.push("      - name: Setup Python");
+      lines.push("        uses: actions/setup-python@v5");
+      lines.push("        with:");
+      var pyVer = cfg.pythonVersion || "3.12";
+      lines.push("          python-version: \"" + pyVer + "\"");
+
+      if (cfg.cacheEnabled) {
+        lines.push("          cache: \"pip\"");
+      }
+
+      lines.push("");
+      var pm = cfg.packageManager || "pip";
+      if (pm === "pip") {
+        lines.push("      - name: Install dependencies");
+        lines.push("        run: |");
+        lines.push("          python -m pip install --upgrade pip");
+        lines.push("          pip install -r requirements.txt");
+      } else if (pm === "poetry") {
+        lines.push("      - name: Install Poetry");
+        lines.push("        uses: snok/install-poetry@v1");
+        lines.push("");
+        lines.push("      - name: Install dependencies");
+        lines.push("        run: poetry install");
+      }
+
+    } else if (lang === "go") {
+      lines.push("");
+      lines.push("      - name: Setup Go");
+      lines.push("        uses: actions/setup-go@v5");
+      lines.push("        with:");
+      lines.push("          go-version: \"" + (cfg.goVersion || "1.22") + "\"");
+      if (cfg.cacheEnabled) {
+        lines.push("          cache: true");
+      }
+
+    } else if (lang === "rust") {
+      lines.push("");
+      lines.push("      - name: Setup Rust");
+      lines.push("        uses: dtolnay/rust-toolchain@" + (cfg.toolchain || "stable"));
+      if (cfg.cacheEnabled) {
+        lines.push("");
+        lines.push("      - name: Cache Rust dependencies");
+        lines.push("        uses: Swatinem/rust-cache@v2");
+      }
+
+    } else if (lang === "java") {
+      var buildTool = cfg.buildTool || "maven";
+      lines.push("");
+      lines.push("      - name: Setup Java");
+      lines.push("        uses: actions/setup-java@v4");
+      lines.push("        with:");
+      lines.push("          distribution: \"temurin\"");
+      lines.push("          java-version: \"" + (cfg.javaVersion || "17") + "\"");
+      if (cfg.cacheEnabled) {
+        lines.push("          cache: \"" + buildTool + "\"");
+      }
+
+    } else if (lang === "ruby") {
+      lines.push("");
+      lines.push("      - name: Setup Ruby");
+      lines.push("        uses: ruby/setup-ruby@v1");
+      lines.push("        with:");
+      lines.push("          ruby-version: \"" + (cfg.rubyVersion || "3.3") + "\"");
+      if (cfg.cacheEnabled) {
+        lines.push("          bundler-cache: true");
+      }
+
+    } else if (lang === "docker") {
+      lines.push("");
+      lines.push("      - name: Setup Docker Buildx");
+      lines.push("        uses: docker/setup-buildx-action@v3");
+    }
+
+    return lines;
+  }
+
+  function getCiSteps(lang, cfg) {
+    var result = { lint: null, test: null, build: null };
+    var pm = cfg.packageManager || "npm";
+    var runPm = pm;
+
+    if (lang === "nodejs") {
+      result.lint = ["        run: " + runPm + " run lint"];
+      result.test = ["        run: " + runPm + " test -- --coverage"];
+      result.build = ["        run: " + runPm + " run build"];
+    } else if (lang === "python") {
+      var prefix = pm === "poetry" ? "poetry run " : "";
+      result.lint = ["        run: |", "          pip install flake8 black isort", "          " + prefix + "flake8 .", "          " + prefix + "black --check .", "          " + prefix + "isort --check-only ."];
+      result.test = ["        run: " + prefix + "pytest --cov=. --cov-report=xml"];
+      result.build = ["        run: " + (pm === "poetry" ? "poetry build" : "python -m build")];
+    } else if (lang === "go") {
+      result.lint = ["        uses: golangci/golangci-lint-action@v4", "        with:", "          version: latest"];
+      result.test = ["        run: go test -v -race -coverprofile=coverage.out ./..."];
+      result.build = ["        run: go build -v ./..."];
+    } else if (lang === "rust") {
+      result.lint = ["        run: |", "          cargo fmt -- --check", "          cargo clippy -- -D warnings"];
+      result.test = ["        run: cargo test --verbose"];
+      result.build = ["        run: cargo build --release --verbose"];
+    } else if (lang === "java") {
+      var bt = cfg.buildTool || "maven";
+      if (bt === "maven") {
+        result.lint = ["        run: mvn checkstyle:check"];
+        result.test = ["        run: mvn test"];
+        result.build = ["        run: mvn -B package --file pom.xml -DskipTests"];
+      } else {
+        result.lint = ["        run: ./gradlew checkstyleMain"];
+        result.test = ["        run: ./gradlew test"];
+        result.build = ["        run: ./gradlew build -x test"];
+      }
+    } else if (lang === "ruby") {
+      result.lint = ["        run: bundle exec rubocop"];
+      result.test = ["        run: bundle exec rspec"];
+      result.build = ["        run: bundle exec rake build"];
+    } else if (lang === "docker") {
+      result.lint = ["        uses: hadolint/hadolint-action@v3.1.0", "        with:", "          dockerfile: Dockerfile"];
+      result.test = ["        run: echo 'Add your container test command here'"];
+      result.build = [
+        "        uses: docker/build-push-action@v5",
+        "        with:",
+        "          context: .",
+        "          push: false",
+        "          tags: " + (cfg.imageName || "myorg/myapp") + ":${{ github.sha }}",
+        "          platforms: " + (cfg.platforms || "linux/amd64"),
+        "          cache-from: type=gha",
+        "          cache-to: type=gha,mode=max"
+      ];
+    } else if (lang === "static") {
+      result.lint = ["        run: echo 'Add your linting command'"];
+      result.test = ["        run: echo 'Add your test command'"];
+      result.build = ["        run: " + (cfg.buildCommand || "npm run build")];
+    }
+
+    return result;
+  }
+
+  function getDeploySteps(lang, cfg) {
+    var lines = [];
+    var target = state.deploy;
+
+    if (target === "pages") {
+      var outDir = cfg.outputDir || (lang === "nodejs" ? "dist" : lang === "static" ? "_site" : "dist");
+      lines = [
+        "        uses: peaceiris/actions-gh-pages@v4",
+        "        with:",
+        "          github_token: ${{ secrets.GITHUB_TOKEN }}",
+        "          publish_dir: ./" + outDir
+      ];
+    } else if (target === "aws") {
+      var region = cfg.awsRegion || "us-east-1";
+      var bucket = cfg.s3Bucket || "my-app-bucket";
+      lines = [
+        "        env:",
+        "          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}",
+        "          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}",
+        "          AWS_DEFAULT_REGION: " + region,
+        "        run: aws s3 sync " + (cfg.outputDir || "dist") + "/ s3://" + bucket + " --delete"
+      ];
+    } else if (target === "vercel") {
+      lines = [
+        "        uses: amondnet/vercel-action@v25",
+        "        with:",
+        "          vercel-token: ${{ secrets.VERCEL_TOKEN }}",
+        "          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}",
+        "          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}",
+        "          vercel-args: \"--prod\""
+      ];
+    } else if (target === "netlify") {
+      lines = [
+        "        uses: nwtgck/actions-netlify@v3",
+        "        with:",
+        "          publish-dir: ./" + (cfg.outputDir || "dist"),
+        "          production-branch: " + (cfg.branch || "main"),
+        "          github-token: ${{ secrets.GITHUB_TOKEN }}",
+        "          deploy-message: \"Deploy from GitHub Actions\"",
+        "        env:",
+        "          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}",
+        "          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}"
+      ];
+    } else if (target === "dockerhub") {
+      var image = cfg.imageName || "myorg/myapp";
+      lines = [
+        "      - name: Login to Docker Hub",
+        "        uses: docker/login-action@v3",
+        "        with:",
+        "          username: ${{ secrets.DOCKERHUB_USERNAME }}",
+        "          password: ${{ secrets.DOCKERHUB_TOKEN }}",
+        "        uses: docker/build-push-action@v5",
+        "        with:",
+        "          context: .",
+        "          push: true",
+        "          tags: |",
+        "            " + image + ":latest",
+        "            " + image + ":${{ github.sha }}",
+        "          platforms: " + (cfg.platforms || "linux/amd64,linux/arm64"),
+        "          cache-from: type=gha",
+        "          cache-to: type=gha,mode=max"
+      ];
+    } else if (target === "npm") {
+      lines = [
+        "        run: |",
+        "          npm config set //registry.npmjs.org/:_authToken ${{ secrets.NPM_TOKEN }}",
+        "          npm publish"
+      ];
+    }
+
+    return lines;
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  function showStep(n) {
+    for (var i = 1; i <= 4; i++) {
+      var panel = document.getElementById("gha-panel-" + i);
+      if (panel) panel.style.display = i === n ? "" : "none";
+
+      var stepEl = document.querySelector(".gha-step[data-step='" + i + "']");
+      if (stepEl) {
+        stepEl.classList.toggle("active", i === n);
+        stepEl.classList.toggle("done", i < n);
+      }
+    }
+
+    stepIndicator.textContent = "Step " + n + " of 4";
+    prevBtn.disabled = n === 1;
+    nextBtn.textContent = n === 4 ? "Done" : "Next";
+
+    if (n === 2) renderActionsGrid();
+    if (n === 3) renderDeployGrid();
+    if (n === 4) {
+      buildConfigFields();
+    }
+  }
+
+  prevBtn.addEventListener("click", function () {
+    if (state.step > 1) { state.step--; showStep(state.step); }
+  });
+
+  nextBtn.addEventListener("click", function () {
+    if (state.step < 4) { state.step++; showStep(state.step); }
+    generate();
+  });
+
+  // ── Copy / Download ───────────────────────────────────────────────────────
+  function copyText(btn, text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = btn === copyBtn ? "Copy" : "Download"; }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); btn.textContent = "Copied!"; } catch (e) {}
+      document.body.removeChild(ta);
+      setTimeout(function () { btn.textContent = "Copy"; }, 2000);
+    }
+  }
+
+  copyBtn.addEventListener("click", function () {
+    var text = outputEl.textContent;
+    if (text) copyText(copyBtn, text);
+  });
+
+  dlBtn.addEventListener("click", function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    var blob = new Blob([text], { type: "text/yaml" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "ci.yml";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    dlBtn.textContent = "Downloaded!";
+    setTimeout(function () { dlBtn.textContent = "Download"; }, 2000);
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  state.lang = "nodejs";
+  state.config.nodejs = Object.assign({}, CONFIG_DEFAULTS.nodejs);
+
+  renderLangGrid();
+  showStep(1);
+  generate();
+
+  // Re-render lang grid when language changes
+  document.getElementById("gha-lang-grid").addEventListener("click", function () {
+    // After state.lang updates, re-generate
+    setTimeout(generate, 0);
+  });
+})();
+</script>

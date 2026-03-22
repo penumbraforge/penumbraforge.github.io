@@ -1,0 +1,381 @@
+---
+toolSlug: ssh-keygen
+permalink: /tools/ssh-keygen/
+---
+
+<div class="sk-safety-note" role="note">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  Keys are generated entirely in your browser using the Web Crypto API. Nothing is transmitted to any server.
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Key type">
+    <button class="tool-option active" data-keytype="RSA-2048" aria-pressed="true">RSA-2048</button>
+    <button class="tool-option" data-keytype="RSA-4096" aria-pressed="false">RSA-4096</button>
+    <button class="tool-option" data-keytype="Ed25519" aria-pressed="false">Ed25519 <span style="font-size:0.7em;color:#f97316;">(library)</span></button>
+  </div>
+</div>
+
+<div id="sk-ed25519-note" style="display:none;" class="sk-notice">
+  Ed25519 is not natively supported by the browser Web Crypto API (it lacks SubjectPublicKeyInfo DER export). This tool generates RSA keys fully client-side. For Ed25519, use <code>ssh-keygen -t ed25519</code> on the command line or a library like <a href="https://www.npmjs.com/package/@noble/ed25519" target="_blank" rel="noopener">@noble/ed25519</a>.
+</div>
+
+<div class="tool-group">
+  <label for="sk-comment">Key comment (optional)</label>
+  <input type="text" id="sk-comment" placeholder="user@hostname" spellcheck="false" autocomplete="off">
+  <span style="font-size:0.75rem;color:var(--text-3,#888);margin-top:0.3rem;display:block;">Appears at the end of the public key for identification. Typically user@hostname.</span>
+</div>
+
+<div class="tool-group">
+  <label for="sk-passphrase">Passphrase (optional)</label>
+  <input type="password" id="sk-passphrase" placeholder="Leave empty for no passphrase" autocomplete="new-password">
+  <span style="font-size:0.75rem;color:var(--text-3,#888);margin-top:0.3rem;display:block;">A passphrase encrypts the private key at rest. Recommended for keys stored on disk.</span>
+</div>
+
+<div class="tool-row">
+  <button class="btn btn--primary" id="sk-generate-btn">Generate key pair</button>
+  <span id="sk-generating" style="display:none;font-size:0.875rem;color:var(--text-3,#888);align-self:center;">Generating…</span>
+</div>
+
+<div id="sk-error" style="display:none;" class="tool-error" role="alert" aria-live="polite"></div>
+
+<div id="sk-results" style="display:none;">
+  <div class="sk-fingerprint-wrap" id="sk-fingerprint-wrap">
+    <span class="sk-fp-label">Fingerprint (SHA-256)</span>
+    <code class="sk-fp-value" id="sk-fingerprint"></code>
+  </div>
+
+  <div class="sk-key-block">
+    <div class="sk-key-header">
+      <span class="sk-key-title">Public key</span>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn btn--copy" id="sk-copy-pub">Copy</button>
+        <button class="btn" id="sk-download-pub">Download</button>
+      </div>
+    </div>
+    <pre id="sk-public-key" class="sk-key-pre"></pre>
+  </div>
+
+  <div class="sk-key-block sk-key-block--private">
+    <div class="sk-key-header">
+      <span class="sk-key-title">Private key</span>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn btn--copy" id="sk-copy-priv">Copy</button>
+        <button class="btn" id="sk-download-priv">Download</button>
+      </div>
+    </div>
+    <pre id="sk-private-key" class="sk-key-pre"></pre>
+    <p class="sk-priv-warn">Keep this key secret. Never share it or commit it to version control.</p>
+  </div>
+</div>
+
+<style>
+  .sk-safety-note {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    background: rgba(34,197,94,0.07);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: #4ade80;
+    margin-bottom: 1.25rem;
+  }
+  .sk-notice {
+    padding: 0.75rem 1rem;
+    background: rgba(249,115,22,0.07);
+    border: 1px solid rgba(249,115,22,0.2);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    color: var(--text-2,#94a3b8);
+    line-height: 1.55;
+    margin-bottom: 0.75rem;
+  }
+  .sk-notice code { font-family: var(--font-mono,monospace); color: #fb923c; }
+  .sk-notice a { color: #818cf8; text-decoration: underline; }
+  .sk-fingerprint-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .sk-fp-label { font-size: 0.75rem; font-weight: 700; color: var(--text-3,#888); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+  .sk-fp-value { font-family: var(--font-mono,monospace); font-size: 0.8125rem; color: #a5b4fc; word-break: break-all; }
+  .sk-key-block {
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+  }
+  .sk-key-block--private { border-left: 3px solid #f87171; }
+  .sk-key-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.875rem;
+    background: var(--surface-1,#1a1a2e);
+    border-bottom: 1px solid var(--border,#2a2a3a);
+  }
+  .sk-key-title { font-size: 0.875rem; font-weight: 600; color: var(--text-1,#e2e8f0); }
+  .sk-key-pre {
+    margin: 0;
+    padding: 0.875rem;
+    font-family: var(--font-mono,monospace);
+    font-size: 0.75rem;
+    color: var(--text-1,#e2e8f0);
+    background: var(--surface-0,#0f0f1a);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .sk-priv-warn {
+    margin: 0;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.75rem;
+    color: #f87171;
+    background: rgba(239,68,68,0.05);
+    border-top: 1px solid rgba(239,68,68,0.15);
+  }
+</style>
+
+<script>
+(function () {
+  var keyTypeBtns  = Array.prototype.slice.call(document.querySelectorAll('[data-keytype]'));
+  var ed25519Note  = document.getElementById('sk-ed25519-note');
+  var commentEl    = document.getElementById('sk-comment');
+  var passphraseEl = document.getElementById('sk-passphrase');
+  var generateBtn  = document.getElementById('sk-generate-btn');
+  var generatingEl = document.getElementById('sk-generating');
+  var errorEl      = document.getElementById('sk-error');
+  var resultsEl    = document.getElementById('sk-results');
+  var fingerprintEl= document.getElementById('sk-fingerprint');
+  var pubKeyEl     = document.getElementById('sk-public-key');
+  var privKeyEl    = document.getElementById('sk-private-key');
+  var copyPubBtn   = document.getElementById('sk-copy-pub');
+  var copyPrivBtn  = document.getElementById('sk-copy-priv');
+  var dlPubBtn     = document.getElementById('sk-download-pub');
+  var dlPrivBtn    = document.getElementById('sk-download-priv');
+
+  var currentKeyType = 'RSA-2048';
+
+  keyTypeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      keyTypeBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
+      currentKeyType = btn.getAttribute('data-keytype');
+      ed25519Note.style.display = currentKeyType === 'Ed25519' ? '' : 'none';
+    });
+  });
+
+  function bufferToBase64(buf) {
+    var bytes = new Uint8Array(buf);
+    var binary = '';
+    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  function base64ToUint8(b64) {
+    var binary = atob(b64);
+    var arr = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+    return arr;
+  }
+
+  function chunk(str, n) {
+    var result = [];
+    for (var i = 0; i < str.length; i += n) result.push(str.slice(i, i + n));
+    return result.join('\n');
+  }
+
+  // Convert RSA public key to OpenSSH wire format
+  function rsaPubKeyToOpenSSH(spkiBuffer, comment) {
+    var spki = new Uint8Array(spkiBuffer);
+    // Extract modulus and exponent from SPKI DER
+    // SPKI structure: SEQUENCE { SEQUENCE { OID, NULL }, BIT STRING { SEQUENCE { INTEGER n, INTEGER e } } }
+    // We parse the DER manually for the RSA key data
+    var keyName = 'ssh-rsa';
+    var keyNameBytes = new TextEncoder().encode(keyName);
+
+    // Parse DER to extract n and e
+    function readDER(buf, pos) {
+      var tag = buf[pos++];
+      var len = buf[pos++];
+      if (len & 0x80) {
+        var lenBytes = len & 0x7f;
+        len = 0;
+        for (var i = 0; i < lenBytes; i++) len = (len << 8) | buf[pos++];
+      }
+      return { tag: tag, length: len, start: pos, end: pos + len };
+    }
+
+    // Navigate SPKI to find the RSA BIT STRING
+    var pos = 0;
+    var outer = readDER(spki, pos); // SEQUENCE
+    pos = outer.start;
+    var algoSeq = readDER(spki, pos); // SEQUENCE (algorithm)
+    pos = algoSeq.end;
+    var bitString = readDER(spki, pos); // BIT STRING
+    // Skip the initial 0x00 byte of the bit string
+    var rsaPos = bitString.start + 1;
+    var rsaOuter = readDER(spki, rsaPos); // SEQUENCE
+    rsaPos = rsaOuter.start;
+    var modInfo = readDER(spki, rsaPos); // INTEGER (n)
+    var modulus = spki.slice(modInfo.start, modInfo.end);
+    rsaPos = modInfo.end;
+    var expInfo = readDER(spki, rsaPos); // INTEGER (e)
+    var exponent = spki.slice(expInfo.start, expInfo.end);
+
+    // Build wire format: uint32(len) + data for each field
+    function sshBytes(data) {
+      var len = data.length;
+      var arr = new Uint8Array(4 + len);
+      arr[0] = (len >>> 24) & 0xff;
+      arr[1] = (len >>> 16) & 0xff;
+      arr[2] = (len >>> 8)  & 0xff;
+      arr[3] =  len         & 0xff;
+      arr.set(data, 4);
+      return arr;
+    }
+
+    var parts = [sshBytes(keyNameBytes), sshBytes(exponent), sshBytes(modulus)];
+    var totalLen = parts.reduce(function (a, p) { return a + p.length; }, 0);
+    var wire = new Uint8Array(totalLen);
+    var offset = 0;
+    parts.forEach(function (p) { wire.set(p, offset); offset += p.length; });
+
+    var b64 = btoa(String.fromCharCode.apply(null, wire));
+    var commentStr = comment ? ' ' + comment : '';
+    return 'ssh-rsa ' + b64 + commentStr;
+  }
+
+  // Compute SHA-256 fingerprint of the public key wire format
+  function computeFingerprint(pubKeyLine) {
+    var parts = pubKeyLine.split(' ');
+    if (parts.length < 2) return Promise.reject(new Error('invalid key'));
+    var keyData = base64ToUint8(parts[1]);
+    return crypto.subtle.digest('SHA-256', keyData).then(function (buf) {
+      var b64 = bufferToBase64(buf);
+      return 'SHA256:' + b64.replace(/=+$/, '');
+    });
+  }
+
+  // Encode RSA private key as PKCS#8 PEM (standard for OpenSSH)
+  function privKeyToPEM(pkcs8Buffer) {
+    var b64 = chunk(bufferToBase64(pkcs8Buffer), 64);
+    return '-----BEGIN PRIVATE KEY-----\n' + b64 + '\n-----END PRIVATE KEY-----';
+  }
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+    resultsEl.style.display = 'none';
+  }
+
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+
+  function setGenerating(on) {
+    generateBtn.disabled = on;
+    generatingEl.style.display = on ? '' : 'none';
+  }
+
+  generateBtn.addEventListener('click', function () {
+    if (currentKeyType === 'Ed25519') {
+      showError('Ed25519 is not supported via the Web Crypto API. Please use RSA-2048 or RSA-4096, or run "ssh-keygen -t ed25519" on the command line.');
+      return;
+    }
+
+    hideError();
+    resultsEl.style.display = 'none';
+    setGenerating(true);
+
+    var modulusLength = currentKeyType === 'RSA-4096' ? 4096 : 2048;
+    var comment = commentEl.value.trim();
+
+    crypto.subtle.generateKey(
+      {
+        name: 'RSASSA-PKCS1-v1_5',
+        modulusLength: modulusLength,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: 'SHA-256'
+      },
+      true,
+      ['sign', 'verify']
+    ).then(function (keyPair) {
+      return Promise.all([
+        crypto.subtle.exportKey('spki', keyPair.publicKey),
+        crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
+      ]);
+    }).then(function (exported) {
+      var spkiBuf  = exported[0];
+      var pkcs8Buf = exported[1];
+
+      var pubKeyLine = rsaPubKeyToOpenSSH(spkiBuf, comment);
+      var privPEM    = privKeyToPEM(pkcs8Buf);
+
+      return computeFingerprint(pubKeyLine).then(function (fp) {
+        return { pubKeyLine: pubKeyLine, privPEM: privPEM, fingerprint: fp };
+      });
+    }).then(function (result) {
+      setGenerating(false);
+      hideError();
+      resultsEl.style.display = '';
+
+      pubKeyEl.textContent  = result.pubKeyLine;
+      privKeyEl.textContent = result.privPEM;
+      fingerprintEl.textContent = result.fingerprint;
+    }).catch(function (e) {
+      setGenerating(false);
+      showError('Key generation failed: ' + e.message);
+    });
+  });
+
+  function copyText(text, btn) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+      }).catch(function () {
+        btn.textContent = 'Failed';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); btn.textContent = 'Copied!'; } catch(e) { btn.textContent = 'Failed'; }
+      document.body.removeChild(ta);
+      setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+    }
+  }
+
+  function downloadText(text, filename) {
+    var blob = new Blob([text], { type: 'text/plain' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  copyPubBtn.addEventListener('click', function () { copyText(pubKeyEl.textContent, copyPubBtn); });
+  copyPrivBtn.addEventListener('click', function () { copyText(privKeyEl.textContent, copyPrivBtn); });
+  dlPubBtn.addEventListener('click', function () { downloadText(pubKeyEl.textContent, 'id_rsa.pub'); });
+  dlPrivBtn.addEventListener('click', function () { downloadText(privKeyEl.textContent, 'id_rsa'); });
+})();
+</script>

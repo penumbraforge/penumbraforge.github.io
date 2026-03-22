@@ -1,0 +1,2494 @@
+<!-- Copyright (c) 2026 Penumbra Forge. All rights reserved. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; font-src https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none';">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <title>BREACH — a penumbra forge roguelike</title>
+    <meta name="description" content="cybersecurity roguelike">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { touch-action: manipulation; }
+
+        :root {
+            --bg: #07070b;
+            --surface: #0b0b11;
+            --border: #16162a;
+            --text: #6a6a78;
+            --text-bright: #8a8a98;
+            --text-dim: #2e2e3a;
+            --accent: #687a8e;
+            --accent-hover: #8a9aae;
+            --success: #4d6b4d;
+            --error: #8a5555;
+            --gold: #8a7a55;
+            --bright-gold: #c8a858;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg, transparent, transparent 1px,
+                rgba(0, 0, 0, 0.02) 1px, rgba(0, 0, 0, 0.02) 2px
+            );
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 760px;
+            height: 100vh;
+            height: 100dvh;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .game-header {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
+
+        .header-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .header-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-dim);
+        }
+
+        .header-title {
+            flex: 1;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 0.08em;
+        }
+
+        .header-back {
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 11px;
+            text-decoration: none;
+            transition: color 0.15s;
+            letter-spacing: 0.05em;
+        }
+        .header-back:hover { color: var(--text-bright); }
+
+        .game-hud {
+            padding: 4px 10px;
+            font-size: 11px;
+            color: var(--text);
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .hp-full { color: var(--success); }
+        .hp-mid { color: var(--gold); }
+        .hp-low { color: var(--error); }
+
+        .game-map {
+            flex: 1;
+            margin: 0;
+            padding: 2px 4px;
+            font-size: 13px;
+            line-height: 1.15;
+            overflow: hidden;
+            color: var(--text);
+            background: var(--bg);
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-map pre {
+            margin: 0;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+        }
+
+        .game-messages {
+            padding: 3px 10px;
+            font-size: 11px;
+            line-height: 1.4;
+            color: var(--text);
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            min-height: 60px;
+            max-height: 80px;
+            overflow: hidden;
+        }
+
+        .game-status {
+            padding: 3px 10px;
+            font-size: 10px;
+            color: var(--text-dim);
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            letter-spacing: 0.03em;
+        }
+
+        .overlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(7, 7, 11, 0.92);
+            z-index: 50;
+            flex-direction: column;
+            align-items: center;
+            justify-content: safe center;
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .overlay.active { display: flex; }
+
+        .overlay-box {
+            max-width: 520px;
+            width: 100%;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .overlay-box pre {
+            margin: 0;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+            white-space: pre-wrap;
+        }
+
+        .boot-screen {
+            position: absolute;
+            inset: 0;
+            background: var(--surface);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 20px 30px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .boot-screen.hidden { display: none; }
+
+        .touch-controls {
+            display: none;
+            padding: 6px;
+            padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+            background: rgba(7, 7, 11, 0.9);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        .dpad button, .action-row button {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-bright);
+            font-family: inherit;
+            font-size: 16px;
+            min-height: 44px;
+            padding: 10px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .dpad button:active, .action-row button:active {
+            background: var(--border);
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            max-width: 320px;
+            margin: 6px auto 0;
+        }
+
+        .overlay-touch-btn {
+            display: none;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-bright);
+            font-family: inherit;
+            font-size: 12px;
+            min-height: 44px;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            margin: 3px;
+            text-align: left;
+            width: calc(100% - 6px);
+        }
+        .overlay-touch-btn:active { background: var(--border); }
+        .overlay-touch-btns {
+            display: none;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 12px;
+            max-height: 35vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex-shrink: 0;
+            width: 100%;
+            max-width: 520px;
+        }
+
+        @media (max-width: 640px) {
+            .game-container {
+                border: none;
+                border-radius: 0;
+            }
+            .game-map {
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .game-map {
+                font-size: 9px;
+            }
+        }
+
+        @media (pointer: coarse) {
+            .touch-controls { display: block; }
+            .overlay-touch-btn { display: inline-block; }
+            .overlay-touch-btns { display: flex; }
+            .overlay-box { font-size: 11px; overflow-y: auto; max-height: 45vh; }
+            .game-messages { min-height: 36px; max-height: 50px; font-size: 10px; }
+            .game-header { padding: 5px 12px; }
+            .game-hud { padding: 2px 10px; font-size: 10px; }
+            .game-status { padding: 2px 10px; font-size: 9px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" style="position:relative;">
+        <div class="boot-screen" id="bootScreen"></div>
+
+        <div class="game-header">
+            <div class="header-dots"><span></span><span></span><span></span></div>
+            <div class="header-title">BREACH</div>
+            <a class="header-back" href="/">[ forge ]</a>
+        </div>
+        <div class="game-hud" id="hud"></div>
+        <div class="game-map" id="gameMap"><pre id="mapPre"></pre></div>
+        <div class="game-messages" id="messages"></div>
+        <div class="game-status" id="statusBar"></div>
+
+        <div class="overlay" id="overlay">
+            <div class="overlay-box"><pre id="overlayContent"></pre></div>
+            <div class="overlay-touch-btns" id="overlayBtns"></div>
+        </div>
+
+        <div class="touch-controls" id="touchControls">
+            <div class="dpad">
+                <button data-dir="nw">&#x2196;</button>
+                <button data-dir="n">&#x2191;</button>
+                <button data-dir="ne">&#x2197;</button>
+                <button data-dir="wait">&#183;</button>
+                <button data-dir="stairs">&#x25B7;</button>
+                <button data-dir="w">&#x2190;</button>
+                <button data-dir="s">&#x2193;</button>
+                <button data-dir="e">&#x2192;</button>
+                <button data-dir="sw">&#x2199;</button>
+                <button data-dir="se">&#x2198;</button>
+            </div>
+            <div class="action-row">
+                <button data-action="pickup">grab</button>
+                <button data-action="inventory">inv</button>
+                <button data-action="quaff">use</button>
+                <button data-action="scan">scan</button>
+                <button data-action="inject">inject</button>
+                <button data-action="fw">fw</button>
+                <button data-action="help">?</button>
+                <button data-action="exit">exit</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ============================================================
+// CONSTANTS & CONFIG
+// ============================================================
+const MAP_W = 80;
+const MAP_H = 35;
+const FOV_RADIUS = 8;
+const MAX_FLOOR = 10;
+const MAX_LEVEL = 15;
+const INVENTORY_CAP = 20;
+const MSG_MAX = 5;
+
+const DIRS = {
+    n:  {dx: 0, dy:-1}, s:  {dx: 0, dy: 1},
+    e:  {dx: 1, dy: 0}, w:  {dx:-1, dy: 0},
+    ne: {dx: 1, dy:-1}, nw: {dx:-1, dy:-1},
+    se: {dx: 1, dy: 1}, sw: {dx:-1, dy: 1},
+    wait: {dx: 0, dy: 0}
+};
+const DIR_LIST = [
+    {dx:-1,dy:-1},{dx:0,dy:-1},{dx:1,dy:-1},
+    {dx:-1,dy: 0},             {dx:1,dy: 0},
+    {dx:-1,dy: 1},{dx:0,dy: 1},{dx:1,dy: 1}
+];
+
+const COLORS = {
+    bg: '#07070b', surface: '#0b0b11', border: '#16162a',
+    text: '#6a6a78', textBright: '#8a8a98', textDim: '#2e2e3a',
+    accent: '#687a8e', success: '#4d6b4d', error: '#8a5555',
+    gold: '#8a7a55', brightGold: '#c8a858', white: '#b0b0b8'
+};
+
+// ============================================================
+// SEEDED PRNG (Mulberry32)
+// ============================================================
+let rngSeed = Date.now();
+let rng;
+
+function mulberry32(seed) {
+    return function() {
+        seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+        let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+
+function roll(min, max) {
+    return Math.floor(rng() * (max - min + 1)) + min;
+}
+
+function randFloat() { return rng(); }
+
+function randChoice(arr) {
+    return arr[Math.floor(rng() * arr.length)];
+}
+
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function dist(x1, y1, x2, y2) {
+    return Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+}
+
+// ============================================================
+// TILE DEFINITIONS
+// ============================================================
+const T = {
+    VOID:  0, WALL:  1, FLOOR: 2, CORRIDOR: 3,
+    DOOR:  4, STAIRS_DOWN: 5, STAIRS_UP: 6
+};
+
+const TILE_DATA = {
+    [T.VOID]:        { ch: ' ', color: COLORS.bg,       blocks: true,  blocksSight: true  },
+    [T.WALL]:        { ch: '#', color: COLORS.border,   blocks: true,  blocksSight: true  },
+    [T.FLOOR]:       { ch: '.', color: COLORS.textDim,  blocks: false, blocksSight: false },
+    [T.CORRIDOR]:    { ch: '.', color: COLORS.textDim,  blocks: false, blocksSight: false },
+    [T.DOOR]:        { ch: '+', color: COLORS.gold,     blocks: false, blocksSight: false },
+    [T.STAIRS_DOWN]: { ch: '>', color: COLORS.brightGold, blocks: false, blocksSight: false },
+    [T.STAIRS_UP]:   { ch: '<', color: COLORS.brightGold, blocks: false, blocksSight: false },
+};
+
+// ============================================================
+// MONSTER DEFINITIONS
+// ============================================================
+const MONSTER_DEFS = [
+    { name: 'worm',        ch: 'w', color: COLORS.text,       hp: 5,  atk: 2,  def: 0, xp: 3,   ai: 'wander',     speed: 1, minFl: 1, maxFl: 3  },
+    { name: 'bot',         ch: 'b', color: COLORS.text,       hp: 4,  atk: 1,  def: 0, xp: 2,   ai: 'wander',     speed: 2, minFl: 1, maxFl: 4  },
+    { name: 'trojan',      ch: 't', color: COLORS.success,    hp: 10, atk: 4,  def: 1, xp: 8,   ai: 'aggressive', speed: 1, minFl: 2, maxFl: 5  },
+    { name: 'rootkit',     ch: 'r', color: COLORS.success,    hp: 8,  atk: 5,  def: 0, xp: 6,   ai: 'stalker',    speed: 1, minFl: 2, maxFl: 5  },
+    { name: 'zombie_proc', ch: 'z', color: COLORS.textBright, hp: 15, atk: 6,  def: 3, xp: 15,  ai: 'aggressive', speed: 1, minFl: 3, maxFl: 7  },
+    { name: 'ransomware',  ch: 'R', color: COLORS.success,    hp: 20, atk: 7,  def: 3, xp: 20,  ai: 'aggressive', speed: 1, minFl: 4, maxFl: 7  },
+    { name: 'phantom',     ch: 'p', color: COLORS.accent,     hp: 12, atk: 8,  def: 1, xp: 18,  ai: 'stalker',    speed: 1, minFl: 4, maxFl: 8  },
+    { name: 'cryptominer', ch: 'C', color: COLORS.error,      hp: 30, atk: 9,  def: 4, xp: 35,  ai: 'aggressive', speed: 1, minFl: 6, maxFl: 9  },
+    { name: 'APT',         ch: 'A', color: COLORS.accent,     hp: 20, atk: 10, def: 2, xp: 30,  ai: 'stalker',    speed: 1, minFl: 7, maxFl: 10 },
+    { name: 'zero_day',    ch: 'Z', color: COLORS.error,      hp: 50, atk: 14, def: 6, xp: 100, ai: 'aggressive', speed: 1, minFl: 9, maxFl: 10 },
+];
+
+// ============================================================
+// ITEM DEFINITIONS
+// ============================================================
+const ITEM_TYPES = {
+    WEAPON: 'exploit', ARMOR: 'firewall', POTION: 'patch',
+    SCROLL: 'script', FOOD: 'bandwidth', GOLD: 'crypto', AMULET: 'root_key'
+};
+
+const WEAPON_DEFS = [
+    { name: 'Basic Exploit',    bonus: 1, minFl: 1, maxFl: 3  },
+    { name: 'Buffer Overflow',  bonus: 3, minFl: 2, maxFl: 5  },
+    { name: 'SQL Injection',    bonus: 5, minFl: 4, maxFl: 7  },
+    { name: 'Privilege Escalation', bonus: 7, minFl: 6, maxFl: 9  },
+    { name: 'Kernel Exploit',   bonus: 9, minFl: 8, maxFl: 10 },
+];
+
+const ARMOR_DEFS = [
+    { name: 'Packet Filter',     bonus: 1, minFl: 1, maxFl: 3  },
+    { name: 'Stateful Firewall', bonus: 3, minFl: 3, maxFl: 6  },
+    { name: 'WAF Layer',         bonus: 5, minFl: 5, maxFl: 8  },
+    { name: 'Zero Trust Shield', bonus: 7, minFl: 7, maxFl: 10 },
+];
+
+const POTION_DEFS = [
+    { name: 'Security Patch',         effect: 'heal',     value: 10, minFl: 1, maxFl: 10 },
+    { name: 'Critical Hotfix',        effect: 'heal',     value: 25, minFl: 4, maxFl: 10 },
+    { name: 'Memory Patch',           effect: 'mana',     value: 10, minFl: 2, maxFl: 10 },
+    { name: 'Power Surge',            effect: 'strength', value: 2,  minFl: 3, maxFl: 10 },
+    { name: 'Overclock Patch',        effect: 'speed',    value: 10, minFl: 5, maxFl: 10 },
+];
+
+const SCROLL_DEFS = [
+    { name: 'DDoS Script',         effect: 'fireball',  cost: 5, minFl: 3, maxFl: 10 },
+    { name: 'EMP Script',          effect: 'lightning', cost: 4, minFl: 2, maxFl: 10 },
+    { name: 'VPN Tunnel Script',   effect: 'teleport',  cost: 3, minFl: 1, maxFl: 10 },
+    { name: 'Nmap Script',         effect: 'mapping',   cost: 3, minFl: 2, maxFl: 10 },
+    { name: 'Upgrade Script',      effect: 'enchant',   cost: 6, minFl: 5, maxFl: 10 },
+];
+
+function itemCh(type) {
+    const map = { exploit:'/', firewall:'[', patch:'!', script:'?', bandwidth:'%', crypto:'$', root_key:'*' };
+    return map[type] || '?';
+}
+
+function itemColor(type) {
+    const map = {
+        exploit: COLORS.textBright, firewall: COLORS.textBright,
+        patch: COLORS.error, script: COLORS.accent,
+        bandwidth: COLORS.gold, crypto: COLORS.gold, root_key: COLORS.brightGold
+    };
+    return map[type] || COLORS.text;
+}
+
+// ============================================================
+// DUNGEON GENERATION (BSP)
+// ============================================================
+class Room {
+    constructor(x, y, w, h) {
+        this.x = x; this.y = y; this.w = w; this.h = h;
+    }
+    cx() { return Math.floor(this.x + this.w / 2); }
+    cy() { return Math.floor(this.y + this.h / 2); }
+}
+
+class Leaf {
+    constructor(x, y, w, h) {
+        this.x = x; this.y = y; this.w = w; this.h = h;
+        this.left = null; this.right = null; this.room = null;
+    }
+
+    split() {
+        if (this.left || this.right) return false;
+        const splitH = this.w > this.h ? false : this.h > this.w ? true : rng() > 0.5;
+        const max = (splitH ? this.h : this.w) - 6;
+        if (max < 6) return false;
+        const split = roll(6, max);
+        if (splitH) {
+            this.left  = new Leaf(this.x, this.y, this.w, split);
+            this.right = new Leaf(this.x, this.y + split, this.w, this.h - split);
+        } else {
+            this.left  = new Leaf(this.x, this.y, split, this.h);
+            this.right = new Leaf(this.x + split, this.y, this.w - split, this.h);
+        }
+        return true;
+    }
+
+    createRooms() {
+        if (this.left || this.right) {
+            if (this.left) this.left.createRooms();
+            if (this.right) this.right.createRooms();
+            return;
+        }
+        const rw = roll(4, Math.min(12, this.w - 2));
+        const rh = roll(3, Math.min(8, this.h - 2));
+        const rx = this.x + roll(1, this.w - rw - 1);
+        const ry = this.y + roll(1, this.h - rh - 1);
+        this.room = new Room(rx, ry, rw, rh);
+    }
+
+    getRoom() {
+        if (this.room) return this.room;
+        const lRoom = this.left ? this.left.getRoom() : null;
+        const rRoom = this.right ? this.right.getRoom() : null;
+        if (lRoom && rRoom) return rng() > 0.5 ? lRoom : rRoom;
+        return lRoom || rRoom;
+    }
+}
+
+function generateDungeon(floor) {
+    const tiles = [];
+    for (let y = 0; y < MAP_H; y++) {
+        tiles[y] = [];
+        for (let x = 0; x < MAP_W; x++) {
+            tiles[y][x] = T.WALL;
+        }
+    }
+
+    const root = new Leaf(0, 0, MAP_W, MAP_H);
+    const leaves = [root];
+    let splitting = true;
+    while (splitting) {
+        splitting = false;
+        const currentLeaves = [...leaves];
+        for (const leaf of currentLeaves) {
+            if (!leaf.left && !leaf.right) {
+                if (leaf.w > 14 || leaf.h > 10 || rng() > 0.25) {
+                    if (leaf.split()) {
+                        leaves.push(leaf.left, leaf.right);
+                        splitting = true;
+                    }
+                }
+            }
+        }
+    }
+
+    root.createRooms();
+
+    const rooms = [];
+    function collectRooms(node) {
+        if (node.room) rooms.push(node.room);
+        if (node.left) collectRooms(node.left);
+        if (node.right) collectRooms(node.right);
+    }
+    collectRooms(root);
+
+    for (const room of rooms) {
+        for (let y = room.y; y < room.y + room.h; y++) {
+            for (let x = room.x; x < room.x + room.w; x++) {
+                if (x > 0 && x < MAP_W - 1 && y > 0 && y < MAP_H - 1) {
+                    tiles[y][x] = T.FLOOR;
+                }
+            }
+        }
+    }
+
+    function connectRooms(node) {
+        if (node.left && node.right) {
+            const a = node.left.getRoom();
+            const b = node.right.getRoom();
+            if (a && b) carveCorridor(tiles, a.cx(), a.cy(), b.cx(), b.cy());
+            connectRooms(node.left);
+            connectRooms(node.right);
+        }
+    }
+    connectRooms(root);
+
+    let stairsDown = null, stairsUp = null;
+    if (rooms.length >= 2) {
+        const spawn = rooms[0];
+        const last = rooms[rooms.length - 1];
+        if (floor < MAX_FLOOR) {
+            stairsDown = { x: last.cx(), y: last.cy() };
+            tiles[stairsDown.y][stairsDown.x] = T.STAIRS_DOWN;
+        }
+        if (floor > 1) {
+            stairsUp = { x: spawn.cx(), y: spawn.cy() };
+            tiles[stairsUp.y][stairsUp.x] = T.STAIRS_UP;
+        }
+    }
+
+    return { tiles, rooms, stairsDown, stairsUp };
+}
+
+function carveCorridor(tiles, x1, y1, x2, y2) {
+    let x = x1, y = y1;
+    const goHFirst = rng() > 0.5;
+
+    if (goHFirst) {
+        while (x !== x2) {
+            if (x > 0 && x < MAP_W - 1 && y > 0 && y < MAP_H - 1) {
+                if (tiles[y][x] === T.WALL) tiles[y][x] = T.CORRIDOR;
+            }
+            x += x < x2 ? 1 : -1;
+        }
+        while (y !== y2) {
+            if (x > 0 && x < MAP_W - 1 && y > 0 && y < MAP_H - 1) {
+                if (tiles[y][x] === T.WALL) tiles[y][x] = T.CORRIDOR;
+            }
+            y += y < y2 ? 1 : -1;
+        }
+    } else {
+        while (y !== y2) {
+            if (x > 0 && x < MAP_W - 1 && y > 0 && y < MAP_H - 1) {
+                if (tiles[y][x] === T.WALL) tiles[y][x] = T.CORRIDOR;
+            }
+            y += y < y2 ? 1 : -1;
+        }
+        while (x !== x2) {
+            if (x > 0 && x < MAP_W - 1 && y > 0 && y < MAP_H - 1) {
+                if (tiles[y][x] === T.WALL) tiles[y][x] = T.CORRIDOR;
+            }
+            x += x < x2 ? 1 : -1;
+        }
+    }
+    if (x > 0 && x < MAP_W - 1 && y > 0 && y < MAP_H - 1) {
+        if (tiles[y][x] === T.WALL) tiles[y][x] = T.CORRIDOR;
+    }
+}
+
+// ============================================================
+// FIELD OF VIEW (Recursive Shadowcasting)
+// ============================================================
+const OCTANTS = [
+    { xx: 1, xy: 0, yx: 0, yy: 1  },
+    { xx: 0, xy: 1, yx: 1, yy: 0  },
+    { xx: 0, xy:-1, yx: 1, yy: 0  },
+    { xx:-1, xy: 0, yx: 0, yy: 1  },
+    { xx:-1, xy: 0, yx: 0, yy:-1  },
+    { xx: 0, xy:-1, yx:-1, yy: 0  },
+    { xx: 0, xy: 1, yx:-1, yy: 0  },
+    { xx: 1, xy: 0, yx: 0, yy:-1  },
+];
+
+function computeFOV(cx, cy, radius, tiles) {
+    const vis = [];
+    for (let y = 0; y < MAP_H; y++) {
+        vis[y] = new Uint8Array(MAP_W);
+    }
+    vis[cy][cx] = 1;
+    for (let oct = 0; oct < 8; oct++) {
+        castLight(vis, tiles, cx, cy, radius, 1, 1.0, 0.0, OCTANTS[oct]);
+    }
+    return vis;
+}
+
+function castLight(vis, tiles, cx, cy, radius, row, startSlope, endSlope, oct) {
+    if (startSlope < endSlope) return;
+    let nextStart = startSlope;
+    for (let i = row; i <= radius; i++) {
+        let blocked = false;
+        for (let dx = -i; dx <= 0; dx++) {
+            const dy = -i;
+            const mx = cx + dx * oct.xx + dy * oct.xy;
+            const my = cy + dx * oct.yx + dy * oct.yy;
+            const lSlope = (dx - 0.5) / (dy + 0.5);
+            const rSlope = (dx + 0.5) / (dy - 0.5);
+            if (startSlope < rSlope) continue;
+            if (endSlope > lSlope) break;
+            if (dx * dx + dy * dy <= radius * radius) {
+                if (mx >= 0 && mx < MAP_W && my >= 0 && my < MAP_H) {
+                    vis[my][mx] = 1;
+                }
+            }
+            const blocksSight = mx < 0 || mx >= MAP_W || my < 0 || my >= MAP_H ||
+                TILE_DATA[tiles[my]?.[mx] ?? T.VOID].blocksSight;
+            if (blocked) {
+                if (blocksSight) {
+                    nextStart = rSlope;
+                } else {
+                    blocked = false;
+                    startSlope = nextStart;
+                }
+            } else if (blocksSight && i < radius) {
+                blocked = true;
+                castLight(vis, tiles, cx, cy, radius, i + 1, startSlope, lSlope, oct);
+                nextStart = rSlope;
+            }
+        }
+        if (blocked) break;
+    }
+}
+
+// ============================================================
+// A* PATHFINDING
+// ============================================================
+function findPath(sx, sy, tx, ty, tiles, entities, maxSteps) {
+    maxSteps = maxSteps || 25;
+    const key = (x, y) => (y << 8) | x;
+    const open = [{ x: sx, y: sy, g: 0, f: 0 }];
+    const closed = new Set();
+    const gScore = new Map();
+    const cameFrom = new Map();
+    const sk = key(sx, sy);
+    gScore.set(sk, 0);
+
+    const h = (x, y) => Math.abs(x - tx) + Math.abs(y - ty);
+
+    while (open.length > 0) {
+        let bestIdx = 0;
+        for (let i = 1; i < open.length; i++) {
+            if (open[i].f < open[bestIdx].f) bestIdx = i;
+        }
+        const cur = open.splice(bestIdx, 1)[0];
+        const ck = key(cur.x, cur.y);
+
+        if (cur.x === tx && cur.y === ty) {
+            const path = [];
+            let k = ck;
+            while (cameFrom.has(k)) {
+                const px = k & 0xFF, py = k >> 8;
+                path.unshift({ x: px, y: py });
+                k = cameFrom.get(k);
+            }
+            return path;
+        }
+
+        closed.add(ck);
+
+        for (const d of DIR_LIST) {
+            const nx = cur.x + d.dx, ny = cur.y + d.dy;
+            if (nx < 0 || nx >= MAP_W || ny < 0 || ny >= MAP_H) continue;
+            const nk = key(nx, ny);
+            if (closed.has(nk)) continue;
+            if (TILE_DATA[tiles[ny][nx]].blocks) continue;
+            if (nx !== tx || ny !== ty) {
+                if (entities && entities.some(e => e.x === nx && e.y === ny && e.hp > 0)) continue;
+            }
+            const ng = cur.g + 1;
+            if (ng > maxSteps) continue;
+            if (ng >= (gScore.get(nk) ?? Infinity)) continue;
+            gScore.set(nk, ng);
+            cameFrom.set(nk, ck);
+            open.push({ x: nx, y: ny, g: ng, f: ng + h(nx, ny) });
+        }
+    }
+    return null;
+}
+
+// ============================================================
+// MESSAGE LOG
+// ============================================================
+class MessageLog {
+    constructor() { this.messages = []; }
+
+    add(text, color) {
+        color = color || COLORS.text;
+        const last = this.messages[this.messages.length - 1];
+        if (last && last.base === text && last.color === color) {
+            last.count++;
+            last.text = last.count > 1 ? `${text} (x${last.count})` : text;
+        } else {
+            this.messages.push({ text, base: text, color, count: 1 });
+        }
+    }
+
+    recent() { return this.messages.slice(-MSG_MAX); }
+
+    clear() { this.messages = []; }
+}
+
+// ============================================================
+// GAME STATE
+// ============================================================
+const STATE = {
+    PLAYING: 'playing', INVENTORY: 'inventory',
+    LEVEL_UP: 'level_up', HELP: 'help',
+    GAME_OVER: 'game_over', VICTORY: 'victory',
+    TARGETING: 'targeting', LOOKING: 'looking'
+};
+
+const game = {
+    state: STATE.PLAYING,
+    floor: 1,
+    turns: 0,
+    tiles: null,
+    rooms: null,
+    stairsDown: null,
+    stairsUp: null,
+    player: null,
+    monsters: [],
+    items: [],
+    fov: null,
+    explored: null,
+    log: new MessageLog(),
+    killCount: 0,
+    goldCount: 0,
+    killedBy: '',
+    hasAmulet: false,
+    targetCallback: null,
+    targetCursor: null,
+    lookCursor: null,
+    statusEffects: [],
+    traps: [],
+};
+
+// ============================================================
+// PLAYER
+// ============================================================
+function createPlayer(x, y) {
+    return {
+        x, y, ch: '@', color: COLORS.success,
+        name: 'Player',
+        hp: 30, maxHp: 30,
+        mp: 10, maxMp: 10,
+        str: 5, def: 3, dex: 3,
+        level: 1, xp: 0,
+        inventory: [],
+        weapon: null,
+        armor: null,
+        abilities: { scan: { cd: 0, max: 8 }, inject: { cd: 0, max: 5 }, firewall: { cd: 0, max: 12 } },
+        firewallTurns: 0,
+    };
+}
+
+function xpForLevel(lv) {
+    return Math.floor(10 * Math.pow(lv, 1.5));
+}
+
+function playerAtkPower(p) {
+    return p.str + (p.weapon ? p.weapon.bonus : 0);
+}
+
+function playerDefPower(p) {
+    return p.def + (p.armor ? p.armor.bonus : 0);
+}
+
+// ============================================================
+// MONSTER
+// ============================================================
+function createMonster(def, x, y) {
+    return {
+        x, y, ch: def.ch, color: def.color,
+        name: def.name,
+        hp: def.hp, maxHp: def.hp,
+        atk: def.atk, def: def.def,
+        xpReward: def.xp,
+        ai: def.ai, speed: def.speed,
+        turnDebt: 0,
+        aggroTurns: 0,
+        lastPlayerX: -1, lastPlayerY: -1,
+    };
+}
+
+// ============================================================
+// ITEM
+// ============================================================
+function createItem(type, def, x, y) {
+    const item = {
+        x, y, type,
+        ch: itemCh(type), color: itemColor(type),
+        name: def.name,
+    };
+    if (type === ITEM_TYPES.WEAPON)  { item.bonus = def.bonus; item.desc = `+${def.bonus} ATK`; }
+    if (type === ITEM_TYPES.ARMOR)   { item.bonus = def.bonus; item.desc = `+${def.bonus} DEF`; }
+    if (type === ITEM_TYPES.POTION)  { item.effect = def.effect; item.value = def.value; item.desc = def.effect; }
+    if (type === ITEM_TYPES.SCROLL)  { item.effect = def.effect; item.cost = def.cost; item.desc = def.effect; }
+    if (type === ITEM_TYPES.FOOD)    { item.value = def.value || 8; item.desc = 'restores bandwidth'; }
+    if (type === ITEM_TYPES.GOLD)    { item.value = def.value || 1; item.desc = `${def.value} crypto`; }
+    if (type === ITEM_TYPES.AMULET)  { item.desc = 'the goal'; }
+    return item;
+}
+
+// ============================================================
+// COMBAT SYSTEM
+// ============================================================
+function resolveMeleeAttack(attacker, defender, atkPow, defPow) {
+    const hitRoll = roll(1, 20);
+    const atkDex = attacker.dex || 0;
+    const missThreshold = Math.max(1, 3 - atkDex);
+    if (hitRoll <= missThreshold) {
+        return { hit: false, damage: 0, critical: false };
+    }
+    let damage = Math.max(1, atkPow + roll(1, 6) - defPow - roll(1, 3));
+    const critical = hitRoll >= 19;
+    if (critical) damage = Math.floor(damage * 2);
+    defender.hp -= damage;
+    return { hit: true, damage, critical };
+}
+
+function playerAttacks(monster) {
+    const p = game.player;
+    const result = resolveMeleeAttack(p, monster, playerAtkPower(p), monster.def);
+    if (!result.hit) {
+        game.log.add(`You miss the ${monster.name}.`, COLORS.text);
+    } else if (result.critical) {
+        game.log.add(`Critical hit! You strike the ${monster.name} for ${result.damage} damage!`, COLORS.brightGold);
+    } else {
+        game.log.add(`You hit the ${monster.name} for ${result.damage} damage.`, COLORS.textBright);
+    }
+    if (monster.hp <= 0) {
+        game.log.add(`You killed the ${monster.name}! (+${monster.xpReward} XP)`, COLORS.success);
+        game.killCount++;
+        gainXP(monster.xpReward);
+        dropLoot(monster);
+    }
+}
+
+function dropLoot(monster) {
+    const floor = game.floor;
+    const dropChance = 0.35 + monster.xpReward * 0.005;
+    if (rng() > dropChance) return;
+
+    const mx = monster.x, my = monster.y;
+    const r = rng();
+    let item;
+
+    if (r < 0.40) {
+        const value = roll(1, 5 + floor * 2) + Math.floor(monster.xpReward / 3);
+        item = createItem(ITEM_TYPES.GOLD, { name: 'Crypto Tokens', value }, mx, my);
+        game.goldCount += value;
+        game.log.add(`The ${monster.name} dropped ${value} crypto.`, COLORS.gold);
+        game.items.push(item);
+        return;
+    }
+
+    if (r < 0.65) {
+        const eligible = POTION_DEFS.filter(p => floor >= p.minFl && floor <= p.maxFl);
+        if (eligible.length > 0) {
+            item = createItem(ITEM_TYPES.POTION, randChoice(eligible), mx, my);
+        }
+    } else if (r < 0.80) {
+        const choices = [
+            ...WEAPON_DEFS.filter(w => floor >= w.minFl && floor <= w.maxFl),
+            ...ARMOR_DEFS.filter(a => floor >= a.minFl && floor <= a.maxFl),
+        ];
+        if (choices.length > 0) {
+            const def = randChoice(choices);
+            const type = def.bonus !== undefined && WEAPON_DEFS.includes(def) ? ITEM_TYPES.WEAPON : ITEM_TYPES.ARMOR;
+            item = createItem(type, def, mx, my);
+        }
+    } else if (r < 0.90) {
+        const eligible = SCROLL_DEFS.filter(s => floor >= s.minFl && floor <= s.maxFl);
+        if (eligible.length > 0) {
+            item = createItem(ITEM_TYPES.SCROLL, randChoice(eligible), mx, my);
+        }
+    } else {
+        item = createItem(ITEM_TYPES.FOOD, { name: randChoice(['Bandwidth Pack', 'Data Burst', 'Cache Dump']), value: roll(5, 12) }, mx, my);
+    }
+
+    if (item) {
+        game.items.push(item);
+        game.log.add(`The ${monster.name} dropped a ${item.name}.`, COLORS.accent);
+    }
+}
+
+function monsterAttacks(monster) {
+    const p = game.player;
+    const defPow = playerDefPower(p) + (p.firewallTurns > 0 ? 3 : 0);
+    const result = resolveMeleeAttack(monster, p, monster.atk, defPow);
+    if (!result.hit) {
+        game.log.add(`The ${monster.name} misses you.`, COLORS.text);
+    } else if (result.critical) {
+        game.log.add(`The ${monster.name} critically strikes you for ${result.damage}!`, COLORS.error);
+    } else {
+        game.log.add(`The ${monster.name} hits you for ${result.damage}.`, COLORS.error);
+    }
+    if (p.hp <= 0) {
+        game.killedBy = monster.name;
+        game.state = STATE.GAME_OVER;
+        deleteSave();
+    }
+}
+
+// ============================================================
+// XP & LEVEL UP
+// ============================================================
+function gainXP(amount) {
+    const p = game.player;
+    p.xp += amount;
+    while (p.level < MAX_LEVEL && p.xp >= xpForLevel(p.level + 1)) {
+        p.level++;
+        p.maxHp += 3;
+        p.maxMp += 2;
+        p.hp = p.maxHp;
+        p.mp = p.maxMp;
+        game.log.add(`Level up! You are now level ${p.level}.`, COLORS.brightGold);
+        game.state = STATE.LEVEL_UP;
+    }
+}
+
+function applyLevelChoice(choice) {
+    const p = game.player;
+    if (choice === 1) { p.str++; game.log.add(`STR increased to ${p.str}.`, COLORS.success); }
+    if (choice === 2) { p.def++; game.log.add(`DEF increased to ${p.def}.`, COLORS.success); }
+    if (choice === 3) { p.dex++; game.log.add(`DEX increased to ${p.dex}.`, COLORS.success); }
+    if (choice === 4) { p.maxHp += 5; p.hp = p.maxHp; game.log.add(`Max HP increased to ${p.maxHp}.`, COLORS.success); }
+    game.state = STATE.PLAYING;
+}
+
+// ============================================================
+// AI SYSTEM
+// ============================================================
+function processMonsterAI(m) {
+    const p = game.player;
+    const canSee = game.fov[m.y] && game.fov[m.y][m.x];
+
+    if (canSee) {
+        m.lastPlayerX = p.x;
+        m.lastPlayerY = p.y;
+    }
+
+    const adjacent = Math.abs(m.x - p.x) <= 1 && Math.abs(m.y - p.y) <= 1 &&
+                     !(m.x === p.x && m.y === p.y);
+
+    if (m.ai === 'aggressive') {
+        if (adjacent) {
+            monsterAttacks(m);
+            return;
+        }
+        if (canSee || m.aggroTurns > 0) {
+            if (canSee) m.aggroTurns = 8;
+            else m.aggroTurns--;
+            const path = findPath(m.x, m.y, p.x, p.y, game.tiles, game.monsters.filter(o => o !== m && o.hp > 0));
+            if (path && path.length > 0) {
+                tryMoveMonster(m, path[0].x, path[0].y);
+            }
+            return;
+        }
+        wander(m);
+
+    } else if (m.ai === 'wander') {
+        if (adjacent) {
+            monsterAttacks(m);
+            return;
+        }
+        const d = dist(m.x, m.y, p.x, p.y);
+        if (canSee && d <= 5) {
+            m.aggroTurns = 5;
+        }
+        if (m.aggroTurns > 0) {
+            m.aggroTurns--;
+            const path = findPath(m.x, m.y, p.x, p.y, game.tiles, game.monsters.filter(o => o !== m && o.hp > 0));
+            if (path && path.length > 0) {
+                tryMoveMonster(m, path[0].x, path[0].y);
+            }
+            return;
+        }
+        wander(m);
+
+    } else if (m.ai === 'stalker') {
+        if (adjacent) {
+            monsterAttacks(m);
+            return;
+        }
+        if (canSee) {
+            const d = dist(m.x, m.y, p.x, p.y);
+            if (d <= 2) {
+                flee(m, p.x, p.y);
+            } else if (d >= 4) {
+                const path = findPath(m.x, m.y, p.x, p.y, game.tiles, game.monsters.filter(o => o !== m && o.hp > 0));
+                if (path && path.length > 0) tryMoveMonster(m, path[0].x, path[0].y);
+            }
+        } else {
+            wander(m);
+        }
+    }
+}
+
+function wander(m) {
+    const dirs = shuffle([...DIR_LIST]);
+    for (const d of dirs) {
+        const nx = m.x + d.dx, ny = m.y + d.dy;
+        if (canMoveTo(nx, ny) && !entityAt(nx, ny)) {
+            m.x = nx; m.y = ny;
+            return;
+        }
+    }
+}
+
+function flee(m, fx, fy) {
+    let best = null, bestDist = -1;
+    for (const d of DIR_LIST) {
+        const nx = m.x + d.dx, ny = m.y + d.dy;
+        if (!canMoveTo(nx, ny) || entityAt(nx, ny)) continue;
+        const dd = dist(nx, ny, fx, fy);
+        if (dd > bestDist) { bestDist = dd; best = { x: nx, y: ny }; }
+    }
+    if (best) { m.x = best.x; m.y = best.y; }
+}
+
+function tryMoveMonster(m, nx, ny) {
+    if (nx === game.player.x && ny === game.player.y) {
+        monsterAttacks(m);
+        return;
+    }
+    if (canMoveTo(nx, ny) && !entityAt(nx, ny)) {
+        m.x = nx; m.y = ny;
+    }
+}
+
+function entityAt(x, y) {
+    return game.monsters.find(m => m.hp > 0 && m.x === x && m.y === y);
+}
+
+function canMoveTo(x, y) {
+    if (x < 0 || x >= MAP_W || y < 0 || y >= MAP_H) return false;
+    return !TILE_DATA[game.tiles[y][x]].blocks;
+}
+
+// ============================================================
+// ITEM ACTIONS
+// ============================================================
+function pickupItem() {
+    const p = game.player;
+    const idx = game.items.findIndex(i => i.x === p.x && i.y === p.y);
+    if (idx === -1) {
+        game.log.add('There is nothing here to pick up.', COLORS.textDim);
+        return false;
+    }
+    const item = game.items[idx];
+    if (item.type === ITEM_TYPES.GOLD) {
+        game.goldCount += item.value;
+        game.log.add(`You collect ${item.value} crypto.`, COLORS.gold);
+        game.items.splice(idx, 1);
+        return true;
+    }
+    if (item.type === ITEM_TYPES.AMULET) {
+        game.hasAmulet = true;
+        game.log.add('You extract the root_key!', COLORS.brightGold);
+        game.items.splice(idx, 1);
+        return true;
+    }
+    if (p.inventory.length >= INVENTORY_CAP) {
+        game.log.add('Your inventory is full.', COLORS.error);
+        return false;
+    }
+    p.inventory.push(item);
+    game.items.splice(idx, 1);
+    game.log.add(`You pick up the ${item.name}.`, COLORS.accent);
+    return true;
+}
+
+function useItem(idx) {
+    const p = game.player;
+    if (idx < 0 || idx >= p.inventory.length) return false;
+    const item = p.inventory[idx];
+
+    if (item.type === ITEM_TYPES.WEAPON) {
+        if (p.weapon) p.inventory.push(p.weapon);
+        p.weapon = item;
+        p.inventory.splice(idx, 1);
+        game.log.add(`You equip the ${item.name}.`, COLORS.textBright);
+        return false;
+    }
+    if (item.type === ITEM_TYPES.ARMOR) {
+        if (p.armor) p.inventory.push(p.armor);
+        p.armor = item;
+        p.inventory.splice(idx, 1);
+        game.log.add(`You equip the ${item.name}.`, COLORS.textBright);
+        return false;
+    }
+    if (item.type === ITEM_TYPES.POTION) {
+        return usePotion(item, idx);
+    }
+    if (item.type === ITEM_TYPES.SCROLL) {
+        return useScroll(item, idx);
+    }
+    if (item.type === ITEM_TYPES.FOOD) {
+        p.hp = Math.min(p.maxHp, p.hp + item.value);
+        game.log.add(`You eat the ${item.name}. (+${item.value} HP)`, COLORS.success);
+        p.inventory.splice(idx, 1);
+        return true;
+    }
+    return false;
+}
+
+function usePotion(item, idx) {
+    const p = game.player;
+    if (item.effect === 'heal') {
+        const healed = Math.min(item.value, p.maxHp - p.hp);
+        p.hp += healed;
+        game.log.add(`You drink the ${item.name}. (+${healed} HP)`, COLORS.success);
+    } else if (item.effect === 'mana') {
+        const restored = Math.min(item.value, p.maxMp - p.mp);
+        p.mp += restored;
+        game.log.add(`You drink the ${item.name}. (+${restored} MP)`, COLORS.accent);
+    } else if (item.effect === 'strength') {
+        game.statusEffects.push({ type: 'strength', turns: 20, value: item.value });
+        p.str += item.value;
+        game.log.add(`You feel stronger! (+${item.value} STR for 20 turns)`, COLORS.brightGold);
+    } else if (item.effect === 'speed') {
+        game.statusEffects.push({ type: 'speed', turns: item.value });
+        game.log.add(`You feel faster! (extra moves for ${item.value} turns)`, COLORS.brightGold);
+    }
+    p.inventory.splice(idx, 1);
+    return true;
+}
+
+function useScroll(item, idx) {
+    const p = game.player;
+    if (p.mp < item.cost) {
+        game.log.add(`Not enough MP. Need ${item.cost}, have ${p.mp}.`, COLORS.error);
+        return false;
+    }
+
+    if (item.effect === 'fireball') {
+        p.mp -= item.cost;
+        const alive = game.monsters.filter(m => m.hp > 0 && game.fov[m.y]?.[m.x]);
+        let hit = 0;
+        for (const m of alive) {
+            if (dist(p.x, p.y, m.x, m.y) <= 5) {
+                const dmg = roll(12, 18);
+                m.hp -= dmg;
+                hit++;
+                if (m.hp <= 0) {
+                    game.log.add(`The ${m.name} is incinerated! (+${m.xpReward} XP)`, COLORS.error);
+                    game.killCount++;
+                    gainXP(m.xpReward);
+                }
+            }
+        }
+        game.log.add(`DDoS blast! ${hit} targets hit.`, COLORS.error);
+    } else if (item.effect === 'lightning') {
+        p.mp -= item.cost;
+        const alive = game.monsters.filter(m => m.hp > 0 && game.fov[m.y]?.[m.x]);
+        if (alive.length > 0) {
+            let nearest = alive[0], nd = dist(p.x, p.y, alive[0].x, alive[0].y);
+            for (const m of alive) {
+                const d = dist(p.x, p.y, m.x, m.y);
+                if (d < nd) { nearest = m; nd = d; }
+            }
+            const dmg = roll(16, 24);
+            nearest.hp -= dmg;
+            game.log.add(`EMP pulse hits ${nearest.name} for ${dmg}!`, COLORS.accent);
+            if (nearest.hp <= 0) {
+                game.log.add(`The ${nearest.name} is destroyed! (+${nearest.xpReward} XP)`, COLORS.success);
+                game.killCount++;
+                gainXP(nearest.xpReward);
+            }
+        } else {
+            game.log.add('No visible targets.', COLORS.textDim);
+            p.mp += item.cost;
+            return false;
+        }
+    } else if (item.effect === 'teleport') {
+        p.mp -= item.cost;
+        const room = randChoice(game.rooms);
+        p.x = room.cx(); p.y = room.cy();
+        game.log.add('VPN tunnel established — relocated!', COLORS.accent);
+    } else if (item.effect === 'mapping') {
+        p.mp -= item.cost;
+        for (let y = 0; y < MAP_H; y++) {
+            for (let x = 0; x < MAP_W; x++) {
+                if (game.tiles[y][x] !== T.WALL && game.tiles[y][x] !== T.VOID) {
+                    game.explored[y][x] = 1;
+                }
+            }
+        }
+        game.log.add('Network topology mapped!', COLORS.accent);
+    } else if (item.effect === 'enchant') {
+        p.mp -= item.cost;
+        if (p.weapon) {
+            p.weapon.bonus += 2;
+            p.weapon.desc = `+${p.weapon.bonus} ATK`;
+            game.log.add(`Your ${p.weapon.name} glows! (+2 ATK)`, COLORS.brightGold);
+        } else if (p.armor) {
+            p.armor.bonus += 2;
+            p.armor.desc = `+${p.armor.bonus} DEF`;
+            game.log.add(`Your ${p.armor.name} hardens! (+2 DEF)`, COLORS.brightGold);
+        } else {
+            game.log.add('You have nothing to enchant.', COLORS.textDim);
+            p.mp += item.cost;
+            return false;
+        }
+    }
+    p.inventory.splice(idx, 1);
+    return true;
+}
+
+function dropItem(idx) {
+    const p = game.player;
+    if (idx < 0 || idx >= p.inventory.length) return;
+    const item = p.inventory.splice(idx, 1)[0];
+    item.x = p.x; item.y = p.y;
+    game.items.push(item);
+    game.log.add(`You drop the ${item.name}.`, COLORS.text);
+}
+
+// ============================================================
+// STATUS EFFECTS
+// ============================================================
+function tickStatusEffects() {
+    const p = game.player;
+    for (let i = game.statusEffects.length - 1; i >= 0; i--) {
+        const eff = game.statusEffects[i];
+        eff.turns--;
+        if (eff.turns <= 0) {
+            if (eff.type === 'strength') {
+                p.str -= eff.value;
+                game.log.add('Your strength returns to normal.', COLORS.textDim);
+            } else if (eff.type === 'speed') {
+                game.log.add('Your speed returns to normal.', COLORS.textDim);
+            } else if (eff.type === 'slow') {
+                game.log.add('You can move freely again.', COLORS.textDim);
+            }
+            game.statusEffects.splice(i, 1);
+        }
+    }
+}
+
+function hasSpeedBuff() {
+    return game.statusEffects.some(e => e.type === 'speed');
+}
+
+// ============================================================
+// ABILITIES
+// ============================================================
+function useScan() {
+    const p = game.player;
+    const ab = p.abilities.scan;
+    if (ab.cd > 0) { game.log.add(`Scan on cooldown (${ab.cd} turns).`, COLORS.textDim); return false; }
+    if (p.mp < 3) { game.log.add('Not enough MP for scan.', COLORS.error); return false; }
+    p.mp -= 3;
+    ab.cd = ab.max;
+    const radius = 12;
+    for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            const tx = p.x + dx, ty = p.y + dy;
+            if (tx >= 0 && tx < MAP_W && ty >= 0 && ty < MAP_H && dx*dx + dy*dy <= radius*radius) {
+                game.explored[ty][tx] = 1;
+            }
+        }
+    }
+    for (const trap of game.traps) {
+        const dx = trap.x - p.x, dy = trap.y - p.y;
+        if (dx*dx + dy*dy <= radius*radius) trap.revealed = true;
+    }
+    game.log.add('Network scan complete — area revealed.', COLORS.accent);
+    return true;
+}
+
+function useInject() {
+    const p = game.player;
+    const ab = p.abilities.inject;
+    if (ab.cd > 0) { game.log.add(`Inject on cooldown (${ab.cd} turns).`, COLORS.textDim); return false; }
+    if (p.mp < 4) { game.log.add('Not enough MP for inject.', COLORS.error); return false; }
+    let best = null, bestDist = 99;
+    for (const m of game.monsters) {
+        if (m.hp <= 0 || !game.fov[m.y][m.x]) continue;
+        const d = Math.abs(m.x - p.x) + Math.abs(m.y - p.y);
+        if (d <= 6 && d < bestDist) { best = m; bestDist = d; }
+    }
+    if (!best) { game.log.add('No target in range (6 tiles).', COLORS.textDim); return false; }
+    p.mp -= 4;
+    ab.cd = ab.max;
+    const damage = p.str + roll(3, 8);
+    best.hp -= damage;
+    game.log.add(`Code injection hits ${best.name} for ${damage}!`, COLORS.accent);
+    if (best.hp <= 0) {
+        game.log.add(`${best.name} terminated! (+${best.xpReward} XP)`, COLORS.success);
+        game.killCount++;
+        gainXP(best.xpReward);
+        dropLoot(best);
+    }
+    return true;
+}
+
+function useFirewall() {
+    const p = game.player;
+    const ab = p.abilities.firewall;
+    if (ab.cd > 0) { game.log.add(`Firewall on cooldown (${ab.cd} turns).`, COLORS.textDim); return false; }
+    if (p.mp < 5) { game.log.add('Not enough MP for firewall.', COLORS.error); return false; }
+    p.mp -= 5;
+    ab.cd = ab.max;
+    p.firewallTurns = 5;
+    game.log.add('Firewall activated — damage reduced for 5 turns.', COLORS.success);
+    return true;
+}
+
+// ============================================================
+// TRAPS
+// ============================================================
+const TRAP_TYPES = [
+    { name: 'alarm', ch: '^', color: COLORS.gold, effect: 'alert' },
+    { name: 'honeypot', ch: '^', color: COLORS.accent, effect: 'slow' },
+    { name: 'logic_bomb', ch: '^', color: COLORS.error, effect: 'damage' },
+];
+
+function placeTraps(floorNum) {
+    const count = Math.floor(floorNum * 0.8) + 1;
+    for (let i = 0; i < count; i++) {
+        const room = randChoice(game.rooms.slice(1));
+        if (!room) continue;
+        const tx = roll(room.x + 1, room.x + room.w - 2);
+        const ty = roll(room.y + 1, room.y + room.h - 2);
+        if (tx <= 0 || tx >= MAP_W - 1 || ty <= 0 || ty >= MAP_H - 1) continue;
+        if (TILE_DATA[game.tiles[ty][tx]].blocks || entityAt(tx, ty)) continue;
+        const def = randChoice(TRAP_TYPES);
+        game.traps.push({ x: tx, y: ty, type: def.name, ch: def.ch, color: def.color, effect: def.effect, revealed: false, triggered: false });
+    }
+}
+
+function triggerTrap(trap) {
+    trap.triggered = true;
+    const p = game.player;
+    if (trap.effect === 'alert') {
+        game.log.add('Alarm triggered! Nearby threats alerted!', COLORS.error);
+        for (const m of game.monsters) {
+            if (m.hp <= 0) continue;
+            const d = Math.abs(m.x - p.x) + Math.abs(m.y - p.y);
+            if (d <= 12) { m.aggroTurns = 15; m.lastPlayerX = p.x; m.lastPlayerY = p.y; }
+        }
+    } else if (trap.effect === 'slow') {
+        game.log.add('Honeypot! Slowed for 4 turns.', COLORS.gold);
+        game.statusEffects.push({ type: 'slow', turns: 4 });
+    } else if (trap.effect === 'damage') {
+        const dmg = roll(5, 10 + game.floor * 2);
+        p.hp -= dmg;
+        game.log.add(`Logic bomb detonates for ${dmg} damage!`, COLORS.error);
+        if (p.hp <= 0) { game.killedBy = 'logic_bomb'; game.state = STATE.GAME_OVER; deleteSave(); }
+    }
+}
+
+// ============================================================
+// FLOOR MANAGEMENT
+// ============================================================
+function generateFloor(floorNum) {
+    const dungeon = generateDungeon(floorNum);
+    game.tiles = dungeon.tiles;
+    game.rooms = dungeon.rooms;
+    game.stairsDown = dungeon.stairsDown;
+    game.stairsUp = dungeon.stairsUp;
+    game.monsters = [];
+    game.items = [];
+    game.explored = [];
+    for (let y = 0; y < MAP_H; y++) {
+        game.explored[y] = new Uint8Array(MAP_W);
+    }
+
+    const eligibleMonsters = MONSTER_DEFS.filter(m => floorNum >= m.minFl && floorNum <= m.maxFl);
+    const monsterCount = 6 + Math.floor(floorNum * 2.5);
+
+    let placed = 0;
+    for (let attempts = 0; attempts < monsterCount * 4 && placed < monsterCount && eligibleMonsters.length > 0; attempts++) {
+        const def = randChoice(eligibleMonsters);
+        const room = randChoice(game.rooms.slice(1));
+        if (!room) continue;
+        const mx = roll(room.x + 1, room.x + room.w - 2);
+        const my = roll(room.y + 1, room.y + room.h - 2);
+        if (mx > 0 && mx < MAP_W - 1 && my > 0 && my < MAP_H - 1 &&
+            !TILE_DATA[game.tiles[my][mx]].blocks && !entityAt(mx, my)) {
+            game.monsters.push(createMonster(def, mx, my));
+            placed++;
+        }
+    }
+
+    placeItems(floorNum);
+    placeTraps(floorNum);
+
+    if (floorNum === MAX_FLOOR) {
+        const lastRoom = game.rooms[game.rooms.length - 1];
+        const ax = lastRoom.cx(), ay = lastRoom.cy();
+        if (game.tiles[ay][ax] === T.STAIRS_DOWN) {
+            const fx = ax + (ax + 1 < lastRoom.x + lastRoom.w - 1 ? 1 : -1);
+            game.items.push(createItem(ITEM_TYPES.AMULET, { name: 'Root Key' }, fx, ay));
+        } else {
+            game.items.push(createItem(ITEM_TYPES.AMULET, { name: 'Root Key' }, ax, ay));
+        }
+    }
+}
+
+function placeItems(floorNum) {
+    const itemCount = 2 + Math.floor(floorNum * 0.8);
+    const eligible = {
+        weapons: WEAPON_DEFS.filter(w => floorNum >= w.minFl && floorNum <= w.maxFl),
+        armors:  ARMOR_DEFS.filter(a => floorNum >= a.minFl && floorNum <= a.maxFl),
+        potions: POTION_DEFS.filter(p => floorNum >= p.minFl && floorNum <= p.maxFl),
+        scrolls: SCROLL_DEFS.filter(s => floorNum >= s.minFl && floorNum <= s.maxFl),
+    };
+
+    for (let i = 0; i < itemCount; i++) {
+        const room = randChoice(game.rooms.slice(1));
+        if (!room) continue;
+        const ix = roll(room.x + 1, room.x + room.w - 2);
+        const iy = roll(room.y + 1, room.y + room.h - 2);
+        if (ix <= 0 || ix >= MAP_W - 1 || iy <= 0 || iy >= MAP_H - 1) continue;
+        if (TILE_DATA[game.tiles[iy][ix]].blocks) continue;
+
+        const r = rng();
+        let item;
+        if (r < 0.15 && eligible.weapons.length) {
+            item = createItem(ITEM_TYPES.WEAPON, randChoice(eligible.weapons), ix, iy);
+        } else if (r < 0.25 && eligible.armors.length) {
+            item = createItem(ITEM_TYPES.ARMOR, randChoice(eligible.armors), ix, iy);
+        } else if (r < 0.55 && eligible.potions.length) {
+            item = createItem(ITEM_TYPES.POTION, randChoice(eligible.potions), ix, iy);
+        } else if (r < 0.75 && eligible.scrolls.length) {
+            item = createItem(ITEM_TYPES.SCROLL, randChoice(eligible.scrolls), ix, iy);
+        } else if (r < 0.85) {
+            item = createItem(ITEM_TYPES.FOOD, { name: randChoice(['Bandwidth Pack', 'Data Burst', 'Cache Dump']), value: roll(5, 12) }, ix, iy);
+        } else {
+            item = createItem(ITEM_TYPES.GOLD, { name: 'Crypto Tokens', value: roll(3, 8 + floorNum * 3) }, ix, iy);
+        }
+        if (item) game.items.push(item);
+    }
+}
+
+function descend() {
+    const p = game.player;
+    if (!game.stairsDown || p.x !== game.stairsDown.x || p.y !== game.stairsDown.y) {
+        game.log.add('No port access here.', COLORS.textDim);
+        return false;
+    }
+    game.floor++;
+    game.log.add(`Infiltrating network segment ${game.floor}...`, COLORS.accent);
+    generateFloor(game.floor);
+    const spawn = game.rooms[0];
+    p.x = spawn.cx(); p.y = spawn.cy();
+    if (game.stairsUp) { p.x = game.stairsUp.x; p.y = game.stairsUp.y; }
+    saveGame();
+    return true;
+}
+
+function ascend() {
+    const p = game.player;
+    if (!game.stairsUp || p.x !== game.stairsUp.x || p.y !== game.stairsUp.y) {
+        game.log.add('No exit port here.', COLORS.textDim);
+        return false;
+    }
+    if (game.floor === 1) {
+        if (game.hasAmulet) {
+            game.state = STATE.VICTORY;
+            deleteSave();
+            return true;
+        } else {
+            game.log.add('Cannot exfiltrate without the root_key.', COLORS.error);
+            return false;
+        }
+    }
+    game.floor--;
+    game.log.add(`Backtracking to segment ${game.floor}...`, COLORS.accent);
+    generateFloor(game.floor);
+    const last = game.rooms[game.rooms.length - 1];
+    p.x = last.cx(); p.y = last.cy();
+    if (game.stairsDown) { p.x = game.stairsDown.x; p.y = game.stairsDown.y; }
+    saveGame();
+    return true;
+}
+
+// ============================================================
+// PLAYER MOVEMENT & ACTIONS
+// ============================================================
+function movePlayer(dx, dy) {
+    const p = game.player;
+    const nx = p.x + dx, ny = p.y + dy;
+    if (!canMoveTo(nx, ny)) return false;
+
+    const monster = entityAt(nx, ny);
+    if (monster && monster.hp > 0) {
+        playerAttacks(monster);
+        return true;
+    }
+
+    p.x = nx; p.y = ny;
+
+    const itemHere = game.items.find(i => i.x === p.x && i.y === p.y);
+    if (itemHere) {
+        if (itemHere.type === ITEM_TYPES.GOLD) {
+            game.goldCount += itemHere.value;
+            game.log.add(`You collect ${itemHere.value} crypto.`, COLORS.gold);
+            game.items.splice(game.items.indexOf(itemHere), 1);
+        } else {
+            game.log.add(`You see: ${itemHere.name}`, COLORS.textDim);
+        }
+    }
+
+    const trap = game.traps.find(t => t.x === p.x && t.y === p.y && !t.triggered);
+    if (trap) triggerTrap(trap);
+
+    return true;
+}
+
+// ============================================================
+// TURN PROCESSING
+// ============================================================
+function processTurn() {
+    game.turns++;
+
+    const ab = game.player.abilities;
+    if (ab.scan.cd > 0) ab.scan.cd--;
+    if (ab.inject.cd > 0) ab.inject.cd--;
+    if (ab.firewall.cd > 0) ab.firewall.cd--;
+    if (game.player.firewallTurns > 0) {
+        game.player.firewallTurns--;
+        if (game.player.firewallTurns === 0) game.log.add('Firewall expired.', COLORS.textDim);
+    }
+    if (game.player.mp < game.player.maxMp && game.turns % 3 === 0) {
+        game.player.mp = Math.min(game.player.maxMp, game.player.mp + 1);
+    }
+
+    const alive = game.monsters.filter(m => m.hp > 0);
+    for (const m of alive) {
+        if (game.state !== STATE.PLAYING) break;
+        m.turnDebt += m.speed;
+        while (m.turnDebt >= 1 && m.hp > 0 && game.state === STATE.PLAYING) {
+            m.turnDebt--;
+            processMonsterAI(m);
+        }
+    }
+
+    game.monsters = game.monsters.filter(m => m.hp > 0);
+
+    tickStatusEffects();
+
+    if (game.player.hp > 0 && game.turns % 15 === 0) {
+        game.player.hp = Math.min(game.player.maxHp, game.player.hp + 1);
+    }
+
+    updateFOV();
+
+    // Auto-save every 5 turns
+    if (game.turns % 5 === 0) saveGame();
+}
+
+function updateFOV() {
+    game.fov = computeFOV(game.player.x, game.player.y, FOV_RADIUS, game.tiles);
+    for (let y = 0; y < MAP_H; y++) {
+        for (let x = 0; x < MAP_W; x++) {
+            if (game.fov[y][x]) game.explored[y][x] = 1;
+        }
+    }
+}
+
+// ============================================================
+// RENDERER
+// ============================================================
+const mapPre = document.getElementById('mapPre');
+const hudEl = document.getElementById('hud');
+const msgEl = document.getElementById('messages');
+const statusEl = document.getElementById('statusBar');
+const overlayEl = document.getElementById('overlay');
+const overlayContent = document.getElementById('overlayContent');
+
+function esc(ch) {
+    if (ch === '<') return '&lt;';
+    if (ch === '>') return '&gt;';
+    if (ch === '&') return '&amp;';
+    return ch;
+}
+
+function render() {
+    renderMap();
+    renderHUD();
+    renderMessages();
+    renderStatus();
+    renderOverlay();
+}
+
+function renderMap() {
+    const p = game.player;
+    const buf = [];
+
+    for (let y = 0; y < MAP_H; y++) {
+        const row = [];
+        for (let x = 0; x < MAP_W; x++) {
+            if (!game.fov[y][x]) {
+                if (game.explored[y][x]) {
+                    const td = TILE_DATA[game.tiles[y][x]];
+                    row.push(`<span style="color:${td.color};opacity:0.2">${esc(td.ch)}</span>`);
+                } else {
+                    row.push(' ');
+                }
+                continue;
+            }
+
+            if (x === p.x && y === p.y) {
+                row.push(`<span style="color:${p.color}">${p.ch}</span>`);
+                continue;
+            }
+
+            if (game.state === STATE.TARGETING && game.targetCursor &&
+                x === game.targetCursor.x && y === game.targetCursor.y) {
+                row.push(`<span style="color:${COLORS.brightGold};background:${COLORS.border}">X</span>`);
+                continue;
+            }
+
+            if (game.state === STATE.LOOKING && game.lookCursor &&
+                x === game.lookCursor.x && y === game.lookCursor.y) {
+                row.push(`<span style="color:${COLORS.brightGold};background:${COLORS.border}">X</span>`);
+                continue;
+            }
+
+            const m = game.monsters.find(e => e.hp > 0 && e.x === x && e.y === y);
+            if (m) {
+                row.push(`<span style="color:${m.color}">${esc(m.ch)}</span>`);
+                continue;
+            }
+
+            const it = game.items.find(i => i.x === x && i.y === y);
+            if (it) {
+                row.push(`<span style="color:${it.color}">${esc(it.ch)}</span>`);
+                continue;
+            }
+
+            const trap = game.traps.find(t => t.x === x && t.y === y && t.revealed && !t.triggered);
+            if (trap) {
+                row.push(`<span style="color:${trap.color}">${esc(trap.ch)}</span>`);
+                continue;
+            }
+
+            const td = TILE_DATA[game.tiles[y][x]];
+            row.push(`<span style="color:${td.color}">${esc(td.ch)}</span>`);
+        }
+        buf.push(row.join(''));
+    }
+    mapPre.innerHTML = buf.join('\n');
+}
+
+function renderHUD() {
+    const p = game.player;
+    const hpPct = p.hp / p.maxHp;
+    const barW = 10;
+    const filled = Math.round(hpPct * barW);
+    const hpClass = hpPct > 0.5 ? 'hp-full' : hpPct > 0.25 ? 'hp-mid' : 'hp-low';
+    const bar = `<span class="${hpClass}">${'\u2588'.repeat(filled)}</span><span style="color:${COLORS.textDim}">${'\u2591'.repeat(barW - filled)}</span>`;
+
+    const wStr = p.weapon ? ` ${p.weapon.name}` : '';
+    const aStr = p.armor ? ` ${p.armor.name}` : '';
+
+    const nextXp = p.level < MAX_LEVEL ? xpForLevel(p.level + 1) : p.xp;
+    const xpStr = p.level < MAX_LEVEL ? `${p.xp}/${nextXp}` : 'MAX';
+    hudEl.innerHTML = `<div class="hud-row">` +
+        `<span><span style="color:${COLORS.success}">@</span> ` +
+        `HP:<span class="${hpClass}">${p.hp}/${p.maxHp}</span> [${bar}] ` +
+        `MP:<span style="color:${COLORS.accent}">${p.mp}/${p.maxMp}</span> ` +
+        `STR:${p.str} DEF:${p.def} DEX:${p.dex}</span>` +
+        `<span>Fl:${game.floor} Lv:${p.level} XP:<span style="color:${COLORS.brightGold}">${xpStr}</span> T:${game.turns}${game.hasAmulet ? ' <span style="color:'+COLORS.brightGold+'">*</span>' : ''}</span>` +
+        `</div>`;
+    const ab = p.abilities;
+    const abFmt = (n,k,a) => a.cd === 0 ? `[${k}]<span style="color:${COLORS.success}">${n}</span>` : `[${k}]<span style="color:${COLORS.textDim}">${n}(${a.cd})</span>`;
+    const fw = p.firewallTurns > 0 ? ` <span style="color:${COLORS.success}">FW:${p.firewallTurns}t</span>` : '';
+    const efx = game.statusEffects.length ? ' ' + game.statusEffects.map(e => `<span style="color:${COLORS.gold}">${e.type}:${e.turns}</span>`).join(' ') : '';
+    hudEl.innerHTML += `<div class="hud-row"><span>${abFmt('scan','1',ab.scan)} ${abFmt('inject','2',ab.inject)} ${abFmt('fw','3',ab.firewall)}${fw}</span><span>${efx}</span></div>`;
+}
+
+function renderMessages() {
+    const msgs = game.log.recent();
+    msgEl.innerHTML = msgs.map(m =>
+        `<div style="color:${m.color}">${escHtml(m.text)}</div>`
+    ).join('');
+}
+
+function escHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderStatus() {
+    if (game.state === STATE.PLAYING) {
+        statusEl.textContent = '[1]scan [2]inject [3]fw  [?]help [i]inv [g]grab [>/<]stairs [.]wait [x]look [hjkl]move';
+    } else if (game.state === STATE.INVENTORY) {
+        statusEl.textContent = '[a-t]use/equip  [D+a-t]drop  [esc]close';
+    } else if (game.state === STATE.LEVEL_UP) {
+        statusEl.textContent = '[1]STR  [2]DEF  [3]DEX  [4]+5 MaxHP';
+    } else if (game.state === STATE.TARGETING) {
+        statusEl.textContent = '[arrows/hjkl]move cursor  [enter]confirm  [esc]cancel';
+    } else if (game.state === STATE.LOOKING) {
+        statusEl.textContent = '[arrows/hjkl]move cursor  [esc]close';
+    } else if (game.state === STATE.GAME_OVER || game.state === STATE.VICTORY) {
+        statusEl.textContent = '[enter]restart  [q]return to forge';
+    }
+}
+
+function renderOverlay() {
+    if (game.state === STATE.INVENTORY) {
+        renderInventory();
+        overlayEl.classList.add('active');
+    } else if (game.state === STATE.LEVEL_UP) {
+        renderLevelUp();
+        overlayEl.classList.add('active');
+    } else if (game.state === STATE.HELP) {
+        renderHelp();
+        overlayEl.classList.add('active');
+    } else if (game.state === STATE.GAME_OVER) {
+        renderGameOver();
+        overlayEl.classList.add('active');
+    } else if (game.state === STATE.VICTORY) {
+        renderVictory();
+        overlayEl.classList.add('active');
+    } else {
+        overlayEl.classList.remove('active');
+    }
+}
+
+function renderInventory() {
+    const p = game.player;
+    let lines = [];
+    lines.push(`<span style="color:${COLORS.textBright}">  i n v e n t o r y</span>                    <span style="color:${COLORS.textDim}">[esc] close</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ${'─'.repeat(50)}</span>`);
+    lines.push('');
+    lines.push(`  <span style="color:${COLORS.textDim}">equipped:</span>`);
+    lines.push(`    weapon: ${p.weapon ? `<span style="color:${COLORS.textBright}">${p.weapon.name} (${p.weapon.desc})</span>` : '<span style="color:'+COLORS.textDim+'">none</span>'}`);
+    lines.push(`    armor:  ${p.armor ? `<span style="color:${COLORS.textBright}">${p.armor.name} (${p.armor.desc})</span>` : '<span style="color:'+COLORS.textDim+'">none</span>'}`);
+    lines.push('');
+
+    if (p.inventory.length === 0) {
+        lines.push(`  <span style="color:${COLORS.textDim}">your pack is empty.</span>`);
+    } else {
+        for (let i = 0; i < p.inventory.length; i++) {
+            const item = p.inventory[i];
+            const letter = String.fromCharCode(97 + i);
+            const desc = item.desc ? ` (${item.desc})` : '';
+            lines.push(`  <span style="color:${COLORS.textDim}">${letter})</span> <span style="color:${item.color}">${item.ch}</span> ${item.name}<span style="color:${COLORS.textDim}">${desc}</span>`);
+        }
+    }
+    lines.push('');
+    if (isTouchDevice) {
+        lines.push(`  <span style="color:${COLORS.textDim}">tap items below to use/equip</span>`);
+    } else {
+        lines.push(`  <span style="color:${COLORS.textDim}">[a-t] use/equip  [shift+d, then a-t] drop  [esc] close</span>`);
+    }
+    overlayContent.innerHTML = lines.join('\n');
+}
+
+function renderLevelUp() {
+    const p = game.player;
+    let lines = [];
+    lines.push(`<span style="color:${COLORS.brightGold}">  l e v e l   u p !</span>                       <span style="color:${COLORS.textDim}">level ${p.level}</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ${'─'.repeat(50)}</span>`);
+    lines.push('');
+    lines.push(`  <span style="color:${COLORS.textBright}">choose a stat to increase:</span>`);
+    lines.push('');
+    lines.push(`    <span style="color:${COLORS.textBright}">[1]</span> STR  ${p.str} → <span style="color:${COLORS.success}">${p.str + 1}</span>   <span style="color:${COLORS.textDim}">(attack power)</span>`);
+    lines.push(`    <span style="color:${COLORS.textBright}">[2]</span> DEF  ${p.def} → <span style="color:${COLORS.success}">${p.def + 1}</span>   <span style="color:${COLORS.textDim}">(damage reduction)</span>`);
+    lines.push(`    <span style="color:${COLORS.textBright}">[3]</span> DEX  ${p.dex} → <span style="color:${COLORS.success}">${p.dex + 1}</span>   <span style="color:${COLORS.textDim}">(hit chance)</span>`);
+    lines.push(`    <span style="color:${COLORS.textBright}">[4]</span> HP   +5 max  <span style="color:${COLORS.textDim}">(${p.maxHp} → ${p.maxHp + 5})</span>`);
+    lines.push('');
+    overlayContent.innerHTML = lines.join('\n');
+}
+
+function renderHelp() {
+    let lines = [];
+    lines.push(`<span style="color:${COLORS.textBright}">  B R E A C H</span>                              <span style="color:${COLORS.textDim}">[esc/?] close</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ${'─'.repeat(50)}</span>`);
+    lines.push('');
+    lines.push(`  <span style="color:${COLORS.textDim}">movement</span>`);
+    lines.push(`    arrows / hjkl / yubn      8-directional move`);
+    lines.push(`    . or numpad 5             wait one turn`);
+    lines.push('');
+    lines.push(`  <span style="color:${COLORS.textDim}">actions</span>`);
+    lines.push(`    g or ,                    pick up item`);
+    lines.push(`    i                         open inventory`);
+    lines.push(`    d                         drop mode (then a-t)`);
+    lines.push(`    &gt; or &lt;                    use port (breach/backtrack)`);
+    lines.push(`    x                         examine / look mode`);
+    lines.push(`    ?                         this help screen`);
+    lines.push('');
+    lines.push(`  <span style="color:${COLORS.textDim}">abilities</span>`);
+    lines.push(`    1                         scan (reveal area, 8t cd)`);
+    lines.push(`    2                         inject (ranged dmg, 5t cd)`);
+    lines.push(`    3                         firewall (dmg shield, 12t cd)`);
+    lines.push('');
+    lines.push(`  <span style="color:${COLORS.textDim}">inventory</span>`);
+    lines.push(`    a-t                       use / equip item`);
+    lines.push(`    D then a-t                drop item`);
+    lines.push(`    esc                       close`);
+    lines.push('');
+    lines.push(`  <span style="color:${COLORS.textDim}">symbols</span>`);
+    lines.push(`    <span style="color:${COLORS.success}">@</span> you   <span style="color:${COLORS.border}">#</span> wall   <span style="color:${COLORS.textDim}">.</span> node    <span style="color:${COLORS.gold}">+</span> gate`);
+    lines.push(`    <span style="color:${COLORS.accent}">&gt;</span> port  <span style="color:${COLORS.accent}">&lt;</span> exit   <span style="color:${COLORS.textBright}">/</span> exploit <span style="color:${COLORS.textBright}">[</span> firewall`);
+    lines.push(`    <span style="color:${COLORS.error}">!</span> patch  <span style="color:${COLORS.accent}">?</span> script <span style="color:${COLORS.gold}">%</span> bandwidth <span style="color:${COLORS.gold}">$</span> crypto`);
+    lines.push(`    <span style="color:${COLORS.brightGold}">*</span> root_key (win condition on segment ${MAX_FLOOR})`);
+    lines.push('');
+    lines.push(`  <span style="color:${COLORS.textDim}">goal: reach segment ${MAX_FLOOR}, extract the root_key, exfiltrate</span>`);
+    lines.push('');
+    overlayContent.innerHTML = lines.join('\n');
+}
+
+function renderGameOver() {
+    const p = game.player;
+    let lines = [];
+    lines.push('');
+    lines.push(`<span style="color:${COLORS.border}">  ╔${'═'.repeat(44)}╗</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>${' '.repeat(44)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>  <span style="color:${COLORS.error}">C O N N E C T I O N   T E R M I N A T E D</span> <span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>${' '.repeat(44)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   killed by: <span style="color:${COLORS.textBright}">${pad(game.killedBy, 15)}</span> on segment <span style="color:${COLORS.textBright}">${game.floor}</span>${' '.repeat(Math.max(0, 10 - game.killedBy.length))}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   level: <span style="color:${COLORS.textBright}">${pad(String(p.level), 4)}</span>  turns: <span style="color:${COLORS.textBright}">${pad(String(game.turns), 6)}</span>${' '.repeat(14)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   threats terminated: <span style="color:${COLORS.textBright}">${pad(String(game.killCount), 6)}</span>${' '.repeat(14)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   crypto collected: <span style="color:${COLORS.gold}">${pad(String(game.goldCount), 6)}</span>${' '.repeat(16)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   seed: <span style="color:${COLORS.textDim}">${pad(String(rngSeed), 14)}</span>${' '.repeat(20)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>${' '.repeat(44)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>        <span style="color:${COLORS.textBright}">[enter]</span> try again${' '.repeat(16)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>        <span style="color:${COLORS.textDim}">[q]</span> return to forge${' '.repeat(13)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>${' '.repeat(44)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ╚${'═'.repeat(44)}╝</span>`);
+    lines.push('');
+    overlayContent.innerHTML = lines.join('\n');
+}
+
+function renderVictory() {
+    const p = game.player;
+    let lines = [];
+    lines.push('');
+    lines.push(`<span style="color:${COLORS.border}">  ╔${'═'.repeat(44)}╗</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>${' '.repeat(44)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   <span style="color:${COLORS.brightGold}">R O O T   A C C E S S   A C H I E V E D</span>  <span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>${' '.repeat(44)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   <span style="color:${COLORS.brightGold}">the root_key is extracted</span>${' '.repeat(15)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   level: <span style="color:${COLORS.textBright}">${pad(String(p.level), 4)}</span>  turns: <span style="color:${COLORS.textBright}">${pad(String(game.turns), 6)}</span>${' '.repeat(14)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   threats terminated: <span style="color:${COLORS.textBright}">${pad(String(game.killCount), 6)}</span>${' '.repeat(14)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   crypto collected: <span style="color:${COLORS.gold}">${pad(String(game.goldCount), 6)}</span>${' '.repeat(16)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>   seed: <span style="color:${COLORS.textDim}">${pad(String(rngSeed), 14)}</span>${' '.repeat(20)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>${' '.repeat(44)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>        <span style="color:${COLORS.textBright}">[enter]</span> play again${' '.repeat(15)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>        <span style="color:${COLORS.textDim}">[q]</span> return to forge${' '.repeat(13)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ║</span>${' '.repeat(44)}<span style="color:${COLORS.border}">║</span>`);
+    lines.push(`<span style="color:${COLORS.border}">  ╚${'═'.repeat(44)}╝</span>`);
+    lines.push('');
+    overlayContent.innerHTML = lines.join('\n');
+}
+
+function pad(s, n) { return s + ' '.repeat(Math.max(0, n - s.length)); }
+
+// ============================================================
+// INPUT HANDLING
+// ============================================================
+let dropMode = false;
+
+function dirFromKey(key) {
+    const map = {
+        'ArrowUp': 'n', 'ArrowDown': 's', 'ArrowLeft': 'w', 'ArrowRight': 'e',
+        'k': 'n', 'j': 's', 'h': 'w', 'l': 'e',
+        'y': 'nw', 'u': 'ne', 'b': 'sw', 'n': 'se',
+        'w': 'n', 'a': 'w', 's': 's', 'd': 'e',
+    };
+    return map[key] || null;
+}
+
+document.addEventListener('keydown', (e) => {
+    if (game.state === STATE.GAME_OVER || game.state === STATE.VICTORY) {
+        if (e.key === 'Enter' || e.key === ' ') { restartGame(); e.preventDefault(); }
+        if (e.key === 'q') { window.location.href = '/'; }
+        return;
+    }
+
+    if (game.state === STATE.HELP) {
+        if (e.key === 'Escape' || e.key === '?') {
+            game.state = STATE.PLAYING;
+            render();
+            e.preventDefault();
+        }
+        return;
+    }
+
+    if (game.state === STATE.LEVEL_UP) {
+        const choice = parseInt(e.key);
+        if (choice >= 1 && choice <= 4) {
+            applyLevelChoice(choice);
+            render();
+            e.preventDefault();
+        }
+        return;
+    }
+
+    if (game.state === STATE.INVENTORY) {
+        e.preventDefault();
+        if (e.key === 'Escape' || e.key === 'i') {
+            dropMode = false;
+            game.state = STATE.PLAYING;
+            render();
+            return;
+        }
+        if (e.key === 'D' || e.key === 'Shift' && false) {
+            dropMode = true;
+            statusEl.textContent = 'DROP MODE: press a-t to drop item, [esc] cancel';
+            return;
+        }
+        const idx = e.key.charCodeAt(0) - 97;
+        if (idx >= 0 && idx < game.player.inventory.length) {
+            if (dropMode) {
+                dropItem(idx);
+                dropMode = false;
+            } else {
+                const consumed = useItem(idx);
+                if (consumed && game.state === STATE.INVENTORY) {
+                    // item used, stay in inventory
+                }
+                if (consumed) {
+                    game.state = STATE.PLAYING;
+                    processTurn();
+                }
+            }
+            render();
+        }
+        return;
+    }
+
+    if (game.state === STATE.LOOKING) {
+        e.preventDefault();
+        const dir = dirFromKey(e.key);
+        if (dir) {
+            const d = DIRS[dir];
+            game.lookCursor.x = clamp(game.lookCursor.x + d.dx, 0, MAP_W - 1);
+            game.lookCursor.y = clamp(game.lookCursor.y + d.dy, 0, MAP_H - 1);
+            const lx = game.lookCursor.x, ly = game.lookCursor.y;
+            if (game.fov[ly]?.[lx]) {
+                const m = game.monsters.find(e => e.hp > 0 && e.x === lx && e.y === ly);
+                const it = game.items.find(i => i.x === lx && i.y === ly);
+                const tr = game.traps.find(t => t.x === lx && t.y === ly && t.revealed && !t.triggered);
+                if (m) game.log.add(`You see: ${m.name} (HP: ${m.hp}/${m.maxHp})`, COLORS.textBright);
+                else if (it) game.log.add(`You see: ${it.name}`, COLORS.accent);
+                else if (tr) game.log.add(`You see: ${tr.type} trap`, COLORS.gold);
+                else {
+                    const td = TILE_DATA[game.tiles[ly][lx]];
+                    const tileNames = { '#': 'wall', '.': 'floor', '+': 'door', '>': 'stairs down', '<': 'stairs up' };
+                    game.log.add(`You see: ${tileNames[td.ch] || td.ch}`, COLORS.textDim);
+                }
+            }
+            render();
+        }
+        if (e.key === 'Escape' || e.key === 'x') {
+            game.state = STATE.PLAYING;
+            game.lookCursor = null;
+            render();
+        }
+        return;
+    }
+
+    // PLAYING state
+    e.preventDefault();
+    let turnConsumed = false;
+
+    const dir = dirFromKey(e.key);
+    if (dir) {
+        const d = DIRS[dir];
+        turnConsumed = movePlayer(d.dx, d.dy);
+    } else if (e.key === '.' || e.key === '5') {
+        turnConsumed = true;
+        game.log.add('You wait...', COLORS.textDim);
+    } else if (e.key === 'g' || e.key === ',') {
+        turnConsumed = pickupItem();
+    } else if (e.key === 'i') {
+        game.state = STATE.INVENTORY;
+        dropMode = false;
+    } else if (e.key === '>' || (e.key === '.' && e.shiftKey)) {
+        turnConsumed = descend();
+    } else if (e.key === '<' || (e.key === ',' && e.shiftKey)) {
+        turnConsumed = ascend();
+    } else if (e.key === 'x') {
+        game.state = STATE.LOOKING;
+        game.lookCursor = { x: game.player.x, y: game.player.y };
+    } else if (e.key === '?') {
+        game.state = STATE.HELP;
+    } else if (e.key === '1') {
+        if (useScan()) turnConsumed = true;
+    } else if (e.key === '2') {
+        if (useInject()) turnConsumed = true;
+    } else if (e.key === '3') {
+        if (useFirewall()) turnConsumed = true;
+    }
+
+    if (turnConsumed && game.state === STATE.PLAYING) {
+        processTurn();
+        if (game.statusEffects.some(e => e.type === 'slow') && game.state === STATE.PLAYING) {
+            processTurn();
+        }
+        if (hasSpeedBuff() && game.state === STATE.PLAYING) {
+            // extra turn from speed: player acts again without monsters
+        }
+    }
+
+    if (game.state !== STATE.GAME_OVER) {
+        updateFOV();
+    }
+    render();
+});
+
+// ============================================================
+// TOUCH CONTROLS
+// ============================================================
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+if (isTouchDevice) {
+    document.querySelectorAll('[data-dir]').forEach(btn => {
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const dir = btn.dataset.dir;
+            if (dir === 'stairs') {
+                const p = game.player;
+                if (game.stairsDown && p.x === game.stairsDown.x && p.y === game.stairsDown.y) {
+                    if (descend()) { processTurn(); updateFOV(); render(); }
+                } else if (game.stairsUp && p.x === game.stairsUp.x && p.y === game.stairsUp.y) {
+                    if (ascend()) { updateFOV(); render(); }
+                }
+                return;
+            }
+            if (DIRS[dir]) {
+                const d = DIRS[dir];
+                if (movePlayer(d.dx, d.dy)) {
+                    processTurn();
+                    updateFOV();
+                    render();
+                }
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const action = btn.dataset.action;
+            if (action === 'pickup') {
+                if (pickupItem()) { processTurn(); updateFOV(); render(); }
+                else render();
+            } else if (action === 'inventory') {
+                game.state = STATE.INVENTORY;
+                dropMode = false;
+                render();
+            } else if (action === 'quaff') {
+                const potionIdx = game.player.inventory.findIndex(i => i.type === ITEM_TYPES.POTION);
+                if (potionIdx >= 0) {
+                    if (useItem(potionIdx)) { game.state = STATE.PLAYING; processTurn(); updateFOV(); }
+                    render();
+                }
+            } else if (action === 'scan') {
+                if (useScan()) { processTurn(); updateFOV(); }
+                render();
+            } else if (action === 'inject') {
+                if (useInject()) { processTurn(); updateFOV(); }
+                render();
+            } else if (action === 'fw') {
+                if (useFirewall()) { processTurn(); updateFOV(); }
+                render();
+            } else if (action === 'help') {
+                game.state = STATE.HELP;
+                render();
+            } else if (action === 'exit') {
+                window.location.href = '/';
+            }
+        });
+    });
+}
+
+// Overlay touch buttons for mobile
+const overlayBtnsEl = document.getElementById('overlayBtns');
+const origRenderOverlay = renderOverlay;
+renderOverlay = function() {
+    origRenderOverlay();
+    overlayBtnsEl.innerHTML = '';
+    if (!isTouchDevice) return;
+
+    function addBtn(label, fn) {
+        const b = document.createElement('button');
+        b.className = 'overlay-touch-btn';
+        b.textContent = label;
+        let fired = false;
+        b.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); fired = true; fn(); });
+        b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); if (!fired) fn(); fired = false; });
+        overlayBtnsEl.appendChild(b);
+    }
+
+    if (game.state === STATE.GAME_OVER || game.state === STATE.VICTORY) {
+        addBtn('play again', () => { restartGame(); });
+        addBtn('back to forge', () => { window.location.href = '/'; });
+    } else if (game.state === STATE.INVENTORY) {
+        const p = game.player;
+        for (let i = 0; i < p.inventory.length; i++) {
+            const item = p.inventory[i];
+            const idx = i;
+            const label = item.type === 'weapon' || item.type === 'armor'
+                ? `equip: ${item.name}` : `use: ${item.name}`;
+            addBtn(label, () => {
+                const consumed = useItem(idx);
+                if (consumed) { game.state = STATE.PLAYING; processTurn(); }
+                render();
+            });
+        }
+        addBtn('drop mode', () => {
+            overlayBtnsEl.innerHTML = '';
+            for (let i = 0; i < p.inventory.length; i++) {
+                const item = p.inventory[i];
+                const idx = i;
+                addBtn(`drop: ${item.name}`, () => {
+                    dropItem(idx);
+                    render();
+                });
+            }
+            addBtn('cancel', () => { render(); });
+        });
+        addBtn('close', () => { dropMode = false; game.state = STATE.PLAYING; render(); });
+    } else if (game.state === STATE.HELP) {
+        addBtn('close', () => { game.state = STATE.PLAYING; render(); });
+    } else if (game.state === STATE.LEVEL_UP) {
+        addBtn('STR', () => { applyLevelChoice(1); render(); });
+        addBtn('DEF', () => { applyLevelChoice(2); render(); });
+        addBtn('DEX', () => { applyLevelChoice(3); render(); });
+        addBtn('+5 HP', () => { applyLevelChoice(4); render(); });
+    }
+};
+
+// ============================================================
+// SAVE / LOAD
+// ============================================================
+const SAVE_KEY = 'breach_save';
+
+function saveGame() {
+    if (game.state === STATE.GAME_OVER || game.state === STATE.VICTORY) {
+        localStorage.removeItem(SAVE_KEY);
+        return;
+    }
+    try {
+        const p = game.player;
+        const data = {
+            version: 1,
+            floor: game.floor,
+            turns: game.turns,
+            killCount: game.killCount,
+            goldCount: game.goldCount,
+            hasAmulet: game.hasAmulet,
+            statusEffects: game.statusEffects,
+            tiles: game.tiles.map(row => Array.from(row)),
+            rooms: game.rooms.map(r => ({ x: r.x, y: r.y, w: r.w, h: r.h })),
+            stairsDown: game.stairsDown,
+            stairsUp: game.stairsUp,
+            explored: game.explored.map(row => Array.from(row)),
+            player: {
+                x: p.x, y: p.y, hp: p.hp, maxHp: p.maxHp,
+                mp: p.mp, maxMp: p.maxMp,
+                str: p.str, def: p.def, dex: p.dex,
+                level: p.level, xp: p.xp,
+                inventory: p.inventory,
+                weapon: p.weapon, armor: p.armor,
+                abilities: p.abilities, firewallTurns: p.firewallTurns,
+            },
+            monsters: game.monsters.map(m => ({
+                x: m.x, y: m.y, ch: m.ch, color: m.color, name: m.name,
+                hp: m.hp, maxHp: m.maxHp, atk: m.atk, def: m.def,
+                xpReward: m.xpReward, ai: m.ai, speed: m.speed,
+                turnDebt: m.turnDebt, aggroTurns: m.aggroTurns,
+                lastPlayerX: m.lastPlayerX, lastPlayerY: m.lastPlayerY,
+            })),
+            items: game.items,
+            traps: game.traps,
+            messages: game.log.messages.slice(-MSG_MAX),
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    } catch (e) {}
+}
+
+function loadGame() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (!data.version || !data.player) return false;
+
+        game.floor = data.floor;
+        game.turns = data.turns;
+        game.killCount = data.killCount;
+        game.goldCount = data.goldCount;
+        game.hasAmulet = data.hasAmulet;
+        game.statusEffects = data.statusEffects || [];
+        game.tiles = data.tiles;
+        game.rooms = data.rooms.map(r => new Room(r.x, r.y, r.w, r.h));
+        game.stairsDown = data.stairsDown;
+        game.stairsUp = data.stairsUp;
+        game.explored = data.explored.map(row => new Uint8Array(row));
+
+        const pd = data.player;
+        game.player = createPlayer(pd.x, pd.y);
+        Object.assign(game.player, {
+            hp: pd.hp, maxHp: pd.maxHp, mp: pd.mp, maxMp: pd.maxMp,
+            str: pd.str, def: pd.def, dex: pd.dex,
+            level: pd.level, xp: pd.xp,
+            inventory: pd.inventory || [],
+            weapon: pd.weapon, armor: pd.armor,
+            abilities: pd.abilities || { scan: { cd: 0, max: 8 }, inject: { cd: 0, max: 5 }, firewall: { cd: 0, max: 12 } },
+            firewallTurns: pd.firewallTurns || 0,
+        });
+
+        game.monsters = data.monsters.map(m => ({
+            x: m.x, y: m.y, ch: m.ch, color: m.color, name: m.name,
+            hp: m.hp, maxHp: m.maxHp, atk: m.atk, def: m.def,
+            xpReward: m.xpReward, ai: m.ai, speed: m.speed,
+            turnDebt: m.turnDebt || 0, aggroTurns: m.aggroTurns || 0,
+            lastPlayerX: m.lastPlayerX || -1, lastPlayerY: m.lastPlayerY || -1,
+        }));
+
+        game.items = data.items || [];
+        game.traps = (data.traps || []).filter(t => !t.triggered);
+
+        game.log = new MessageLog();
+        if (data.messages) {
+            for (const m of data.messages) {
+                game.log.messages.push(m);
+            }
+        }
+
+        game.state = STATE.PLAYING;
+        rng = mulberry32(Date.now());
+        updateFOV();
+        return true;
+    } catch (e) {
+        localStorage.removeItem(SAVE_KEY);
+        return false;
+    }
+}
+
+function hasSave() {
+    try { return !!localStorage.getItem(SAVE_KEY); } catch(e) { return false; }
+}
+
+function deleteSave() {
+    try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+}
+
+// ============================================================
+// GAME INIT & BOOT
+// ============================================================
+function startGame() {
+    rngSeed = Date.now();
+    rng = mulberry32(rngSeed);
+
+    game.state = STATE.PLAYING;
+    game.floor = 1;
+    game.turns = 0;
+    game.killCount = 0;
+    game.goldCount = 0;
+    game.killedBy = '';
+    game.hasAmulet = false;
+    game.statusEffects = [];
+    game.traps = [];
+    game.log = new MessageLog();
+
+    generateFloor(1);
+
+    const spawn = game.rooms[0];
+    game.player = createPlayer(spawn.cx(), spawn.cy());
+
+    game.log.add('Infiltrating network segment 1...', COLORS.accent);
+    game.log.add('Find the > port to breach deeper. Pick up items with g.', COLORS.textDim);
+    game.log.add('Type ? for help.', COLORS.textDim);
+
+    updateFOV();
+    render();
+}
+
+function restartGame() {
+    deleteSave();
+    startGame();
+}
+
+function boot() {
+    const bootEl = document.getElementById('bootScreen');
+    const saved = hasSave();
+    const lines = [
+        { text: '', delay: 0 },
+        { text: `  <span style="color:${COLORS.textDim}">initializing breach protocol...</span>`, delay: 100 },
+        { text: `  <span style="color:${COLORS.success}">[ok]</span> <span style="color:${COLORS.text}">network mapper</span>`, delay: 300 },
+        { text: `  <span style="color:${COLORS.success}">[ok]</span> <span style="color:${COLORS.text}">threat engine</span>`, delay: 450 },
+        { text: `  <span style="color:${COLORS.success}">[ok]</span> <span style="color:${COLORS.text}">exploit framework</span>`, delay: 600 },
+        { text: `  <span style="color:${COLORS.success}">[ok]</span> <span style="color:${COLORS.text}">packet sniffer</span>`, delay: 750 },
+        { text: '', delay: 900 },
+    ];
+
+    if (saved) {
+        lines.push({ text: `  <span style="color:${COLORS.brightGold}">session data found.</span>`, delay: 1000 });
+        lines.push({ text: `  <span style="color:${COLORS.textBright}">[c] continue  [n] new game</span>`, delay: 1100 });
+    } else {
+        lines.push({ text: `  <span style="color:${COLORS.textBright}">breach initiated...</span>`, delay: 1100 });
+    }
+    lines.push({ text: '', delay: 1300 });
+
+    lines.forEach(({ text, delay }) => {
+        setTimeout(() => {
+            const div = document.createElement('div');
+            div.innerHTML = text || '&nbsp;';
+            div.style.lineHeight = '1.6';
+            bootEl.appendChild(div);
+        }, delay);
+    });
+
+    if (saved) {
+        let bootChoice = null;
+        function onBootKey(e) {
+            if (bootChoice) return;
+            const k = e.key.toLowerCase();
+            if (k === 'c') {
+                bootChoice = 'continue';
+                document.removeEventListener('keydown', onBootKey);
+                bootEl.classList.add('hidden');
+                if (loadGame()) {
+                    game.log.add('Game restored.', COLORS.accent);
+                    render();
+                } else {
+                    startGame();
+                }
+            } else if (k === 'n') {
+                bootChoice = 'new';
+                document.removeEventListener('keydown', onBootKey);
+                bootEl.classList.add('hidden');
+                deleteSave();
+                startGame();
+            }
+        }
+        // Add touch buttons for mobile
+        setTimeout(() => {
+            if (bootChoice) return;
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:8px;margin:8px 0 0 16px;';
+            function mkBtn(label, key) {
+                const b = document.createElement('button');
+                b.textContent = label;
+                b.style.cssText = 'background:#0b0b11;border:1px solid #16162a;color:#8a8a98;font-family:inherit;font-size:13px;padding:10px 20px;border-radius:6px;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:44px;';
+                b.addEventListener('touchstart', (e) => { e.preventDefault(); onBootKey({ key }); });
+                b.addEventListener('click', (e) => { e.preventDefault(); onBootKey({ key }); });
+                return b;
+            }
+            btnRow.appendChild(mkBtn('continue', 'c'));
+            btnRow.appendChild(mkBtn('new game', 'n'));
+            bootEl.appendChild(btnRow);
+        }, 1200);
+        document.addEventListener('keydown', onBootKey);
+    } else {
+        setTimeout(() => {
+            bootEl.classList.add('hidden');
+            startGame();
+        }, 1800);
+    }
+}
+
+boot();
+</script>
+</body>
+</html>

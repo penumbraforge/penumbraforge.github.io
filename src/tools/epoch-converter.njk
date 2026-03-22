@@ -1,0 +1,198 @@
+---
+toolSlug: epoch-converter
+permalink: /tools/epoch-converter/
+---
+
+<div class="tool-group">
+  <label for="epoch-input">Unix Epoch Timestamp</label>
+  <div class="tool-row" style="gap: 0.5rem;">
+    <input type="text" id="epoch-input" placeholder="e.g. 1700000000" autocomplete="off" style="flex:1; font-family: var(--font-mono, monospace);">
+    <button class="btn btn--primary" id="btn-now">Now</button>
+  </div>
+  <div class="tool-options" role="group" aria-label="Timestamp unit" style="margin-top: 0.5rem;">
+    <button class="tool-option active" data-unit="s" aria-pressed="true">Seconds</button>
+    <button class="tool-option" data-unit="ms" aria-pressed="false">Milliseconds</button>
+  </div>
+</div>
+
+<div id="epoch-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div class="tool-group" style="margin-top: 1.25rem;">
+  <label for="datetime-input">Human-readable Date &amp; Time</label>
+  <input type="datetime-local" id="datetime-input" step="1" style="font-family: var(--font-mono, monospace);">
+</div>
+
+<div class="output-area" id="epoch-results" style="display:none;">
+  <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+    <tbody id="epoch-table"></tbody>
+  </table>
+</div>
+
+<div class="tool-group" style="margin-top:1.5rem; padding:0.75rem 1rem; background: var(--color-surface, #f5f5f5); border-radius: 6px; display:flex; align-items:center; justify-content:space-between;">
+  <span style="font-size:0.85rem; color: var(--color-muted, #666);">Current epoch (seconds)</span>
+  <span id="live-epoch" style="font-family: var(--font-mono, monospace); font-size:1rem; font-weight:600;"></span>
+</div>
+
+<script>
+(function () {
+  var epochInput    = document.getElementById('epoch-input');
+  var datetimeInput = document.getElementById('datetime-input');
+  var errorEl       = document.getElementById('epoch-error');
+  var resultsEl     = document.getElementById('epoch-results');
+  var tableBody     = document.getElementById('epoch-table');
+  var liveEpoch     = document.getElementById('live-epoch');
+  var nowBtn        = document.getElementById('btn-now');
+  var unitBtns      = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-unit]'));
+
+  var currentUnit = 's';
+  var suppressEpoch = false;
+  var suppressDatetime = false;
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+    resultsEl.style.display = 'none';
+  }
+
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+
+  function pad(n) {
+    return n < 10 ? '0' + n : '' + n;
+  }
+
+  function relativeTime(ms) {
+    var diff = Date.now() - ms;
+    var abs  = Math.abs(diff);
+    var future = diff < 0;
+    var parts;
+
+    if (abs < 10000)         parts = 'just now';
+    else if (abs < 60000)    parts = Math.round(abs / 1000) + ' seconds ' + (future ? 'from now' : 'ago');
+    else if (abs < 3600000)  parts = Math.round(abs / 60000) + ' minutes ' + (future ? 'from now' : 'ago');
+    else if (abs < 86400000) parts = Math.round(abs / 3600000) + ' hours ' + (future ? 'from now' : 'ago');
+    else if (abs < 2592000000) parts = Math.round(abs / 86400000) + ' days ' + (future ? 'from now' : 'ago');
+    else if (abs < 31536000000) parts = Math.round(abs / 2592000000) + ' months ' + (future ? 'from now' : 'ago');
+    else                     parts = Math.round(abs / 31536000000) + ' years ' + (future ? 'from now' : 'ago');
+    return parts;
+  }
+
+  function toLocalDatetimeString(d) {
+    return d.getFullYear() + '-' +
+      pad(d.getMonth() + 1) + '-' +
+      pad(d.getDate()) + 'T' +
+      pad(d.getHours()) + ':' +
+      pad(d.getMinutes()) + ':' +
+      pad(d.getSeconds());
+  }
+
+  function renderResults(ms) {
+    hideError();
+    var d = new Date(ms);
+    if (isNaN(d.getTime())) { showError('Invalid date'); return; }
+
+    var rows = [
+      ['UTC',      d.toUTCString()],
+      ['Local',    d.toLocaleString()],
+      ['Relative', relativeTime(ms)],
+      ['ISO 8601', d.toISOString()],
+    ];
+
+    while (tableBody.firstChild) { tableBody.removeChild(tableBody.firstChild); }
+
+    rows.forEach(function (row) {
+      var tr = document.createElement('tr');
+      var tdLabel = document.createElement('td');
+      var tdVal   = document.createElement('td');
+      tdLabel.textContent = row[0];
+      tdLabel.style.cssText = 'padding:0.35rem 0.5rem 0.35rem 0; color:var(--color-muted,#666); width:7rem; vertical-align:top;';
+      tdVal.textContent = row[1];
+      tdVal.style.cssText = 'padding:0.35rem 0; font-family:var(--font-mono,monospace); word-break:break-all;';
+      tr.appendChild(tdLabel);
+      tr.appendChild(tdVal);
+      tableBody.appendChild(tr);
+    });
+
+    resultsEl.style.display = '';
+  }
+
+  function epochToMs(val) {
+    var n = parseFloat(val);
+    if (isNaN(n)) return null;
+    return currentUnit === 'ms' ? n : n * 1000;
+  }
+
+  function onEpochInput() {
+    if (suppressEpoch) return;
+    var raw = epochInput.value.trim();
+    if (!raw) { hideError(); resultsEl.style.display = 'none'; return; }
+    var ms = epochToMs(raw);
+    if (ms === null) { showError('Please enter a valid number.'); return; }
+    var d = new Date(ms);
+    if (isNaN(d.getTime())) { showError('Timestamp out of range.'); return; }
+    renderResults(ms);
+    suppressDatetime = true;
+    datetimeInput.value = toLocalDatetimeString(d);
+    suppressDatetime = false;
+  }
+
+  function onDatetimeInput() {
+    if (suppressDatetime) return;
+    var raw = datetimeInput.value;
+    if (!raw) { hideError(); resultsEl.style.display = 'none'; return; }
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) { showError('Invalid date/time.'); return; }
+    var ms = d.getTime();
+    renderResults(ms);
+    suppressEpoch = true;
+    epochInput.value = currentUnit === 'ms' ? ms : Math.floor(ms / 1000);
+    suppressEpoch = false;
+  }
+
+  nowBtn.addEventListener('click', function () {
+    var now = Date.now();
+    epochInput.value = currentUnit === 'ms' ? now : Math.floor(now / 1000);
+    onEpochInput();
+  });
+
+  epochInput.addEventListener('input', onEpochInput);
+  datetimeInput.addEventListener('input', onDatetimeInput);
+
+  unitBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var newUnit = btn.getAttribute('data-unit');
+      if (newUnit === currentUnit) return;
+
+      unitBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+
+      var raw = epochInput.value.trim();
+      if (raw) {
+        var n = parseFloat(raw);
+        if (!isNaN(n)) {
+          if (newUnit === 'ms' && currentUnit === 's') {
+            epochInput.value = Math.round(n * 1000);
+          } else if (newUnit === 's' && currentUnit === 'ms') {
+            epochInput.value = Math.floor(n / 1000);
+          }
+        }
+      }
+      currentUnit = newUnit;
+      onEpochInput();
+    });
+  });
+
+  /* Live epoch clock */
+  function tickLive() {
+    liveEpoch.textContent = Math.floor(Date.now() / 1000);
+  }
+  tickLive();
+  setInterval(tickLive, 1000);
+})();
+</script>

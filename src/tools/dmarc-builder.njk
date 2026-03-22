@@ -1,0 +1,448 @@
+---
+toolSlug: dmarc-builder
+permalink: /tools/dmarc-builder/
+---
+
+<div class="dm-tabs" role="tablist" aria-label="Email authentication record type">
+  <button class="dm-tab active" data-tab="dmarc" role="tab" aria-selected="true" aria-controls="dm-panel-dmarc">DMARC</button>
+  <button class="dm-tab" data-tab="spf" role="tab" aria-selected="false" aria-controls="dm-panel-spf">SPF</button>
+  <button class="dm-tab" data-tab="dkim" role="tab" aria-selected="false" aria-controls="dm-panel-dkim">DKIM</button>
+</div>
+
+<!-- DMARC Panel -->
+<div id="dm-panel-dmarc" role="tabpanel" aria-labelledby="dm-tab-dmarc">
+  <p class="dm-intro">DMARC (Domain-based Message Authentication, Reporting, and Conformance) tells receiving mail servers what to do with emails that fail SPF or DKIM checks. It also lets you receive reports about who is sending email from your domain.</p>
+
+  <div class="dm-form-grid">
+    <div class="tool-group">
+      <label for="dm-domain">Your domain</label>
+      <input type="text" id="dm-domain" placeholder="example.com" spellcheck="false" autocomplete="off">
+      <span class="dm-field-hint">Used to construct the DNS record name</span>
+    </div>
+
+    <div class="tool-group">
+      <label for="dm-policy">Policy (p=)</label>
+      <select id="dm-policy">
+        <option value="none">none — Monitor only, no action taken on failures</option>
+        <option value="quarantine">quarantine — Send failing mail to spam/junk</option>
+        <option value="reject">reject — Reject failing mail outright (recommended)</option>
+      </select>
+      <span class="dm-field-hint">Start with "none" to collect data before enforcing</span>
+    </div>
+
+    <div class="tool-group">
+      <label for="dm-pct">Percentage (pct=)</label>
+      <input type="number" id="dm-pct" value="100" min="1" max="100">
+      <span class="dm-field-hint">Percentage of messages to apply policy to (1–100). Use a lower value during rollout.</span>
+    </div>
+
+    <div class="tool-group">
+      <label for="dm-rua">Aggregate report URI (rua=)</label>
+      <input type="text" id="dm-rua" placeholder="mailto:dmarc-reports@example.com" spellcheck="false" autocomplete="off">
+      <span class="dm-field-hint">Where to send daily XML aggregate reports. Multiple URIs comma-separated.</span>
+    </div>
+
+    <div class="tool-group">
+      <label for="dm-ruf">Forensic report URI (ruf=)</label>
+      <input type="text" id="dm-ruf" placeholder="mailto:dmarc-forensic@example.com" spellcheck="false" autocomplete="off">
+      <span class="dm-field-hint">Where to send individual failure reports. Many ISPs no longer send these.</span>
+    </div>
+
+    <div class="tool-group">
+      <label for="dm-sp">Subdomain policy (sp=)</label>
+      <select id="dm-sp">
+        <option value="">Inherit from p= (default)</option>
+        <option value="none">none</option>
+        <option value="quarantine">quarantine</option>
+        <option value="reject">reject</option>
+      </select>
+      <span class="dm-field-hint">Override the policy for subdomains</span>
+    </div>
+
+    <div class="tool-group">
+      <label for="dm-adkim">DKIM alignment (adkim=)</label>
+      <select id="dm-adkim">
+        <option value="">r — Relaxed (default)</option>
+        <option value="s">s — Strict (domain must match exactly)</option>
+      </select>
+    </div>
+
+    <div class="tool-group">
+      <label for="dm-aspf">SPF alignment (aspf=)</label>
+      <select id="dm-aspf">
+        <option value="">r — Relaxed (default)</option>
+        <option value="s">s — Strict (domain must match exactly)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="dm-result-block">
+    <div class="dm-result-label">DNS TXT record</div>
+    <div class="dm-record-name" id="dm-dmarc-name">_dmarc.example.com</div>
+    <div class="output-area" style="margin-top:0.5rem;">
+      <button class="btn btn--copy" id="dm-dmarc-copy">Copy</button>
+      <pre id="dm-dmarc-output" style="white-space:pre-wrap;word-break:break-all;"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- SPF Panel -->
+<div id="dm-panel-spf" role="tabpanel" aria-labelledby="dm-tab-spf" style="display:none;">
+  <p class="dm-intro">SPF (Sender Policy Framework) specifies which mail servers are authorized to send email from your domain. Receiving servers check that the sending IP is listed in your SPF record before delivering the message.</p>
+
+  <div class="tool-group">
+    <label for="spf-domain">Your domain</label>
+    <input type="text" id="spf-domain" placeholder="example.com" spellcheck="false" autocomplete="off">
+  </div>
+
+  <div class="dm-form-grid">
+    <div class="tool-group">
+      <label for="spf-qualifier">Default qualifier</label>
+      <select id="spf-qualifier">
+        <option value="+">+ (Pass) — Authorized to send</option>
+        <option value="~">~ (SoftFail) — Likely unauthorized, mark as spam</option>
+        <option value="-">- (HardFail) — Reject (recommended for strict)</option>
+        <option value="?">? (Neutral) — No policy statement</option>
+      </select>
+    </div>
+    <div class="tool-group">
+      <label for="spf-all">Catch-all qualifier (all)</label>
+      <select id="spf-all">
+        <option value="~all">~all — SoftFail (recommended during rollout)</option>
+        <option value="-all">-all — HardFail (recommended for production)</option>
+        <option value="+all">+all — Pass all (not recommended)</option>
+        <option value="?all">?all — Neutral</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="dm-mech-header">
+    <strong>Mechanisms</strong>
+    <button class="btn" id="spf-add-mech-btn">+ Add mechanism</button>
+  </div>
+  <div id="spf-mechanisms"></div>
+
+  <div class="dm-result-block" style="margin-top:1rem;">
+    <div class="dm-result-label">DNS TXT record</div>
+    <div class="dm-record-name" id="dm-spf-name">example.com</div>
+    <div class="output-area" style="margin-top:0.5rem;">
+      <button class="btn btn--copy" id="dm-spf-copy">Copy</button>
+      <pre id="dm-spf-output" style="white-space:pre-wrap;word-break:break-all;"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- DKIM Panel -->
+<div id="dm-panel-dkim" role="tabpanel" aria-labelledby="dm-tab-dkim" style="display:none;">
+  <p class="dm-intro">DKIM (DomainKeys Identified Mail) adds a cryptographic signature to outgoing emails. Receiving servers can verify the signature using a public key published in DNS, confirming the message was sent by an authorized server and was not modified in transit.</p>
+
+  <div class="dm-info-cards">
+    <div class="dm-info-card">
+      <strong>How DKIM works</strong>
+      <ol class="dm-info-list">
+        <li>Your mail server signs each outgoing message with a private key.</li>
+        <li>The signature is added to the <code>DKIM-Signature</code> email header.</li>
+        <li>The corresponding public key is published as a DNS TXT record at <code>selector._domainkey.yourdomain.com</code>.</li>
+        <li>Receiving servers fetch the public key and verify the signature.</li>
+      </ol>
+    </div>
+    <div class="dm-info-card">
+      <strong>Generating keys</strong>
+      <p>Your email provider (Google Workspace, Office 365, Mailchimp, Postmark, etc.) typically generates the DKIM key pair for you and shows you the DNS record to publish. If self-hosting, use <code>opendkim-genkey</code> or your MTA's built-in keygen tool.</p>
+    </div>
+  </div>
+
+  <div class="dm-form-grid">
+    <div class="tool-group">
+      <label for="dkim-domain">Your domain</label>
+      <input type="text" id="dkim-domain" placeholder="example.com" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="tool-group">
+      <label for="dkim-selector">Selector</label>
+      <input type="text" id="dkim-selector" placeholder="default" spellcheck="false" autocomplete="off">
+      <span class="dm-field-hint">Usually "default", "google", "s1", or provided by your email provider</span>
+    </div>
+    <div class="tool-group" style="grid-column:1/-1;">
+      <label for="dkim-pubkey">Public key (base64, without BEGIN/END headers)</label>
+      <textarea id="dkim-pubkey" rows="3" placeholder="MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQ..." spellcheck="false" autocomplete="off" style="font-family:monospace;font-size:0.8rem;"></textarea>
+    </div>
+  </div>
+
+  <div class="dm-result-block">
+    <div class="dm-result-label">DNS TXT record</div>
+    <div class="dm-record-name" id="dm-dkim-name">default._domainkey.example.com</div>
+    <div class="output-area" style="margin-top:0.5rem;">
+      <button class="btn btn--copy" id="dm-dkim-copy">Copy</button>
+      <pre id="dm-dkim-output" style="white-space:pre-wrap;word-break:break-all;"></pre>
+    </div>
+  </div>
+</div>
+
+<style>
+  .dm-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border,#2a2a3a);
+    margin-bottom: 1.25rem;
+  }
+  .dm-tab {
+    padding: 0.55rem 1.25rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-3,#888);
+    transition: color 0.2s, border-color 0.2s;
+    margin-bottom: -1px;
+  }
+  .dm-tab:hover { color: var(--text-1,#e2e8f0); }
+  .dm-tab.active { color: #818cf8; border-bottom-color: #818cf8; }
+  .dm-intro { font-size: 0.875rem; line-height: 1.65; color: var(--text-2,#94a3b8); margin: 0 0 1.25rem; }
+  .dm-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+  @media (max-width: 540px) { .dm-form-grid { grid-template-columns: 1fr; } }
+  .dm-field-hint { font-size: 0.75rem; color: var(--text-3,#888); margin-top: 0.3rem; display: block; line-height: 1.45; }
+  .dm-result-block {
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+  }
+  .dm-result-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3,#888); margin-bottom: 0.4rem; }
+  .dm-record-name { font-family: var(--font-mono,monospace); font-size: 0.875rem; color: #818cf8; margin-bottom: 0.25rem; }
+  .dm-mech-header { display: flex; align-items: center; justify-content: space-between; margin: 0.75rem 0 0.5rem; }
+  .dm-mech-header strong { font-size: 0.9rem; color: var(--text-1,#e2e8f0); }
+  .dm-mech-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .dm-mech-row select, .dm-mech-row input { flex: 1; min-width: 80px; }
+  .dm-mech-remove { cursor: pointer; color: #f87171; font-weight: 700; padding: 0.3rem 0.5rem; font-size: 1rem; background: none; border: none; }
+  .dm-info-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem; }
+  @media (max-width: 540px) { .dm-info-cards { grid-template-columns: 1fr; } }
+  .dm-info-card {
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 0.8125rem;
+    color: var(--text-2,#94a3b8);
+    line-height: 1.6;
+  }
+  .dm-info-card strong { display: block; color: var(--text-1,#e2e8f0); margin-bottom: 0.5rem; font-size: 0.875rem; }
+  .dm-info-card code { font-family: var(--font-mono,monospace); color: #a5b4fc; font-size: 0.8rem; }
+  .dm-info-list { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+</style>
+
+<script>
+(function () {
+  // Tab switching
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.dm-tab'));
+  var panels = {
+    dmarc: document.getElementById('dm-panel-dmarc'),
+    spf:   document.getElementById('dm-panel-spf'),
+    dkim:  document.getElementById('dm-panel-dkim')
+  };
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      var which = tab.getAttribute('data-tab');
+      Object.keys(panels).forEach(function (k) {
+        panels[k].style.display = k === which ? '' : 'none';
+      });
+    });
+  });
+
+  // --- DMARC ---
+  var dmDomain  = document.getElementById('dm-domain');
+  var dmPolicy  = document.getElementById('dm-policy');
+  var dmPct     = document.getElementById('dm-pct');
+  var dmRua     = document.getElementById('dm-rua');
+  var dmRuf     = document.getElementById('dm-ruf');
+  var dmSp      = document.getElementById('dm-sp');
+  var dmAdkim   = document.getElementById('dm-adkim');
+  var dmAspf    = document.getElementById('dm-aspf');
+  var dmNameEl  = document.getElementById('dm-dmarc-name');
+  var dmOutput  = document.getElementById('dm-dmarc-output');
+  var dmCopyBtn = document.getElementById('dm-dmarc-copy');
+
+  function buildDMARC() {
+    var domain = dmDomain.value.trim() || 'example.com';
+    dmNameEl.textContent = '_dmarc.' + domain;
+    var parts = ['v=DMARC1', 'p=' + dmPolicy.value];
+    var pct = parseInt(dmPct.value, 10);
+    if (!isNaN(pct) && pct !== 100) parts.push('pct=' + pct);
+    var rua = dmRua.value.trim();
+    if (rua) parts.push('rua=' + rua);
+    var ruf = dmRuf.value.trim();
+    if (ruf) parts.push('ruf=' + ruf);
+    if (dmSp.value) parts.push('sp=' + dmSp.value);
+    if (dmAdkim.value) parts.push('adkim=' + dmAdkim.value);
+    if (dmAspf.value) parts.push('aspf=' + dmAspf.value);
+    dmOutput.textContent = parts.join('; ');
+  }
+
+  [dmDomain, dmPolicy, dmPct, dmRua, dmRuf, dmSp, dmAdkim, dmAspf].forEach(function (el) {
+    el.addEventListener('input', buildDMARC);
+  });
+  buildDMARC();
+
+  // --- SPF ---
+  var spfDomainEl   = document.getElementById('spf-domain');
+  var spfQualifier  = document.getElementById('spf-qualifier');
+  var spfAll        = document.getElementById('spf-all');
+  var spfMechsEl    = document.getElementById('spf-mechanisms');
+  var spfAddBtn     = document.getElementById('spf-add-mech-btn');
+  var spfNameEl     = document.getElementById('dm-spf-name');
+  var spfOutput     = document.getElementById('dm-spf-output');
+  var spfCopyBtn    = document.getElementById('dm-spf-copy');
+
+  var MECH_TYPES = ['ip4', 'ip6', 'include', 'a', 'mx', 'ptr', 'exists'];
+
+  function buildSPF() {
+    var domain = spfDomainEl.value.trim() || 'example.com';
+    spfNameEl.textContent = domain;
+    var parts = ['v=spf1'];
+    var rows = spfMechsEl.querySelectorAll('.dm-mech-row');
+    rows.forEach(function (row) {
+      var qual = row.querySelector('.spf-mech-qual');
+      var type = row.querySelector('.spf-mech-type');
+      var val  = row.querySelector('.spf-mech-val');
+      if (!qual || !type) return;
+      var q = qual.value;
+      var t = type.value;
+      var v = val ? val.value.trim() : '';
+      var prefix = q === '+' ? '' : q;
+      if (t === 'a' || t === 'mx' || t === 'ptr') {
+        parts.push(prefix + t + (v ? ':' + v : ''));
+      } else if (v) {
+        parts.push(prefix + t + ':' + v);
+      }
+    });
+    parts.push(spfAll.value);
+    spfOutput.textContent = parts.join(' ');
+  }
+
+  function addMechRow(defaults) {
+    defaults = defaults || {};
+    var row = document.createElement('div');
+    row.className = 'dm-mech-row';
+
+    var qual = document.createElement('select');
+    qual.className = 'spf-mech-qual';
+    qual.style.maxWidth = '100px';
+    var quals = [{v:'+',l:'+ Pass'},{v:'~',l:'~ SoftFail'},{v:'-',l:'- HardFail'},{v:'?',l:'? Neutral'}];
+    quals.forEach(function (q) {
+      var opt = document.createElement('option');
+      opt.value = q.v;
+      opt.textContent = q.l;
+      if (defaults.qual === q.v) opt.selected = true;
+      qual.appendChild(opt);
+    });
+
+    var type = document.createElement('select');
+    type.className = 'spf-mech-type';
+    type.style.maxWidth = '110px';
+    MECH_TYPES.forEach(function (m) {
+      var opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      if (defaults.type === m) opt.selected = true;
+      type.appendChild(opt);
+    });
+
+    var val = document.createElement('input');
+    val.type = 'text';
+    val.className = 'spf-mech-val';
+    val.placeholder = 'value (IP, domain...)';
+    val.value = defaults.value || '';
+    val.spellcheck = false;
+
+    var rm = document.createElement('button');
+    rm.className = 'dm-mech-remove';
+    rm.type = 'button';
+    rm.textContent = '×';
+    rm.setAttribute('aria-label', 'Remove mechanism');
+    rm.addEventListener('click', function () {
+      spfMechsEl.removeChild(row);
+      buildSPF();
+    });
+
+    [qual, type, val].forEach(function (el) { el.addEventListener('change', buildSPF); el.addEventListener('input', buildSPF); });
+
+    row.appendChild(qual);
+    row.appendChild(type);
+    row.appendChild(val);
+    row.appendChild(rm);
+    spfMechsEl.appendChild(row);
+    buildSPF();
+  }
+
+  spfAddBtn.addEventListener('click', function () { addMechRow(); });
+  spfDomainEl.addEventListener('input', buildSPF);
+  spfQualifier.addEventListener('change', buildSPF);
+  spfAll.addEventListener('change', buildSPF);
+  // Add default mechanisms
+  addMechRow({ qual: '+', type: 'mx', value: '' });
+  addMechRow({ qual: '+', type: 'include', value: '' });
+  buildSPF();
+
+  // --- DKIM ---
+  var dkimDomain  = document.getElementById('dkim-domain');
+  var dkimSelector= document.getElementById('dkim-selector');
+  var dkimPubkey  = document.getElementById('dkim-pubkey');
+  var dkimNameEl  = document.getElementById('dm-dkim-name');
+  var dkimOutput  = document.getElementById('dm-dkim-output');
+  var dkimCopyBtn = document.getElementById('dm-dkim-copy');
+
+  function buildDKIM() {
+    var domain = dkimDomain.value.trim() || 'example.com';
+    var sel = dkimSelector.value.trim() || 'default';
+    dkimNameEl.textContent = sel + '._domainkey.' + domain;
+    var key = dkimPubkey.value.trim().replace(/\s+/g, '');
+    var parts = ['v=DKIM1', 'k=rsa'];
+    if (key) parts.push('p=' + key);
+    else parts.push('p=YOUR_PUBLIC_KEY_HERE');
+    dkimOutput.textContent = parts.join('; ');
+  }
+
+  [dkimDomain, dkimSelector, dkimPubkey].forEach(function (el) { el.addEventListener('input', buildDKIM); });
+  buildDKIM();
+
+  // Copy buttons
+  function makeCopier(btn, getter) {
+    btn.addEventListener('click', function () {
+      var text = getter();
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          btn.textContent = 'Copied!';
+          setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+        });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); btn.textContent = 'Copied!'; } catch(e) { btn.textContent = 'Failed'; }
+        document.body.removeChild(ta);
+        setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+      }
+    });
+  }
+  makeCopier(dmCopyBtn,   function () { return dmOutput.textContent; });
+  makeCopier(spfCopyBtn,  function () { return spfOutput.textContent; });
+  makeCopier(dkimCopyBtn, function () { return dkimOutput.textContent; });
+})();
+</script>

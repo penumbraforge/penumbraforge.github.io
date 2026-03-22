@@ -1,0 +1,248 @@
+---
+title: "Credential Verification"
+description: "Check whether detected credentials are still active via read-only provider API calls."
+permalink: /gate/wiki/verification/
+---
+<h1>Credential Verification</h1>
+    <p class="subtitle">Gate checks whether found credentials are still live by making read-only API calls to each provider.</p>
+
+    <h2 id="what-verification-does">What Verification Does</h2>
+
+    <p>When Gate finds a credential, it already knows the pattern matches. Verification answers the follow-up question: <em>is this credential still active?</em> Gate does this by making a single, read-only API call to the provider using the credential. The call does not modify anything -- it only asks "who am I?" or "is this token valid?".</p>
+
+    <p>Verification results directly influence severity:</p>
+
+    <ul>
+      <li><strong style="color: var(--text-1);">Live credential</strong> -- severity is upgraded to CRITICAL regardless of the rule's default severity. A live credential in source code is an active breach.</li>
+      <li><strong style="color: var(--text-1);">Inactive / revoked credential</strong> -- severity is downgraded to LOW. The credential is still worth removing, but poses no immediate risk.</li>
+      <li><strong style="color: var(--text-1);">Verification inconclusive</strong> -- original rule severity is preserved. This happens on network timeout, TLS error, or an unexpected response code.</li>
+    </ul>
+
+    <div class="info-box">
+      <strong>Read-only, always.</strong> Every verification call Gate makes is a read-only operation. Gate never creates, modifies, or deletes anything at the provider. It never performs actions on your behalf.
+    </div>
+
+    <h2 id="supported-providers">Supported Providers</h2>
+
+    <p>Gate supports verification for 16 providers. All calls use HTTPS with TLS verification enforced.</p>
+
+    <table class="cmd-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>API Endpoint</th>
+          <th>What Gate Learns</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>AWS</td>
+          <td>sts:GetCallerIdentity</td>
+          <td>Account ID, user ARN, and whether the key is active</td>
+        </tr>
+        <tr>
+          <td>GitHub</td>
+          <td>GET /user</td>
+          <td>Authenticated username and token scopes</td>
+        </tr>
+        <tr>
+          <td>GitLab</td>
+          <td>GET /api/v4/user</td>
+          <td>Authenticated username and token state</td>
+        </tr>
+        <tr>
+          <td>Stripe</td>
+          <td>GET /v1/balance</td>
+          <td>Whether the key is live or test, and if it is valid</td>
+        </tr>
+        <tr>
+          <td>Slack</td>
+          <td>POST auth.test</td>
+          <td>Workspace name, bot user ID, and token validity</td>
+        </tr>
+        <tr>
+          <td>OpenAI</td>
+          <td>GET /v1/models</td>
+          <td>Whether the key is active and which models it can access</td>
+        </tr>
+        <tr>
+          <td>Anthropic</td>
+          <td>GET /v1/models</td>
+          <td>Whether the key is active</td>
+        </tr>
+        <tr>
+          <td>GCP</td>
+          <td>tokeninfo endpoint</td>
+          <td>Token expiry and associated scopes</td>
+        </tr>
+        <tr>
+          <td>Twilio</td>
+          <td>GET /2010-04-01/Accounts</td>
+          <td>Account SID and whether the credential is active</td>
+        </tr>
+        <tr>
+          <td>SendGrid</td>
+          <td>GET /v3/user/profile</td>
+          <td>Account username and whether the key is valid</td>
+        </tr>
+        <tr>
+          <td>HuggingFace</td>
+          <td>GET /api/whoami-v2</td>
+          <td>Username and token type (read / write / admin)</td>
+        </tr>
+        <tr>
+          <td>Supabase</td>
+          <td>project keys endpoint</td>
+          <td>Project reference and whether the key is active</td>
+        </tr>
+        <tr>
+          <td>Vercel</td>
+          <td>GET /v2/user</td>
+          <td>Username and token validity</td>
+        </tr>
+        <tr>
+          <td>Netlify</td>
+          <td>GET /api/v1/user</td>
+          <td>Account email and token validity</td>
+        </tr>
+        <tr>
+          <td>Cloudflare</td>
+          <td>GET /client/v4/user/tokens/verify</td>
+          <td>Token status and associated permissions</td>
+        </tr>
+        <tr>
+          <td>Linear</td>
+          <td>POST /graphql (viewer query)</td>
+          <td>Authenticated user ID and token validity</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="timeout-and-parallelism">Timeouts and Parallelism</h2>
+
+    <p>Verification is designed to be fast enough for interactive use. Gate enforces:</p>
+
+    <ul>
+      <li><strong style="color: var(--text-1);">Per-provider timeout:</strong> 2 seconds. If a provider does not respond within 2 seconds, the verification for that credential is marked inconclusive and the original severity is preserved.</li>
+      <li><strong style="color: var(--text-1);">Total budget:</strong> 5 seconds for all verification calls in a scan. If the budget is exhausted, remaining verifications are skipped.</li>
+      <li><strong style="color: var(--text-1);">Parallel execution:</strong> All provider calls are made concurrently, so a scan with findings across 5 providers takes ~2 seconds, not ~10.</li>
+    </ul>
+
+    <h2 id="caching">Caching</h2>
+
+    <p>Gate caches verification results to avoid redundant API calls across scans. Results are stored in <code>~/.gate/verify-cache.json</code>. Each entry is keyed by the sha256 hash of the credential value (never the plaintext value itself) and has a 1-hour TTL.</p>
+
+    <p>This means:</p>
+    <ul>
+      <li>If you scan the same repository twice within an hour, verification results from the first scan are reused.</li>
+      <li>The cache file never contains plaintext credentials -- only hashes and the verification outcome.</li>
+      <li>Stale entries are pruned automatically on each scan run.</li>
+    </ul>
+
+    <div class="code-block"><span class="cmt"># ~/.gate/verify-cache.json (excerpt, illustrative)</span>
+{
+  <span class="str">"a3f1c9..."</span>: { <span class="str">"status"</span>: <span class="val">"live"</span>, <span class="str">"provider"</span>: <span class="val">"stripe"</span>, <span class="str">"expires"</span>: <span class="val">1742000000</span> },
+  <span class="str">"7d82e1..."</span>: { <span class="str">"status"</span>: <span class="val">"inactive"</span>, <span class="str">"provider"</span>: <span class="val">"github"</span>, <span class="str">"expires"</span>: <span class="val">1741996400</span> }
+}</div>
+
+    <h2 id="severity-impact">How Verification Affects Severity</h2>
+
+    <p>Verification is the primary mechanism for severity adjustment at scan time. The outcome of each verification call feeds directly into the reported severity:</p>
+
+    <table class="cmd-table">
+      <thead>
+        <tr>
+          <th>Rule default severity</th>
+          <th>Verification result</th>
+          <th>Reported severity</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Any</td>
+          <td>Live</td>
+          <td><span style="color: var(--error);">CRITICAL</span></td>
+        </tr>
+        <tr>
+          <td>Any</td>
+          <td>Inactive / revoked</td>
+          <td><span style="color: var(--text-3);">LOW</span></td>
+        </tr>
+        <tr>
+          <td>CRITICAL</td>
+          <td>Inconclusive / timeout</td>
+          <td><span style="color: var(--error);">CRITICAL</span></td>
+        </tr>
+        <tr>
+          <td>HIGH</td>
+          <td>Inconclusive / timeout</td>
+          <td><span style="color: var(--warn);">HIGH</span></td>
+        </tr>
+        <tr>
+          <td>Any</td>
+          <td>Verification disabled</td>
+          <td>Rule default</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="disabling-verification">Disabling Verification</h2>
+
+    <p>Verification can be disabled at three levels:</p>
+
+    <h3>Per-scan flag</h3>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate scan --no-verify</span></div>
+
+    <h3>.gaterc configuration</h3>
+    <div class="code-block"><span class="cmt"># .gaterc</span>
+<span class="kw">verify</span>: <span class="val">false</span></div>
+
+    <h3>Environment variable</h3>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">GATE_OFFLINE=1 gate scan</span></div>
+
+    <p><code>GATE_OFFLINE=1</code> disables all outbound network activity, including verification and any telemetry. Use this in air-gapped environments or when network access from the scanner is prohibited by policy.</p>
+
+    <h2 id="pre-commit-verification">Verification in Pre-Commit Hooks</h2>
+
+    <p>Verification is disabled by default when Gate runs as a pre-commit hook. The reason is practical: a 2-second network call per credential in a commit hook adds noticeable latency to every commit, which degrades developer experience over time.</p>
+
+    <p>To enable verification in pre-commit hooks, set <code>verify: true</code> in <code>.gaterc</code> and ensure the machine running the hook has network access. This is a reasonable tradeoff for high-security repositories where commit-time latency is acceptable.</p>
+
+    <div class="info-box">
+      <strong>CI verification:</strong> Verification is enabled by default when running in CI (non-TTY, non-hook context). CI machines typically have fast, reliable network access and verification latency is not user-facing.
+    </div>
+
+    <h2 id="privacy">Privacy and Data Handling</h2>
+
+    <p>Credential verification is designed with privacy as a hard constraint:</p>
+
+    <ul>
+      <li><strong style="color: var(--text-1);">Credentials are sent only to their own provider.</strong> A GitHub token is sent only to <code>api.github.com</code>. A Stripe key is sent only to <code>api.stripe.com</code>. Gate does not relay credentials through any intermediary.</li>
+      <li><strong style="color: var(--text-1);">Gate's own servers are never involved.</strong> Verification calls are made directly from the local machine to the provider. No credential data is sent to PenumbraForge or any third party.</li>
+      <li><strong style="color: var(--text-1);">The cache stores hashes, not values.</strong> Credentials are hashed with sha256 before being written to the cache. The plaintext value is never persisted to disk by Gate.</li>
+    </ul>
+
+    <h2 id="safety">Safety Guarantees</h2>
+
+    <p>Every verification call Gate makes is read-only. Gate's verification code is structured to make this impossible to violate accidentally:</p>
+
+    <ul>
+      <li>Only HTTP GET and safe POST endpoints (like <code>auth.test</code> or GraphQL <code>viewer</code> queries) are used.</li>
+      <li>No write scopes are requested or exercised.</li>
+      <li>Gate does not store session state, cookies, or authentication tokens from provider responses.</li>
+      <li>Response bodies are parsed only for the status/active field; all other fields are discarded.</li>
+    </ul>
+
+    <h2 id="tls">TLS Enforcement</h2>
+
+    <p>All verification calls use HTTPS with strict TLS validation. Gate explicitly sets <code>rejectUnauthorized: true</code> in all HTTP clients. If a provider's TLS certificate cannot be validated (expired, self-signed, or hostname mismatch), Gate skips verification for that credential with a warning rather than proceeding over an insecure connection.</p>
+
+    <div class="code-block"><span class="warn">  warn  TLS validation failed for provider "supabase" — skipping verification</span>
+<span class="dim">        credential severity unchanged (rule default: high)</span></div>
+
+    <h2 id="see-also">See Also</h2>
+    <ul>
+      <li><a href="/gate/wiki/configuration/">Configuration</a> -- verify option in .gaterc</li>
+      <li><a href="/gate/wiki/incident-response/">Incident Response</a> -- what to do when a live credential is found</li>
+      <li><a href="/gate/wiki/security/">Security Model</a> -- Gate's overall security design</li>
+    </ul>

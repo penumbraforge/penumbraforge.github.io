@@ -1,0 +1,544 @@
+---
+toolSlug: git-branch-visualizer
+permalink: /tools/git-branch-visualizer/
+---
+
+<div class="tool-group">
+  <label for="gb-input">Paste <code>git branch -a</code> or <code>git branch -vv</code> output</label>
+  <textarea id="gb-input" rows="12" placeholder="* main                      a1b2c3d [origin/main] Update README&#10;  feature/auth                e4f5g6h [origin/feature/auth: ahead 2] Add OAuth&#10;  fix/login-bug               9i8j7k6 [origin/fix/login-bug: gone] Fix redirect&#10;  old-experiment              1234abc Initial attempt&#10;  remotes/origin/main         a1b2c3d Update README&#10;  remotes/origin/feature/auth e4f5g6h Add OAuth" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Example outputs">
+    <button class="tool-option" id="ex-simple">git branch -a</button>
+    <button class="tool-option" id="ex-verbose">git branch -vv</button>
+    <button class="tool-option" id="ex-messy">Messy repo</button>
+  </div>
+</div>
+
+<div id="gb-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div id="gb-results" style="display:none;"></div>
+
+<div id="gb-cleanup" style="display:none;" class="gb-cleanup-section">
+  <div class="gb-cleanup-title">Cleanup commands</div>
+  <div class="output-area" style="margin-top:8px;">
+    <button class="btn btn--copy" id="btn-copy-cleanup" aria-label="Copy cleanup commands">Copy</button>
+    <pre id="gb-cleanup-output" aria-label="Cleanup git commands"></pre>
+  </div>
+</div>
+
+<style>
+  .gb-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+  }
+
+  .gb-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface-0);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 9px;
+    color: var(--text-2);
+  }
+
+  .gb-stat-count {
+    font-weight: 700;
+    color: var(--text-1);
+  }
+
+  .gb-group {
+    margin-bottom: 16px;
+  }
+
+  .gb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    margin: 0 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .gb-group-count {
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0 6px;
+    color: var(--text-2);
+  }
+
+  .gb-branch {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--surface-0);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 5px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+
+  .gb-branch:last-child { margin-bottom: 0; }
+
+  .gb-branch--current { border-left: 3px solid #9b7fd4; }
+  .gb-branch--deletable { border-left: 3px solid #c8a838; }
+  .gb-branch--gone { border-left: 3px solid #c85050; }
+  .gb-branch--normal { border-left: 3px solid var(--border); }
+  .gb-branch--remote { border-left: 3px solid #5b8db8; }
+
+  .gb-branch-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-1);
+    font-weight: 600;
+  }
+
+  .gb-branch-meta {
+    color: var(--text-3);
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .gb-branch-hash {
+    color: var(--text-3);
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  .gb-badge {
+    display: inline-flex;
+    align-items: center;
+    height: 16px;
+    line-height: 16px;
+    padding: 0 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+
+  .gb-badge--current  { background: rgba(155,127,212,0.18); color: #9b7fd4; }
+  .gb-badge--gone     { background: rgba(200,80,80,0.18); color: #e07070; }
+  .gb-badge--merged   { background: rgba(200,160,40,0.18); color: #c8a838; }
+  .gb-badge--ahead    { background: rgba(90,170,120,0.15); color: #5aaa78; }
+  .gb-badge--behind   { background: rgba(80,140,200,0.15); color: #5b8db8; }
+  .gb-badge--tracking { background: var(--surface-1); color: var(--text-3); border: 1px solid var(--border); }
+
+  .gb-cleanup-section {
+    margin-top: 8px;
+  }
+
+  .gb-cleanup-title {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-bottom: 4px;
+  }
+
+  .gb-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-3);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    background: var(--surface-0);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var inputEl   = document.getElementById("gb-input");
+  var errorEl   = document.getElementById("gb-error");
+  var resultsEl = document.getElementById("gb-results");
+  var cleanupEl = document.getElementById("gb-cleanup");
+  var cleanupOut = document.getElementById("gb-cleanup-output");
+  var copyClean  = document.getElementById("btn-copy-cleanup");
+
+  // ── Examples ─────────────────────────────────────────────────────────────
+  var EXAMPLES = {
+    "ex-simple": [
+      "* main",
+      "  develop",
+      "  feature/new-ui",
+      "  hotfix/payment",
+      "  remotes/origin/main",
+      "  remotes/origin/develop",
+      "  remotes/origin/feature/new-ui",
+      "  remotes/origin/feature/old-stuff"
+    ].join("\n"),
+
+    "ex-verbose": [
+      "* main              a1b2c3d [origin/main] Merge pull request #42",
+      "  develop           b2c3d4e [origin/develop: ahead 3] WIP",
+      "  feature/auth      c3d4e5f [origin/feature/auth: behind 1] Add JWT",
+      "  feature/dark-mode d4e5f6a [origin/feature/dark-mode: gone] Dark mode prototype",
+      "  old-branch        e5f6a7b Initial commit",
+      "  remotes/origin/main              a1b2c3d Merge pull request #42",
+      "  remotes/origin/develop           f6a7b8c Latest CI fix",
+      "  remotes/origin/feature/auth      c3d4e5f Add JWT"
+    ].join("\n"),
+
+    "ex-messy": [
+      "* main                    aabbcc1 [origin/main] Release v2.0",
+      "  master                  001122a [origin/master: gone] Old default branch",
+      "  develop                 bbcc112 [origin/develop] Integration branch",
+      "  feature/login           cc1122b [origin/feature/login: gone] Add login page",
+      "  feature/signup          dd2233c [origin/feature/signup: ahead 5, behind 2] Signup form",
+      "  hotfix/xss-fix          ee3344d [origin/hotfix/xss-fix: gone] Fix XSS in comments",
+      "  experiment-1            ff4455e No tracking",
+      "  experiment-2            006677f No tracking",
+      "  release/v1              77889a0 [origin/release/v1: gone] Release 1.x",
+      "  remotes/origin/main     aabbcc1 Release v2.0",
+      "  remotes/origin/develop  bbcc112 Integration branch",
+      "  remotes/origin/feature/signup dd2233c Signup form"
+    ].join("\n")
+  };
+
+  ["ex-simple", "ex-verbose", "ex-messy"].forEach(function (id) {
+    var btn = document.getElementById(id);
+    if (btn) btn.addEventListener("click", function () {
+      inputEl.value = EXAMPLES[id];
+      visualize();
+    });
+  });
+
+  // ── Parser ────────────────────────────────────────────────────────────────
+  // Handles both `git branch -a` and `git branch -vv` output
+  function parseBranchOutput(text) {
+    var lines = text.split("\n");
+    var local = [], remote = [];
+
+    lines.forEach(function (line) {
+      var raw = line;
+      var isCurrent = raw.charAt(0) === "*";
+      var trimmed = raw.replace(/^\s*\*?\s*/, "");
+
+      if (!trimmed) return;
+
+      // Remote branch
+      if (trimmed.startsWith("remotes/") || trimmed.startsWith("origin/")) {
+        var rname = trimmed.replace(/^remotes\//, "");
+        if (rname === "origin/HEAD" || rname.endsWith("HEAD")) return;
+        remote.push({ name: rname, fullName: trimmed });
+        return;
+      }
+
+      // Local branch — try to parse verbose format
+      // Format: name  <hash> [tracking: ahead N, behind M] <subject>
+      var branch = {
+        name: "",
+        hash: "",
+        tracking: null,
+        ahead: 0,
+        behind: 0,
+        gone: false,
+        subject: "",
+        isCurrent: isCurrent
+      };
+
+      // Split off the branch name (first non-space token)
+      var rest = trimmed;
+      var spIdx = rest.search(/\s/);
+      if (spIdx === -1) {
+        branch.name = rest;
+      } else {
+        branch.name = rest.slice(0, spIdx);
+        rest = rest.slice(spIdx).trimLeft();
+      }
+
+      if (!branch.name) return;
+
+      // Try to extract hash (7-40 hex chars)
+      var hashMatch = rest.match(/^([0-9a-f]{7,40})\s*/i);
+      if (hashMatch) {
+        branch.hash = hashMatch[1];
+        rest = rest.slice(hashMatch[0].length);
+      }
+
+      // Try to extract tracking info [remote/branch: ahead N, behind M]
+      var trackMatch = rest.match(/^\[([^\]]+)\]\s*/);
+      if (trackMatch) {
+        var trackStr = trackMatch[1];
+        rest = rest.slice(trackMatch[0].length);
+
+        // Split on first colon to get tracking name
+        var colonIdx = trackStr.indexOf(":");
+        if (colonIdx === -1) {
+          branch.tracking = trackStr.trim();
+        } else {
+          branch.tracking = trackStr.slice(0, colonIdx).trim();
+          var status = trackStr.slice(colonIdx + 1);
+          if (/gone/.test(status)) branch.gone = true;
+          var aheadM = status.match(/ahead\s+(\d+)/);
+          var behindM = status.match(/behind\s+(\d+)/);
+          if (aheadM) branch.ahead = parseInt(aheadM[1], 10);
+          if (behindM) branch.behind = parseInt(behindM[1], 10);
+        }
+      }
+
+      branch.subject = rest.trim();
+      local.push(branch);
+    });
+
+    return { local: local, remote: remote };
+  }
+
+  // ── Classify branches ─────────────────────────────────────────────────────
+  function classifyLocal(local, remote) {
+    var remoteNames = remote.map(function (r) { return r.name; });
+
+    return local.map(function (b) {
+      var classification = "normal";
+      if (b.isCurrent) classification = "current";
+      else if (b.gone) classification = "gone";
+      else if (!b.tracking) {
+        // No tracking — could be safe to delete if not current
+        classification = "untracked";
+      }
+      return Object.assign({}, b, { classification: classification });
+    });
+  }
+
+  // Determine which local branches are safe to suggest deleting
+  function getDeletableBranches(local) {
+    return local.filter(function (b) {
+      return !b.isCurrent && (b.gone);
+    });
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function visualize() {
+    var raw = inputEl.value;
+    if (!raw.trim()) {
+      hideError();
+      resultsEl.style.display = "none";
+      cleanupEl.style.display = "none";
+      return;
+    }
+
+    var parsed;
+    try {
+      parsed = parseBranchOutput(raw);
+    } catch (err) {
+      showError("Parse error: " + err.message);
+      return;
+    }
+
+    if (!parsed.local.length && !parsed.remote.length) {
+      showError("No branch lines recognized. Paste the raw output of git branch -a or git branch -vv.");
+      return;
+    }
+
+    hideError();
+
+    var local = classifyLocal(parsed.local, parsed.remote);
+    var deletable = getDeletableBranches(local);
+
+    while (resultsEl.firstChild) resultsEl.removeChild(resultsEl.firstChild);
+
+    // Stats bar
+    var stats = document.createElement("div");
+    stats.className = "gb-stats";
+
+    function stat(count, label) {
+      var span = document.createElement("span");
+      span.className = "gb-stat";
+      var cnt = document.createElement("span");
+      cnt.className = "gb-stat-count";
+      cnt.textContent = String(count);
+      span.appendChild(cnt);
+      span.appendChild(document.createTextNode(" " + label));
+      return span;
+    }
+
+    stats.appendChild(stat(local.length, local.length === 1 ? "local branch" : "local branches"));
+    stats.appendChild(stat(parsed.remote.length, parsed.remote.length === 1 ? "remote branch" : "remote branches"));
+    if (deletable.length) stats.appendChild(stat(deletable.length, deletable.length === 1 ? "safe to delete" : "safe to delete"));
+    resultsEl.appendChild(stats);
+
+    // Local branches group
+    if (local.length) {
+      resultsEl.appendChild(buildGroup("Local branches", local.length, function () {
+        var frag = document.createDocumentFragment();
+        local.forEach(function (b) {
+          frag.appendChild(buildLocalBranchRow(b));
+        });
+        return frag;
+      }));
+    }
+
+    // Remote branches group
+    if (parsed.remote.length) {
+      resultsEl.appendChild(buildGroup("Remote branches", parsed.remote.length, function () {
+        var frag = document.createDocumentFragment();
+        parsed.remote.forEach(function (r) {
+          frag.appendChild(buildRemoteBranchRow(r));
+        });
+        return frag;
+      }));
+    }
+
+    resultsEl.style.display = "";
+
+    // Cleanup section
+    if (deletable.length) {
+      var cmds = [];
+      cmds.push("# Delete local branches whose remote is gone:");
+      cmds.push("git branch -d " + deletable.map(function (b) { return b.name; }).join(" \\\n           "));
+      cmds.push("");
+      cmds.push("# If git refuses (unmerged), force delete with -D:");
+      cmds.push("# git branch -D " + deletable.map(function (b) { return b.name; }).join(" "));
+
+      // Prune stale remote-tracking refs
+      cmds.push("");
+      cmds.push("# Prune stale remote-tracking refs:");
+      cmds.push("git remote prune origin");
+
+      cleanupOut.textContent = cmds.join("\n");
+      cleanupEl.style.display = "";
+    } else {
+      cleanupEl.style.display = "none";
+    }
+  }
+
+  function buildGroup(title, count, childrenFn) {
+    var group = document.createElement("div");
+    group.className = "gb-group";
+
+    var header = document.createElement("div");
+    header.className = "gb-group-header";
+
+    var titleSpan = document.createElement("span");
+    titleSpan.textContent = title;
+    header.appendChild(titleSpan);
+
+    var countSpan = document.createElement("span");
+    countSpan.className = "gb-group-count";
+    countSpan.textContent = String(count);
+    header.appendChild(countSpan);
+
+    group.appendChild(header);
+    group.appendChild(childrenFn());
+    return group;
+  }
+
+  function buildLocalBranchRow(b) {
+    var row = document.createElement("div");
+    var cls = "gb-branch";
+    if (b.isCurrent) cls += " gb-branch--current";
+    else if (b.gone) cls += " gb-branch--gone";
+    else cls += " gb-branch--normal";
+    row.className = cls;
+
+    // Name
+    var name = document.createElement("span");
+    name.className = "gb-branch-name";
+    name.textContent = (b.isCurrent ? "* " : "  ") + b.name;
+    row.appendChild(name);
+
+    // Badges
+    if (b.isCurrent) row.appendChild(badge("current", "current"));
+    if (b.gone) row.appendChild(badge("gone", "remote gone"));
+    if (b.ahead > 0) row.appendChild(badge("ahead", "+" + b.ahead));
+    if (b.behind > 0) row.appendChild(badge("behind", "-" + b.behind));
+    if (b.tracking && !b.gone) {
+      var tr = badge("tracking", b.tracking);
+      row.appendChild(tr);
+    }
+
+    // Hash
+    if (b.hash) {
+      var hash = document.createElement("span");
+      hash.className = "gb-branch-hash";
+      hash.textContent = b.hash.slice(0, 7);
+      row.appendChild(hash);
+    }
+
+    return row;
+  }
+
+  function buildRemoteBranchRow(r) {
+    var row = document.createElement("div");
+    row.className = "gb-branch gb-branch--remote";
+
+    var name = document.createElement("span");
+    name.className = "gb-branch-name";
+    name.textContent = r.name;
+    row.appendChild(name);
+
+    return row;
+  }
+
+  function badge(type, text) {
+    var span = document.createElement("span");
+    span.className = "gb-badge gb-badge--" + type;
+    span.textContent = text;
+    return span;
+  }
+
+  // ── Copy cleanup ─────────────────────────────────────────────────────────
+  copyClean.addEventListener("click", function () {
+    var text = cleanupOut.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyClean.textContent = "Copied!";
+        setTimeout(function () { copyClean.textContent = "Copy"; }, 2000);
+      }).catch(function () {
+        copyClean.textContent = "Failed";
+        setTimeout(function () { copyClean.textContent = "Copy"; }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); copyClean.textContent = "Copied!"; }
+      catch (e) { copyClean.textContent = "Failed"; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyClean.textContent = "Copy"; }, 2000);
+    }
+  });
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = "";
+  }
+  function hideError() {
+    errorEl.textContent = "";
+    errorEl.style.display = "none";
+  }
+
+  inputEl.addEventListener("input", visualize);
+})();
+</script>

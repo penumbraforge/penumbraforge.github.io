@@ -1,0 +1,210 @@
+---
+title: "Ignore Patterns"
+description: "Suppress findings with .gateignore patterns, rule-specific ignores, and inline comments."
+permalink: /gate/wiki/ignore-patterns/
+---
+<h1>Ignore Patterns</h1>
+    <p class="subtitle">Suppress findings with .gateignore patterns, rule-specific ignores, and inline comments.</p>
+
+    <h2 id="gateignore-file">The .gateignore File</h2>
+
+    <p>Place a <code>.gateignore</code> file in your project root to tell Gate which files, directories, or rule-file combinations to skip. The format is gitignore-like: one glob pattern per line, with <code>#</code> for comments and blank lines ignored.</p>
+
+    <p>Gate evaluates all patterns against the file path relative to the project root. A match on any pattern causes the file (or finding within it) to be suppressed.</p>
+
+    <div class="info-box">
+      <strong>Commit .gateignore to version control.</strong> Suppression decisions affect everyone on the team. Checking in <code>.gateignore</code> ensures consistent behavior across all developer machines and CI runs.
+    </div>
+
+    <h2 id="file-glob-patterns">File Glob Patterns</h2>
+
+    <p>A bare glob pattern excludes all findings in any matching file. Gate uses standard glob syntax: <code>*</code> matches within a path segment, <code>**</code> matches across segments, and <code>?</code> matches any single character.</p>
+
+    <div class="code-block"><span class="cmt"># Skip entire directories</span>
+<span class="val">test/fixtures/**</span>
+<span class="val">tests/data/**</span>
+<span class="val">spec/support/fixtures/**</span>
+
+<span class="cmt"># Skip minified or bundled files</span>
+<span class="val">*.min.js</span>
+<span class="val">*.bundle.js</span>
+<span class="val">dist/**</span>
+<span class="val">build/**</span>
+
+<span class="cmt"># Skip vendor / third-party code</span>
+<span class="val">vendor/**</span>
+<span class="val">third_party/**</span>
+
+<span class="cmt"># Skip generated files</span>
+<span class="val">**/*.pb.go</span>
+<span class="val">generated/**</span>
+
+<span class="cmt"># Skip a specific file</span>
+<span class="val">config/credentials.yml.enc</span></div>
+
+    <p>Gate already skips <code>node_modules/</code>, <code>.git/</code>, and common binary extensions by default. You do not need to add those to <code>.gateignore</code>.</p>
+
+    <h2 id="rule-specific-patterns">Rule-Specific Patterns</h2>
+
+    <p>To suppress a specific rule for a specific file or directory without silencing all rules for that path, use the <code>[rule:rule-id]</code> prefix. Gate will skip only that rule's findings for files matching the glob.</p>
+
+    <div class="code-block"><span class="cmt"># Syntax: [rule:rule-id] glob-pattern</span>
+
+<span class="cmt"># Suppress generic-api-key in test fixtures only</span>
+<span class="kw">[rule:generic-api-key]</span> <span class="val">test/fixtures/**</span>
+
+<span class="cmt"># Suppress jwt-default-secret in example config files</span>
+<span class="kw">[rule:jwt-default-secret]</span> <span class="val">docs/examples/**</span>
+
+<span class="cmt"># Suppress stripe-test-key in the payments test suite</span>
+<span class="kw">[rule:stripe-test-key]</span> <span class="val">tests/payments/**</span>
+
+<span class="cmt"># Suppress high-entropy rule in minified assets</span>
+<span class="kw">[rule:generic-high-entropy]</span> <span class="val">*.min.js</span></div>
+
+    <p>Rule IDs match the <code>id</code> field in Gate's built-in rules or your custom rules in <code>.gaterc</code>. Run <code>gate rules</code> to list all available rule IDs.</p>
+
+    <h2 id="inline-suppression">Inline Suppression Comments</h2>
+
+    <p>For one-off suppression on a specific line, add a <code>gate-ignore</code> comment on the same line as the finding. Gate recognizes this in any language that uses <code>//</code>, <code>#</code>, or <code>--</code> line comments.</p>
+
+    <h3>Single-line suppression</h3>
+    <div class="code-block"><span class="cmt">// JavaScript / TypeScript / Go / Rust / C</span>
+const example = <span class="str">"sk_test_example_not_real"</span>; <span class="dim">// gate-ignore</span>
+
+<span class="cmt"># Python / Ruby / Shell / YAML</span>
+API_KEY = <span class="str">"test_key_not_real"</span>  <span class="dim"># gate-ignore</span>
+
+<span class="cmt">-- SQL / Lua / Haskell</span>
+<span class="str">'example_token_for_docs'</span> <span class="dim">-- gate-ignore</span></div>
+
+    <h3>Suppression with a reason</h3>
+    <p>You can add a reason after a colon. The reason is recorded in Gate's audit log and shown when the suppression is listed with <code>gate audit</code>. Document WHY you are suppressing, not just that you are.</p>
+    <div class="code-block"><span class="cmt">// Good: includes reason</span>
+const exampleKey = <span class="str">"sk_test_abc123"</span>; <span class="dim">// gate-ignore: Stripe test key, not live</span>
+
+<span class="cmt">// Also acceptable</span>
+const demoToken = <span class="str">"ghp_exampletoken"</span>; <span class="dim">// gate-ignore: documentation example only</span>
+
+<span class="cmt"># Python</span>
+SECRET_KEY = <span class="str">"django-insecure-example"</span>  <span class="dim"># gate-ignore: overridden by env in production</span></div>
+
+    <h3>Block comment suppression</h3>
+    <p>To suppress all Gate findings within a block of code, wrap it with block-style gate-ignore comments. This is useful for test helpers, seed data, or documentation examples that span multiple lines.</p>
+    <div class="code-block"><span class="cmt">/* gate-ignore */</span>
+const testCredentials = {
+  awsKey: <span class="str">"AKIAIOSFODNN7EXAMPLE"</span>,
+  awsSecret: <span class="str">"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"</span>,
+  stripeKey: <span class="str">"sk_test_EXAMPLE_NOT_REAL_000000"</span>,
+};
+<span class="cmt">/* end gate-ignore */</span></div>
+
+    <h2 id="comments-and-blank-lines">Comments and Blank Lines</h2>
+
+    <p>In <code>.gateignore</code>, lines starting with <code>#</code> are comments and are ignored. Blank lines are also ignored. Use comments liberally to explain why patterns are present.</p>
+
+    <div class="code-block"><span class="cmt"># Test fixtures contain known-fake credentials for unit tests</span>
+<span class="val">test/fixtures/**</span>
+<span class="val">spec/fixtures/**</span>
+
+<span class="cmt"># Vendor code is not our responsibility to fix</span>
+<span class="val">vendor/**</span>
+
+<span class="cmt"># Build output -- scanned at source, not output</span>
+<span class="val">dist/**</span>
+<span class="val">build/**</span>
+<span class="val">.next/**</span>
+<span class="val">.nuxt/**</span></div>
+
+    <h2 id="common-examples">Common .gateignore Examples</h2>
+
+    <h3>Node.js / TypeScript project</h3>
+    <div class="code-block"><span class="cmt"># Node.js project .gateignore</span>
+
+<span class="cmt"># Build output</span>
+<span class="val">dist/**</span>
+<span class="val">build/**</span>
+<span class="val">.next/**</span>
+
+<span class="cmt"># Bundled / minified files often contain high-entropy strings</span>
+<span class="val">*.min.js</span>
+<span class="val">*.bundle.js</span>
+<span class="kw">[rule:generic-high-entropy]</span> <span class="val">public/static/**</span>
+
+<span class="cmt"># Test fixtures with known-fake credentials</span>
+<span class="val">__tests__/fixtures/**</span>
+<span class="val">test/data/**</span>
+
+<span class="cmt"># Generated Prisma client (contains no secrets, just type defs)</span>
+<span class="val">node_modules/.prisma/**</span></div>
+
+    <h3>Python / Django project</h3>
+    <div class="code-block"><span class="cmt"># Python project .gateignore</span>
+
+<span class="cmt"># Test fixtures</span>
+<span class="val">tests/fixtures/**</span>
+<span class="val">**/conftest.py</span>
+
+<span class="cmt"># Django migrations reference settings but not real secrets</span>
+<span class="kw">[rule:django-secret-key]</span> <span class="val">*/migrations/**</span>
+
+<span class="cmt"># Documentation examples</span>
+<span class="val">docs/examples/**</span>
+
+<span class="cmt"># Coverage / cache</span>
+<span class="val">.tox/**</span>
+<span class="val">htmlcov/**</span></div>
+
+    <h3>Multi-language monorepo</h3>
+    <div class="code-block"><span class="cmt"># Monorepo .gateignore</span>
+
+<span class="cmt"># All test fixtures across all packages</span>
+<span class="val">**/test/fixtures/**</span>
+<span class="val">**/tests/data/**</span>
+<span class="val">**/spec/fixtures/**</span>
+
+<span class="cmt"># Generated code</span>
+<span class="val">**/generated/**</span>
+<span class="val">**/*.pb.go</span>
+<span class="val">**/__generated__/**</span>
+
+<span class="cmt"># Frontend build artifacts</span>
+<span class="val">packages/*/dist/**</span>
+<span class="val">apps/*/build/**</span>
+
+<span class="cmt"># Suppress Stripe test key rule across the payments test package</span>
+<span class="kw">[rule:stripe-test-key]</span> <span class="val">packages/payments/tests/**</span>
+<span class="kw">[rule:stripe-test-key]</span> <span class="val">packages/payments/fixtures/**</span></div>
+
+    <h2 id="resolution-order">Resolution Order</h2>
+
+    <p>Gate applies suppression in priority order. When multiple mechanisms match a finding, the highest-priority one wins:</p>
+
+    <ol>
+      <li><strong style="color: var(--text-1);">Inline gate-ignore comment</strong> -- highest priority, suppresses the specific line unconditionally.</li>
+      <li><strong style="color: var(--text-1);">.gateignore patterns</strong> -- file-level and rule-specific suppression. Evaluated in order; first match wins.</li>
+      <li><strong style="color: var(--text-1);">.gaterc severity overrides</strong> -- rule-wide severity adjustments or <code>ignore</code>.</li>
+      <li><strong style="color: var(--text-1);">Smart defaults</strong> -- built-in rule definitions and entropy thresholds.</li>
+    </ol>
+
+    <h2 id="best-practices">Best Practices</h2>
+
+    <p>Suppression is a last resort, not a first response. Before adding a pattern, consider whether the finding represents real risk. A few principles:</p>
+
+    <ul>
+      <li><strong style="color: var(--text-1);">Document WHY, not just WHAT.</strong> Every suppress should have a comment explaining why it is safe to ignore. "It's a test key" is a reason; "it kept firing" is not.</li>
+      <li><strong style="color: var(--text-1);">Prefer rule-specific patterns over blanket directory suppression.</strong> Suppressing <code>[rule:stripe-test-key] tests/**</code> is safer than suppressing <code>tests/**</code> entirely.</li>
+      <li><strong style="color: var(--text-1);">Review .gateignore entries periodically.</strong> Suppressed paths that no longer exist waste attention and may mask real issues if the path is reused.</li>
+      <li><strong style="color: var(--text-1);">Use inline comments for true one-offs.</strong> If only one line in a file needs suppression, prefer <code>// gate-ignore: reason</code> over a broad file pattern.</li>
+      <li><strong style="color: var(--text-1);">Test fixtures should use obviously fake credentials.</strong> Prefer <code>AKIAIOSFODNN7EXAMPLE</code> (AWS's own example key) over a real-looking key that Gate -- and every reader -- will question.</li>
+    </ul>
+
+    <div class="info-box">
+      <strong>Audit trail:</strong> Gate logs all suppressions in its audit output. Run <code>gate audit</code> to see a list of all active ignore rules, where they come from, and when they were last matched.
+    </div>
+
+    <h2 id="see-also">See Also</h2>
+    <ul>
+      <li><a href="/gate/wiki/configuration/">Configuration</a> -- .gaterc severity overrides and the full resolution order</li>
+      <li><a href="/gate/wiki/commands/">Commands Reference</a> -- gate audit, gate rules, and --ignore flags</li>
+    </ul>

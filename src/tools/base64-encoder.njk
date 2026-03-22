@@ -1,0 +1,171 @@
+---
+toolSlug: base64-encoder
+permalink: /tools/base64-encoder/
+---
+
+<div class="tool-row" style="margin-bottom:1rem; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+  <div class="tool-options" role="group" aria-label="Mode">
+    <button class="tool-option active" data-mode="encode" aria-pressed="true">Encode</button>
+    <button class="tool-option" data-mode="decode" aria-pressed="false">Decode</button>
+  </div>
+  <div class="tool-options" role="group" aria-label="Variant">
+    <button class="tool-option active" data-variant="standard" aria-pressed="true">Standard</button>
+    <button class="tool-option" data-variant="url-safe" aria-pressed="false">URL-safe</button>
+  </div>
+</div>
+
+<div class="tool-group">
+  <label for="b64-input" id="b64-input-label">Plain text to encode</label>
+  <textarea id="b64-input" rows="8" placeholder="Enter text to encode…" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  <div style="margin-top:0.25rem; font-size:0.8rem; color:var(--color-muted,#666);">
+    <span id="b64-char-count">0</span> characters
+  </div>
+</div>
+
+<div id="b64-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div class="output-area">
+  <button class="btn btn--copy" id="b64-copy" aria-label="Copy output">Copy</button>
+  <pre id="b64-output" aria-label="Base64 output"></pre>
+</div>
+
+<script>
+(function () {
+  var inputEl    = document.getElementById('b64-input');
+  var outputEl   = document.getElementById('b64-output');
+  var errorEl    = document.getElementById('b64-error');
+  var copyBtn    = document.getElementById('b64-copy');
+  var labelEl    = document.getElementById('b64-input-label');
+  var charCount  = document.getElementById('b64-char-count');
+  var modeBtns   = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
+  var variantBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-variant]'));
+
+  var currentMode    = 'encode';
+  var currentVariant = 'standard';
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+  }
+
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+
+  function toUrlSafe(b64) {
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function fromUrlSafe(b64) {
+    var s = b64.replace(/-/g, '+').replace(/_/g, '/');
+    var pad = s.length % 4;
+    if (pad === 2) s += '==';
+    else if (pad === 3) s += '=';
+    return s;
+  }
+
+  function encodeText(text) {
+    try {
+      var bytes = new TextEncoder().encode(text);
+      var binary = '';
+      bytes.forEach(function (b) { binary += String.fromCharCode(b); });
+      var b64 = btoa(binary);
+      return currentVariant === 'url-safe' ? toUrlSafe(b64) : b64;
+    } catch (e) {
+      throw new Error('Encoding failed: ' + e.message);
+    }
+  }
+
+  function decodeText(b64) {
+    try {
+      var normalized = currentVariant === 'url-safe' ? fromUrlSafe(b64) : b64;
+      var binary = atob(normalized);
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (e) {
+      throw new Error('Invalid Base64 input — ' + e.message);
+    }
+  }
+
+  function convert() {
+    var raw = inputEl.value;
+    charCount.textContent = raw.length;
+
+    if (!raw.trim()) {
+      outputEl.textContent = '';
+      hideError();
+      return;
+    }
+
+    try {
+      if (currentMode === 'encode') {
+        outputEl.textContent = encodeText(raw);
+      } else {
+        outputEl.textContent = decodeText(raw.trim());
+      }
+      hideError();
+    } catch (e) {
+      showError(e.message);
+      outputEl.textContent = '';
+    }
+  }
+
+  modeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentMode = btn.getAttribute('data-mode');
+      modeBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      labelEl.textContent = currentMode === 'encode' ? 'Plain text to encode' : 'Base64 to decode';
+      inputEl.placeholder = currentMode === 'encode' ? 'Enter text to encode\u2026' : 'Paste Base64 to decode\u2026';
+      convert();
+    });
+  });
+
+  variantBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentVariant = btn.getAttribute('data-variant');
+      variantBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      convert();
+    });
+  });
+
+  inputEl.addEventListener('input', convert);
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      }).catch(function () {
+        copyBtn.textContent = 'Failed';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; }
+      catch (e) { copyBtn.textContent = 'Failed'; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+  });
+})();
+</script>

@@ -1,0 +1,846 @@
+---
+toolSlug: nginx-config
+permalink: /tools/nginx-config/
+---
+
+<div class="tool-row" style="align-items:flex-start; gap:20px; flex-wrap:wrap;">
+  <div style="flex:0 0 220px; min-width:180px;">
+    <label style="display:block; margin-bottom:8px;">Preset</label>
+    <div class="tool-options" style="flex-direction:column; gap:4px;" role="group" aria-label="Nginx config presets">
+      <button class="tool-option active" data-preset="static" aria-pressed="true">Static Site</button>
+      <button class="tool-option" data-preset="proxy" aria-pressed="false">Reverse Proxy</button>
+      <button class="tool-option" data-preset="ssl-redirect" aria-pressed="false">SSL Redirect</button>
+      <button class="tool-option" data-preset="spa" aria-pressed="false">SPA (Single Page App)</button>
+      <button class="tool-option" data-preset="ws" aria-pressed="false">WebSocket Proxy</button>
+      <button class="tool-option" data-preset="lb" aria-pressed="false">Load Balancer</button>
+    </div>
+  </div>
+
+  <div style="flex:1; min-width:260px;">
+    <label style="display:block; margin-bottom:8px;">Configuration</label>
+    <div id="nginx-fields"></div>
+  </div>
+</div>
+
+<div class="output-area" style="margin-top:16px;">
+  <button class="btn btn--copy" id="nginx-copy" aria-label="Copy nginx config">Copy</button>
+  <pre id="nginx-output" aria-label="Generated nginx configuration" style="font-size:12px; max-height:520px; overflow:auto;"></pre>
+</div>
+
+<style>
+  .nginx-field-group {
+    margin-bottom: 12px;
+  }
+  .nginx-field-group label {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .nginx-field-group input,
+  .nginx-field-group select {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-0);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+  .nginx-field-group input:focus,
+  .nginx-field-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .nginx-field-hint {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 3px;
+  }
+  .nginx-section-label {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-3);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+    margin-top: 16px;
+  }
+  .nginx-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .nginx-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+  }
+  .nginx-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+  .nginx-toggle label {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-1);
+    cursor: pointer;
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+
+  .nginx-lb-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    align-items: center;
+  }
+  .nginx-lb-row input {
+    flex: 1;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-0);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .nginx-lb-row input:focus { outline: none; border-color: var(--accent); }
+  .nginx-lb-remove {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-3);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 14px;
+    line-height: 1;
+    transition: all 0.1s;
+  }
+  .nginx-lb-remove:hover { color: #c85050; border-color: #c85050; }
+  .nginx-lb-add {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--accent);
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 5px 10px;
+    width: 100%;
+    text-align: left;
+    transition: border-color 0.1s;
+  }
+  .nginx-lb-add:hover { border-color: var(--accent); }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var fieldsEl  = document.getElementById("nginx-fields");
+  var outputEl  = document.getElementById("nginx-output");
+  var copyBtn   = document.getElementById("nginx-copy");
+  var presetBtns = Array.prototype.slice.call(document.querySelectorAll(".tool-option[data-preset]"));
+
+  var currentPreset = "static";
+
+  // ── Field definitions per preset ─────────────────────────────────────────
+  var PRESETS = {
+    static: {
+      label: "Static Site",
+      fields: [
+        { id: "server_name", label: "Server name", type: "text", default: "example.com www.example.com", hint: "Space-separated domain names" },
+        { id: "listen", label: "Listen port", type: "text", default: "80", hint: "" },
+        { id: "root", label: "Root path", type: "text", default: "/var/www/html", hint: "Absolute path to web root" },
+        { id: "index", label: "Index file", type: "text", default: "index.html index.htm", hint: "" },
+        { id: "gzip", label: "Enable gzip compression", type: "checkbox", default: true },
+        { id: "security_headers", label: "Add security headers", type: "checkbox", default: true },
+        { id: "access_log", label: "Access log path", type: "text", default: "/var/log/nginx/access.log", hint: "" },
+        { id: "error_log", label: "Error log path", type: "text", default: "/var/log/nginx/error.log", hint: "" }
+      ]
+    },
+    proxy: {
+      label: "Reverse Proxy",
+      fields: [
+        { id: "server_name", label: "Server name", type: "text", default: "api.example.com", hint: "" },
+        { id: "listen", label: "Listen port", type: "text", default: "80", hint: "" },
+        { id: "proxy_pass", label: "Upstream URL", type: "text", default: "http://localhost:3000", hint: "Your application server URL" },
+        { id: "location", label: "Location", type: "text", default: "/", hint: "Path prefix to proxy" },
+        { id: "proxy_timeout", label: "Proxy timeout (s)", type: "text", default: "60", hint: "" },
+        { id: "client_max_body", label: "Max body size", type: "text", default: "10m", hint: "e.g. 1m, 10m, 100m" },
+        { id: "gzip", label: "Enable gzip compression", type: "checkbox", default: true },
+        { id: "security_headers", label: "Add security headers", type: "checkbox", default: true },
+        { id: "buffering", label: "Enable proxy buffering", type: "checkbox", default: true }
+      ]
+    },
+    "ssl-redirect": {
+      label: "SSL Redirect (HTTP → HTTPS)",
+      fields: [
+        { id: "server_name", label: "Server name", type: "text", default: "example.com www.example.com", hint: "" },
+        { id: "ssl_cert", label: "SSL certificate path", type: "text", default: "/etc/letsencrypt/live/example.com/fullchain.pem", hint: "Path to your certificate" },
+        { id: "ssl_key", label: "SSL private key path", type: "text", default: "/etc/letsencrypt/live/example.com/privkey.pem", hint: "Path to your private key" },
+        { id: "root", label: "Root path", type: "text", default: "/var/www/html", hint: "" },
+        { id: "hsts_max_age", label: "HSTS max-age (seconds)", type: "text", default: "31536000", hint: "1 year = 31536000" },
+        { id: "ssl_protocols", label: "SSL protocols", type: "text", default: "TLSv1.2 TLSv1.3", hint: "" },
+        { id: "security_headers", label: "Add security headers", type: "checkbox", default: true },
+        { id: "gzip", label: "Enable gzip compression", type: "checkbox", default: true }
+      ]
+    },
+    spa: {
+      label: "SPA (Single Page App)",
+      fields: [
+        { id: "server_name", label: "Server name", type: "text", default: "app.example.com", hint: "" },
+        { id: "listen", label: "Listen port", type: "text", default: "80", hint: "" },
+        { id: "root", label: "Build output path", type: "text", default: "/var/www/app/dist", hint: "Path to your build output" },
+        { id: "index", label: "Index file", type: "text", default: "index.html", hint: "" },
+        { id: "api_proxy", label: "API proxy path", type: "text", default: "/api", hint: "Leave empty to skip" },
+        { id: "api_upstream", label: "API upstream URL", type: "text", default: "http://localhost:3001", hint: "" },
+        { id: "cache_assets", label: "Cache static assets aggressively", type: "checkbox", default: true },
+        { id: "gzip", label: "Enable gzip compression", type: "checkbox", default: true },
+        { id: "security_headers", label: "Add security headers", type: "checkbox", default: true }
+      ]
+    },
+    ws: {
+      label: "WebSocket Proxy",
+      fields: [
+        { id: "server_name", label: "Server name", type: "text", default: "ws.example.com", hint: "" },
+        { id: "listen", label: "Listen port", type: "text", default: "80", hint: "" },
+        { id: "proxy_pass", label: "WebSocket upstream URL", type: "text", default: "http://localhost:8080", hint: "Your WebSocket server" },
+        { id: "location", label: "WebSocket location", type: "text", default: "/ws", hint: "Path for WebSocket connections" },
+        { id: "http_location", label: "HTTP location", type: "text", default: "/", hint: "Path for regular HTTP" },
+        { id: "http_upstream", label: "HTTP upstream URL", type: "text", default: "http://localhost:3000", hint: "Your HTTP app server" },
+        { id: "proxy_timeout", label: "Read timeout (s)", type: "text", default: "3600", hint: "Long timeout for WebSocket connections" },
+        { id: "security_headers", label: "Add security headers", type: "checkbox", default: true }
+      ]
+    },
+    lb: {
+      label: "Load Balancer",
+      fields: [
+        { id: "server_name", label: "Server name", type: "text", default: "example.com", hint: "" },
+        { id: "listen", label: "Listen port", type: "text", default: "80", hint: "" },
+        { id: "upstream_name", label: "Upstream group name", type: "text", default: "backend", hint: "Name for the upstream block" },
+        { id: "lb_method", label: "Load balancing method", type: "select", options: ["round-robin (default)", "least_conn", "ip_hash", "random"], default: "round-robin (default)" },
+        { id: "location", label: "Location", type: "text", default: "/", hint: "" },
+        { id: "client_max_body", label: "Max body size", type: "text", default: "10m", hint: "" },
+        { id: "keepalive", label: "Keepalive connections", type: "text", default: "32", hint: "Per worker process" },
+        { id: "security_headers", label: "Add security headers", type: "checkbox", default: true },
+        { id: "gzip", label: "Enable gzip compression", type: "checkbox", default: true }
+      ]
+    }
+  };
+
+  var vals = {};
+  var lbServers = ["127.0.0.1:3001", "127.0.0.1:3002", "127.0.0.1:3003"];
+
+  // ── Build fields UI ───────────────────────────────────────────────────────
+  function buildFields(preset) {
+    while (fieldsEl.firstChild) fieldsEl.removeChild(fieldsEl.firstChild);
+    vals = {};
+
+    var fields = PRESETS[preset].fields;
+
+    fields.forEach(function (f) {
+      var group = document.createElement("div");
+      group.className = "nginx-field-group";
+
+      var label = document.createElement("label");
+      label.setAttribute("for", "nf-" + f.id);
+      label.textContent = f.label;
+
+      if (f.type === "checkbox") {
+        var toggle = document.createElement("div");
+        toggle.className = "nginx-toggle";
+
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.id = "nf-" + f.id;
+        cb.checked = f.default !== false;
+        vals[f.id] = cb.checked;
+
+        var lbl2 = document.createElement("label");
+        lbl2.setAttribute("for", "nf-" + f.id);
+        lbl2.textContent = f.label;
+
+        cb.addEventListener("change", function () {
+          vals[f.id] = cb.checked;
+          generate();
+        });
+
+        toggle.appendChild(cb);
+        toggle.appendChild(lbl2);
+        group.appendChild(toggle);
+
+      } else if (f.type === "select") {
+        group.appendChild(label);
+        var sel = document.createElement("select");
+        sel.id = "nf-" + f.id;
+        f.options.forEach(function (opt) {
+          var o = document.createElement("option");
+          o.textContent = opt;
+          o.value = opt;
+          if (opt === f.default) o.selected = true;
+          sel.appendChild(o);
+        });
+        vals[f.id] = f.default;
+        sel.addEventListener("change", function () {
+          vals[f.id] = sel.value;
+          generate();
+        });
+        group.appendChild(sel);
+
+      } else {
+        group.appendChild(label);
+        var inp = document.createElement("input");
+        inp.type = "text";
+        inp.id = "nf-" + f.id;
+        inp.value = f.default || "";
+        inp.autocomplete = "off";
+        vals[f.id] = inp.value;
+
+        if (f.hint) {
+          var hint = document.createElement("div");
+          hint.className = "nginx-field-hint";
+          hint.textContent = f.hint;
+          group.appendChild(inp);
+          group.appendChild(hint);
+        } else {
+          group.appendChild(inp);
+        }
+
+        inp.addEventListener("input", function () {
+          vals[f.id] = inp.value;
+          generate();
+        });
+      }
+
+      fieldsEl.appendChild(group);
+    });
+
+    // Load balancer servers
+    if (preset === "lb") {
+      var secLabel = document.createElement("div");
+      secLabel.className = "nginx-section-label";
+      secLabel.textContent = "Upstream Servers";
+      fieldsEl.appendChild(secLabel);
+
+      var serversDiv = document.createElement("div");
+      serversDiv.id = "nginx-lb-servers";
+      fieldsEl.appendChild(serversDiv);
+
+      var addBtn = document.createElement("button");
+      addBtn.className = "nginx-lb-add";
+      addBtn.textContent = "+ Add server";
+      addBtn.addEventListener("click", function () {
+        lbServers.push("127.0.0.1:300" + (lbServers.length + 1));
+        renderLbServers(serversDiv);
+        generate();
+      });
+      fieldsEl.appendChild(addBtn);
+
+      renderLbServers(serversDiv);
+    }
+  }
+
+  function renderLbServers(container) {
+    while (container.firstChild) container.removeChild(container.firstChild);
+    lbServers.forEach(function (srv, idx) {
+      var row = document.createElement("div");
+      row.className = "nginx-lb-row";
+
+      var inp = document.createElement("input");
+      inp.type = "text";
+      inp.value = srv;
+      inp.placeholder = "127.0.0.1:3001";
+      inp.autocomplete = "off";
+      inp.addEventListener("input", function () {
+        lbServers[idx] = inp.value;
+        generate();
+      });
+
+      var rm = document.createElement("button");
+      rm.className = "nginx-lb-remove";
+      rm.textContent = "\u00d7";
+      rm.setAttribute("aria-label", "Remove server");
+      rm.addEventListener("click", function () {
+        lbServers.splice(idx, 1);
+        renderLbServers(container);
+        generate();
+      });
+      if (lbServers.length <= 1) rm.disabled = true;
+
+      row.appendChild(inp);
+      row.appendChild(rm);
+      container.appendChild(row);
+    });
+  }
+
+  // ── Config generators ─────────────────────────────────────────────────────
+  function securityHeaders(indent) {
+    var i = indent || "    ";
+    return [
+      i + "# Security headers",
+      i + "add_header X-Frame-Options \"SAMEORIGIN\" always;",
+      i + "add_header X-Content-Type-Options \"nosniff\" always;",
+      i + "add_header X-XSS-Protection \"1; mode=block\" always;",
+      i + "add_header Referrer-Policy \"strict-origin-when-cross-origin\" always;",
+      i + "add_header Permissions-Policy \"camera=(), microphone=(), geolocation=()\" always;"
+    ].join("\n");
+  }
+
+  function gzipBlock() {
+    return [
+      "    # Gzip compression",
+      "    gzip on;",
+      "    gzip_vary on;",
+      "    gzip_proxied any;",
+      "    gzip_comp_level 6;",
+      "    gzip_types text/plain text/css text/xml application/json application/javascript",
+      "               application/rss+xml application/atom+xml image/svg+xml;",
+      "    gzip_min_length 1024;"
+    ].join("\n");
+  }
+
+  function v(key, fallback) {
+    var val = vals[key];
+    if (val === undefined || val === null || val === "") return fallback || "";
+    return val;
+  }
+  function bool(key) { return vals[key] === true || vals[key] === "true"; }
+
+  function generateStatic() {
+    var L = [
+      "server {",
+      "    listen " + v("listen", "80") + ";",
+      "    listen [::]:" + v("listen", "80") + ";",
+      "",
+      "    server_name " + v("server_name", "example.com") + ";",
+      "",
+      "    root " + v("root", "/var/www/html") + ";",
+      "    index " + v("index", "index.html index.htm") + ";",
+      "",
+      "    access_log " + v("access_log", "/var/log/nginx/access.log") + ";",
+      "    error_log  " + v("error_log", "/var/log/nginx/error.log") + ";",
+      ""
+    ];
+
+    if (bool("gzip")) { L.push(gzipBlock()); L.push(""); }
+    if (bool("security_headers")) { L.push(securityHeaders("    ")); L.push(""); }
+
+    L.push(
+      "    location / {",
+      "        try_files $uri $uri/ =404;",
+      "    }",
+      "",
+      "    # Deny access to hidden files",
+      "    location ~ /\\. {",
+      "        deny all;",
+      "        access_log off;",
+      "        log_not_found off;",
+      "    }",
+      "}"
+    );
+    return L.join("\n");
+  }
+
+  function generateProxy() {
+    var L = [
+      "server {",
+      "    listen " + v("listen", "80") + ";",
+      "    listen [::]:" + v("listen", "80") + ";",
+      "",
+      "    server_name " + v("server_name", "api.example.com") + ";",
+      "",
+      "    client_max_body_size " + v("client_max_body", "10m") + ";",
+      ""
+    ];
+
+    if (bool("gzip")) { L.push(gzipBlock()); L.push(""); }
+    if (bool("security_headers")) { L.push(securityHeaders("    ")); L.push(""); }
+
+    var loc = v("location", "/");
+    var upstream = v("proxy_pass", "http://localhost:3000");
+    var timeout = v("proxy_timeout", "60");
+
+    L.push(
+      "    location " + loc + " {",
+      "        proxy_pass          " + upstream + ";",
+      "        proxy_http_version  1.1;",
+      "",
+      "        # Pass original headers",
+      "        proxy_set_header    Host              $host;",
+      "        proxy_set_header    X-Real-IP         $remote_addr;",
+      "        proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;",
+      "        proxy_set_header    X-Forwarded-Proto $scheme;",
+      ""
+    );
+
+    if (bool("buffering")) {
+      L.push(
+        "        # Buffering",
+        "        proxy_buffering         on;",
+        "        proxy_buffer_size       8k;",
+        "        proxy_buffers           8 8k;",
+        "        proxy_busy_buffers_size 16k;",
+        ""
+      );
+    } else {
+      L.push(
+        "        proxy_buffering off;",
+        ""
+      );
+    }
+
+    L.push(
+      "        # Timeouts",
+      "        proxy_connect_timeout " + timeout + "s;",
+      "        proxy_send_timeout    " + timeout + "s;",
+      "        proxy_read_timeout    " + timeout + "s;",
+      "    }",
+      "",
+      "    # Deny access to hidden files",
+      "    location ~ /\\. {",
+      "        deny all;",
+      "    }",
+      "}"
+    );
+    return L.join("\n");
+  }
+
+  function generateSslRedirect() {
+    var serverName = v("server_name", "example.com");
+    var cert = v("ssl_cert", "/etc/letsencrypt/live/example.com/fullchain.pem");
+    var key  = v("ssl_key",  "/etc/letsencrypt/live/example.com/privkey.pem");
+    var protocols = v("ssl_protocols", "TLSv1.2 TLSv1.3");
+    var hstsAge = v("hsts_max_age", "31536000");
+
+    var L = [
+      "# HTTP — redirect all traffic to HTTPS",
+      "server {",
+      "    listen 80;",
+      "    listen [::]:80;",
+      "",
+      "    server_name " + serverName + ";",
+      "",
+      "    # Allow Let's Encrypt ACME challenges",
+      "    location /.well-known/acme-challenge/ {",
+      "        root /var/www/certbot;",
+      "    }",
+      "",
+      "    location / {",
+      "        return 301 https://$host$request_uri;",
+      "    }",
+      "}",
+      "",
+      "# HTTPS — serve content",
+      "server {",
+      "    listen 443 ssl;",
+      "    listen [::]:443 ssl;",
+      "    http2 on;",
+      "",
+      "    server_name " + serverName + ";",
+      "",
+      "    # SSL certificates",
+      "    ssl_certificate     " + cert + ";",
+      "    ssl_certificate_key " + key + ";",
+      "",
+      "    # SSL configuration",
+      "    ssl_protocols             " + protocols + ";",
+      "    ssl_prefer_server_ciphers off;",
+      "    ssl_ciphers               ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;",
+      "    ssl_session_timeout       1d;",
+      "    ssl_session_cache         shared:SSL:10m;",
+      "    ssl_session_tickets       off;",
+      "",
+      "    # OCSP stapling",
+      "    ssl_stapling            on;",
+      "    ssl_stapling_verify     on;",
+      "    resolver                8.8.8.8 8.8.4.4 valid=300s;",
+      "    resolver_timeout        5s;",
+      ""
+    ];
+
+    if (bool("security_headers")) {
+      L.push(
+        "    # Security headers",
+        "    add_header X-Frame-Options \"SAMEORIGIN\" always;",
+        "    add_header X-Content-Type-Options \"nosniff\" always;",
+        "    add_header X-XSS-Protection \"1; mode=block\" always;",
+        "    add_header Referrer-Policy \"strict-origin-when-cross-origin\" always;",
+        "    add_header Strict-Transport-Security \"max-age=" + hstsAge + "; includeSubDomains\" always;",
+        ""
+      );
+    }
+
+    if (bool("gzip")) { L.push(gzipBlock()); L.push(""); }
+
+    L.push(
+      "    root " + v("root", "/var/www/html") + ";",
+      "    index index.html;",
+      "",
+      "    location / {",
+      "        try_files $uri $uri/ =404;",
+      "    }",
+      "",
+      "    location ~ /\\. {",
+      "        deny all;",
+      "    }",
+      "}"
+    );
+    return L.join("\n");
+  }
+
+  function generateSpa() {
+    var apiPath = v("api_proxy", "");
+    var L = [
+      "server {",
+      "    listen " + v("listen", "80") + ";",
+      "    listen [::]:" + v("listen", "80") + ";",
+      "",
+      "    server_name " + v("server_name", "app.example.com") + ";",
+      "",
+      "    root " + v("root", "/var/www/app/dist") + ";",
+      "    index " + v("index", "index.html") + ";",
+      ""
+    ];
+
+    if (bool("gzip")) { L.push(gzipBlock()); L.push(""); }
+    if (bool("security_headers")) { L.push(securityHeaders("    ")); L.push(""); }
+
+    if (apiPath && bool("api_proxy") !== false) {
+      L.push(
+        "    # API proxy — forward to backend",
+        "    location " + apiPath + " {",
+        "        proxy_pass          " + v("api_upstream", "http://localhost:3001") + ";",
+        "        proxy_http_version  1.1;",
+        "        proxy_set_header    Host              $host;",
+        "        proxy_set_header    X-Real-IP         $remote_addr;",
+        "        proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;",
+        "        proxy_set_header    X-Forwarded-Proto $scheme;",
+        "    }",
+        ""
+      );
+    }
+
+    if (bool("cache_assets")) {
+      L.push(
+        "    # Long-cache hashed static assets",
+        "    location ~* \\.(js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|ico|webp)$ {",
+        "        expires 1y;",
+        "        add_header Cache-Control \"public, immutable\";",
+        "        access_log off;",
+        "    }",
+        ""
+      );
+    }
+
+    L.push(
+      "    # SPA fallback — send all routes to index.html",
+      "    location / {",
+      "        try_files $uri $uri/ /index.html;",
+      "    }",
+      "",
+      "    location ~ /\\. {",
+      "        deny all;",
+      "    }",
+      "}"
+    );
+    return L.join("\n");
+  }
+
+  function generateWs() {
+    var L = [
+      "map $http_upgrade $connection_upgrade {",
+      "    default upgrade;",
+      "    ''      close;",
+      "}",
+      "",
+      "server {",
+      "    listen " + v("listen", "80") + ";",
+      "    listen [::]:" + v("listen", "80") + ";",
+      "",
+      "    server_name " + v("server_name", "ws.example.com") + ";",
+      ""
+    ];
+
+    if (bool("security_headers")) { L.push(securityHeaders("    ")); L.push(""); }
+
+    var wsLoc  = v("location", "/ws");
+    var httpLoc = v("http_location", "/");
+    var wsUp   = v("proxy_pass", "http://localhost:8080");
+    var httpUp = v("http_upstream", "http://localhost:3000");
+    var timeout = v("proxy_timeout", "3600");
+
+    L.push(
+      "    # WebSocket endpoint",
+      "    location " + wsLoc + " {",
+      "        proxy_pass          " + wsUp + ";",
+      "        proxy_http_version  1.1;",
+      "",
+      "        # WebSocket upgrade headers",
+      "        proxy_set_header    Upgrade           $http_upgrade;",
+      "        proxy_set_header    Connection        $connection_upgrade;",
+      "        proxy_set_header    Host              $host;",
+      "        proxy_set_header    X-Real-IP         $remote_addr;",
+      "        proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;",
+      "",
+      "        # Long timeout for persistent WebSocket connections",
+      "        proxy_read_timeout  " + timeout + "s;",
+      "        proxy_send_timeout  " + timeout + "s;",
+      "    }",
+      "",
+      "    # Regular HTTP traffic",
+      "    location " + httpLoc + " {",
+      "        proxy_pass          " + httpUp + ";",
+      "        proxy_http_version  1.1;",
+      "        proxy_set_header    Host              $host;",
+      "        proxy_set_header    X-Real-IP         $remote_addr;",
+      "        proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;",
+      "        proxy_set_header    X-Forwarded-Proto $scheme;",
+      "    }",
+      "}"
+    );
+    return L.join("\n");
+  }
+
+  function generateLb() {
+    var methodLine = "";
+    var m = v("lb_method", "round-robin (default)");
+    if (m === "least_conn") methodLine = "    least_conn;";
+    else if (m === "ip_hash") methodLine = "    ip_hash;";
+    else if (m === "random") methodLine = "    random;";
+
+    var upstreamName = v("upstream_name", "backend");
+    var keepalive = v("keepalive", "32");
+
+    var L = [
+      "upstream " + upstreamName + " {",
+    ];
+
+    if (methodLine) L.push(methodLine);
+
+    lbServers.forEach(function (srv) {
+      if (srv.trim()) L.push("    server " + srv.trim() + ";");
+    });
+
+    L.push(
+      "",
+      "    keepalive " + keepalive + ";",
+      "}",
+      "",
+      "server {",
+      "    listen " + v("listen", "80") + ";",
+      "    listen [::]:" + v("listen", "80") + ";",
+      "",
+      "    server_name " + v("server_name", "example.com") + ";",
+      "",
+      "    client_max_body_size " + v("client_max_body", "10m") + ";",
+      ""
+    );
+
+    if (bool("gzip")) { L.push(gzipBlock()); L.push(""); }
+    if (bool("security_headers")) { L.push(securityHeaders("    ")); L.push(""); }
+
+    L.push(
+      "    location " + v("location", "/") + " {",
+      "        proxy_pass          http://" + upstreamName + ";",
+      "        proxy_http_version  1.1;",
+      "        proxy_set_header    Connection        \"\";",
+      "        proxy_set_header    Host              $host;",
+      "        proxy_set_header    X-Real-IP         $remote_addr;",
+      "        proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;",
+      "        proxy_set_header    X-Forwarded-Proto $scheme;",
+      "",
+      "        # Health check",
+      "        proxy_next_upstream error timeout http_502 http_503 http_504;",
+      "    }",
+      "",
+      "    # Health check endpoint",
+      "    location /nginx-health {",
+      "        access_log off;",
+      "        return 200 'OK';",
+      "        add_header Content-Type text/plain;",
+      "    }",
+      "}"
+    );
+    return L.join("\n");
+  }
+
+  // ── Generate ──────────────────────────────────────────────────────────────
+  function generate() {
+    var config;
+    try {
+      if (currentPreset === "static")       config = generateStatic();
+      else if (currentPreset === "proxy")   config = generateProxy();
+      else if (currentPreset === "ssl-redirect") config = generateSslRedirect();
+      else if (currentPreset === "spa")     config = generateSpa();
+      else if (currentPreset === "ws")      config = generateWs();
+      else if (currentPreset === "lb")      config = generateLb();
+      else config = "# Unknown preset";
+    } catch (e) {
+      config = "# Error generating config: " + e.message;
+    }
+    outputEl.textContent = config;
+  }
+
+  // ── Preset switching ──────────────────────────────────────────────────────
+  presetBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      presetBtns.forEach(function (b) {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+      currentPreset = btn.getAttribute("data-preset");
+
+      if (currentPreset === "lb") {
+        lbServers = ["127.0.0.1:3001", "127.0.0.1:3002", "127.0.0.1:3003"];
+      }
+
+      buildFields(currentPreset);
+      generate();
+    });
+  });
+
+  // ── Copy ──────────────────────────────────────────────────────────────────
+  copyBtn.addEventListener("click", function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = "Copied!";
+        setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); copyBtn.textContent = "Copied!"; } catch (e) {}
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+    }
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  buildFields(currentPreset);
+  generate();
+})();
+</script>

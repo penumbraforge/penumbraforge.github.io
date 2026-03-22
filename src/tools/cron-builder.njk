@@ -1,0 +1,426 @@
+---
+toolSlug: cron-builder
+permalink: /tools/cron-builder/
+---
+
+<div class="tool-group">
+  <label for="cron-expression">Cron Expression</label>
+  <input type="text" id="cron-expression" value="* * * * *" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="font-family:var(--font-mono);font-size:15px;letter-spacing:0.04em;">
+</div>
+
+<div id="cron-description" style="margin-bottom:16px;padding:10px 14px;border-radius:4px;background:var(--surface-0);border:1px solid var(--border);font-size:13px;color:var(--text-1);min-height:38px;" aria-live="polite"></div>
+
+<div class="tool-row" style="gap:8px;flex-wrap:wrap;">
+  <div class="tool-group" style="flex:1;min-width:120px;margin-bottom:0;">
+    <label for="cron-minute" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Minute</label>
+    <input type="text" id="cron-minute" value="*" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
+    <select id="cron-minute-helper" style="margin-top:4px;width:100%;font-size:12px;">
+      <option value="">— quick pick —</option>
+      <option value="*">Every minute (*)</option>
+      <option value="0">Top of hour (0)</option>
+      <option value="*/5">Every 5 min (*/5)</option>
+      <option value="*/10">Every 10 min (*/10)</option>
+      <option value="*/15">Every 15 min (*/15)</option>
+      <option value="*/30">Every 30 min (*/30)</option>
+    </select>
+  </div>
+  <div class="tool-group" style="flex:1;min-width:120px;margin-bottom:0;">
+    <label for="cron-hour" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Hour</label>
+    <input type="text" id="cron-hour" value="*" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
+    <select id="cron-hour-helper" style="margin-top:4px;width:100%;font-size:12px;">
+      <option value="">— quick pick —</option>
+      <option value="*">Every hour (*)</option>
+      <option value="0">Midnight (0)</option>
+      <option value="9">9am (9)</option>
+      <option value="12">Noon (12)</option>
+      <option value="17">5pm (17)</option>
+      <option value="*/6">Every 6h (*/6)</option>
+    </select>
+  </div>
+  <div class="tool-group" style="flex:1;min-width:120px;margin-bottom:0;">
+    <label for="cron-dom" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Day of Month</label>
+    <input type="text" id="cron-dom" value="*" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
+    <select id="cron-dom-helper" style="margin-top:4px;width:100%;font-size:12px;">
+      <option value="">— quick pick —</option>
+      <option value="*">Every day (*)</option>
+      <option value="1">1st of month (1)</option>
+      <option value="15">15th (15)</option>
+      <option value="L">Last day (L)</option>
+    </select>
+  </div>
+  <div class="tool-group" style="flex:1;min-width:120px;margin-bottom:0;">
+    <label for="cron-month" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Month</label>
+    <input type="text" id="cron-month" value="*" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
+    <select id="cron-month-helper" style="margin-top:4px;width:100%;font-size:12px;">
+      <option value="">— quick pick —</option>
+      <option value="*">Every month (*)</option>
+      <option value="1">January (1)</option>
+      <option value="6">June (6)</option>
+      <option value="12">December (12)</option>
+      <option value="*/3">Quarterly (*/3)</option>
+    </select>
+  </div>
+  <div class="tool-group" style="flex:1;min-width:120px;margin-bottom:0;">
+    <label for="cron-dow" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Day of Week</label>
+    <input type="text" id="cron-dow" value="*" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
+    <select id="cron-dow-helper" style="margin-top:4px;width:100%;font-size:12px;">
+      <option value="">— quick pick —</option>
+      <option value="*">Every day (*)</option>
+      <option value="1">Monday (1)</option>
+      <option value="5">Friday (5)</option>
+      <option value="6">Saturday (6)</option>
+      <option value="0">Sunday (0)</option>
+      <option value="1-5">Weekdays (1-5)</option>
+      <option value="0,6">Weekends (0,6)</option>
+    </select>
+  </div>
+</div>
+
+<div class="tool-row" style="align-items:center;flex-wrap:wrap;gap:8px;">
+  <span style="font-size:12px;color:var(--text-2);margin-right:4px;">Presets:</span>
+  <button class="tool-option" data-preset="* * * * *">Every minute</button>
+  <button class="tool-option" data-preset="0 * * * *">Hourly</button>
+  <button class="tool-option" data-preset="0 0 * * *">Daily midnight</button>
+  <button class="tool-option" data-preset="0 9 * * 1">Mon 9am</button>
+  <button class="tool-option" data-preset="0 0 1 * *">Monthly 1st</button>
+  <button class="tool-option" data-preset="0 9 * * 1-5">Weekdays 9am</button>
+</div>
+
+<div class="output-area" style="margin-top:4px;">
+  <button class="btn btn--copy" id="cron-copy" aria-label="Copy cron expression">Copy</button>
+  <div style="padding-right:60px;">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);margin-bottom:6px;">Expression</div>
+    <div id="cron-output" style="font-family:var(--font-mono);font-size:15px;letter-spacing:0.04em;margin-bottom:12px;"></div>
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);margin-bottom:6px;">Next 5 executions</div>
+    <div id="cron-next-times" style="font-family:var(--font-mono);font-size:12px;line-height:1.7;color:var(--text-1);"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var exprEl       = document.getElementById('cron-expression');
+  var descEl       = document.getElementById('cron-description');
+  var outputEl     = document.getElementById('cron-output');
+  var nextTimesEl  = document.getElementById('cron-next-times');
+  var copyBtn      = document.getElementById('cron-copy');
+
+  var fields = [
+    { inputId: 'cron-minute', helperId: 'cron-minute-helper' },
+    { inputId: 'cron-hour',   helperId: 'cron-hour-helper' },
+    { inputId: 'cron-dom',    helperId: 'cron-dom-helper' },
+    { inputId: 'cron-month',  helperId: 'cron-month-helper' },
+    { inputId: 'cron-dow',    helperId: 'cron-dow-helper' }
+  ];
+
+  fields.forEach(function (f) {
+    f.input  = document.getElementById(f.inputId);
+    f.helper = document.getElementById(f.helperId);
+  });
+
+  var MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var DAYS       = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  /* ---------- parse helpers ---------- */
+
+  function parseField(val, min, max) {
+    /* Returns sorted array of concrete values, or null if invalid/wildcard */
+    val = val.trim();
+    if (val === '*') return null;
+
+    var result = [];
+
+    var parts = val.split(',');
+    for (var p = 0; p < parts.length; p++) {
+      var part = parts[p].trim();
+      var stepMatch = part.match(/^(.+)\/(\d+)$/);
+      if (stepMatch) {
+        var rangeStr = stepMatch[1];
+        var step = parseInt(stepMatch[2], 10);
+        if (!step) return null;
+        var start = rangeStr === '*' ? min : parseInt(rangeStr, 10);
+        if (isNaN(start)) return null;
+        for (var v = start; v <= max; v += step) result.push(v);
+      } else {
+        var rangeParts = part.split('-');
+        if (rangeParts.length === 2) {
+          var lo = parseInt(rangeParts[0], 10);
+          var hi = parseInt(rangeParts[1], 10);
+          if (isNaN(lo) || isNaN(hi) || lo > hi) return null;
+          for (var v2 = lo; v2 <= hi; v2++) result.push(v2);
+        } else {
+          var n = parseInt(part, 10);
+          if (isNaN(n)) return null;
+          result.push(n);
+        }
+      }
+    }
+
+    /* validate range */
+    for (var i = 0; i < result.length; i++) {
+      if (result[i] < min || result[i] > max) return null;
+    }
+
+    result.sort(function (a, b) { return a - b; });
+    /* deduplicate */
+    var deduped = [];
+    for (var j = 0; j < result.length; j++) {
+      if (j === 0 || result[j] !== result[j - 1]) deduped.push(result[j]);
+    }
+    return deduped;
+  }
+
+  function isWildcard(val) { return val.trim() === '*'; }
+
+  /* ---------- description ---------- */
+
+  function describeField(val, singular, plural, namesFn) {
+    val = val.trim();
+    if (val === '*') return null; /* means "every" — handle in caller */
+
+    var parsed = parseField(val, 0, 59);
+    if (!parsed) return val; /* fallback: return raw */
+
+    if (namesFn) {
+      return parsed.map(namesFn).join(', ');
+    }
+    if (parsed.length === 1) return parsed[0].toString();
+    return parsed.join(', ');
+  }
+
+  function padTwo(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function buildDescription(minute, hour, dom, month, dow) {
+    var parts = [];
+
+    /* Time part */
+    var minuteParsed = parseField(minute, 0, 59);
+    var hourParsed   = parseField(hour, 0, 23);
+
+    if (isWildcard(minute) && isWildcard(hour)) {
+      parts.push('Every minute');
+    } else if (isWildcard(minute) && hourParsed) {
+      parts.push('Every minute of hour ' + hourParsed.map(padTwo).join(', '));
+    } else if (minuteParsed && isWildcard(hour)) {
+      if (minute.indexOf('*/') === 0) {
+        var step = minute.slice(2);
+        parts.push('Every ' + step + ' minute' + (step === '1' ? '' : 's'));
+      } else {
+        parts.push('At minute ' + minuteParsed.join(', ') + ' of every hour');
+      }
+    } else if (minuteParsed && hourParsed) {
+      var times = [];
+      for (var h = 0; h < hourParsed.length; h++) {
+        for (var m = 0; m < minuteParsed.length; m++) {
+          times.push(padTwo(hourParsed[h]) + ':' + padTwo(minuteParsed[m]));
+        }
+      }
+      parts.push('At ' + times.join(', '));
+    } else {
+      parts.push('At ' + (isWildcard(minute) ? 'every minute' : minute) + ' past hour ' + (isWildcard(hour) ? 'every hour' : hour));
+    }
+
+    /* Day-of-week part */
+    if (!isWildcard(dow)) {
+      var dowParsed = parseField(dow, 0, 6);
+      if (dow.indexOf('-') !== -1 && dow === '1-5') {
+        parts.push('on weekdays');
+      } else if (dow === '0,6' || dow === '6,0') {
+        parts.push('on weekends');
+      } else if (dowParsed) {
+        parts.push('on every ' + dowParsed.map(function (d) { return DAYS[d]; }).join(', '));
+      } else {
+        parts.push('on ' + dow);
+      }
+    }
+
+    /* Day-of-month part */
+    if (!isWildcard(dom) && isWildcard(dow)) {
+      var domParsed = parseField(dom, 1, 31);
+      if (domParsed) {
+        parts.push('on day ' + domParsed.join(', ') + ' of the month');
+      }
+    }
+
+    /* Month part */
+    if (!isWildcard(month)) {
+      var monthParsed = parseField(month, 1, 12);
+      if (monthParsed) {
+        parts.push('in ' + monthParsed.map(function (m) { return MONTHS[m - 1]; }).join(', '));
+      } else if (month.indexOf('*/') === 0) {
+        var mstep = month.slice(2);
+        parts.push('every ' + mstep + ' month' + (mstep === '1' ? '' : 's'));
+      }
+    }
+
+    return parts.join(' ');
+  }
+
+  /* ---------- next execution times ---------- */
+
+  function matchesField(val, n, min, max) {
+    if (val.trim() === '*') return true;
+    var parsed = parseField(val, min, max);
+    if (!parsed) return false;
+    for (var i = 0; i < parsed.length; i++) {
+      if (parsed[i] === n) return true;
+    }
+    return false;
+  }
+
+  function computeNextTimes(minute, hour, dom, month, dow, count) {
+    var now = new Date();
+    /* start from next minute */
+    var cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes() + 1, 0, 0);
+
+    var results = [];
+    var maxIter = 527040; /* 1 year of minutes */
+    var iter = 0;
+
+    while (results.length < count && iter < maxIter) {
+      iter++;
+      var mn   = cursor.getMinutes();
+      var hr   = cursor.getHours();
+      var d    = cursor.getDate();
+      var mo   = cursor.getMonth() + 1; /* 1-12 */
+      var dw   = cursor.getDay();       /* 0-6 */
+
+      if (
+        matchesField(minute, mn, 0, 59) &&
+        matchesField(hour,   hr, 0, 23) &&
+        matchesField(dom,    d,  1, 31) &&
+        matchesField(month,  mo, 1, 12) &&
+        matchesField(dow,    dw, 0, 6)
+      ) {
+        results.push(new Date(cursor));
+      }
+
+      cursor = new Date(cursor.getTime() + 60000);
+    }
+
+    return results;
+  }
+
+  function formatDate(d) {
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return days[d.getDay()] + ' ' +
+      d.getFullYear() + '-' + padTwo(d.getMonth() + 1) + '-' + padTwo(d.getDate()) +
+      ' ' + padTwo(d.getHours()) + ':' + padTwo(d.getMinutes());
+  }
+
+  /* ---------- sync logic ---------- */
+
+  var _updatingFromExpr   = false;
+  var _updatingFromFields = false;
+
+  function fieldsToExpr() {
+    return fields.map(function (f) { return f.input.value.trim() || '*'; }).join(' ');
+  }
+
+  function updateFromExpr() {
+    if (_updatingFromFields) return;
+    _updatingFromExpr = true;
+
+    var raw   = exprEl.value.trim();
+    var parts = raw.split(/\s+/);
+
+    if (parts.length === 5) {
+      for (var i = 0; i < 5; i++) {
+        fields[i].input.value = parts[i];
+        fields[i].helper.value = '';
+      }
+    }
+
+    refresh();
+    _updatingFromExpr = false;
+  }
+
+  function updateFromFields() {
+    if (_updatingFromExpr) return;
+    _updatingFromFields = true;
+    exprEl.value = fieldsToExpr();
+    refresh();
+    _updatingFromFields = false;
+  }
+
+  function refresh() {
+    var raw   = exprEl.value.trim();
+    var parts = raw.split(/\s+/);
+
+    if (parts.length !== 5) {
+      descEl.textContent  = 'Invalid expression — needs exactly 5 fields';
+      outputEl.textContent = raw;
+      nextTimesEl.textContent = '';
+      return;
+    }
+
+    var mn = parts[0], hr = parts[1], dom = parts[2], mo = parts[3], dw = parts[4];
+
+    var desc = buildDescription(mn, hr, dom, mo, dw);
+    descEl.textContent  = desc;
+    outputEl.textContent = raw;
+
+    var times = computeNextTimes(mn, hr, dom, mo, dw, 5);
+    if (times.length === 0) {
+      nextTimesEl.textContent = 'No upcoming executions found in the next year';
+    } else {
+      nextTimesEl.textContent = times.map(formatDate).join('\n');
+    }
+  }
+
+  /* ---------- event wiring ---------- */
+
+  exprEl.addEventListener('input', updateFromExpr);
+
+  fields.forEach(function (f) {
+    f.input.addEventListener('input', updateFromFields);
+    f.helper.addEventListener('change', function () {
+      if (f.helper.value !== '') {
+        f.input.value = f.helper.value;
+        f.helper.value = '';
+        updateFromFields();
+      }
+    });
+  });
+
+  var presetBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-preset]'));
+  presetBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      presetBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      exprEl.value = btn.getAttribute('data-preset');
+      updateFromExpr();
+    });
+  });
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      }).catch(function () {
+        copyBtn.textContent = 'Failed';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; }
+      catch (e) { copyBtn.textContent = 'Failed'; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+  });
+
+  /* Initial render */
+  updateFromExpr();
+})();
+</script>

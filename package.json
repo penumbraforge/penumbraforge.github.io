@@ -1,0 +1,14 @@
+{
+  "name": "penumbraforge.com",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Penumbra Forge — Independent software studio",
+  "scripts": {
+    "build": "eleventy",
+    "dev": "eleventy --serve --watch"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@11ty/eleventy": "^3.0.0"
+  }
+}

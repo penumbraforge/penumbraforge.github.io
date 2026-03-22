@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <defs>
+    <radialGradient id="pffs-glow" cx="0" cy="0" r="1" gradientTransform="translate(80 80) rotate(90) scale(56)">
+      <stop offset="0" stop-color="#d9cbfb" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#d9cbfb" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pffs-ring" x1="44" y1="42" x2="116" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f2ecff"/>
+      <stop offset="0.52" stop-color="#cbb9ef"/>
+      <stop offset="1" stop-color="#8da0bc"/>
+    </linearGradient>
+  </defs>
+  <circle cx="80" cy="80" r="54" fill="url(#pffs-glow)"/>
+  <circle cx="80" cy="80" r="34" stroke="url(#pffs-ring)" stroke-width="7"/>
+  <circle cx="91" cy="78" r="21" fill="url(#pffs-ring)" opacity="0.95"/>
+  <circle cx="78" cy="78" r="21" fill="#090b12"/>
+  <path d="M58 110C69 117 93 118 106 107" stroke="#8da0bc" stroke-width="4" stroke-linecap="round" opacity="0.72"/>
+</svg>

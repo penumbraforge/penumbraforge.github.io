@@ -1,0 +1,855 @@
+---
+toolSlug: gitignore-generator
+permalink: /tools/gitignore-generator/
+---
+
+<div class="tool-row" style="gap:16px; align-items:flex-start; flex-wrap:wrap;">
+  <div style="flex:0 0 280px; min-width:220px;">
+    <div class="tool-group" style="margin-bottom:10px;">
+      <label for="gi-search">Search templates</label>
+      <input type="text" id="gi-search" placeholder="e.g. node, python, jetbrains..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+    </div>
+    <div id="gi-template-list" role="list" aria-label="Available .gitignore templates"></div>
+  </div>
+  <div style="flex:1; min-width:240px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+      <label style="margin:0;">Selected templates</label>
+      <button class="btn" id="gi-clear-all" style="font-size:11px; padding:3px 8px;">Clear all</button>
+    </div>
+    <div id="gi-selected" style="min-height:36px; display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; padding:6px; border:1px solid var(--border); border-radius:4px; background:var(--surface-0);"></div>
+
+    <div class="output-area" style="margin-top:0;">
+      <button class="btn btn--copy" id="gi-copy" aria-label="Copy .gitignore">Copy</button>
+      <button class="btn" id="gi-download" style="right:80px; position:absolute;" aria-label="Download .gitignore">Download</button>
+      <pre id="gi-output" aria-label=".gitignore output" style="font-size:11px; max-height:480px; overflow:auto;"></pre>
+    </div>
+    <div id="gi-stats" style="font-family:var(--font-sans); font-size:12px; color:var(--text-3); margin-top:8px;"></div>
+  </div>
+</div>
+
+<style>
+  .gi-group {
+    margin-bottom: 12px;
+  }
+  .gi-group-label {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-3);
+    padding: 0 2px;
+    margin-bottom: 4px;
+  }
+  .gi-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-1);
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .gi-item:hover { background: var(--surface-1); }
+  .gi-item.selected { background: rgba(var(--accent-rgb,91,141,184),0.12); color: var(--accent); }
+  .gi-item-check {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: all 0.1s;
+  }
+  .gi-item.selected .gi-item-check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .gi-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px 3px 10px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--text-1);
+    cursor: default;
+  }
+  .gi-chip-remove {
+    background: none;
+    border: none;
+    color: var(--text-3);
+    cursor: pointer;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    transition: color 0.1s;
+  }
+  .gi-chip-remove:hover { color: var(--text-1); }
+
+  .output-area { position: relative; }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── Template database ─────────────────────────────────────────────────────
+  var TEMPLATES = {
+    "Languages": {
+      "Node.js": [
+        "# Node.js",
+        "node_modules/",
+        "npm-debug.log*",
+        "yarn-debug.log*",
+        "yarn-error.log*",
+        ".npm",
+        ".yarn-integrity",
+        ".pnp.*",
+        ".yarn/cache",
+        ".yarn/unplugged",
+        ".yarn/build-state.yml",
+        ".yarn/install-state.gz",
+        "package-lock.json",
+        "yarn.lock",
+        ".node_repl_history",
+        "*.tgz",
+        ".env.local",
+        ".env.development.local",
+        ".env.test.local",
+        ".env.production.local",
+        "dist/",
+        "out/",
+        ".cache/",
+        "coverage/"
+      ],
+      "Python": [
+        "# Python",
+        "__pycache__/",
+        "*.py[cod]",
+        "*$py.class",
+        "*.so",
+        ".Python",
+        "build/",
+        "develop-eggs/",
+        "dist/",
+        "downloads/",
+        "eggs/",
+        ".eggs/",
+        "lib/",
+        "lib64/",
+        "parts/",
+        "sdist/",
+        "var/",
+        "wheels/",
+        "share/python-wheels/",
+        "*.egg-info/",
+        ".installed.cfg",
+        "*.egg",
+        "MANIFEST",
+        "*.manifest",
+        "*.spec",
+        "pip-log.txt",
+        "pip-delete-this-directory.txt",
+        ".tox/",
+        ".nox/",
+        ".coverage",
+        ".coverage.*",
+        ".cache",
+        "nosetests.xml",
+        "coverage.xml",
+        "*.cover",
+        "*.py,cover",
+        ".hypothesis/",
+        ".pytest_cache/",
+        "cover/",
+        "*.mo",
+        "*.pot",
+        "*.log",
+        "local_settings.py",
+        "db.sqlite3",
+        "db.sqlite3-journal",
+        "instance/",
+        ".webassets-cache",
+        ".scrapy",
+        "docs/_build/",
+        ".pybuilder/",
+        "target/",
+        ".ipynb_checkpoints",
+        "profile_default/",
+        "ipython_config.py",
+        ".pdm.toml",
+        "__pypackages__/",
+        "celerybeat-schedule",
+        "celerybeat.pid",
+        "*.sage.py",
+        ".env",
+        ".venv",
+        "env/",
+        "venv/",
+        "ENV/",
+        "env.bak/",
+        "venv.bak/",
+        ".spyderproject.db",
+        ".ropeproject",
+        "/site",
+        ".mypy_cache/",
+        ".dmypy.json",
+        "dmypy.json",
+        ".pyre/",
+        ".pytype/",
+        "cython_debug/"
+      ],
+      "Java": [
+        "# Java",
+        "*.class",
+        "*.log",
+        "*.jar",
+        "*.war",
+        "*.nar",
+        "*.ear",
+        "*.zip",
+        "*.tar.gz",
+        "*.rar",
+        "hs_err_pid*",
+        "replay_pid*",
+        "target/",
+        ".mtj.tmp/",
+        "*.iml"
+      ],
+      "Go": [
+        "# Go",
+        "*.exe",
+        "*.exe~",
+        "*.dll",
+        "*.so",
+        "*.dylib",
+        "*.test",
+        "*.out",
+        "vendor/",
+        "go.sum",
+        "/dist/",
+        "__debug_bin*"
+      ],
+      "Rust": [
+        "# Rust",
+        "/target/",
+        "Cargo.lock",
+        "**/*.rs.bk",
+        "*.pdb"
+      ],
+      "Ruby": [
+        "# Ruby",
+        "*.gem",
+        "*.rbc",
+        "/.config",
+        "/coverage/",
+        "/InstalledFiles",
+        "/pkg/",
+        "/spec/reports/",
+        "/spec/examples.txt",
+        "/test/tmp/",
+        "/test/version_tmp/",
+        "/tmp/",
+        ".rspec",
+        ".bundle/",
+        "vendor/bundle",
+        "lib/bundler/man/",
+        ".rvmrc",
+        ".ruby-version",
+        ".ruby-gemset",
+        "/.yardoc/",
+        "/_yardoc/",
+        "/doc/",
+        "/rdoc/",
+        "Gemfile.lock"
+      ],
+      "PHP": [
+        "# PHP",
+        "/vendor/",
+        "composer.phar",
+        ".env",
+        ".phpunit.result.cache",
+        ".phpunit.cache/",
+        "/nbproject/private/",
+        "/public/storage",
+        "/storage/*.key",
+        "Homestead.json",
+        "Homestead.yaml",
+        "auth.json",
+        "npm-debug.log",
+        "yarn-error.log",
+        "/node_modules/",
+        ".php-cs-fixer.cache",
+        "*.cache"
+      ],
+      "Swift": [
+        "# Swift / Xcode",
+        ".DS_Store",
+        "/.build",
+        "/Packages",
+        "xcuserdata/",
+        "DerivedData/",
+        ".swp",
+        "*.pbxuser",
+        "!default.pbxuser",
+        "*.mode1v3",
+        "!default.mode1v3",
+        "*.mode2v3",
+        "!default.mode2v3",
+        "*.perspectivev3",
+        "!default.perspectivev3",
+        "*.xcworkspace",
+        "!default.xcworkspace",
+        ".build/",
+        "Package.resolved"
+      ],
+      "Kotlin": [
+        "# Kotlin / Android",
+        "*.iml",
+        ".gradle/",
+        "/local.properties",
+        "/.idea/",
+        ".DS_Store",
+        "/build/",
+        "/captures/",
+        ".externalNativeBuild/",
+        ".cxx/",
+        "*.ap_",
+        "local.properties"
+      ],
+      "C/C++": [
+        "# C / C++",
+        "*.d",
+        "*.slo",
+        "*.lo",
+        "*.o",
+        "*.obj",
+        "*.gch",
+        "*.pch",
+        "*.so",
+        "*.dylib",
+        "*.dll",
+        "*.mod",
+        "*.smod",
+        "*.lai",
+        "*.la",
+        "*.a",
+        "*.lib",
+        "*.exe",
+        "*.out",
+        "*.app",
+        "*.i*86",
+        "*.x86_64",
+        "*.hex",
+        "CMakeFiles/",
+        "CMakeCache.txt",
+        "cmake_install.cmake",
+        "Makefile",
+        "build/"
+      ],
+      ".NET / C#": [
+        "# .NET / C#",
+        "*.suo",
+        "*.user",
+        "*.userosscache",
+        "*.sln.docstates",
+        "[Dd]ebug/",
+        "[Dd]ebugPublic/",
+        "[Rr]elease/",
+        "[Rr]eleases/",
+        "x64/",
+        "x86/",
+        "[Ww][Ii][Nn]32/",
+        "[Aa][Rr][Mm]/",
+        "[Aa][Rr][Mm]64/",
+        "bld/",
+        "[Bb]in/",
+        "[Oo]bj/",
+        "[Ll]og/",
+        "[Ll]ogs/",
+        ".vs/",
+        "*.pidb",
+        "*.svclog",
+        "*.scc",
+        "_ReSharper*/",
+        "*.[Rr]e[Ss]harper",
+        "*.DotSettings.user",
+        ".ncrunch*",
+        "*_i.c",
+        "*_p.c",
+        "*_h.h",
+        "*.ilk",
+        "*.meta",
+        "*.obj",
+        "*.iobj",
+        "*.pch",
+        "*.pdb",
+        "*.ipdb",
+        "*.pgc",
+        "*.pgd",
+        "*.rsp",
+        "*.sbr",
+        "*.tlb",
+        "*.tli",
+        "*.tlh",
+        "*.tmp",
+        "*.tmp_proj",
+        "*_wpftmp.csproj",
+        "*.log",
+        "*.tlog",
+        "*.vspscc",
+        "*.vssscc",
+        ".builds",
+        "*.pidb",
+        "*.svclog",
+        "*.scc",
+        "packages/",
+        "*.nupkg",
+        "*.snupkg",
+        "**/[Pp]ackages/*",
+        "nuget.exe",
+        "project.lock.json",
+        "project.fragment.lock.json",
+        "artifacts/",
+        "**/Properties/launchSettings.json",
+        "*.pfx",
+        "*.publishsettings",
+        "PublishScripts/"
+      ]
+    },
+    "Frameworks": {
+      "React": [
+        "# React / Create React App",
+        "/node_modules",
+        "/.pnp",
+        ".pnp.js",
+        "/coverage",
+        "/build",
+        ".DS_Store",
+        ".env.local",
+        ".env.development.local",
+        ".env.test.local",
+        ".env.production.local",
+        "npm-debug.log*",
+        "yarn-debug.log*",
+        "yarn-error.log*"
+      ],
+      "Vue": [
+        "# Vue",
+        "node_modules/",
+        "/dist/",
+        ".DS_Store",
+        ".env.local",
+        ".env.*.local",
+        "npm-debug.log*",
+        "yarn-debug.log*",
+        "yarn-error.log*",
+        "pnpm-debug.log*",
+        ".idea",
+        ".vscode/*",
+        "*.suo",
+        "*.ntvs*",
+        "*.njsproj",
+        "*.sln",
+        "*.sw?"
+      ],
+      "Angular": [
+        "# Angular",
+        "dist/",
+        "tmp/",
+        "out-tsc/",
+        "bazel-out/",
+        "node_modules/",
+        "npm-debug.log",
+        "yarn-error.log",
+        ".sass-cache/",
+        "connect.lock",
+        "coverage/",
+        "libpeerconnection.log",
+        "testem.log",
+        ".DS_Store",
+        "Thumbs.db",
+        ".angular/"
+      ]
+    },
+    "Operating Systems": {
+      "macOS": [
+        "# macOS",
+        ".DS_Store",
+        ".AppleDouble",
+        ".LSOverride",
+        "Icon",
+        "._*",
+        ".DocumentRevisions-V100",
+        ".fseventsd",
+        ".Spotlight-V100",
+        ".TemporaryItems",
+        ".Trashes",
+        ".VolumeIcon.icns",
+        ".com.apple.timemachine.donotpresent",
+        ".AppleDB",
+        ".AppleDesktop",
+        "Network Trash Folder",
+        "Temporary Items",
+        ".apdisk"
+      ],
+      "Windows": [
+        "# Windows",
+        "Thumbs.db",
+        "Thumbs.db:encryptable",
+        "ehthumbs.db",
+        "ehthumbs_vista.db",
+        "*.stackdump",
+        "[Dd]esktop.ini",
+        "$RECYCLE.BIN/",
+        "*.cab",
+        "*.msi",
+        "*.msix",
+        "*.msm",
+        "*.msp",
+        "*.lnk"
+      ],
+      "Linux": [
+        "# Linux",
+        "*~",
+        ".fuse_hidden*",
+        ".directory",
+        ".Trash-*",
+        ".nfs*"
+      ]
+    },
+    "Editors & IDEs": {
+      "JetBrains": [
+        "# JetBrains IDEs (IntelliJ, PyCharm, WebStorm, etc.)",
+        ".idea/",
+        "*.iws",
+        "*.iml",
+        "*.ipr",
+        "out/",
+        "!**/src/main/**/out/",
+        "!**/src/test/**/out/",
+        ".idea_modules/",
+        "atlassian-ide-plugin.xml",
+        "com_crashlytics_export_strings.xml",
+        "crashlytics.properties",
+        "crashlytics-build.properties",
+        "fabric.properties"
+      ],
+      "VS Code": [
+        "# Visual Studio Code",
+        ".vscode/*",
+        "!.vscode/settings.json",
+        "!.vscode/tasks.json",
+        "!.vscode/launch.json",
+        "!.vscode/extensions.json",
+        "!.vscode/*.code-snippets",
+        ".history/",
+        "*.vsix"
+      ],
+      "Vim": [
+        "# Vim",
+        "[._]*.s[a-v][a-z]",
+        "[._]*.sw[a-p]",
+        "[._]s[a-rt-v][a-z]",
+        "[._]ss[a-gi-z]",
+        "[._]sw[a-p]",
+        "Session.vim",
+        "Sessionx.vim",
+        ".netrwhist",
+        "*~",
+        "tags",
+        "[._]*.un~"
+      ],
+      "Emacs": [
+        "# Emacs",
+        "*~",
+        "\\#*\\#",
+        "/.emacs.desktop",
+        "/.emacs.desktop.lock",
+        "*.elc",
+        "auto-save-list",
+        "tramp",
+        ".\\#*",
+        ".org-id-locations",
+        "*_archive",
+        "*_flymake.*",
+        "/eshell/history",
+        "/eshell/lastdir",
+        "/elpa/",
+        "*.rel",
+        "/auto/",
+        ".cask/",
+        "dist/",
+        "flycheck_*.el",
+        "/server/",
+        ".projectile",
+        ".dir-locals.el",
+        "/network-security.data"
+      ]
+    }
+  };
+
+  var DEFAULTS = [
+    "# Common defaults",
+    ".env",
+    ".env.*",
+    "!.env.example",
+    "*.log",
+    "*.tmp",
+    "*.temp",
+    ".DS_Store",
+    "Thumbs.db",
+    "*.orig",
+    "*.bak",
+    "*.swp",
+    ".idea/",
+    ".vscode/",
+    "coverage/",
+    "dist/",
+    "build/"
+  ];
+
+  var selected = {};
+  var searchEl   = document.getElementById("gi-search");
+  var listEl     = document.getElementById("gi-template-list");
+  var selectedEl = document.getElementById("gi-selected");
+  var outputEl   = document.getElementById("gi-output");
+  var statsEl    = document.getElementById("gi-stats");
+  var copyBtn    = document.getElementById("gi-copy");
+  var dlBtn      = document.getElementById("gi-download");
+  var clearBtn   = document.getElementById("gi-clear-all");
+
+  // ── Build template list ───────────────────────────────────────────────────
+  function buildList(filter) {
+    filter = (filter || "").toLowerCase().trim();
+    while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+
+    var anyVisible = false;
+
+    Object.keys(TEMPLATES).forEach(function (groupName) {
+      var group = TEMPLATES[groupName];
+      var items = Object.keys(group).filter(function (name) {
+        return !filter || name.toLowerCase().indexOf(filter) !== -1;
+      });
+      if (!items.length) return;
+      anyVisible = true;
+
+      var groupDiv = document.createElement("div");
+      groupDiv.className = "gi-group";
+
+      var labelEl = document.createElement("div");
+      labelEl.className = "gi-group-label";
+      labelEl.textContent = groupName;
+      groupDiv.appendChild(labelEl);
+
+      items.forEach(function (name) {
+        var item = document.createElement("div");
+        item.className = "gi-item" + (selected[name] ? " selected" : "");
+        item.setAttribute("role", "listitem");
+        item.setAttribute("tabindex", "0");
+        item.setAttribute("aria-selected", selected[name] ? "true" : "false");
+
+        var check = document.createElement("span");
+        check.className = "gi-item-check";
+        check.textContent = selected[name] ? "\u2713" : "";
+        item.appendChild(check);
+
+        var nameEl = document.createElement("span");
+        nameEl.textContent = name;
+        item.appendChild(nameEl);
+
+        function toggle() {
+          if (selected[name]) {
+            delete selected[name];
+          } else {
+            selected[name] = true;
+          }
+          buildList(searchEl.value);
+          updateSelected();
+          generate();
+        }
+
+        item.addEventListener("click", toggle);
+        item.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+        });
+
+        groupDiv.appendChild(item);
+      });
+
+      listEl.appendChild(groupDiv);
+    });
+
+    if (!anyVisible && filter) {
+      var none = document.createElement("div");
+      none.style.cssText = "font-family:var(--font-sans);font-size:13px;color:var(--text-3);padding:8px;";
+      none.textContent = "No templates match \"" + filter + "\"";
+      listEl.appendChild(none);
+    }
+  }
+
+  // ── Update chips ──────────────────────────────────────────────────────────
+  function updateSelected() {
+    while (selectedEl.firstChild) selectedEl.removeChild(selectedEl.firstChild);
+    var keys = Object.keys(selected);
+    if (!keys.length) {
+      var hint = document.createElement("span");
+      hint.style.cssText = "font-family:var(--font-sans);font-size:12px;color:var(--text-3);padding:2px 4px;";
+      hint.textContent = "Select templates on the left to get started";
+      selectedEl.appendChild(hint);
+      return;
+    }
+    keys.forEach(function (name) {
+      var chip = document.createElement("span");
+      chip.className = "gi-chip";
+
+      var label = document.createElement("span");
+      label.textContent = name;
+      chip.appendChild(label);
+
+      var rm = document.createElement("button");
+      rm.className = "gi-chip-remove";
+      rm.setAttribute("aria-label", "Remove " + name);
+      rm.textContent = "\u00d7";
+      rm.addEventListener("click", function () {
+        delete selected[name];
+        buildList(searchEl.value);
+        updateSelected();
+        generate();
+      });
+      chip.appendChild(rm);
+      selectedEl.appendChild(chip);
+    });
+  }
+
+  // ── Generate .gitignore ───────────────────────────────────────────────────
+  function generate() {
+    var keys = Object.keys(selected);
+    if (!keys.length) {
+      outputEl.textContent = "# Select templates above to generate your .gitignore\n\n" + DEFAULTS.join("\n");
+      updateStats(DEFAULTS.length - 1, 0, 0);
+      return;
+    }
+
+    var all = [].concat(DEFAULTS);
+
+    keys.forEach(function (name) {
+      for (var g in TEMPLATES) {
+        if (TEMPLATES[g][name]) {
+          all = all.concat(["", ""]).concat(TEMPLATES[g][name]);
+          break;
+        }
+      }
+    });
+
+    // Deduplicate non-comment, non-empty lines
+    var seen = {};
+    var result = [];
+    var lastWasBlank = false;
+
+    all.forEach(function (line) {
+      if (line === "") {
+        if (!lastWasBlank) result.push("");
+        lastWasBlank = true;
+        return;
+      }
+      lastWasBlank = false;
+
+      if (line.startsWith("#")) {
+        result.push(line);
+        return;
+      }
+
+      if (!seen[line]) {
+        seen[line] = true;
+        result.push(line);
+      }
+    });
+
+    // Trim trailing blanks
+    while (result.length && result[result.length - 1] === "") result.pop();
+
+    var text = result.join("\n");
+    outputEl.textContent = text;
+
+    var patterns = result.filter(function (l) { return l && !l.startsWith("#"); }).length;
+    var dupes = all.filter(function (l) { return l && !l.startsWith("#"); }).length - patterns;
+    updateStats(patterns, result.filter(function (l) { return l.startsWith("#"); }).length, dupes);
+  }
+
+  function updateStats(patterns, comments, dupes) {
+    statsEl.textContent = patterns + " patterns, " + comments + " comments" + (dupes > 0 ? ", " + dupes + " duplicates removed" : "");
+  }
+
+  // ── Copy / Download ───────────────────────────────────────────────────────
+  function copyText(text, btn) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = btn === copyBtn ? "Copy" : "Download"; }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); btn.textContent = "Copied!"; } catch (e) {}
+      document.body.removeChild(ta);
+      setTimeout(function () { btn.textContent = "Copy"; }, 2000);
+    }
+  }
+
+  copyBtn.addEventListener("click", function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    copyText(text, copyBtn);
+  });
+
+  dlBtn.addEventListener("click", function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    var blob = new Blob([text], { type: "text/plain" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = ".gitignore";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    dlBtn.textContent = "Downloaded!";
+    setTimeout(function () { dlBtn.textContent = "Download"; }, 2000);
+  });
+
+  clearBtn.addEventListener("click", function () {
+    selected = {};
+    buildList(searchEl.value);
+    updateSelected();
+    generate();
+  });
+
+  searchEl.addEventListener("input", function () {
+    buildList(searchEl.value);
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  buildList("");
+  updateSelected();
+  generate();
+})();
+</script>

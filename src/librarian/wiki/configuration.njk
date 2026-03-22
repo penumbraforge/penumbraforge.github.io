@@ -1,0 +1,189 @@
+---
+title: "Configuration"
+description: "Environment variables, directory structure, logging, rate limiting, and MCP client configuration for mcp-librarian."
+permalink: /librarian/wiki/configuration/
+---
+<h1>Configuration</h1>
+    <p class="subtitle">Environment variables, directory structure, logging, rate limiting, and client setup.</p>
+
+    <h2 id="overview">Overview</h2>
+
+    <p>mcp-librarian uses environment variables for all configuration. There are no configuration files to manage. Set variables in your shell profile, in your MCP client's env block, or inline when starting the server.</p>
+
+    <h2 id="environment-variables">Environment Variables</h2>
+
+    <table class="cmd-table">
+      <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>MCP_LIBRARIAN_HOME</td><td><code>~/.mcp-librarian</code></td><td>Base directory for skills, keys, index, exports, and logs. All file operations are constrained to this directory by the path guard.</td></tr>
+        <tr><td>MCP_LIBRARIAN_LOG_LEVEL</td><td><code>info</code></td><td>Logging verbosity. One of <code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code>. Debug level logs every tool call with parameters and timing.</td></tr>
+        <tr><td>MCP_LIBRARIAN_RATE_LIMIT</td><td><code>200</code></td><td>Maximum tool requests per minute. When exceeded, the server returns a rate limit error. Applies to all tools equally.</td></tr>
+        <tr><td>MCP_LIBRARIAN_SKILLS_REPO</td><td><code>penumbraforge/mcp-librarian-skills</code></td><td>GitHub repository used as the community pack source for <code>browse_packs</code> and <code>install_pack</code>.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Setting Variables in Your Shell</h3>
+
+    <div class="code-block"><span class="cmt"># Add to ~/.zshrc or ~/.bashrc</span>
+<span class="kw">export</span> MCP_LIBRARIAN_HOME=<span class="str">"$HOME/.mcp-librarian"</span>
+<span class="kw">export</span> MCP_LIBRARIAN_LOG_LEVEL=<span class="str">"info"</span>
+<span class="kw">export</span> MCP_LIBRARIAN_RATE_LIMIT=<span class="str">"200"</span></div>
+
+    <h3>Setting Variables in MCP Client Config</h3>
+
+    <p>Most MCP clients support an <code>env</code> block in the server configuration. This is the recommended approach because it keeps the configuration scoped to mcp-librarian.</p>
+
+    <div class="code-block"><span class="cmt">// Claude Code: ~/.claude/mcp_servers.json</span>
+{
+  <span class="kw">"mcp-librarian"</span>: {
+    <span class="kw">"command"</span>: <span class="str">"node"</span>,
+    <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>],
+    <span class="kw">"env"</span>: {
+      <span class="kw">"MCP_LIBRARIAN_HOME"</span>: <span class="str">"/custom/path/.mcp-librarian"</span>,
+      <span class="kw">"MCP_LIBRARIAN_LOG_LEVEL"</span>: <span class="str">"debug"</span>
+    }
+  }
+}</div>
+
+    <h2 id="directory-structure">Directory Structure</h2>
+
+    <p>The <code>MCP_LIBRARIAN_HOME</code> directory has the following layout. All of these are created automatically during installation and normal operation.</p>
+
+    <div class="code-block"><span class="dim">~/.mcp-librarian/</span>
+<span class="dim">  keys/</span>
+<span class="dim">    signing.key</span>              <span class="cmt"># Ed25519 private key (0o600)</span>
+<span class="dim">    signing.pub</span>              <span class="cmt"># Ed25519 public key</span>
+<span class="dim">  skills/</span>
+<span class="dim">    security-hardening/</span>      <span class="cmt"># Pack: installed skills</span>
+<span class="dim">      sql-injection.md</span>
+<span class="dim">      xss-prevention.md</span>
+<span class="dim">      ...</span>
+<span class="dim">    api-design/</span>              <span class="cmt"># Pack: installed skills</span>
+<span class="dim">      error-handling.md</span>
+<span class="dim">      ...</span>
+<span class="dim">    graphql-federation.md</span>    <span class="cmt"># Standalone skill</span>
+<span class="dim">  index/</span>
+<span class="dim">    bm25.json</span>                <span class="cmt"># BM25 search index</span>
+<span class="dim">  signatures/</span>
+<span class="dim">    *.sig</span>                    <span class="cmt"># Ed25519 signatures for each skill</span>
+<span class="dim">  exports/</span>
+<span class="dim">    my-pack/</span>                 <span class="cmt"># Exported pack directory</span>
+<span class="dim">      pack.json</span>
+<span class="dim">      *.md</span>
+<span class="dim">  logs/</span>
+<span class="dim">    mcp-librarian.log</span>        <span class="cmt"># Server log file</span></div>
+
+    <h3>Directory Descriptions</h3>
+
+    <table class="cmd-table">
+      <thead><tr><th>Directory</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>keys/</td><td>Ed25519 keypair generated during installation. The private key signs skills on write. The public key verifies on load. See <a href="/librarian/wiki/signing/">Ed25519 Signing</a>.</td></tr>
+        <tr><td>skills/</td><td>All skill files (Markdown). Pack skills are in subdirectories named after the pack. Standalone skills are at the root level.</td></tr>
+        <tr><td>index/</td><td>The BM25 search index. Rebuilt automatically when skills are added, removed, or modified via tools.</td></tr>
+        <tr><td>signatures/</td><td>Ed25519 signature files. One <code>.sig</code> file per skill, containing the hash and signature.</td></tr>
+        <tr><td>exports/</td><td>Output directory for <code>export_pack</code>. Each exported pack gets its own subdirectory.</td></tr>
+        <tr><td>logs/</td><td>Server log files. Verbosity controlled by <code>MCP_LIBRARIAN_LOG_LEVEL</code>.</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="logging">Logging</h2>
+
+    <p>mcp-librarian logs to <code>~/.mcp-librarian/logs/mcp-librarian.log</code>. The log level is controlled by <code>MCP_LIBRARIAN_LOG_LEVEL</code>.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Level</th><th>What Gets Logged</th></tr></thead>
+      <tbody>
+        <tr><td>error</td><td>Only errors: failed operations, corrupted files, signature mismatches.</td></tr>
+        <tr><td>warn</td><td>Errors plus warnings: rate limit hits, skipped files, content guard rejections.</td></tr>
+        <tr><td>info</td><td>Warnings plus operational info: tool calls, skill creation, pack installs, index rebuilds.</td></tr>
+        <tr><td>debug</td><td>Everything: full tool parameters, BM25 scoring details, timing breakdowns, HTTP requests.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-block"><span class="cmt"># Example log output at info level</span>
+<span class="dim">[2026-03-21T14:30:22Z]</span> <span class="ok">INFO</span>  <span class="dim">tool=find_and_load query="SQL injection" result=skill:sql-injection 12ms</span>
+<span class="dim">[2026-03-21T14:30:23Z]</span> <span class="ok">INFO</span>  <span class="dim">tool=load_section skill=sql-injection section=parameterized-queries 3ms</span>
+<span class="dim">[2026-03-21T14:31:05Z]</span> <span class="ok">INFO</span>  <span class="dim">tool=install_pack pack=api-design skills=6 index_rebuilt=true 1.4s</span></div>
+
+    <h2 id="rate-limiting">Rate Limiting</h2>
+
+    <p>The rate limiter tracks tool calls per minute using a sliding window. When the limit is exceeded, the server returns an error response instead of executing the tool. The agent typically waits and retries.</p>
+
+    <p>The default limit of 200 requests per minute is generous for normal use. You might need to increase it if you are bulk-installing many packs or running automated workflows that make rapid tool calls.</p>
+
+    <div class="code-block"><span class="cmt"># Increase rate limit for bulk operations</span>
+<span class="kw">export</span> MCP_LIBRARIAN_RATE_LIMIT=<span class="str">"500"</span></div>
+
+    <p>Setting the rate limit to <code>0</code> disables rate limiting entirely. This is not recommended for production use but can be useful during testing.</p>
+
+    <h2 id="custom-skills-repo">Custom Skills Repository</h2>
+
+    <p>By default, <code>browse_packs</code> and <code>install_pack</code> pull from <code>penumbraforge/mcp-librarian-skills</code> on GitHub. You can point these tools at a different repository -- useful for companies that maintain private skill packs.</p>
+
+    <div class="code-block"><span class="kw">export</span> MCP_LIBRARIAN_SKILLS_REPO=<span class="str">"yourcompany/internal-skills"</span></div>
+
+    <p>The repository must follow the same directory structure as the community repo: each pack is a directory with a <code>pack.json</code> manifest and skill files.</p>
+
+    <h2 id="mcp-client-configuration">MCP Client Configuration</h2>
+
+    <p>mcp-librarian needs to be registered as an MCP server in your client's configuration. The installer handles this automatically for supported clients, but here are the manual configurations for each.</p>
+
+    <h3>Claude Code</h3>
+
+    <p>Config file: <code>~/.claude/mcp_servers.json</code></p>
+
+    <div class="code-block">{
+  <span class="kw">"mcp-librarian"</span>: {
+    <span class="kw">"command"</span>: <span class="str">"node"</span>,
+    <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>],
+    <span class="kw">"env"</span>: {}
+  }
+}</div>
+
+    <h3>Cursor</h3>
+
+    <p>Config file: <code>~/.cursor/mcp.json</code></p>
+
+    <div class="code-block">{
+  <span class="kw">"mcpServers"</span>: {
+    <span class="kw">"mcp-librarian"</span>: {
+      <span class="kw">"command"</span>: <span class="str">"node"</span>,
+      <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>]
+    }
+  }
+}</div>
+
+    <h3>Windsurf</h3>
+
+    <p>Config file: <code>~/.windsurf/mcp.json</code></p>
+
+    <div class="code-block">{
+  <span class="kw">"mcpServers"</span>: {
+    <span class="kw">"mcp-librarian"</span>: {
+      <span class="kw">"command"</span>: <span class="str">"node"</span>,
+      <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>]
+    }
+  }
+}</div>
+
+    <h3>Local Models (Ollama, LM Studio)</h3>
+
+    <p>For local model setups that support MCP, the configuration is client-dependent. The server side is identical -- <code>node src/index.js</code> over stdio. See <a href="/librarian/wiki/local-models/">Local Models</a> for detailed setup guides.</p>
+
+    <h2 id="path-guard">Path Guard</h2>
+
+    <p>All file operations in mcp-librarian are constrained to the <code>MCP_LIBRARIAN_HOME</code> directory. The path guard rejects any operation that attempts to:</p>
+
+    <ul>
+      <li>Access files outside the home directory</li>
+      <li>Use directory traversal (<code>../</code>) to escape</li>
+      <li>Use absolute paths that point elsewhere</li>
+      <li>Follow symlinks that resolve outside the home directory</li>
+    </ul>
+
+    <p>The path guard runs before any I/O operation. If a tool call contains a path that fails the guard, the call is rejected with an error and no file system access occurs.</p>
+
+    <div class="info-box">
+      <strong>Why this matters:</strong> AI agents can be manipulated through prompt injection to request file operations outside the expected directory. The path guard ensures that even a compromised agent cannot read or write files outside the mcp-librarian home directory.
+    </div>

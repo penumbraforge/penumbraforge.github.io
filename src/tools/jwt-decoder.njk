@@ -1,0 +1,332 @@
+---
+toolSlug: jwt-decoder
+permalink: /tools/jwt-decoder/
+---
+
+<div class="tool-group">
+  <label for="jwt-input">Paste JWT</label>
+  <textarea id="jwt-input" rows="5" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<p class="jwt-notice" id="jwt-notice">This tool decodes JWTs without verifying the signature.</p>
+
+<div id="jwt-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div id="jwt-sections" style="display:none;">
+
+  <div class="jwt-section jwt-section--header">
+    <div class="jwt-section-title">
+      <span>Header</span>
+      <button class="btn btn--copy" id="btn-copy-header" aria-label="Copy header JSON">Copy</button>
+    </div>
+    <pre id="jwt-header-output" aria-label="JWT header"></pre>
+  </div>
+
+  <div class="jwt-section jwt-section--payload">
+    <div class="jwt-section-title">
+      <span>Payload</span>
+      <button class="btn btn--copy" id="btn-copy-payload" aria-label="Copy payload JSON">Copy</button>
+    </div>
+    <pre id="jwt-payload-output" aria-label="JWT payload"></pre>
+    <div id="jwt-claims" class="jwt-claims"></div>
+  </div>
+
+  <div class="jwt-section jwt-section--signature">
+    <div class="jwt-section-title">
+      <span>Signature</span>
+      <button class="btn btn--copy" id="btn-copy-sig" aria-label="Copy signature">Copy</button>
+    </div>
+    <pre id="jwt-sig-output" aria-label="JWT signature (raw base64url)"></pre>
+  </div>
+
+</div>
+
+<style>
+  .jwt-notice {
+    font-size: 12px;
+    color: var(--text-3, #888);
+    margin: 0 0 16px;
+    font-family: var(--font-sans);
+  }
+
+  .jwt-section {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .jwt-section--header {
+    border-left: 3px solid #e07070;
+  }
+
+  .jwt-section--payload {
+    border-left: 3px solid #9b7fd4;
+  }
+
+  .jwt-section--signature {
+    border-left: 3px solid #5b8db8;
+  }
+
+  .jwt-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--surface-0);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    position: relative;
+  }
+
+  .jwt-section-title .btn--copy {
+    position: static;
+    margin-left: auto;
+  }
+
+  .jwt-section pre {
+    margin: 0;
+    padding: 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-1);
+    background: var(--surface-0);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .jwt-claims {
+    border-top: 1px solid var(--border);
+    padding: 10px 12px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--text-2);
+    background: var(--surface-0);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .jwt-claims:empty {
+    display: none;
+  }
+
+  .jwt-claim {
+    background: rgba(155, 127, 212, 0.08);
+    border: 1px solid rgba(155, 127, 212, 0.25);
+    border-radius: 3px;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+
+  .jwt-claim--expired {
+    background: rgba(224, 112, 112, 0.1);
+    border-color: rgba(224, 112, 112, 0.3);
+    color: #e07070;
+  }
+
+  .jwt-claim--valid {
+    background: rgba(100, 180, 130, 0.1);
+    border-color: rgba(100, 180, 130, 0.3);
+    color: #5aaa78;
+  }
+</style>
+
+<script>
+(function () {
+  var inputEl        = document.getElementById('jwt-input');
+  var errorEl        = document.getElementById('jwt-error');
+  var sectionsEl     = document.getElementById('jwt-sections');
+  var headerOut      = document.getElementById('jwt-header-output');
+  var payloadOut     = document.getElementById('jwt-payload-output');
+  var sigOut         = document.getElementById('jwt-sig-output');
+  var claimsEl       = document.getElementById('jwt-claims');
+  var copyHeaderBtn  = document.getElementById('btn-copy-header');
+  var copyPayloadBtn = document.getElementById('btn-copy-payload');
+  var copySigBtn     = document.getElementById('btn-copy-sig');
+
+  function base64urlDecode(str) {
+    // Pad to multiple of 4
+    var padded = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (padded.length % 4 !== 0) {
+      padded += '=';
+    }
+    try {
+      return atob(padded);
+    } catch (e) {
+      throw new Error('Invalid base64url encoding');
+    }
+  }
+
+  function base64urlDecodeJSON(str) {
+    var raw = base64urlDecode(str);
+    // Handle UTF-8 via percent encoding
+    var decoded;
+    try {
+      decoded = decodeURIComponent(
+        raw.split('').map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join('')
+      );
+    } catch (e) {
+      decoded = raw;
+    }
+    return JSON.parse(decoded);
+  }
+
+  function formatDate(ts) {
+    try {
+      return new Date(ts * 1000).toISOString().replace('T', ' ').replace('.000Z', ' UTC');
+    } catch (e) {
+      return String(ts);
+    }
+  }
+
+  function renderClaims(payload) {
+    // Clear existing
+    while (claimsEl.firstChild) {
+      claimsEl.removeChild(claimsEl.firstChild);
+    }
+
+    var now = Math.floor(Date.now() / 1000);
+
+    function addClaim(text, modifier) {
+      var span = document.createElement('span');
+      span.className = 'jwt-claim' + (modifier ? ' jwt-claim--' + modifier : '');
+      span.textContent = text;
+      claimsEl.appendChild(span);
+    }
+
+    if (payload.iss !== undefined) {
+      addClaim('iss: ' + payload.iss);
+    }
+    if (payload.sub !== undefined) {
+      addClaim('sub: ' + payload.sub);
+    }
+    if (payload.iat !== undefined) {
+      addClaim('iat: ' + formatDate(payload.iat));
+    }
+    if (payload.exp !== undefined) {
+      var expDate = formatDate(payload.exp);
+      if (payload.exp < now) {
+        addClaim('exp: ' + expDate + ' — Expired', 'expired');
+      } else {
+        var secsLeft = payload.exp - now;
+        var timeLeft;
+        if (secsLeft < 60) {
+          timeLeft = secsLeft + 's';
+        } else if (secsLeft < 3600) {
+          timeLeft = Math.floor(secsLeft / 60) + 'm';
+        } else if (secsLeft < 86400) {
+          timeLeft = Math.floor(secsLeft / 3600) + 'h';
+        } else {
+          timeLeft = Math.floor(secsLeft / 86400) + 'd';
+        }
+        addClaim('exp: ' + expDate + ' — Valid (expires in ' + timeLeft + ')', 'valid');
+      }
+    }
+  }
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+    sectionsEl.style.display = 'none';
+  }
+
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+
+  function decode() {
+    var raw = inputEl.value.trim();
+
+    if (!raw) {
+      hideError();
+      sectionsEl.style.display = 'none';
+      headerOut.textContent = '';
+      payloadOut.textContent = '';
+      sigOut.textContent = '';
+      while (claimsEl.firstChild) { claimsEl.removeChild(claimsEl.firstChild); }
+      return;
+    }
+
+    var parts = raw.split('.');
+    if (parts.length !== 3) {
+      showError('Invalid JWT: expected 3 parts separated by dots, got ' + parts.length + '.');
+      return;
+    }
+
+    var header, payload;
+
+    try {
+      header = base64urlDecodeJSON(parts[0]);
+    } catch (e) {
+      showError('Invalid JWT header: ' + e.message);
+      return;
+    }
+
+    try {
+      payload = base64urlDecodeJSON(parts[1]);
+    } catch (e) {
+      showError('Invalid JWT payload: ' + e.message);
+      return;
+    }
+
+    hideError();
+    sectionsEl.style.display = '';
+
+    headerOut.textContent = JSON.stringify(header, null, 2);
+    payloadOut.textContent = JSON.stringify(payload, null, 2);
+    sigOut.textContent = parts[2];
+
+    renderClaims(payload);
+  }
+
+  function copyText(text, btn, defaultLabel) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = defaultLabel; }, 2000);
+      }).catch(function () {
+        btn.textContent = 'Failed';
+        setTimeout(function () { btn.textContent = defaultLabel; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        btn.textContent = 'Copied!';
+      } catch (e) {
+        btn.textContent = 'Failed';
+      }
+      document.body.removeChild(ta);
+      setTimeout(function () { btn.textContent = defaultLabel; }, 2000);
+    }
+  }
+
+  copyHeaderBtn.addEventListener('click', function () {
+    copyText(headerOut.textContent, copyHeaderBtn, 'Copy');
+  });
+
+  copyPayloadBtn.addEventListener('click', function () {
+    copyText(payloadOut.textContent, copyPayloadBtn, 'Copy');
+  });
+
+  copySigBtn.addEventListener('click', function () {
+    copyText(sigOut.textContent, copySigBtn, 'Copy');
+  });
+
+  inputEl.addEventListener('input', decode);
+})();
+</script>

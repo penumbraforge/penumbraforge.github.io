@@ -1,0 +1,263 @@
+---
+title: "Compliance Reports"
+description: "Generate audit-ready reports mapped to OWASP, NIST, CIS, and SOC2 frameworks."
+permalink: /gate/wiki/compliance/
+---
+<h1>Compliance Reports</h1>
+    <p class="subtitle">Generate audit-ready reports in Markdown, HTML, or JSON. Export SARIF 2.1.0 for GitHub Code Scanning and IDE integrations.</p>
+
+    <h2 id="report-generation">Report Generation</h2>
+
+    <p>Gate can generate compliance reports from any completed scan. Reports summarize findings, map them to security framework controls, and include recommendations for remediation.</p>
+
+    <div class="code-block"><span class="cmt"># Markdown report (default)</span>
+<span class="prompt">$ </span><span class="cmd">gate report</span>
+
+<span class="cmt"># Styled HTML report</span>
+<span class="prompt">$ </span><span class="cmd">gate report --format html</span>
+
+<span class="cmt"># Machine-readable JSON</span>
+<span class="prompt">$ </span><span class="cmd">gate report --format json</span>
+
+<span class="cmt"># Save to a specific file</span>
+<span class="prompt">$ </span><span class="cmd">gate report --format html --output report.html</span></div>
+
+    <p>Reports are based on the most recent scan. To generate a report from a specific scan run, pass the scan ID:</p>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate report --scan &lt;scan-id&gt;</span></div>
+
+    <h3>Report contents</h3>
+    <ul>
+      <li><strong style="color: var(--text-1);">Executive summary</strong> -- total findings by severity, files scanned, scan duration, verification results</li>
+      <li><strong style="color: var(--text-1);">Findings table</strong> -- file, line, rule, severity, exposure level, verification status, and remediation guidance for each finding</li>
+      <li><strong style="color: var(--text-1);">Compliance framework coverage</strong> -- which OWASP, NIST, CIS, and SOC2 controls are implicated by the findings</li>
+      <li><strong style="color: var(--text-1);">Incident summaries</strong> -- any incidents that were triggered during this scan with links to full incident records</li>
+      <li><strong style="color: var(--text-1);">Recommendations</strong> -- prioritized remediation steps based on severity and exposure</li>
+    </ul>
+
+    <h2 id="sarif">SARIF 2.1.0 Output</h2>
+
+    <p>Gate supports the Static Analysis Results Interchange Format (SARIF) 2.1.0, the standard format for exchanging static analysis results between tools. SARIF output can be uploaded to GitHub Advanced Security, viewed in VS Code, or consumed by any SARIF-aware platform.</p>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate scan --format sarif</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --format sarif --output results.sarif</span></div>
+
+    <h3>Schema compliance</h3>
+    <p>Gate's SARIF output conforms to the OASIS SARIF 2.1.0 schema. Each result includes:</p>
+    <ul>
+      <li><code>ruleId</code> -- Gate rule identifier (e.g., <code>stripe-secret-key</code>)</li>
+      <li><code>level</code> -- mapped from Gate severity: CRITICAL/HIGH &rarr; <code>error</code>, MEDIUM &rarr; <code>warning</code>, LOW &rarr; <code>note</code></li>
+      <li><code>locations[].physicalLocation.region.startLine</code> and <code>startColumn</code> -- precise source location</li>
+      <li><code>properties.verification</code> -- ACTIVE, INACTIVE, or UNVERIFIED</li>
+      <li><code>properties.exposure</code> -- LOCAL, COMMITTED, PUSHED, or UNKNOWN</li>
+    </ul>
+
+    <h3>GitHub Advanced Security / Code Scanning</h3>
+    <p>Upload Gate's SARIF output directly to GitHub Code Scanning using the <code>github/codeql-action/upload-sarif</code> action:</p>
+
+    <div class="code-block"><span class="dim">- name: Run Gate scan</span>
+<span class="dim">  run: gate scan --format sarif --output gate.sarif</span>
+
+<span class="dim">- name: Upload to GitHub Code Scanning</span>
+<span class="dim">  uses: github/codeql-action/upload-sarif@v3</span>
+<span class="dim">  with:</span>
+<span class="dim">    sarif_file: gate.sarif</span></div>
+
+    <p>Findings appear in the Security tab of your repository under Code Scanning alerts, with source locations, severity levels, and remediation guidance.</p>
+
+    <h3>VS Code SARIF Viewer</h3>
+    <p>Install the <strong style="color: var(--text-1);">SARIF Viewer</strong> extension from the VS Code Marketplace. Open a <code>.sarif</code> file in VS Code and findings appear inline in the editor with squiggles and a findings panel. Gate's <code>startLine</code> and <code>startColumn</code> values ensure accurate location highlighting.</p>
+
+    <h2 id="json-output">JSON Output</h2>
+
+    <p>The JSON format provides the complete scan result as a structured document, suitable for parsing in scripts, dashboards, or custom reporting pipelines.</p>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate scan --format json</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --format json --output scan.json</span></div>
+
+    <p>Each finding in the JSON output includes:</p>
+
+    <div class="code-block"><span class="cmt">{
+  "id":           "find-abc123",
+  "file":         "src/config/database.ts",
+  "line":         14,
+  "column":       18,
+  "ruleId":       "generic-database-url",
+  "severity":     "HIGH",
+  "verification": "ACTIVE",
+  "exposure":     "COMMITTED",
+  "match":        "postgres://admin:****@db.prod...",
+  "remediation":  "Extract to DATABASE_URL environment variable",
+  "compliance":   ["OWASP-A02", "CIS-3.11", "SOC2-CC6.1"]
+}</span></div>
+
+    <p>The top-level JSON object also contains a <code>summary</code> field with:</p>
+    <ul>
+      <li><code>totalFindings</code>, <code>critical</code>, <code>high</code>, <code>medium</code>, <code>low</code></li>
+      <li><code>filesScanned</code>, <code>durationMs</code></li>
+      <li><code>verified</code>, <code>active</code>, <code>inactive</code>, <code>unverified</code> counts</li>
+    </ul>
+
+    <h2 id="framework-mappings">Compliance Framework Mappings</h2>
+
+    <p>Gate maps each finding to the security controls it violates across four widely-used frameworks. These mappings appear in reports and are embedded in JSON and SARIF output.</p>
+
+    <h3>OWASP Top 10 2021</h3>
+    <table class="cmd-table">
+      <thead>
+        <tr>
+          <th>Control</th>
+          <th>Name</th>
+          <th>Gate findings</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>A02:2021</td>
+          <td style="color: var(--text-2);">Cryptographic Failures</td>
+          <td style="color: var(--text-3);">Hardcoded secrets, API keys, private keys, tokens</td>
+        </tr>
+        <tr>
+          <td>A05:2021</td>
+          <td style="color: var(--text-2);">Security Misconfiguration</td>
+          <td style="color: var(--text-3);">Credentials in config files, default credentials, insecure DSNs</td>
+        </tr>
+        <tr>
+          <td>A07:2021</td>
+          <td style="color: var(--text-2);">Identification and Authentication Failures</td>
+          <td style="color: var(--text-3);">Hardcoded passwords, weak or reused credentials</td>
+        </tr>
+        <tr>
+          <td>A09:2021</td>
+          <td style="color: var(--text-2);">Security Logging and Monitoring Failures</td>
+          <td style="color: var(--text-3);">Secrets exposed in log outputs or debug strings</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>NIST SP 800-63B</h3>
+    <table class="cmd-table">
+      <thead>
+        <tr>
+          <th>Section</th>
+          <th>Topic</th>
+          <th>Relevance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>5.1.1</td>
+          <td style="color: var(--text-2);">Memorized Secrets</td>
+          <td style="color: var(--text-3);">Hardcoded passwords violate memorized secret requirements</td>
+        </tr>
+        <tr>
+          <td>5.2.7</td>
+          <td style="color: var(--text-2);">Verifier Compromise Resistance</td>
+          <td style="color: var(--text-3);">Exposed secrets undermine resistance to verifier compromise</td>
+        </tr>
+        <tr>
+          <td>6.2</td>
+          <td style="color: var(--text-2);">General Requirements</td>
+          <td style="color: var(--text-3);">Credential lifecycle management, rotation requirements</td>
+        </tr>
+        <tr>
+          <td>8.2</td>
+          <td style="color: var(--text-2);">Usability</td>
+          <td style="color: var(--text-3);">Improper storage patterns that lead to exposure</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>CIS Controls v8</h3>
+    <table class="cmd-table">
+      <thead>
+        <tr>
+          <th>Control</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>3.11</td>
+          <td style="color: var(--text-3);">Encrypt sensitive data at rest -- hardcoded secrets violate encryption requirements</td>
+        </tr>
+        <tr>
+          <td>4.7</td>
+          <td style="color: var(--text-3);">Manage default accounts -- default credentials detected in source</td>
+        </tr>
+        <tr>
+          <td>6.5</td>
+          <td style="color: var(--text-3);">Require MFA for administrative access -- exposed admin credentials bypass MFA</td>
+        </tr>
+        <tr>
+          <td>16.1</td>
+          <td style="color: var(--text-3);">Establish and maintain an inventory of authentication and authorization systems</td>
+        </tr>
+        <tr>
+          <td>16.4</td>
+          <td style="color: var(--text-3);">Restrict administrator privileges to dedicated administrator accounts</td>
+        </tr>
+        <tr>
+          <td>16.7</td>
+          <td style="color: var(--text-3);">Establish and maintain an inventory of authentication and authorization assets</td>
+        </tr>
+        <tr>
+          <td>16.12</td>
+          <td style="color: var(--text-3);">Disable accounts or access when personnel leave -- leaked credentials persist after offboarding</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>SOC2 Trust Services Criteria</h3>
+    <table class="cmd-table">
+      <thead>
+        <tr>
+          <th>Criterion</th>
+          <th>Description</th>
+          <th>Gate relevance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CC6.1</td>
+          <td style="color: var(--text-2);">Logical and physical access controls</td>
+          <td style="color: var(--text-3);">Hardcoded credentials grant unauthorized logical access</td>
+        </tr>
+        <tr>
+          <td>CC6.6</td>
+          <td style="color: var(--text-2);">Restrict logical access to data</td>
+          <td style="color: var(--text-3);">Exposed API keys allow unrestricted data access</td>
+        </tr>
+        <tr>
+          <td>CC6.7</td>
+          <td style="color: var(--text-2);">Protect against unauthorized removal of data</td>
+          <td style="color: var(--text-3);">Leaked credentials enable exfiltration</td>
+        </tr>
+        <tr>
+          <td>CC7.2</td>
+          <td style="color: var(--text-2);">Monitor system components for anomalies</td>
+          <td style="color: var(--text-3);">Unrotated exposed credentials impede anomaly detection</td>
+        </tr>
+        <tr>
+          <td>CC8.1</td>
+          <td style="color: var(--text-2);">Implement change management processes</td>
+          <td style="color: var(--text-3);">Secret leaks in version history indicate inadequate change controls</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="audit-use">Using Reports for Audits</h2>
+
+    <p>Gate reports are designed to serve directly as audit evidence. For security audits and compliance certifications:</p>
+
+    <ul>
+      <li>Run <code>gate scan --verify</code> before generating a report -- active/inactive verification status demonstrates due diligence</li>
+      <li>Use <code>gate report --format html</code> for a self-contained, shareable report with full styling</li>
+      <li>Incident reports (generated via <code>gate report --incident &lt;id&gt;</code>) provide timelines and action logs suitable for breach documentation</li>
+      <li>The audit log (<code>gate audit</code>) provides a tamper-evident chain of all Gate actions, verifiable with <code>gate audit --verify</code></li>
+      <li>SARIF output uploaded to GitHub Code Scanning creates a persistent, versioned record of security findings tied to commits</li>
+    </ul>
+
+    <div class="info-box">
+      <strong>Note:</strong> Gate's compliance mappings are informational. Consult your compliance team or a qualified auditor to confirm applicability to your specific certification requirements.
+    </div>

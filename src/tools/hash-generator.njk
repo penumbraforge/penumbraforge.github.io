@@ -1,0 +1,402 @@
+---
+toolSlug: hash-generator
+permalink: /tools/hash-generator/
+---
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Hash algorithm">
+    <button class="tool-option active" data-algo="SHA-256" aria-pressed="true">SHA-256</button>
+    <button class="tool-option" data-algo="SHA-512" aria-pressed="false">SHA-512</button>
+    <button class="tool-option" data-algo="SHA-1" aria-pressed="false">SHA-1 <span style="font-size:0.75em; color:#f97316;" title="Deprecated for security use">(deprecated)</span></button>
+    <button class="tool-option" data-algo="MD5" aria-pressed="false">MD5 <span style="font-size:0.75em; color:#ef4444;" title="Cryptographically broken">(broken)</span></button>
+  </div>
+</div>
+
+<div class="tool-group">
+  <label for="hash-input">Text input</label>
+  <textarea id="hash-input" rows="6" placeholder="Enter text to hash..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-group">
+  <label>File input</label>
+  <div id="drop-zone" style="border:2px dashed var(--border, #e5e7eb); border-radius:8px; padding:1.5rem; text-align:center; cursor:pointer; transition:border-color 0.2s; user-select:none;" role="button" tabindex="0" aria-label="Drop file or click to upload">
+    <span id="drop-label">Drop a file here or <u>click to browse</u></span>
+    <input type="file" id="file-input" style="display:none;" aria-hidden="true">
+  </div>
+  <div id="file-info" style="margin-top:0.4rem; font-size:0.875rem; color:var(--text-secondary, #6b7280);"></div>
+</div>
+
+<div id="hash-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div class="output-area">
+  <button class="btn btn--copy" id="btn-copy" aria-label="Copy hash">Copy</button>
+  <pre id="hash-output" aria-label="Hash output" style="word-break:break-all; white-space:pre-wrap;"></pre>
+</div>
+
+<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border, #e5e7eb);">
+
+<details>
+  <summary style="cursor:pointer; font-weight:600; margin-bottom:0.75rem;">Compare hashes</summary>
+  <div style="margin-top:0.75rem;">
+    <div class="tool-group">
+      <label for="hash-compare-a">Hash A</label>
+      <input type="text" id="hash-compare-a" placeholder="Paste first hash..." spellcheck="false" autocomplete="off" style="font-family:monospace;">
+    </div>
+    <div class="tool-group">
+      <label for="hash-compare-b">Hash B</label>
+      <input type="text" id="hash-compare-b" placeholder="Paste second hash..." spellcheck="false" autocomplete="off" style="font-family:monospace;">
+    </div>
+    <div class="tool-row">
+      <button class="btn" id="btn-compare">Compare</button>
+    </div>
+    <div id="compare-result" role="alert" aria-live="polite" style="margin-top:0.75rem; font-weight:600; display:none;"></div>
+  </div>
+</details>
+
+<script>
+(function () {
+  var inputEl     = document.getElementById('hash-input');
+  var outputEl    = document.getElementById('hash-output');
+  var errorEl     = document.getElementById('hash-error');
+  var copyBtn     = document.getElementById('btn-copy');
+  var dropZone    = document.getElementById('drop-zone');
+  var fileInput   = document.getElementById('file-input');
+  var fileInfo    = document.getElementById('file-info');
+  var dropLabel   = document.getElementById('drop-label');
+  var compareAEl  = document.getElementById('hash-compare-a');
+  var compareBEl  = document.getElementById('hash-compare-b');
+  var compareBtn  = document.getElementById('btn-compare');
+  var compareRes  = document.getElementById('compare-result');
+
+  var currentAlgo = 'SHA-256';
+  var fileBytes   = null;
+
+  // ----- MD5 implementation (pure JS, no WebCrypto) -----
+  // Based on the RSA Data Security MD5 message-digest algorithm
+  function md5(inputStr) {
+    function safeAdd(x, y) {
+      var lsw = (x & 0xffff) + (y & 0xffff);
+      var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+      return (msw << 16) | (lsw & 0xffff);
+    }
+    function bitRotateLeft(num, cnt) { return (num << cnt) | (num >>> (32 - cnt)); }
+    function md5cmn(q, a, b, x, s, t) { return safeAdd(bitRotateLeft(safeAdd(safeAdd(a, q), safeAdd(x, t)), s), b); }
+    function md5ff(a,b,c,d,x,s,t){ return md5cmn((b&c)|((~b)&d),a,b,x,s,t); }
+    function md5gg(a,b,c,d,x,s,t){ return md5cmn((b&d)|(c&(~d)),a,b,x,s,t); }
+    function md5hh(a,b,c,d,x,s,t){ return md5cmn(b^c^d,a,b,x,s,t); }
+    function md5ii(a,b,c,d,x,s,t){ return md5cmn(c^(b|(~d)),a,b,x,s,t); }
+    function binlMD5(x, len) {
+      x[len >> 5] |= 0x80 << (len % 32);
+      x[(((len + 64) >>> 9) << 4) + 14] = len;
+      var i, olda, oldb, oldc, oldd,
+        a =  1732584193, b = -271733879, c = -1732584194, d =  271733878;
+      for (i = 0; i < x.length; i += 16) {
+        olda = a; oldb = b; oldc = c; oldd = d;
+        a=md5ff(a,b,c,d,x[i+ 0], 7,-680876936); d=md5ff(d,a,b,c,x[i+ 1],12,-389564586);
+        c=md5ff(c,d,a,b,x[i+ 2],17, 606105819); b=md5ff(b,c,d,a,x[i+ 3],22,-1044525330);
+        a=md5ff(a,b,c,d,x[i+ 4], 7,-176418897); d=md5ff(d,a,b,c,x[i+ 5],12, 1200080426);
+        c=md5ff(c,d,a,b,x[i+ 6],17,-1473231341);b=md5ff(b,c,d,a,x[i+ 7],22,-45705983);
+        a=md5ff(a,b,c,d,x[i+ 8], 7, 1770035416); d=md5ff(d,a,b,c,x[i+ 9],12,-1958414417);
+        c=md5ff(c,d,a,b,x[i+10],17,-42063);      b=md5ff(b,c,d,a,x[i+11],22,-1990404162);
+        a=md5ff(a,b,c,d,x[i+12], 7, 1804603682); d=md5ff(d,a,b,c,x[i+13],12,-40341101);
+        c=md5ff(c,d,a,b,x[i+14],17,-1502002290);b=md5ff(b,c,d,a,x[i+15],22, 1236535329);
+        a=md5gg(a,b,c,d,x[i+ 1], 5,-165796510);  d=md5gg(d,a,b,c,x[i+ 6], 9,-1069501632);
+        c=md5gg(c,d,a,b,x[i+11],14, 643717713);  b=md5gg(b,c,d,a,x[i+ 0],20,-373897302);
+        a=md5gg(a,b,c,d,x[i+ 5], 5,-701558691);  d=md5gg(d,a,b,c,x[i+10], 9, 38016083);
+        c=md5gg(c,d,a,b,x[i+15],14,-660478335);  b=md5gg(b,c,d,a,x[i+ 4],20,-405537848);
+        a=md5gg(a,b,c,d,x[i+ 9], 5, 568446438);  d=md5gg(d,a,b,c,x[i+14], 9,-1019803690);
+        c=md5gg(c,d,a,b,x[i+ 3],14,-187363961);  b=md5gg(b,c,d,a,x[i+ 8],20, 1163531501);
+        a=md5gg(a,b,c,d,x[i+13], 5,-1444681467); d=md5gg(d,a,b,c,x[i+ 2], 9,-51403784);
+        c=md5gg(c,d,a,b,x[i+ 7],14, 1735328473); b=md5gg(b,c,d,a,x[i+12],20,-1926607734);
+        a=md5hh(a,b,c,d,x[i+ 5], 4,-378558);     d=md5hh(d,a,b,c,x[i+ 8],11,-2022574463);
+        c=md5hh(c,d,a,b,x[i+11],16, 1839030562); b=md5hh(b,c,d,a,x[i+14],23,-35309556);
+        a=md5hh(a,b,c,d,x[i+ 1], 4,-1530992060); d=md5hh(d,a,b,c,x[i+ 4],11, 1272893353);
+        c=md5hh(c,d,a,b,x[i+ 7],16,-155497632);  b=md5hh(b,c,d,a,x[i+10],23,-1094730640);
+        a=md5hh(a,b,c,d,x[i+13], 4, 681279174);  d=md5hh(d,a,b,c,x[i+ 0],11,-358537222);
+        c=md5hh(c,d,a,b,x[i+ 3],16,-722521979);  b=md5hh(b,c,d,a,x[i+ 6],23, 76029189);
+        a=md5hh(a,b,c,d,x[i+ 9], 4,-640364487);  d=md5hh(d,a,b,c,x[i+12],11,-421815835);
+        c=md5hh(c,d,a,b,x[i+15],16, 530742520);  b=md5hh(b,c,d,a,x[i+ 2],23,-995338651);
+        a=md5ii(a,b,c,d,x[i+ 0], 6,-198630844);  d=md5ii(d,a,b,c,x[i+ 7],10, 1126891415);
+        c=md5ii(c,d,a,b,x[i+14],15,-1416354905); b=md5ii(b,c,d,a,x[i+ 5],21,-57434055);
+        a=md5ii(a,b,c,d,x[i+12], 6, 1700485571); d=md5ii(d,a,b,c,x[i+ 3],10,-1894986606);
+        c=md5ii(c,d,a,b,x[i+10],15,-1051523);    b=md5ii(b,c,d,a,x[i+ 1],21,-2054922799);
+        a=md5ii(a,b,c,d,x[i+ 8], 6, 1873313359); d=md5ii(d,a,b,c,x[i+15],10,-30611744);
+        c=md5ii(c,d,a,b,x[i+ 6],15,-1560198380); b=md5ii(b,c,d,a,x[i+13],21, 1309151649);
+        a=md5ii(a,b,c,d,x[i+ 4], 6,-145523070);  d=md5ii(d,a,b,c,x[i+11],10,-1120210379);
+        c=md5ii(c,d,a,b,x[i+ 2],15, 718787259);  b=md5ii(b,c,d,a,x[i+ 9],21,-343485551);
+        a=safeAdd(a,olda); b=safeAdd(b,oldb); c=safeAdd(c,oldc); d=safeAdd(d,oldd);
+      }
+      return [a, b, c, d];
+    }
+    function strToUtf8Bin(str) {
+      var encoder = new TextEncoder();
+      var utf8 = encoder.encode(str);
+      var output = new Array(Math.ceil(utf8.length / 4));
+      for (var i = 0; i < output.length; i++) output[i] = 0;
+      for (var i = 0; i < utf8.length; i++) {
+        output[i >> 2] |= utf8[i] << ((i % 4) * 8);
+      }
+      return output;
+    }
+    function binToHex(binArr) {
+      var hex = '';
+      var hexchars = '0123456789abcdef';
+      for (var i = 0; i < binArr.length * 4; i++) {
+        hex += hexchars[(binArr[i>>2] >> ((i%4)*8+4)) & 0xf];
+        hex += hexchars[(binArr[i>>2] >> ((i%4)*8  )) & 0xf];
+      }
+      return hex;
+    }
+    var encoder = new TextEncoder();
+    var utf8 = encoder.encode(inputStr);
+    var bitLen = utf8.length * 8;
+    var binInput = new Array(Math.ceil(utf8.length / 4));
+    for (var i = 0; i < binInput.length; i++) binInput[i] = 0;
+    for (var i = 0; i < utf8.length; i++) {
+      binInput[i >> 2] |= utf8[i] << ((i % 4) * 8);
+    }
+    return binToHex(binlMD5(binInput, bitLen));
+  }
+
+  function md5FromBytes(bytes) {
+    function safeAdd(x, y) {
+      var lsw = (x & 0xffff) + (y & 0xffff);
+      var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+      return (msw << 16) | (lsw & 0xffff);
+    }
+    function bitRotateLeft(num, cnt) { return (num << cnt) | (num >>> (32 - cnt)); }
+    function md5cmn(q, a, b, x, s, t) { return safeAdd(bitRotateLeft(safeAdd(safeAdd(a, q), safeAdd(x, t)), s), b); }
+    function md5ff(a,b,c,d,x,s,t){ return md5cmn((b&c)|((~b)&d),a,b,x,s,t); }
+    function md5gg(a,b,c,d,x,s,t){ return md5cmn((b&d)|(c&(~d)),a,b,x,s,t); }
+    function md5hh(a,b,c,d,x,s,t){ return md5cmn(b^c^d,a,b,x,s,t); }
+    function md5ii(a,b,c,d,x,s,t){ return md5cmn(c^(b|(~d)),a,b,x,s,t); }
+    function binlMD5(x, len) {
+      x[len >> 5] |= 0x80 << (len % 32);
+      x[(((len + 64) >>> 9) << 4) + 14] = len;
+      var i, olda, oldb, oldc, oldd,
+        a =  1732584193, b = -271733879, c = -1732584194, d =  271733878;
+      for (i = 0; i < x.length; i += 16) {
+        olda = a; oldb = b; oldc = c; oldd = d;
+        a=md5ff(a,b,c,d,x[i+ 0], 7,-680876936); d=md5ff(d,a,b,c,x[i+ 1],12,-389564586);
+        c=md5ff(c,d,a,b,x[i+ 2],17, 606105819); b=md5ff(b,c,d,a,x[i+ 3],22,-1044525330);
+        a=md5ff(a,b,c,d,x[i+ 4], 7,-176418897); d=md5ff(d,a,b,c,x[i+ 5],12, 1200080426);
+        c=md5ff(c,d,a,b,x[i+ 6],17,-1473231341);b=md5ff(b,c,d,a,x[i+ 7],22,-45705983);
+        a=md5ff(a,b,c,d,x[i+ 8], 7, 1770035416); d=md5ff(d,a,b,c,x[i+ 9],12,-1958414417);
+        c=md5ff(c,d,a,b,x[i+10],17,-42063);      b=md5ff(b,c,d,a,x[i+11],22,-1990404162);
+        a=md5ff(a,b,c,d,x[i+12], 7, 1804603682); d=md5ff(d,a,b,c,x[i+13],12,-40341101);
+        c=md5ff(c,d,a,b,x[i+14],17,-1502002290);b=md5ff(b,c,d,a,x[i+15],22, 1236535329);
+        a=md5gg(a,b,c,d,x[i+ 1], 5,-165796510);  d=md5gg(d,a,b,c,x[i+ 6], 9,-1069501632);
+        c=md5gg(c,d,a,b,x[i+11],14, 643717713);  b=md5gg(b,c,d,a,x[i+ 0],20,-373897302);
+        a=md5gg(a,b,c,d,x[i+ 5], 5,-701558691);  d=md5gg(d,a,b,c,x[i+10], 9, 38016083);
+        c=md5gg(c,d,a,b,x[i+15],14,-660478335);  b=md5gg(b,c,d,a,x[i+ 4],20,-405537848);
+        a=md5gg(a,b,c,d,x[i+ 9], 5, 568446438);  d=md5gg(d,a,b,c,x[i+14], 9,-1019803690);
+        c=md5gg(c,d,a,b,x[i+ 3],14,-187363961);  b=md5gg(b,c,d,a,x[i+ 8],20, 1163531501);
+        a=md5gg(a,b,c,d,x[i+13], 5,-1444681467); d=md5gg(d,a,b,c,x[i+ 2], 9,-51403784);
+        c=md5gg(c,d,a,b,x[i+ 7],14, 1735328473); b=md5gg(b,c,d,a,x[i+12],20,-1926607734);
+        a=md5hh(a,b,c,d,x[i+ 5], 4,-378558);     d=md5hh(d,a,b,c,x[i+ 8],11,-2022574463);
+        c=md5hh(c,d,a,b,x[i+11],16, 1839030562); b=md5hh(b,c,d,a,x[i+14],23,-35309556);
+        a=md5hh(a,b,c,d,x[i+ 1], 4,-1530992060); d=md5hh(d,a,b,c,x[i+ 4],11, 1272893353);
+        c=md5hh(c,d,a,b,x[i+ 7],16,-155497632);  b=md5hh(b,c,d,a,x[i+10],23,-1094730640);
+        a=md5hh(a,b,c,d,x[i+13], 4, 681279174);  d=md5hh(d,a,b,c,x[i+ 0],11,-358537222);
+        c=md5hh(c,d,a,b,x[i+ 3],16,-722521979);  b=md5hh(b,c,d,a,x[i+ 6],23, 76029189);
+        a=md5hh(a,b,c,d,x[i+ 9], 4,-640364487);  d=md5hh(d,a,b,c,x[i+12],11,-421815835);
+        c=md5hh(c,d,a,b,x[i+15],16, 530742520);  b=md5hh(b,c,d,a,x[i+ 2],23,-995338651);
+        a=md5ii(a,b,c,d,x[i+ 0], 6,-198630844);  d=md5ii(d,a,b,c,x[i+ 7],10, 1126891415);
+        c=md5ii(c,d,a,b,x[i+14],15,-1416354905); b=md5ii(b,c,d,a,x[i+ 5],21,-57434055);
+        a=md5ii(a,b,c,d,x[i+12], 6, 1700485571); d=md5ii(d,a,b,c,x[i+ 3],10,-1894986606);
+        c=md5ii(c,d,a,b,x[i+10],15,-1051523);    b=md5ii(b,c,d,a,x[i+ 1],21,-2054922799);
+        a=md5ii(a,b,c,d,x[i+ 8], 6, 1873313359); d=md5ii(d,a,b,c,x[i+15],10,-30611744);
+        c=md5ii(c,d,a,b,x[i+ 6],15,-1560198380); b=md5ii(b,c,d,a,x[i+13],21, 1309151649);
+        a=md5ii(a,b,c,d,x[i+ 4], 6,-145523070);  d=md5ii(d,a,b,c,x[i+11],10,-1120210379);
+        c=md5ii(c,d,a,b,x[i+ 2],15, 718787259);  b=md5ii(b,c,d,a,x[i+ 9],21,-343485551);
+        a=safeAdd(a,olda); b=safeAdd(b,oldb); c=safeAdd(c,oldc); d=safeAdd(d,oldd);
+      }
+      return [a, b, c, d];
+    }
+    function binToHex(binArr) {
+      var hex = '';
+      var hexchars = '0123456789abcdef';
+      for (var i = 0; i < binArr.length * 4; i++) {
+        hex += hexchars[(binArr[i>>2] >> ((i%4)*8+4)) & 0xf];
+        hex += hexchars[(binArr[i>>2] >> ((i%4)*8  )) & 0xf];
+      }
+      return hex;
+    }
+    var bitLen = bytes.length * 8;
+    var binInput = new Array(Math.ceil(bytes.length / 4));
+    for (var i = 0; i < binInput.length; i++) binInput[i] = 0;
+    for (var i = 0; i < bytes.length; i++) {
+      binInput[i >> 2] |= bytes[i] << ((i % 4) * 8);
+    }
+    return binToHex(binlMD5(binInput, bitLen));
+  }
+
+  function bufToHex(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var hex = '';
+    for (var i = 0; i < bytes.length; i++) {
+      hex += ('0' + bytes[i].toString(16)).slice(-2);
+    }
+    return hex;
+  }
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+  }
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+
+  function hashText(text) {
+    if (!text) {
+      outputEl.textContent = '';
+      hideError();
+      return;
+    }
+    if (currentAlgo === 'MD5') {
+      outputEl.textContent = md5(text);
+      hideError();
+      return;
+    }
+    var encoder = new TextEncoder();
+    var data = encoder.encode(text);
+    crypto.subtle.digest(currentAlgo, data).then(function (buf) {
+      outputEl.textContent = bufToHex(buf);
+      hideError();
+    }).catch(function (err) {
+      showError('Hash error: ' + err.message);
+    });
+  }
+
+  function hashBytes(bytes, fileName) {
+    if (currentAlgo === 'MD5') {
+      outputEl.textContent = md5FromBytes(bytes);
+      hideError();
+      return;
+    }
+    crypto.subtle.digest(currentAlgo, bytes).then(function (buf) {
+      outputEl.textContent = bufToHex(buf);
+      hideError();
+    }).catch(function (err) {
+      showError('Hash error: ' + err.message);
+    });
+  }
+
+  function processFile(file) {
+    fileInfo.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      fileBytes = new Uint8Array(e.target.result);
+      hashBytes(fileBytes, file.name);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  inputEl.addEventListener('input', function () {
+    fileBytes = null;
+    fileInfo.textContent = '';
+    hashText(inputEl.value);
+  });
+
+  // Algorithm toggle
+  var algoBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-algo]'));
+  algoBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      algoBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      currentAlgo = btn.getAttribute('data-algo');
+      if (fileBytes) {
+        hashBytes(fileBytes, '');
+      } else {
+        hashText(inputEl.value);
+      }
+    });
+  });
+
+  // File drop zone
+  dropZone.addEventListener('click', function () { fileInput.click(); });
+  dropZone.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) {
+      inputEl.value = '';
+      processFile(fileInput.files[0]);
+    }
+  });
+
+  dropZone.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    dropZone.style.borderColor = 'var(--accent, #3b82f6)';
+  });
+  dropZone.addEventListener('dragleave', function () {
+    dropZone.style.borderColor = '';
+  });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropZone.style.borderColor = '';
+    var file = e.dataTransfer.files[0];
+    if (file) {
+      inputEl.value = '';
+      processFile(file);
+    }
+  });
+
+  // Compare
+  compareBtn.addEventListener('click', function () {
+    var a = compareAEl.value.trim().toLowerCase();
+    var b = compareBEl.value.trim().toLowerCase();
+    if (!a || !b) {
+      compareRes.textContent = 'Enter both hashes to compare.';
+      compareRes.style.color = '';
+      compareRes.style.display = '';
+      return;
+    }
+    if (a === b) {
+      compareRes.textContent = 'Match — hashes are identical.';
+      compareRes.style.color = '#22c55e';
+    } else {
+      compareRes.textContent = 'Mismatch — hashes differ.';
+      compareRes.style.color = '#ef4444';
+    }
+    compareRes.style.display = '';
+  });
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      }).catch(function () {
+        copyBtn.textContent = 'Failed';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        copyBtn.textContent = 'Copied!';
+      } catch (e) {
+        copyBtn.textContent = 'Failed';
+      }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+  });
+})();
+</script>

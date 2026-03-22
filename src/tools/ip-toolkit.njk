@@ -1,0 +1,717 @@
+---
+toolSlug: ip-toolkit
+permalink: /tools/ip-toolkit/
+---
+
+<div class="tool-row" style="margin-bottom:0;">
+  <div class="tool-options" role="tablist" aria-label="IP tools" id="ip-tabs">
+    <button class="tool-option active" role="tab" data-tab="myip"      aria-selected="true">My IP</button>
+    <button class="tool-option"        role="tab" data-tab="cidr"      aria-selected="false">CIDR Overlap</button>
+    <button class="tool-option"        role="tab" data-tab="convert"   aria-selected="false">IP Converter</button>
+    <button class="tool-option"        role="tab" data-tab="random"    aria-selected="false">Random IP</button>
+  </div>
+</div>
+
+<!-- Tab: My IP -->
+<div id="tab-myip" class="ip-tab-panel" role="tabpanel">
+  <div class="ip-myip-box" id="myip-box">
+    <div class="ip-myip-loading" id="myip-loading">Detecting your IP address…</div>
+    <div id="myip-result" style="display:none;">
+      <div class="ip-myip-address" id="myip-address"></div>
+      <div class="ip-myip-meta" id="myip-meta"></div>
+      <button class="btn btn--copy" id="btn-copy-myip" style="margin-top:10px;">Copy IP</button>
+    </div>
+    <div id="myip-error" style="display:none;" class="tool-error"></div>
+  </div>
+  <div class="ip-info-grid" id="myip-info-grid" style="display:none;"></div>
+</div>
+
+<!-- Tab: CIDR Overlap -->
+<div id="tab-cidr" class="ip-tab-panel" role="tabpanel" style="display:none;">
+  <div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">
+    <div class="tool-group" style="margin:0;">
+      <label for="cidr-a">First CIDR range</label>
+      <input type="text" id="cidr-a" placeholder="192.168.1.0/24" spellcheck="false" autocomplete="off" style="font-family:monospace; max-width:280px;">
+    </div>
+    <div class="tool-group" style="margin:0;">
+      <label for="cidr-b">Second CIDR range</label>
+      <input type="text" id="cidr-b" placeholder="192.168.1.128/26" spellcheck="false" autocomplete="off" style="font-family:monospace; max-width:280px;">
+    </div>
+  </div>
+  <div id="cidr-error" style="display:none; margin-top:10px;" class="tool-error"></div>
+  <div id="cidr-result" style="display:none; margin-top:14px;"></div>
+</div>
+
+<!-- Tab: IP Converter -->
+<div id="tab-convert" class="ip-tab-panel" role="tabpanel" style="display:none;">
+  <div style="margin-top:12px;">
+    <div class="tool-group" style="margin:0 0 12px;">
+      <label for="ipconv-input">IPv4 address (any format)</label>
+      <input type="text" id="ipconv-input" placeholder="192.168.1.1  or  0xC0A80101  or  3232235777" spellcheck="false" autocomplete="off" style="font-family:monospace; max-width:400px;">
+    </div>
+    <div id="ipconv-error" style="display:none;" class="tool-error"></div>
+    <div id="ipconv-result" style="display:none;" class="ip-conv-table"></div>
+  </div>
+</div>
+
+<!-- Tab: Random IP -->
+<div id="tab-random" class="ip-tab-panel" role="tabpanel" style="display:none;">
+  <div style="margin-top:12px;">
+    <div class="tool-row" style="margin-bottom:14px;">
+      <div class="tool-options" role="group" aria-label="IP type">
+        <button class="tool-option active" data-rtype="private" aria-pressed="true">Private (RFC 1918)</button>
+        <button class="tool-option"        data-rtype="public"  aria-pressed="false">Public</button>
+        <button class="tool-option"        data-rtype="loopback" aria-pressed="false">Loopback</button>
+        <button class="tool-option"        data-rtype="ipv6"    aria-pressed="false">IPv6</button>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <label for="rnd-count" style="font-size:13px; white-space:nowrap;">Count:</label>
+        <select id="rnd-count" style="font-family:var(--font-mono); padding:4px 8px; border:1px solid var(--border); border-radius:3px; background:var(--surface-bg,#fff); color:var(--text-1);">
+          <option value="1">1</option>
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+      <button class="btn btn--primary" id="btn-generate-ip">Generate</button>
+    </div>
+    <div class="output-area">
+      <button class="btn btn--copy" id="btn-copy-random">Copy</button>
+      <pre id="random-output" aria-label="Generated IP addresses"></pre>
+    </div>
+    <div id="rnd-note" class="ip-rnd-note"></div>
+  </div>
+</div>
+
+<style>
+  .ip-tab-panel { min-height: 180px; }
+
+  .ip-myip-box {
+    margin-top: 16px;
+    padding: 20px;
+    background: var(--surface-0, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 6px;
+    text-align: center;
+  }
+
+  .ip-myip-loading {
+    color: var(--text-3, #9ca3af);
+    font-family: var(--font-sans, sans-serif);
+    font-size: 14px;
+    padding: 12px 0;
+  }
+
+  .ip-myip-address {
+    font-family: var(--font-mono, monospace);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-1, #111827);
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+  }
+
+  .ip-myip-meta {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 12px;
+    color: var(--text-3, #9ca3af);
+  }
+
+  .ip-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .ip-info-card {
+    background: var(--surface-0, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 4px;
+    padding: 10px 12px;
+  }
+
+  .ip-info-card-label {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-3, #9ca3af);
+    margin-bottom: 4px;
+  }
+
+  .ip-info-card-value {
+    font-family: var(--font-mono, monospace);
+    font-size: 13px;
+    color: var(--text-1, #111827);
+    word-break: break-all;
+  }
+
+  .ip-overlap-result {
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .ip-overlap-result--yes {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    color: #92400e;
+  }
+
+  .ip-overlap-result--no {
+    background: #d1fae5;
+    border: 1px solid #10b981;
+    color: #065f46;
+  }
+
+  .ip-overlap-detail {
+    margin-top: 12px;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 13px;
+  }
+
+  .ip-conv-table {
+    margin-top: 4px;
+  }
+
+  .ip-conv-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+  }
+
+  .ip-conv-row:last-child { border-bottom: none; }
+
+  .ip-conv-label {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-3, #9ca3af);
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+
+  .ip-conv-value {
+    font-family: var(--font-mono, monospace);
+    font-size: 13px;
+    color: var(--text-1, #111827);
+    flex: 1;
+    word-break: break-all;
+  }
+
+  .ip-conv-copy {
+    font-size: 11px;
+    padding: 2px 7px;
+    cursor: pointer;
+    background: var(--surface-0, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 3px;
+    color: var(--text-2, #374151);
+    flex-shrink: 0;
+  }
+
+  .ip-conv-copy:hover { border-color: var(--accent, #3b82f6); color: var(--accent, #3b82f6); }
+
+  .ip-rnd-note {
+    margin-top: 10px;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 12px;
+    color: var(--text-3, #9ca3af);
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── Tab switching ────────────────────────────────────────────────────────
+  var tabsEl  = document.getElementById("ip-tabs");
+  var tabBtns = Array.prototype.slice.call(tabsEl.querySelectorAll("[data-tab]"));
+  var panels  = {
+    myip:    document.getElementById("tab-myip"),
+    cidr:    document.getElementById("tab-cidr"),
+    convert: document.getElementById("tab-convert"),
+    random:  document.getElementById("tab-random")
+  };
+
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      tabBtns.forEach(function (b) {
+        b.classList.remove("active");
+        b.setAttribute("aria-selected", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-selected", "true");
+      var key = btn.getAttribute("data-tab");
+      Object.keys(panels).forEach(function (k) {
+        panels[k].style.display = k === key ? "" : "none";
+      });
+    });
+  });
+
+  // ── Helper: copy text ────────────────────────────────────────────────────
+  function copyText(text, btn, label) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = label; }, 2000);
+      }).catch(function () {
+        btn.textContent = "Failed";
+        setTimeout(function () { btn.textContent = label; }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); btn.textContent = "Copied!"; }
+      catch (e) { btn.textContent = "Failed"; }
+      document.body.removeChild(ta);
+      setTimeout(function () { btn.textContent = label; }, 2000);
+    }
+  }
+
+  // ── Tab 1: My IP ─────────────────────────────────────────────────────────
+  var myipLoading = document.getElementById("myip-loading");
+  var myipResult  = document.getElementById("myip-result");
+  var myipAddress = document.getElementById("myip-address");
+  var myipMeta    = document.getElementById("myip-meta");
+  var myipErrEl   = document.getElementById("myip-error");
+  var myipInfoEl  = document.getElementById("myip-info-grid");
+  var copyMyipBtn = document.getElementById("btn-copy-myip");
+  var detectedIP  = "";
+
+  function ipToInt(ip) {
+    var parts = ip.split(".");
+    if (parts.length !== 4) return null;
+    var n = 0;
+    for (var i = 0; i < 4; i++) {
+      var b = parseInt(parts[i], 10);
+      if (isNaN(b) || b < 0 || b > 255) return null;
+      n = (n * 256 + b) >>> 0;
+    }
+    return n;
+  }
+
+  function ipVersion(ip) {
+    if (ip.indexOf(":") !== -1) return 6;
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(ip)) return 4;
+    return null;
+  }
+
+  function classifyIP(ip) {
+    var n = ipToInt(ip);
+    if (n === null) return "IPv6";
+    // RFC 1918
+    if (n >= ipToInt("10.0.0.0") && n <= ipToInt("10.255.255.255")) return "Private (10.0.0.0/8)";
+    if (n >= ipToInt("172.16.0.0") && n <= ipToInt("172.31.255.255")) return "Private (172.16.0.0/12)";
+    if (n >= ipToInt("192.168.0.0") && n <= ipToInt("192.168.255.255")) return "Private (192.168.0.0/16)";
+    if (n >= ipToInt("127.0.0.0") && n <= ipToInt("127.255.255.255")) return "Loopback";
+    if (n >= ipToInt("169.254.0.0") && n <= ipToInt("169.254.255.255")) return "Link-local (APIPA)";
+    if (n >= ipToInt("100.64.0.0") && n <= ipToInt("100.127.255.255")) return "Shared address space (RFC 6598)";
+    return "Public";
+  }
+
+  function fetchMyIP() {
+    // Try ipify first (JSON), fallback to httpbin
+    var apis = [
+      "https://api.ipify.org?format=json",
+      "https://httpbin.org/ip"
+    ];
+    var tried = 0;
+
+    function tryNext() {
+      if (tried >= apis.length) {
+        myipLoading.style.display = "none";
+        myipErrEl.textContent = "Could not detect IP. Check your connection or try a different browser.";
+        myipErrEl.style.display = "";
+        return;
+      }
+      var url = apis[tried++];
+      fetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var ip = data.ip || data.origin || "";
+          // httpbin returns "x.x.x.x" or "x.x.x.x, y.y.y.y" (via proxy)
+          ip = ip.split(",")[0].trim();
+          if (!ip) throw new Error("No IP in response");
+          detectedIP = ip;
+          myipLoading.style.display = "none";
+          myipAddress.textContent = ip;
+          myipMeta.textContent = "IPv" + ipVersion(ip) + " · Detected via " + new URL(url).hostname;
+          myipResult.style.display = "";
+
+          // Info cards
+          while (myipInfoEl.firstChild) myipInfoEl.removeChild(myipInfoEl.firstChild);
+          var cards = [
+            ["Type",        "IPv" + ipVersion(ip)],
+            ["Class",       classifyIP(ip)],
+            ["Decimal",     ipVersion(ip) === 4 ? String(ipToInt(ip) >>> 0) : "N/A (IPv6)"],
+          ];
+          if (ipVersion(ip) === 4) {
+            var n = ipToInt(ip) >>> 0;
+            var hex = "0x" + ("00000000" + n.toString(16).toUpperCase()).slice(-8);
+            cards.push(["Hex", hex]);
+            var octets = ip.split(".");
+            var binary = octets.map(function (o) {
+              return ("00000000" + parseInt(o, 10).toString(2)).slice(-8);
+            }).join(".");
+            cards.push(["Binary", binary]);
+          }
+
+          cards.forEach(function (c) {
+            var card = document.createElement("div");
+            card.className = "ip-info-card";
+            var lbl = document.createElement("div");
+            lbl.className = "ip-info-card-label";
+            lbl.textContent = c[0];
+            var val = document.createElement("div");
+            val.className = "ip-info-card-value";
+            val.textContent = c[1];
+            card.appendChild(lbl);
+            card.appendChild(val);
+            myipInfoEl.appendChild(card);
+          });
+          myipInfoEl.style.display = "";
+        })
+        .catch(function () { tryNext(); });
+    }
+
+    tryNext();
+  }
+
+  copyMyipBtn.addEventListener("click", function () {
+    copyText(detectedIP, copyMyipBtn, "Copy IP");
+  });
+
+  fetchMyIP();
+
+  // ── Tab 2: CIDR Overlap ──────────────────────────────────────────────────
+  var cidrA     = document.getElementById("cidr-a");
+  var cidrB     = document.getElementById("cidr-b");
+  var cidrErr   = document.getElementById("cidr-error");
+  var cidrRes   = document.getElementById("cidr-result");
+
+  function parseCIDR(str) {
+    var parts = str.trim().split("/");
+    if (parts.length !== 2) return null;
+    var ip  = ipToInt(parts[0].trim());
+    var pfx = parseInt(parts[1], 10);
+    if (ip === null || isNaN(pfx) || pfx < 0 || pfx > 32) return null;
+    var mask    = pfx === 0 ? 0 : ((0xffffffff << (32 - pfx)) >>> 0);
+    var network = (ip & mask) >>> 0;
+    var bcast   = (network | (~mask >>> 0)) >>> 0;
+    return { ip: ip, prefix: pfx, mask: mask, network: network, broadcast: bcast };
+  }
+
+  function intToIPStr(n) {
+    return [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff].join(".");
+  }
+
+  function checkOverlap() {
+    var va = cidrA.value.trim(), vb = cidrB.value.trim();
+    cidrErr.style.display = "none";
+    cidrRes.style.display = "none";
+
+    if (!va || !vb) return;
+
+    var a = parseCIDR(va), b = parseCIDR(vb);
+    if (!a) { cidrErr.textContent = "Invalid CIDR: " + va; cidrErr.style.display = ""; return; }
+    if (!b) { cidrErr.textContent = "Invalid CIDR: " + vb; cidrErr.style.display = ""; return; }
+
+    // Overlap when max(network_a, network_b) <= min(broadcast_a, broadcast_b)
+    var overlapStart = Math.max(a.network, b.network) >>> 0;
+    var overlapEnd   = Math.min(a.broadcast, b.broadcast) >>> 0;
+    var overlaps     = overlapStart <= overlapEnd;
+
+    while (cidrRes.firstChild) cidrRes.removeChild(cidrRes.firstChild);
+
+    var resultDiv = document.createElement("div");
+    resultDiv.className = "ip-overlap-result ip-overlap-result--" + (overlaps ? "yes" : "no");
+    resultDiv.textContent = overlaps
+      ? "These ranges OVERLAP"
+      : "No overlap — these ranges are disjoint";
+    cidrRes.appendChild(resultDiv);
+
+    if (overlaps) {
+      var detail = document.createElement("div");
+      detail.className = "ip-overlap-detail";
+
+      function addDetailRow(label, value) {
+        var row = document.createElement("div");
+        row.style.cssText = "display:flex; gap:12px; padding:4px 0; font-size:13px;";
+        var lbl = document.createElement("span");
+        lbl.style.cssText = "color:var(--text-3,#9ca3af); min-width:130px; font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.04em;";
+        lbl.textContent = label;
+        var val = document.createElement("span");
+        val.style.cssText = "font-family:var(--font-mono,monospace); color:var(--text-1,#111827);";
+        val.textContent = value;
+        row.appendChild(lbl);
+        row.appendChild(val);
+        detail.appendChild(row);
+      }
+
+      addDetailRow("Overlap start", intToIPStr(overlapStart));
+      addDetailRow("Overlap end",   intToIPStr(overlapEnd));
+      var count = (overlapEnd - overlapStart + 1) >>> 0;
+      addDetailRow("Overlap size",  count.toLocaleString() + " address" + (count !== 1 ? "es" : ""));
+      addDetailRow("Range A",       intToIPStr(a.network) + " – " + intToIPStr(a.broadcast));
+      addDetailRow("Range B",       intToIPStr(b.network) + " – " + intToIPStr(b.broadcast));
+      cidrRes.appendChild(detail);
+    } else {
+      var gap = document.createElement("div");
+      gap.className = "ip-overlap-detail";
+
+      function addGapRow(label, value) {
+        var row = document.createElement("div");
+        row.style.cssText = "display:flex; gap:12px; padding:4px 0; font-size:13px;";
+        var lbl = document.createElement("span");
+        lbl.style.cssText = "color:var(--text-3,#9ca3af); min-width:130px; font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.04em;";
+        lbl.textContent = label;
+        var val = document.createElement("span");
+        val.style.cssText = "font-family:var(--font-mono,monospace); color:var(--text-1,#111827);";
+        val.textContent = value;
+        row.appendChild(lbl);
+        row.appendChild(val);
+        gap.appendChild(row);
+      }
+
+      addGapRow("Range A", intToIPStr(a.network) + " – " + intToIPStr(a.broadcast));
+      addGapRow("Range B", intToIPStr(b.network) + " – " + intToIPStr(b.broadcast));
+      var gapSize = (Math.min(a.network, b.network) === a.network)
+        ? (b.network - a.broadcast - 1)
+        : (a.network - b.broadcast - 1);
+      if (gapSize > 0) addGapRow("Gap between", gapSize.toLocaleString() + " address" + (gapSize !== 1 ? "es" : ""));
+      cidrRes.appendChild(gap);
+    }
+
+    cidrRes.style.display = "";
+  }
+
+  cidrA.addEventListener("input", checkOverlap);
+  cidrB.addEventListener("input", checkOverlap);
+
+  // ── Tab 3: IP Converter ──────────────────────────────────────────────────
+  var ipconvInput  = document.getElementById("ipconv-input");
+  var ipconvErr    = document.getElementById("ipconv-error");
+  var ipconvResult = document.getElementById("ipconv-result");
+
+  function parseIPInput(raw) {
+    raw = raw.trim();
+    if (!raw) return null;
+
+    // Dotted decimal
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(raw)) {
+      var n = ipToInt(raw);
+      if (n === null) return null;
+      return n >>> 0;
+    }
+    // Hex with 0x prefix
+    if (/^0[xX][0-9a-fA-F]{1,8}$/.test(raw)) {
+      return parseInt(raw, 16) >>> 0;
+    }
+    // Decimal integer
+    if (/^\d+$/.test(raw)) {
+      var val = parseInt(raw, 10);
+      if (val < 0 || val > 4294967295) return null;
+      return val >>> 0;
+    }
+    // Binary
+    if (/^[01]{8,32}$/.test(raw.replace(/\./g, ""))) {
+      var clean = raw.replace(/\./g, "");
+      if (clean.length !== 32) return null;
+      return parseInt(clean, 2) >>> 0;
+    }
+    return null;
+  }
+
+  function convertIP() {
+    var raw = ipconvInput.value.trim();
+    ipconvErr.style.display = "none";
+    while (ipconvResult.firstChild) ipconvResult.removeChild(ipconvResult.firstChild);
+    ipconvResult.style.display = "none";
+
+    if (!raw) return;
+
+    var n = parseIPInput(raw);
+    if (n === null) {
+      ipconvErr.textContent = "Unrecognized format. Try: 192.168.1.1, 0xC0A80101, 3232235777, or 32-bit binary";
+      ipconvErr.style.display = "";
+      return;
+    }
+
+    var octets = [
+      (n >>> 24) & 0xff,
+      (n >>> 16) & 0xff,
+      (n >>> 8)  & 0xff,
+       n         & 0xff
+    ];
+
+    var decimal   = String(n >>> 0);
+    var dotted    = octets.join(".");
+    var hex       = "0x" + ("00000000" + (n >>> 0).toString(16).toUpperCase()).slice(-8);
+    var hexDotted = octets.map(function (o) {
+      return "0x" + ("00" + o.toString(16).toUpperCase()).slice(-2);
+    }).join(".");
+    var binary    = octets.map(function (o) {
+      return ("00000000" + o.toString(2)).slice(-8);
+    }).join(".");
+    var octal     = "0" + (n >>> 0).toString(8);
+
+    var rows = [
+      ["Dotted decimal",  dotted],
+      ["Decimal",         decimal],
+      ["Hexadecimal",     hex],
+      ["Hex (dotted)",    hexDotted],
+      ["Binary",          binary],
+      ["Octal",           octal],
+      ["Class",           classifyIP(dotted)]
+    ];
+
+    rows.forEach(function (r) {
+      var row = document.createElement("div");
+      row.className = "ip-conv-row";
+
+      var lbl = document.createElement("span");
+      lbl.className = "ip-conv-label";
+      lbl.textContent = r[0];
+
+      var val = document.createElement("span");
+      val.className = "ip-conv-value";
+      val.textContent = r[1];
+
+      var cpyBtn = document.createElement("button");
+      cpyBtn.className = "ip-conv-copy";
+      cpyBtn.textContent = "Copy";
+      (function (value, btn) {
+        btn.addEventListener("click", function () { copyText(value, btn, "Copy"); });
+      })(r[1], cpyBtn);
+
+      row.appendChild(lbl);
+      row.appendChild(val);
+      row.appendChild(cpyBtn);
+      ipconvResult.appendChild(row);
+    });
+
+    ipconvResult.style.display = "";
+  }
+
+  ipconvInput.addEventListener("input", convertIP);
+
+  // ── Tab 4: Random IP ─────────────────────────────────────────────────────
+  var rndTypeBtns  = Array.prototype.slice.call(document.querySelectorAll("[data-rtype]"));
+  var rndCountEl   = document.getElementById("rnd-count");
+  var rndGenBtn    = document.getElementById("btn-generate-ip");
+  var rndOutput    = document.getElementById("random-output");
+  var rndNote      = document.getElementById("rnd-note");
+  var rndCopyBtn   = document.getElementById("btn-copy-random");
+  var currentRtype = "private";
+
+  var PRIVATE_RANGES = [
+    { start: ipToInt("10.0.0.0"),     end: ipToInt("10.255.255.255"),   label: "10.0.0.0/8" },
+    { start: ipToInt("172.16.0.0"),   end: ipToInt("172.31.255.255"),   label: "172.16.0.0/12" },
+    { start: ipToInt("192.168.0.0"),  end: ipToInt("192.168.255.255"),  label: "192.168.0.0/16" }
+  ];
+
+  var RND_NOTES = {
+    private:  "RFC 1918 private address space: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16",
+    public:   "Public IP addresses — excludes private, loopback, link-local, and reserved ranges",
+    loopback: "Loopback range 127.0.0.0/8 (commonly 127.0.0.1)",
+    ipv6:     "Random globally-scoped unicast IPv6 addresses (2000::/3)"
+  };
+
+  function rand32() {
+    return (Math.random() * 4294967296) >>> 0;
+  }
+
+  function randInRange(start, end) {
+    return (start + Math.floor(Math.random() * (end - start + 1))) >>> 0;
+  }
+
+  function genPrivate() {
+    var range = PRIVATE_RANGES[Math.floor(Math.random() * PRIVATE_RANGES.length)];
+    var n = randInRange(range.start, range.end);
+    return intToIPStr(n);
+  }
+
+  function genPublic() {
+    // Exclude private and reserved ranges — retry until valid
+    var reserved = [
+      [ipToInt("0.0.0.0"),       ipToInt("0.255.255.255")],
+      [ipToInt("10.0.0.0"),      ipToInt("10.255.255.255")],
+      [ipToInt("100.64.0.0"),    ipToInt("100.127.255.255")],
+      [ipToInt("127.0.0.0"),     ipToInt("127.255.255.255")],
+      [ipToInt("169.254.0.0"),   ipToInt("169.254.255.255")],
+      [ipToInt("172.16.0.0"),    ipToInt("172.31.255.255")],
+      [ipToInt("192.0.0.0"),     ipToInt("192.0.0.255")],
+      [ipToInt("192.168.0.0"),   ipToInt("192.168.255.255")],
+      [ipToInt("198.18.0.0"),    ipToInt("198.19.255.255")],
+      [ipToInt("224.0.0.0"),     ipToInt("255.255.255.255")]
+    ];
+    for (var attempt = 0; attempt < 100; attempt++) {
+      var n = rand32();
+      var isReserved = reserved.some(function (r) { return n >= r[0] && n <= r[1]; });
+      if (!isReserved) return intToIPStr(n);
+    }
+    return "8.8.8.8"; // fallback
+  }
+
+  function genLoopback() {
+    var n = randInRange(ipToInt("127.0.0.1"), ipToInt("127.255.255.254"));
+    return intToIPStr(n);
+  }
+
+  function genIPv6() {
+    // Generate 2xxx:... globally-scoped unicast
+    var groups = [];
+    groups.push((0x2000 + Math.floor(Math.random() * 0x1fff)).toString(16));
+    for (var i = 1; i < 8; i++) {
+      groups.push(Math.floor(Math.random() * 0xffff).toString(16));
+    }
+    return groups.join(":");
+  }
+
+  rndTypeBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      rndTypeBtns.forEach(function (b) {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+      currentRtype = btn.getAttribute("data-rtype");
+    });
+  });
+
+  rndGenBtn.addEventListener("click", function () {
+    var count = parseInt(rndCountEl.value, 10) || 10;
+    var ips = [];
+    for (var i = 0; i < count; i++) {
+      if      (currentRtype === "private")  ips.push(genPrivate());
+      else if (currentRtype === "public")   ips.push(genPublic());
+      else if (currentRtype === "loopback") ips.push(genLoopback());
+      else                                   ips.push(genIPv6());
+    }
+    rndOutput.textContent = ips.join("\n");
+    rndNote.textContent = RND_NOTES[currentRtype] || "";
+  });
+
+  rndCopyBtn.addEventListener("click", function () {
+    copyText(rndOutput.textContent, rndCopyBtn, "Copy");
+  });
+
+  // Generate on load
+  rndGenBtn.click();
+})();
+</script>

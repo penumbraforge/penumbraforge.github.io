@@ -1,0 +1,140 @@
+---
+toolSlug: json-formatter
+permalink: /tools/json-formatter/
+---
+
+<div class="tool-group">
+  <label for="json-input">Paste JSON</label>
+  <textarea id="json-input" rows="12" placeholder='{"key": "value", "array": [1, 2, 3]}' spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Indent options">
+    <button class="tool-option active" data-indent="2" aria-pressed="true">2 spaces</button>
+    <button class="tool-option" data-indent="4" aria-pressed="false">4 spaces</button>
+    <button class="tool-option" data-indent="tab" aria-pressed="false">Tab</button>
+  </div>
+  <button class="btn" id="btn-minify">Minify</button>
+</div>
+
+<div id="json-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div class="output-area">
+  <button class="btn btn--copy" id="btn-copy" aria-label="Copy output">Copy</button>
+  <pre id="json-output" aria-label="Formatted JSON output"></pre>
+</div>
+
+<script>
+(function () {
+  var inputEl     = document.getElementById('json-input');
+  var outputEl    = document.getElementById('json-output');
+  var errorEl     = document.getElementById('json-error');
+  var copyBtn     = document.getElementById('btn-copy');
+  var minifyBtn   = document.getElementById('btn-minify');
+  var optionBtns  = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-indent]'));
+
+  var currentIndent = 2;
+  var isMinified    = false;
+
+  function getIndentValue(raw) {
+    if (raw === 'tab') return '\t';
+    return parseInt(raw, 10);
+  }
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+  }
+
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+
+  function format() {
+    var raw = inputEl.value;
+
+    if (!raw.trim()) {
+      outputEl.textContent = '';
+      hideError();
+      return;
+    }
+
+    try {
+      var parsed = JSON.parse(raw);
+      hideError();
+
+      if (isMinified) {
+        outputEl.textContent = JSON.stringify(parsed);
+      } else {
+        var indentVal = getIndentValue(currentIndent);
+        outputEl.textContent = JSON.stringify(parsed, null, indentVal);
+      }
+    } catch (err) {
+      showError(err.message);
+      outputEl.textContent = raw;
+    }
+  }
+
+  optionBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      isMinified = false;
+
+      optionBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+
+      currentIndent = btn.getAttribute('data-indent');
+      format();
+    });
+  });
+
+  minifyBtn.addEventListener('click', function () {
+    isMinified = true;
+
+    optionBtns.forEach(function (b) {
+      b.classList.remove('active');
+      b.setAttribute('aria-pressed', 'false');
+    });
+
+    format();
+  });
+
+  inputEl.addEventListener('input', format);
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      }).catch(function () {
+        copyBtn.textContent = 'Failed';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      /* Fallback for older browsers */
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        copyBtn.textContent = 'Copied!';
+      } catch (e) {
+        copyBtn.textContent = 'Failed';
+      }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+  });
+})();
+</script>

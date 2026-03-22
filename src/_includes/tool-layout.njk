@@ -1,0 +1,149 @@
+{% extends "base.njk" %}
+{% set toolData = tools | find("slug", toolSlug) %}
+
+{% block title %}{{ toolData.name }} — Free Online Tool | Penumbra Forge{% endblock %}
+
+{% block description %}{{ toolData.longDescription }}{% endblock %}
+
+{% block head %}
+<meta property="og:title" content="{{ toolData.name }} — Free Online Tool | Penumbra Forge">
+<meta property="og:description" content="{{ toolData.longDescription }}">
+<meta property="og:image" content="{{ site.url }}/og-image.png">
+<meta property="og:url" content="{{ site.url }}{{ page.url }}">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ toolData.name }} — Free Online Tool | Penumbra Forge">
+<meta name="twitter:description" content="{{ toolData.longDescription }}">
+{% endblock %}
+
+{% block jsonld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "{{ toolData.name }}",
+  "description": "{{ toolData.longDescription }}",
+  "url": "{{ site.url }}{{ page.url }}",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any (browser-based)",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "Penumbra Forge",
+    "url": "{{ site.url }}"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "{{ site.url }}/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Tools",
+      "item": "{{ site.url }}/tools/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "{{ toolData.category | capitalize }}",
+      "item": "{{ site.url }}/tools/?cat={{ toolData.category }}"
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "name": "{{ toolData.name }}",
+      "item": "{{ site.url }}{{ page.url }}"
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block body %}
+<div class="tool-page">
+
+  <header class="site-header">
+    <a href="/" class="site-header-brand">
+      <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+      <span class="site-header-name">Penumbra Forge</span>
+    </a>
+    <nav class="site-header-nav">
+      <a href="/">Home</a>
+      <a href="/tools/" class="active">Tools</a>
+      <a href="/gate/">Gate</a>
+      <a href="/librarian/">Librarian</a>
+      <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <nav class="tool-nav" aria-label="Breadcrumb">
+    <div class="container">
+      <a href="/tools/">Tools</a>
+      <span class="tool-nav-sep">&rsaquo;</span>
+      <a href="/tools/?cat={{ toolData.category }}">{{ toolData.category | capitalize }}</a>
+      <span class="tool-nav-sep">&rsaquo;</span>
+      <span class="tool-nav-current">{{ toolData.name }}</span>
+    </div>
+  </nav>
+
+  <main class="tool-main">
+    <div class="container">
+
+      <div class="tool-header">
+        <h1>{{ toolData.name }}</h1>
+        {% if toolData.badge %}
+        <span class="tool-badge tool-badge--{{ toolData.badge }}">{{ toolData.badge }}</span>
+        {% endif %}
+      </div>
+
+      <p class="tool-about">{{ toolData.longDescription }}</p>
+
+      <div class="tool-content">
+        {{ content | safe }}
+      </div>
+
+    </div>
+  </main>
+
+  {% if toolData.relatedTools and toolData.relatedTools.length %}
+  <section class="tool-related">
+    <div class="container">
+      <div class="section-divider"><span>Related tools</span></div>
+      <div class="tool-related-grid">
+        {% for relatedSlug in toolData.relatedTools %}
+          {% set relatedTool = tools | find("slug", relatedSlug) %}
+          {% if relatedTool and relatedTool.status == "live" %}
+          <a href="/tools/{{ relatedTool.slug }}/" class="t-card tool-related-card">
+            <h4>{{ relatedTool.name }}</h4>
+            <p>{{ relatedTool.description }}</p>
+          </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="tool-cta">
+    <a href="/">Penumbra Forge</a> &mdash;
+    <a href="/gate">Gate</a> &mdash;
+    <a href="/librarian">Librarian</a>
+  </section>
+
+  {% include "footer.njk" %}
+
+</div>
+{% endblock %}

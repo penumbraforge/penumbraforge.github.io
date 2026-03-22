@@ -1,0 +1,255 @@
+---
+toolSlug: meta-tag-generator
+permalink: /tools/meta-tag-generator/
+---
+
+<style>
+  .mtg-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem 1.25rem; }
+  @media(max-width:640px) { .mtg-grid { grid-template-columns:1fr; } }
+  .mtg-field { display:flex; flex-direction:column; gap:0.25rem; }
+  .mtg-label { font-size:0.78rem; font-weight:600; color:var(--color-muted,#94a3b8); }
+  .mtg-input { padding:0.45rem 0.65rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:5px; color:var(--color-text,#e2e8f0); font-size:0.88rem; width:100%; box-sizing:border-box; }
+  .mtg-input:focus { outline:none; border-color:var(--color-accent,#6366f1); }
+  .mtg-section-title { font-size:0.78rem; font-weight:700; color:var(--color-accent,#6366f1); text-transform:uppercase; letter-spacing:0.06em; margin:1rem 0 0.5rem; }
+  /* Google search preview */
+  .google-preview { background:#fff; border-radius:8px; padding:1rem 1.25rem; margin-bottom:0.75rem; max-width:600px; }
+  .google-preview .g-url { font-size:0.78rem; color:#202124; margin-bottom:0.15rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:Arial,sans-serif; }
+  .google-preview .g-title { font-size:1.1rem; color:#1a0dab; font-family:Arial,sans-serif; margin-bottom:0.2rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+  .google-preview .g-desc { font-size:0.82rem; color:#4d5156; font-family:Arial,sans-serif; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  /* Twitter/OG card preview */
+  .card-preview { border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; max-width:500px; background:#fff; margin-bottom:0.75rem; }
+  .card-image { background:linear-gradient(135deg,#667eea,#764ba2); height:180px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.85rem; overflow:hidden; }
+  .card-image img { width:100%; height:100%; object-fit:cover; }
+  .card-body { padding:0.75rem 1rem; }
+  .card-domain { font-size:0.72rem; color:#8b98a5; text-transform:uppercase; font-family:Arial,sans-serif; margin-bottom:0.2rem; }
+  .card-title { font-size:0.95rem; font-weight:700; color:#0f1419; font-family:Arial,sans-serif; margin-bottom:0.2rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .card-desc { font-size:0.82rem; color:#536471; font-family:Arial,sans-serif; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+</style>
+
+<div class="mtg-section-title">Basic</div>
+<div class="mtg-grid">
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-title">Page Title</label>
+    <input class="mtg-input" id="mtg-title" type="text" placeholder="My Awesome Page" maxlength="70">
+  </div>
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-desc">Meta Description</label>
+    <input class="mtg-input" id="mtg-desc" type="text" placeholder="A brief page description (150-160 chars)" maxlength="160">
+  </div>
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-canonical">Canonical URL</label>
+    <input class="mtg-input" id="mtg-canonical" type="url" placeholder="https://example.com/page">
+  </div>
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-author">Author</label>
+    <input class="mtg-input" id="mtg-author" type="text" placeholder="Author name">
+  </div>
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-robots">Robots</label>
+    <select class="mtg-input" id="mtg-robots">
+      <option value="index, follow">index, follow</option>
+      <option value="noindex, follow">noindex, follow</option>
+      <option value="index, nofollow">index, nofollow</option>
+      <option value="noindex, nofollow">noindex, nofollow</option>
+    </select>
+  </div>
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-viewport">Viewport</label>
+    <input class="mtg-input" id="mtg-viewport" type="text" value="width=device-width, initial-scale=1">
+  </div>
+</div>
+
+<div class="mtg-section-title">Open Graph / Social</div>
+<div class="mtg-grid">
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-og-title">OG Title</label>
+    <input class="mtg-input" id="mtg-og-title" type="text" placeholder="Social share title">
+  </div>
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-og-desc">OG Description</label>
+    <input class="mtg-input" id="mtg-og-desc" type="text" placeholder="Social share description">
+  </div>
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-og-image">OG Image URL</label>
+    <input class="mtg-input" id="mtg-og-image" type="url" placeholder="https://example.com/og-image.png">
+  </div>
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-og-type">OG Type</label>
+    <select class="mtg-input" id="mtg-og-type">
+      <option value="website">website</option>
+      <option value="article">article</option>
+      <option value="product">product</option>
+      <option value="profile">profile</option>
+    </select>
+  </div>
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-twitter-card">Twitter Card</label>
+    <select class="mtg-input" id="mtg-twitter-card">
+      <option value="summary_large_image">summary_large_image</option>
+      <option value="summary">summary</option>
+      <option value="app">app</option>
+      <option value="player">player</option>
+    </select>
+  </div>
+  <div class="mtg-field">
+    <label class="mtg-label" for="mtg-twitter-site">Twitter @site</label>
+    <input class="mtg-input" id="mtg-twitter-site" type="text" placeholder="@youraccount">
+  </div>
+</div>
+
+<div class="mtg-section-title">Previews</div>
+<div style="margin-bottom:0.5rem; font-size:0.8rem; font-weight:600; color:var(--color-muted,#94a3b8);">Google Search Result</div>
+<div class="google-preview" id="mtg-google-preview">
+  <div class="g-url" id="mtg-g-url">example.com</div>
+  <div class="g-title" id="mtg-g-title">Page Title</div>
+  <div class="g-desc" id="mtg-g-desc">Page description will appear here.</div>
+</div>
+<div style="margin-bottom:0.5rem; font-size:0.8rem; font-weight:600; color:var(--color-muted,#94a3b8);">Social Card (Twitter / Facebook)</div>
+<div class="card-preview" id="mtg-card-preview">
+  <div class="card-image" id="mtg-card-image"><span style="opacity:0.7;">No image set</span></div>
+  <div class="card-body">
+    <div class="card-domain" id="mtg-card-domain">example.com</div>
+    <div class="card-title" id="mtg-card-title">Social Title</div>
+    <div class="card-desc" id="mtg-card-desc">Social description</div>
+  </div>
+</div>
+
+<div class="output-area" style="margin-top:0.5rem;">
+  <button class="btn btn--copy" id="mtg-copy">Copy HTML</button>
+  <pre id="mtg-output" aria-label="Generated meta tags"></pre>
+</div>
+
+<script>
+(function () {
+  var fields = {
+    title:        document.getElementById('mtg-title'),
+    desc:         document.getElementById('mtg-desc'),
+    canonical:    document.getElementById('mtg-canonical'),
+    author:       document.getElementById('mtg-author'),
+    robots:       document.getElementById('mtg-robots'),
+    viewport:     document.getElementById('mtg-viewport'),
+    ogTitle:      document.getElementById('mtg-og-title'),
+    ogDesc:       document.getElementById('mtg-og-desc'),
+    ogImage:      document.getElementById('mtg-og-image'),
+    ogType:       document.getElementById('mtg-og-type'),
+    twitterCard:  document.getElementById('mtg-twitter-card'),
+    twitterSite:  document.getElementById('mtg-twitter-site'),
+  };
+  var outputEl  = document.getElementById('mtg-output');
+  var copyBtn   = document.getElementById('mtg-copy');
+  var gUrl      = document.getElementById('mtg-g-url');
+  var gTitle    = document.getElementById('mtg-g-title');
+  var gDesc     = document.getElementById('mtg-g-desc');
+  var cardImage = document.getElementById('mtg-card-image');
+  var cardDomain = document.getElementById('mtg-card-domain');
+  var cardTitle = document.getElementById('mtg-card-title');
+  var cardDesc  = document.getElementById('mtg-card-desc');
+
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function getDomain(url) {
+    try { return new URL(url).hostname; } catch (e) { return url || 'example.com'; }
+  }
+
+  function generate() {
+    var t   = fields.title.value.trim();
+    var d   = fields.desc.value.trim();
+    var can = fields.canonical.value.trim();
+    var auth = fields.author.value.trim();
+    var rob  = fields.robots.value;
+    var vp   = fields.viewport.value.trim();
+    var ogT  = fields.ogTitle.value.trim() || t;
+    var ogD  = fields.ogDesc.value.trim() || d;
+    var ogImg = fields.ogImage.value.trim();
+    var ogType = fields.ogType.value;
+    var twCard = fields.twitterCard.value;
+    var twSite = fields.twitterSite.value.trim();
+
+    var lines = ['<!-- Basic -->'];
+    if (vp)   lines.push('<meta name="viewport" content="' + esc(vp) + '">');
+    if (t)    lines.push('<title>' + esc(t) + '</title>');
+    if (d)    lines.push('<meta name="description" content="' + esc(d) + '">');
+    if (auth) lines.push('<meta name="author" content="' + esc(auth) + '">');
+    if (rob)  lines.push('<meta name="robots" content="' + esc(rob) + '">');
+    if (can)  lines.push('<link rel="canonical" href="' + esc(can) + '">');
+
+    lines.push('');
+    lines.push('<!-- Open Graph -->');
+    lines.push('<meta property="og:type" content="' + esc(ogType) + '">');
+    if (ogT)   lines.push('<meta property="og:title" content="' + esc(ogT) + '">');
+    if (ogD)   lines.push('<meta property="og:description" content="' + esc(ogD) + '">');
+    if (ogImg) lines.push('<meta property="og:image" content="' + esc(ogImg) + '">');
+    if (can)   lines.push('<meta property="og:url" content="' + esc(can) + '">');
+
+    lines.push('');
+    lines.push('<!-- Twitter Card -->');
+    lines.push('<meta name="twitter:card" content="' + esc(twCard) + '">');
+    if (ogT)   lines.push('<meta name="twitter:title" content="' + esc(ogT) + '">');
+    if (ogD)   lines.push('<meta name="twitter:description" content="' + esc(ogD) + '">');
+    if (ogImg) lines.push('<meta name="twitter:image" content="' + esc(ogImg) + '">');
+    if (twSite) lines.push('<meta name="twitter:site" content="' + esc(twSite) + '">');
+
+    outputEl.textContent = lines.join('\n');
+
+    // Update Google preview
+    gTitle.textContent = t || 'Page Title';
+    gDesc.textContent  = d || 'Page description will appear here.';
+    gUrl.textContent   = can ? getDomain(can) : 'example.com';
+
+    // Update card preview
+    cardTitle.textContent  = ogT || 'Social Title';
+    cardDesc.textContent   = ogD || 'Social description';
+    cardDomain.textContent = can ? getDomain(can) : 'example.com';
+
+    // Card image
+    while (cardImage.firstChild) cardImage.removeChild(cardImage.firstChild);
+    if (ogImg) {
+      var img = document.createElement('img');
+      img.src = ogImg;
+      img.alt = '';
+      img.onerror = function () {
+        cardImage.removeChild(img);
+        var span = document.createElement('span');
+        span.style.opacity = '0.7';
+        span.textContent = 'Image not found';
+        cardImage.appendChild(span);
+      };
+      cardImage.appendChild(img);
+    } else {
+      var span = document.createElement('span');
+      span.style.opacity = '0.7';
+      span.textContent = 'No image set';
+      cardImage.appendChild(span);
+    }
+  }
+
+  Object.keys(fields).forEach(function (k) {
+    fields[k].addEventListener('input', generate);
+    fields[k].addEventListener('change', generate);
+  });
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy HTML'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; } catch (e) { copyBtn.textContent = 'Failed'; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy HTML'; }, 2000);
+    }
+  });
+
+  // Initial
+  fields.title.value = 'My Awesome Page';
+  fields.desc.value  = 'A great description of my page for search engines and social sharing.';
+  fields.canonical.value = 'https://example.com/my-page';
+  generate();
+})();
+</script>

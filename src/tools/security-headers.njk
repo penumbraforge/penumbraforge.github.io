@@ -1,0 +1,384 @@
+---
+toolSlug: security-headers
+permalink: /tools/security-headers/
+---
+
+<div class="tool-group">
+  <label for="sh-input">Paste HTTP response headers</label>
+  <textarea id="sh-input" rows="10" placeholder="Content-Type: text/html; charset=utf-8&#10;Strict-Transport-Security: max-age=31536000; includeSubDomains&#10;X-Content-Type-Options: nosniff&#10;..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <button class="btn btn--primary" id="sh-analyze-btn">Analyze headers</button>
+  <button class="btn" id="sh-clear-btn">Clear</button>
+</div>
+
+<div id="sh-results" style="display:none;">
+  <div class="sh-score-wrap">
+    <div class="sh-score-ring-wrap">
+      <canvas id="sh-score-ring" width="110" height="110" aria-label="Security score ring"></canvas>
+      <div class="sh-score-center">
+        <span class="sh-score-num" id="sh-score-num">—</span>
+        <span class="sh-score-label">/ 100</span>
+      </div>
+    </div>
+    <div class="sh-score-info">
+      <div class="sh-grade" id="sh-grade"></div>
+      <p class="sh-score-desc" id="sh-score-desc"></p>
+    </div>
+  </div>
+  <div id="sh-checks"></div>
+</div>
+
+<div id="sh-empty" class="sh-empty-msg">Paste your HTTP response headers above to analyze their security posture.</div>
+
+<style>
+  .sh-score-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+  }
+  .sh-score-ring-wrap { position: relative; flex-shrink: 0; width: 110px; height: 110px; }
+  #sh-score-ring { display: block; }
+  .sh-score-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+  }
+  .sh-score-num { display: block; font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono,monospace); color: var(--text-1,#e2e8f0); line-height: 1; }
+  .sh-score-label { display: block; font-size: 0.7rem; color: var(--text-3,#888); }
+  .sh-score-info { flex: 1; min-width: 0; }
+  .sh-grade { font-size: 2rem; font-weight: 800; margin-bottom: 0.35rem; }
+  .sh-grade--A { color: #4ade80; }
+  .sh-grade--B { color: #a3e635; }
+  .sh-grade--C { color: #fbbf24; }
+  .sh-grade--D { color: #fb923c; }
+  .sh-grade--F { color: #f87171; }
+  .sh-score-desc { margin: 0; font-size: 0.875rem; color: var(--text-2,#94a3b8); line-height: 1.5; }
+  .sh-check {
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    margin-bottom: 0.6rem;
+    overflow: hidden;
+  }
+  .sh-check--present { border-left: 3px solid #4ade80; }
+  .sh-check--missing { border-left: 3px solid #f87171; }
+  .sh-check--weak { border-left: 3px solid #fbbf24; }
+  .sh-check--info { border-left: 3px solid #60a5fa; }
+  .sh-check-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.875rem;
+    background: var(--surface-1,#1a1a2e);
+    cursor: pointer;
+    user-select: none;
+  }
+  .sh-check-icon { font-size: 1rem; flex-shrink: 0; }
+  .sh-check-name { font-size: 0.875rem; font-weight: 600; color: var(--text-1,#e2e8f0); flex: 1; font-family: var(--font-mono,monospace); }
+  .sh-status-badge {
+    font-size: 0.7rem; font-weight: 700; padding: 2px 7px;
+    border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;
+  }
+  .sh-status-present { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+  .sh-status-missing  { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+  .sh-status-weak     { background: rgba(251,191,36,0.1);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+  .sh-status-info     { background: rgba(96,165,250,0.1);  color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+  .sh-check-body { padding: 0.75rem 0.875rem; }
+  .sh-check-value {
+    font-size: 0.8rem; font-family: var(--font-mono,monospace);
+    background: var(--surface-0,#0f0f1a); border: 1px solid var(--border,#2a2a3a);
+    border-radius: 4px; padding: 0.4rem 0.6rem; margin-bottom: 0.5rem;
+    white-space: pre-wrap; word-break: break-all; color: var(--text-1,#e2e8f0);
+  }
+  .sh-check-desc { font-size: 0.8125rem; color: var(--text-2,#94a3b8); line-height: 1.55; margin-bottom: 0.5rem; }
+  .sh-check-rec {
+    font-size: 0.8125rem; color: var(--text-2,#94a3b8);
+    background: var(--surface-0,#0f0f1a); border: 1px solid var(--border,#2a2a3a);
+    border-radius: 4px; padding: 0.5rem 0.75rem;
+  }
+  .sh-check-rec strong { color: var(--text-1,#e2e8f0); display: block; margin-bottom: 0.2rem; }
+  .sh-check-rec code { font-family: var(--font-mono,monospace); font-size: 0.8rem; color: #a5b4fc; }
+  .sh-empty-msg { text-align: center; padding: 2.5rem; color: var(--text-3,#888); font-size: 0.9rem; }
+</style>
+
+<script>
+(function () {
+  var inputEl   = document.getElementById('sh-input');
+  var analyzeBtn= document.getElementById('sh-analyze-btn');
+  var clearBtn  = document.getElementById('sh-clear-btn');
+  var resultsEl = document.getElementById('sh-results');
+  var checksEl  = document.getElementById('sh-checks');
+  var emptyEl   = document.getElementById('sh-empty');
+  var scoreNum  = document.getElementById('sh-score-num');
+  var gradeEl   = document.getElementById('sh-grade');
+  var scoreDesc = document.getElementById('sh-score-desc');
+  var ringCanvas= document.getElementById('sh-score-ring');
+  var ringCtx   = ringCanvas.getContext('2d');
+
+  var CHECKS = [
+    {
+      name: 'Strict-Transport-Security',
+      weight: 20,
+      check: function (val) {
+        if (!val) return { status: 'missing', points: 0, msg: null };
+        var maxAge = /max-age=(\d+)/i.exec(val);
+        if (!maxAge || parseInt(maxAge[1], 10) < 15768000) return { status: 'weak', points: 10, msg: 'max-age is below the recommended 6 months (15768000).' };
+        return { status: 'present', points: 20, msg: null };
+      },
+      description: 'Forces browsers to use HTTPS for your domain for the specified duration. Prevents SSL stripping attacks.',
+      recommendation: 'Strict-Transport-Security: max-age=31536000; includeSubDomains; preload'
+    },
+    {
+      name: 'Content-Security-Policy',
+      weight: 25,
+      check: function (val) {
+        if (!val) return { status: 'missing', points: 0, msg: null };
+        if (/unsafe-inline|unsafe-eval|\*/i.test(val)) return { status: 'weak', points: 10, msg: "CSP contains 'unsafe-inline', 'unsafe-eval', or wildcard (*) — these significantly weaken XSS protection." };
+        return { status: 'present', points: 25, msg: null };
+      },
+      description: 'Controls which resources the browser is allowed to load. A well-crafted CSP is the strongest defense against XSS attacks.',
+      recommendation: "Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'"
+    },
+    {
+      name: 'X-Content-Type-Options',
+      weight: 10,
+      check: function (val) {
+        if (!val) return { status: 'missing', points: 0, msg: null };
+        if (val.trim().toLowerCase() !== 'nosniff') return { status: 'weak', points: 5, msg: "Value should be exactly 'nosniff'." };
+        return { status: 'present', points: 10, msg: null };
+      },
+      description: "Prevents browsers from MIME-sniffing a response away from the declared content type. Mitigates drive-by download attacks.",
+      recommendation: 'X-Content-Type-Options: nosniff'
+    },
+    {
+      name: 'X-Frame-Options',
+      weight: 10,
+      check: function (val) {
+        if (!val) return { status: 'missing', points: 0, msg: null };
+        var v = val.trim().toUpperCase();
+        if (v !== 'DENY' && v !== 'SAMEORIGIN' && !v.startsWith('ALLOW-FROM')) return { status: 'weak', points: 5, msg: "Use DENY or SAMEORIGIN." };
+        return { status: 'present', points: 10, msg: null };
+      },
+      description: 'Prevents your page from being embedded in iframes on other origins. Defends against clickjacking attacks. Note: CSP frame-ancestors supersedes this header.',
+      recommendation: 'X-Frame-Options: DENY'
+    },
+    {
+      name: 'Referrer-Policy',
+      weight: 5,
+      check: function (val) {
+        if (!val) return { status: 'missing', points: 0, msg: null };
+        var good = ['no-referrer','no-referrer-when-downgrade','same-origin','strict-origin','strict-origin-when-cross-origin'];
+        var v = val.trim().toLowerCase();
+        if (!good.includes(v)) return { status: 'weak', points: 2, msg: 'Consider a stricter policy such as strict-origin-when-cross-origin.' };
+        return { status: 'present', points: 5, msg: null };
+      },
+      description: 'Controls how much referrer information is sent with requests. Prevents leaking sensitive URL paths to third parties.',
+      recommendation: 'Referrer-Policy: strict-origin-when-cross-origin'
+    },
+    {
+      name: 'Permissions-Policy',
+      weight: 10,
+      check: function (val) {
+        if (!val) return { status: 'missing', points: 0, msg: null };
+        return { status: 'present', points: 10, msg: null };
+      },
+      description: 'Formerly Feature-Policy. Controls access to browser features like camera, microphone, geolocation, and payment APIs.',
+      recommendation: "Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()"
+    },
+    {
+      name: 'X-XSS-Protection',
+      weight: 0,
+      check: function (val) {
+        if (!val) return { status: 'info', points: 0, msg: 'Not present — this is acceptable; modern browsers ignore this header.' };
+        if (val.trim() === '0') return { status: 'info', points: 0, msg: "Set to '0' — correct, as this header is deprecated and can cause issues in some browsers." };
+        return { status: 'info', points: 0, msg: 'This header is deprecated and ignored by modern browsers. Remove it and rely on CSP instead.' };
+      },
+      description: 'Legacy XSS filter header — deprecated in modern browsers. Chrome and Edge removed it entirely. Use CSP instead.',
+      recommendation: "Remove X-XSS-Protection entirely and implement a strong Content-Security-Policy."
+    }
+  ];
+
+  function parseHeaders(raw) {
+    var map = {};
+    raw.split('\n').forEach(function (line) {
+      var idx = line.indexOf(':');
+      if (idx < 0) return;
+      var key = line.substring(0, idx).trim().toLowerCase();
+      var val = line.substring(idx + 1).trim();
+      map[key] = val;
+    });
+    return map;
+  }
+
+  function drawRing(score) {
+    var dpr = window.devicePixelRatio || 1;
+    ringCanvas.width = 110 * dpr;
+    ringCanvas.height = 110 * dpr;
+    ringCanvas.style.width = '110px';
+    ringCanvas.style.height = '110px';
+    ringCtx.scale(dpr, dpr);
+    var cx = 55, cy = 55, r = 44;
+    var startAngle = -Math.PI / 2;
+    var filled = (score / 100) * 2 * Math.PI;
+    // Background track
+    ringCtx.beginPath();
+    ringCtx.arc(cx, cy, r, 0, 2 * Math.PI);
+    ringCtx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ringCtx.lineWidth = 9;
+    ringCtx.stroke();
+    // Score arc
+    var color = score >= 80 ? '#4ade80' : score >= 60 ? '#fbbf24' : score >= 40 ? '#fb923c' : '#f87171';
+    ringCtx.beginPath();
+    ringCtx.arc(cx, cy, r, startAngle, startAngle + filled);
+    ringCtx.strokeStyle = color;
+    ringCtx.lineWidth = 9;
+    ringCtx.lineCap = 'round';
+    ringCtx.stroke();
+  }
+
+  function analyze() {
+    var raw = inputEl.value.trim();
+    if (!raw) {
+      resultsEl.style.display = 'none';
+      emptyEl.style.display = '';
+      return;
+    }
+
+    var headers = parseHeaders(raw);
+    var totalScore = 0;
+    var maxScore = 0;
+
+    CHECKS.forEach(function (c) { maxScore += c.weight; });
+
+    var results = CHECKS.map(function (c) {
+      var val = headers[c.name.toLowerCase()];
+      var res = c.check(val || null);
+      totalScore += res.points;
+      return { check: c, val: val, res: res };
+    });
+
+    var pct = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    var grade, gradeClass, desc;
+    if (pct >= 90) { grade = 'A+'; gradeClass = 'A'; desc = 'Excellent security header configuration. Keep headers up to date as new threats emerge.'; }
+    else if (pct >= 80) { grade = 'A'; gradeClass = 'A'; desc = 'Strong security headers. Consider adding any missing optional headers.'; }
+    else if (pct >= 65) { grade = 'B'; gradeClass = 'B'; desc = 'Good baseline. A few improvements would significantly strengthen your security posture.'; }
+    else if (pct >= 50) { grade = 'C'; gradeClass = 'C'; desc = 'Several important security headers are missing or misconfigured. Review the findings below.'; }
+    else if (pct >= 30) { grade = 'D'; gradeClass = 'D'; desc = 'Multiple critical security headers are absent. Your site is vulnerable to common web attacks.'; }
+    else { grade = 'F'; gradeClass = 'F'; desc = 'Critical security headers are missing. Implement CSP and HSTS at minimum before going to production.'; }
+
+    emptyEl.style.display = 'none';
+    resultsEl.style.display = '';
+
+    scoreNum.textContent = pct;
+    gradeEl.textContent = grade;
+    gradeEl.className = 'sh-grade sh-grade--' + gradeClass;
+    scoreDesc.textContent = desc;
+    drawRing(pct);
+
+    while (checksEl.firstChild) checksEl.removeChild(checksEl.firstChild);
+
+    results.forEach(function (item) {
+      var c = item.check;
+      var res = item.res;
+      var statusClass = res.status;
+      var icon = res.status === 'present' ? '✓' : res.status === 'weak' ? '⚠' : res.status === 'missing' ? '✗' : 'ℹ';
+
+      var card = document.createElement('div');
+      card.className = 'sh-check sh-check--' + statusClass;
+
+      var hdr = document.createElement('div');
+      hdr.className = 'sh-check-header';
+      hdr.setAttribute('role', 'button');
+      hdr.setAttribute('tabindex', '0');
+      hdr.setAttribute('aria-expanded', 'false');
+
+      var iconEl = document.createElement('span');
+      iconEl.className = 'sh-check-icon';
+      iconEl.textContent = icon;
+
+      var nameEl = document.createElement('span');
+      nameEl.className = 'sh-check-name';
+      nameEl.textContent = c.name;
+
+      var badge = document.createElement('span');
+      badge.className = 'sh-status-badge sh-status-' + statusClass;
+      badge.textContent = statusClass;
+
+      hdr.appendChild(iconEl);
+      hdr.appendChild(nameEl);
+      if (item.val) {
+        var pts = document.createElement('span');
+        pts.style.cssText = 'font-size:0.75rem;color:var(--text-3,#888);flex-shrink:0;';
+        pts.textContent = '+' + res.points + '/' + c.weight + 'pts';
+        hdr.appendChild(pts);
+      }
+      hdr.appendChild(badge);
+
+      var body = document.createElement('div');
+      body.className = 'sh-check-body';
+      body.style.display = 'none';
+
+      if (item.val) {
+        var valPre = document.createElement('div');
+        valPre.className = 'sh-check-value';
+        valPre.textContent = c.name + ': ' + item.val;
+        body.appendChild(valPre);
+      }
+
+      var descEl = document.createElement('p');
+      descEl.className = 'sh-check-desc';
+      descEl.textContent = c.description;
+      body.appendChild(descEl);
+
+      if (res.msg) {
+        var msgEl = document.createElement('p');
+        msgEl.className = 'sh-check-desc';
+        msgEl.style.color = res.status === 'weak' ? '#fbbf24' : res.status === 'missing' ? '#f87171' : '#60a5fa';
+        msgEl.textContent = res.msg;
+        body.appendChild(msgEl);
+      }
+
+      if (res.status !== 'present') {
+        var recEl = document.createElement('div');
+        recEl.className = 'sh-check-rec';
+        var recTitle = document.createElement('strong');
+        recTitle.textContent = 'Recommended value:';
+        var recCode = document.createElement('code');
+        recCode.textContent = c.recommendation;
+        recEl.appendChild(recTitle);
+        recEl.appendChild(recCode);
+        body.appendChild(recEl);
+      }
+
+      hdr.addEventListener('click', function () {
+        var open = body.style.display !== 'none';
+        body.style.display = open ? 'none' : '';
+        hdr.setAttribute('aria-expanded', String(!open));
+      });
+      hdr.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hdr.click(); }
+      });
+
+      card.appendChild(hdr);
+      card.appendChild(body);
+      checksEl.appendChild(card);
+    });
+  }
+
+  analyzeBtn.addEventListener('click', analyze);
+  clearBtn.addEventListener('click', function () {
+    inputEl.value = '';
+    resultsEl.style.display = 'none';
+    emptyEl.style.display = '';
+    while (checksEl.firstChild) checksEl.removeChild(checksEl.firstChild);
+  });
+})();
+</script>

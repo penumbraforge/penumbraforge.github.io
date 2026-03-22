@@ -1,0 +1,165 @@
+---
+title: "Configuration"
+description: "Customize Gate behavior with a .gaterc file in your project root."
+permalink: /gate/wiki/configuration/
+---
+<h1>Configuration</h1>
+    <p class="subtitle">Customize Gate's behavior with a .gaterc file in your project root.</p>
+
+    <h2 id="gaterc-file">The .gaterc File</h2>
+
+    <p>Gate is configured with a <code>.gaterc</code> file written in YAML. Place it in your project root -- the same directory where you run <code>gate</code> from. Gate does not walk up to parent directories; it only loads a <code>.gaterc</code> if one exists at the exact current working directory.</p>
+
+    <p>Run <code>gate init</code> to generate a <code>.gaterc</code> with commented defaults. All fields are optional; Gate works out of the box with no configuration file at all.</p>
+
+    <div class="info-box">
+      <strong>Location:</strong> <code>.gaterc</code> must be in the project root. Gate does not search parent directories. This prevents configuration from silently leaking across projects on your machine.
+    </div>
+
+    <h2 id="all-options">All Configuration Options</h2>
+
+    <h3>entropy_threshold</h3>
+    <p>Controls the minimum Shannon entropy score for a string to be considered a potential secret. Lower values catch more (with more false positives); higher values are stricter. The default of 4.8 is tuned to catch real secrets while ignoring most English prose and common code patterns.</p>
+    <div class="code-block"><span class="cmt"># default: 4.8 (range: 0.0 – 8.0)</span>
+<span class="kw">entropy_threshold</span>: <span class="val">4.8</span></div>
+
+    <h3>verify</h3>
+    <p>When true, Gate makes read-only API calls to the provider for each credential found to check if it is live. Live credentials are upgraded to CRITICAL severity. See <a href="/gate/wiki/verification/">Credential Verification</a> for details.</p>
+    <div class="code-block"><span class="cmt"># default: true</span>
+<span class="kw">verify</span>: <span class="val">true</span></div>
+
+    <h3>hooks</h3>
+    <p>Which Git hooks Gate installs when you run <code>gate init</code> or <code>gate install</code>. Currently only <code>pre-commit</code> is supported. Set to an empty list to skip hook installation.</p>
+    <div class="code-block"><span class="cmt"># default: [pre-commit]</span>
+<span class="kw">hooks</span>:
+  - <span class="val">pre-commit</span></div>
+
+    <h3>severity</h3>
+    <p>Override the built-in severity for any rule by its rule ID. Set to <code>ignore</code> to suppress the rule entirely. This is useful for silencing rules that generate known false positives in your codebase without adding per-file ignore comments.</p>
+    <div class="code-block"><span class="cmt"># Override severity for specific rule IDs</span>
+<span class="kw">severity</span>:
+  <span class="str">generic-api-key</span>: <span class="val">low</span>         <span class="cmt"># downgrade</span>
+  <span class="str">stripe-restricted-key</span>: <span class="val">critical</span> <span class="cmt"># upgrade</span>
+  <span class="str">jwt-default-secret</span>: <span class="val">ignore</span>    <span class="cmt"># suppress entirely</span></div>
+
+    <p>Valid severity values: <code>critical</code>, <code>high</code>, <code>medium</code>, <code>low</code>, <code>ignore</code>.</p>
+
+    <h3>rules</h3>
+    <p>Define custom detection rules in addition to the built-in 256 rules. Each rule requires an <code>id</code>, <code>name</code>, <code>pattern</code> (regex), and <code>severity</code>. The optional <code>remediation</code> field is shown to the user when the rule fires.</p>
+    <div class="code-block"><span class="kw">rules</span>:
+  - <span class="kw">id</span>: <span class="str">internal-api-key</span>
+    <span class="kw">name</span>: <span class="str">Internal API Key</span>
+    <span class="kw">pattern</span>: <span class="str">'int_[A-Za-z0-9]{32}'</span>
+    <span class="kw">severity</span>: <span class="val">high</span>
+    <span class="kw">remediation</span>: <span class="str">Move to environment variable INT_API_KEY</span>
+
+  - <span class="kw">id</span>: <span class="str">internal-db-password</span>
+    <span class="kw">name</span>: <span class="str">Hardcoded DB Password</span>
+    <span class="kw">pattern</span>: <span class="str">'db_password\s*=\s*"[^"]+"'</span>
+    <span class="kw">severity</span>: <span class="val">critical</span>
+    <span class="kw">remediation</span>: <span class="str">Use DATABASE_URL or DB_PASSWORD env var</span></div>
+
+    <h3>output.format</h3>
+    <p>Controls the output format for scan results. Use <code>json</code> or <code>sarif</code> for machine consumption (CI pipelines, security dashboards). The default <code>text</code> format is optimized for human reading in a terminal.</p>
+    <div class="code-block"><span class="kw">output</span>:
+  <span class="kw">format</span>: <span class="val">text</span>    <span class="cmt"># text | json | sarif</span></div>
+
+    <h3>output.color</h3>
+    <p>Controls ANSI color output. <code>auto</code> enables color when stdout is a TTY and disables it when piped. Set to <code>false</code> for always-plain output (e.g., when your terminal does not support color).</p>
+    <div class="code-block"><span class="kw">output</span>:
+  <span class="kw">color</span>: <span class="val">auto</span>    <span class="cmt"># auto | true | false</span></div>
+
+    <h3>output.context_lines</h3>
+    <p>How many lines of surrounding code to show above and below each finding. Increase for more context; set to 0 to show only the matching line.</p>
+    <div class="code-block"><span class="kw">output</span>:
+  <span class="kw">context_lines</span>: <span class="val">2</span>    <span class="cmt"># default: 2</span></div>
+
+    <h2 id="examples">Example .gaterc Files</h2>
+
+    <h3>Node.js project</h3>
+    <p>A typical Node.js project. Verification is enabled, entropy threshold is slightly raised to reduce noise from minified assets, and the generic high-entropy rule is downgraded since bundled JS often contains long random-looking strings.</p>
+    <div class="code-block"><span class="cmt"># .gaterc -- Node.js project</span>
+<span class="kw">entropy_threshold</span>: <span class="val">5.0</span>
+<span class="kw">verify</span>: <span class="val">true</span>
+<span class="kw">hooks</span>:
+  - <span class="val">pre-commit</span>
+
+<span class="kw">severity</span>:
+  <span class="str">generic-high-entropy</span>: <span class="val">low</span>
+
+<span class="kw">output</span>:
+  <span class="kw">format</span>: <span class="val">text</span>
+  <span class="kw">color</span>: <span class="val">auto</span>
+  <span class="kw">context_lines</span>: <span class="val">2</span></div>
+
+    <h3>Python project</h3>
+    <p>A Python project with a lower entropy threshold (Python code tends to be more readable, so the signal-to-noise ratio is better at catching secrets), plus a custom rule for an internal token format.</p>
+    <div class="code-block"><span class="cmt"># .gaterc -- Python project</span>
+<span class="kw">entropy_threshold</span>: <span class="val">4.5</span>
+<span class="kw">verify</span>: <span class="val">true</span>
+<span class="kw">hooks</span>:
+  - <span class="val">pre-commit</span>
+
+<span class="kw">severity</span>:
+  <span class="str">jwt-default-secret</span>: <span class="val">ignore</span>  <span class="cmt"># handled by Django checks</span>
+
+<span class="kw">rules</span>:
+  - <span class="kw">id</span>: <span class="str">django-secret-key</span>
+    <span class="kw">name</span>: <span class="str">Hardcoded Django SECRET_KEY</span>
+    <span class="kw">pattern</span>: <span class="str">"SECRET_KEY\\s*=\\s*['\"][^'\"]{20,}['\"]"</span>
+    <span class="kw">severity</span>: <span class="val">critical</span>
+    <span class="kw">remediation</span>: <span class="str">Set SECRET_KEY via environment variable</span>
+
+<span class="kw">output</span>:
+  <span class="kw">format</span>: <span class="val">text</span>
+  <span class="kw">context_lines</span>: <span class="val">3</span></div>
+
+    <h3>Custom rules for an internal platform</h3>
+    <p>A project with several proprietary token formats that Gate does not know about by default. Verification is disabled because this environment has no outbound network access.</p>
+    <div class="code-block"><span class="cmt"># .gaterc -- Internal platform with custom token formats</span>
+<span class="kw">entropy_threshold</span>: <span class="val">4.8</span>
+<span class="kw">verify</span>: <span class="val">false</span>  <span class="cmt"># offline-only environment</span>
+
+<span class="kw">rules</span>:
+  - <span class="kw">id</span>: <span class="str">platform-service-token</span>
+    <span class="kw">name</span>: <span class="str">Platform Service Token</span>
+    <span class="kw">pattern</span>: <span class="str">'svc_[A-Za-z0-9_-]{40,}'</span>
+    <span class="kw">severity</span>: <span class="val">critical</span>
+    <span class="kw">remediation</span>: <span class="str">Use PLATFORM_SERVICE_TOKEN environment variable</span>
+
+  - <span class="kw">id</span>: <span class="str">platform-deploy-key</span>
+    <span class="kw">name</span>: <span class="str">Platform Deploy Key</span>
+    <span class="kw">pattern</span>: <span class="str">'deploy-[a-f0-9]{64}'</span>
+    <span class="kw">severity</span>: <span class="val">high</span>
+    <span class="kw">remediation</span>: <span class="str">Use PLATFORM_DEPLOY_KEY environment variable</span>
+
+  - <span class="kw">id</span>: <span class="str">platform-webhook-secret</span>
+    <span class="kw">name</span>: <span class="str">Platform Webhook Secret</span>
+    <span class="kw">pattern</span>: <span class="str">'whsec_[A-Za-z0-9]{32,}'</span>
+    <span class="kw">severity</span>: <span class="val">high</span>
+    <span class="kw">remediation</span>: <span class="str">Use WEBHOOK_SECRET environment variable</span>
+
+<span class="kw">output</span>:
+  <span class="kw">format</span>: <span class="val">sarif</span>  <span class="cmt"># feed into internal security dashboard</span></div>
+
+    <h2 id="resolution-order">Resolution Order</h2>
+
+    <p>When Gate processes a finding, it applies suppression and configuration in this priority order (higher wins):</p>
+
+    <ol>
+      <li><strong style="color: var(--text-1);">Inline gate-ignore comment</strong> -- a <code>// gate-ignore</code> on the same line as the finding takes highest priority and suppresses it unconditionally.</li>
+      <li><strong style="color: var(--text-1);">.gateignore patterns</strong> -- file glob patterns and rule-specific patterns in <code>.gateignore</code> suppress findings at the file or rule level.</li>
+      <li><strong style="color: var(--text-1);">.gaterc severity overrides</strong> -- the <code>severity</code> map in <code>.gaterc</code> can downgrade, upgrade, or silence any rule by ID.</li>
+      <li><strong style="color: var(--text-1);">Smart defaults</strong> -- Gate's built-in rule definitions and default entropy threshold apply when nothing above overrides them.</li>
+    </ol>
+
+    <div class="info-box">
+      <strong>Tip:</strong> Prefer <code>.gateignore</code> for path-based suppressions and the <code>severity</code> map for rule-wide tuning. Reserve inline <code>gate-ignore</code> comments for one-off cases where a specific line is a known false positive.
+    </div>
+
+    <h2 id="see-also">See Also</h2>
+    <ul>
+      <li><a href="/gate/wiki/ignore-patterns/">Ignore Patterns</a> -- fine-grained suppression with .gateignore and inline comments</li>
+      <li><a href="/gate/wiki/commands/">Commands Reference</a> -- all CLI flags, including per-run overrides</li>
+      <li><a href="/gate/wiki/verification/">Credential Verification</a> -- how the verify option works</li>
+    </ul>

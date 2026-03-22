@@ -1,0 +1,214 @@
+---
+toolSlug: word-counter
+permalink: /tools/word-counter/
+---
+
+<style>
+  .wc-stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:0.6rem; margin:0.75rem 0 1rem; }
+  .wc-stat { background:var(--color-surface-2,#1e293b); border-radius:8px; padding:0.7rem 0.9rem; }
+  .wc-stat-val { font-size:1.5rem; font-weight:700; color:var(--color-accent,#6366f1); font-family:var(--font-mono,monospace); line-height:1; }
+  .wc-stat-label { font-size:0.72rem; color:var(--color-muted,#94a3b8); margin-top:0.25rem; text-transform:uppercase; letter-spacing:0.04em; }
+  .wc-freq-table { width:100%; border-collapse:collapse; font-size:0.83rem; }
+  .wc-freq-table th { text-align:left; padding:0.3rem 0.5rem; font-size:0.72rem; color:var(--color-muted,#94a3b8); font-weight:600; text-transform:uppercase; border-bottom:1px solid var(--color-border,#334155); }
+  .wc-freq-table td { padding:0.3rem 0.5rem; border-bottom:1px solid var(--color-border-subtle,#1e293b); }
+  .wc-freq-bar { height:6px; background:var(--color-accent,#6366f1); border-radius:3px; opacity:0.7; }
+  .wc-readability { background:var(--color-surface-2,#1e293b); border-radius:8px; padding:0.75rem 1rem; margin-top:0.75rem; }
+</style>
+
+<div class="tool-group">
+  <label for="wc-input">Paste or type your text</label>
+  <textarea id="wc-input" rows="12" placeholder="Start typing or paste your text here to see word count, reading time, and more…" spellcheck="true"></textarea>
+</div>
+
+<div class="wc-stats-grid" id="wc-stats">
+  <div class="wc-stat"><div class="wc-stat-val" id="wc-words">0</div><div class="wc-stat-label">Words</div></div>
+  <div class="wc-stat"><div class="wc-stat-val" id="wc-chars">0</div><div class="wc-stat-label">Characters</div></div>
+  <div class="wc-stat"><div class="wc-stat-val" id="wc-chars-nospace">0</div><div class="wc-stat-label">Chars (no spaces)</div></div>
+  <div class="wc-stat"><div class="wc-stat-val" id="wc-sentences">0</div><div class="wc-stat-label">Sentences</div></div>
+  <div class="wc-stat"><div class="wc-stat-val" id="wc-paragraphs">0</div><div class="wc-stat-label">Paragraphs</div></div>
+  <div class="wc-stat"><div class="wc-stat-val" id="wc-lines">0</div><div class="wc-stat-label">Lines</div></div>
+  <div class="wc-stat"><div class="wc-stat-val" id="wc-read-time">0 min</div><div class="wc-stat-label">Reading time</div></div>
+  <div class="wc-stat"><div class="wc-stat-val" id="wc-speak-time">0 min</div><div class="wc-stat-label">Speaking time</div></div>
+</div>
+
+<div id="wc-extra" style="display:none;">
+  <div class="wc-readability">
+    <div style="font-size:0.78rem; font-weight:600; color:var(--color-muted,#94a3b8); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.05em;">Readability</div>
+    <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:1.1rem; font-weight:700; color:var(--color-accent,#6366f1);" id="wc-fk-grade">—</div>
+        <div style="font-size:0.72rem; color:var(--color-muted,#94a3b8);">Flesch-Kincaid Grade</div>
+      </div>
+      <div>
+        <div style="font-size:1.1rem; font-weight:700; color:var(--color-accent,#6366f1);" id="wc-fk-score">—</div>
+        <div style="font-size:0.72rem; color:var(--color-muted,#94a3b8);">Flesch Reading Ease</div>
+      </div>
+      <div>
+        <div style="font-size:1.1rem; font-weight:700; color:var(--color-accent,#6366f1);" id="wc-fk-level">—</div>
+        <div style="font-size:0.72rem; color:var(--color-muted,#94a3b8);">Difficulty</div>
+      </div>
+      <div>
+        <div style="font-size:1.1rem; font-weight:700; color:var(--color-accent,#6366f1);" id="wc-unique">—</div>
+        <div style="font-size:0.72rem; color:var(--color-muted,#94a3b8);">Unique words</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:1rem;">
+    <div style="font-size:0.78rem; font-weight:600; color:var(--color-muted,#94a3b8); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.05em;">Top 10 Words</div>
+    <table class="wc-freq-table" id="wc-freq-table" aria-label="Top word frequencies"></table>
+  </div>
+</div>
+
+<script>
+(function () {
+  var inputEl  = document.getElementById('wc-input');
+  var extraEl  = document.getElementById('wc-extra');
+  var freqTable = document.getElementById('wc-freq-table');
+
+  var els = {
+    words:       document.getElementById('wc-words'),
+    chars:       document.getElementById('wc-chars'),
+    charsNS:     document.getElementById('wc-chars-nospace'),
+    sentences:   document.getElementById('wc-sentences'),
+    paragraphs:  document.getElementById('wc-paragraphs'),
+    lines:       document.getElementById('wc-lines'),
+    readTime:    document.getElementById('wc-read-time'),
+    speakTime:   document.getElementById('wc-speak-time'),
+    fkGrade:     document.getElementById('wc-fk-grade'),
+    fkScore:     document.getElementById('wc-fk-score'),
+    fkLevel:     document.getElementById('wc-fk-level'),
+    unique:      document.getElementById('wc-unique'),
+  };
+
+  var STOP_WORDS = new Set(['a','an','the','and','or','but','in','on','at','to','for','of','with','by','from','is','are','was','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','shall','that','this','these','those','it','its','i','you','he','she','we','they','as','if','so','not','no']);
+
+  function countSyllables(word) {
+    word = word.toLowerCase().replace(/[^a-z]/g, '');
+    if (!word) return 0;
+    if (word.length <= 3) return 1;
+    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+    word = word.replace(/^y/, '');
+    var m = word.match(/[aeiouy]{1,2}/g);
+    return m ? m.length : 1;
+  }
+
+  function formatTime(words, wpm) {
+    var mins = words / wpm;
+    if (mins < 1) return Math.round(mins * 60) + ' sec';
+    if (mins < 60) return Math.ceil(mins) + ' min';
+    return Math.floor(mins / 60) + 'h ' + Math.round(mins % 60) + 'm';
+  }
+
+  function fkLevel(score) {
+    if (score >= 90) return 'Very Easy';
+    if (score >= 80) return 'Easy';
+    if (score >= 70) return 'Fairly Easy';
+    if (score >= 60) return 'Standard';
+    if (score >= 50) return 'Fairly Hard';
+    if (score >= 30) return 'Difficult';
+    return 'Very Confusing';
+  }
+
+  function analyze() {
+    var text = inputEl.value;
+
+    var chars      = text.length;
+    var charsNS    = text.replace(/\s/g, '').length;
+    var lines      = text === '' ? 0 : text.split('\n').length;
+    var paragraphs = text.trim() === '' ? 0 : text.trim().split(/\n\s*\n/).filter(function (p) { return p.trim().length > 0; }).length;
+    var wordArr    = text.trim() === '' ? [] : text.trim().split(/\s+/).filter(Boolean);
+    var words      = wordArr.length;
+    var sentences  = text.trim() === '' ? 0 : (text.match(/[.!?]+(\s|$)/g) || []).length;
+
+    els.words.textContent      = words.toLocaleString();
+    els.chars.textContent      = chars.toLocaleString();
+    els.charsNS.textContent    = charsNS.toLocaleString();
+    els.sentences.textContent  = sentences;
+    els.paragraphs.textContent = paragraphs;
+    els.lines.textContent      = lines.toLocaleString();
+    els.readTime.textContent   = words > 0 ? formatTime(words, 200) : '0 sec';
+    els.speakTime.textContent  = words > 0 ? formatTime(words, 130) : '0 sec';
+
+    if (words < 3) {
+      extraEl.style.display = 'none';
+      els.fkGrade.textContent = '—';
+      els.fkScore.textContent = '—';
+      els.fkLevel.textContent = '—';
+      els.unique.textContent  = '—';
+      return;
+    }
+
+    extraEl.style.display = '';
+
+    // Word frequency
+    var freq = {};
+    var uniqueWords = new Set();
+    var totalSyllables = 0;
+    wordArr.forEach(function (w) {
+      var clean = w.toLowerCase().replace(/[^a-z']/g, '');
+      if (!clean) return;
+      uniqueWords.add(clean);
+      totalSyllables += countSyllables(clean);
+      if (STOP_WORDS.has(clean)) return;
+      freq[clean] = (freq[clean] || 0) + 1;
+    });
+
+    els.unique.textContent = uniqueWords.size;
+
+    var freqArr = Object.keys(freq).map(function (w) { return { word: w, count: freq[w] }; });
+    freqArr.sort(function (a, b) { return b.count - a.count; });
+    var top10 = freqArr.slice(0, 10);
+    var maxCount = top10.length ? top10[0].count : 1;
+
+    while (freqTable.firstChild) freqTable.removeChild(freqTable.firstChild);
+    var thead = document.createElement('thead');
+    var hrow = document.createElement('tr');
+    ['#', 'Word', 'Count', 'Frequency'].forEach(function (h) {
+      var th = document.createElement('th');
+      th.textContent = h;
+      hrow.appendChild(th);
+    });
+    thead.appendChild(hrow);
+    freqTable.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    top10.forEach(function (item, idx) {
+      var tr = document.createElement('tr');
+      var tdRank = document.createElement('td');
+      tdRank.style.color = 'var(--color-muted,#94a3b8)';
+      tdRank.textContent = idx + 1;
+      var tdWord = document.createElement('td');
+      tdWord.style.fontFamily = 'var(--font-mono,monospace)';
+      tdWord.style.fontWeight = '600';
+      tdWord.textContent = item.word;
+      var tdCount = document.createElement('td');
+      tdCount.textContent = item.count;
+      var tdBar = document.createElement('td');
+      tdBar.style.width = '120px';
+      var bar = document.createElement('div');
+      bar.className = 'wc-freq-bar';
+      bar.style.width = Math.round(item.count / maxCount * 100) + '%';
+      tdBar.appendChild(bar);
+      tr.appendChild(tdRank); tr.appendChild(tdWord); tr.appendChild(tdCount); tr.appendChild(tdBar);
+      tbody.appendChild(tr);
+    });
+    freqTable.appendChild(tbody);
+
+    // Flesch-Kincaid
+    var avgSyllPerWord = words > 0 ? totalSyllables / words : 0;
+    var avgWordPerSent = sentences > 0 ? words / sentences : words;
+    var fkScore = 206.835 - (1.015 * avgWordPerSent) - (84.6 * avgSyllPerWord);
+    fkScore = Math.max(0, Math.min(100, Math.round(fkScore * 10) / 10));
+    var fkGrade = (0.39 * avgWordPerSent) + (11.8 * avgSyllPerWord) - 15.59;
+    fkGrade = Math.max(1, Math.round(fkGrade * 10) / 10);
+
+    els.fkScore.textContent = fkScore;
+    els.fkGrade.textContent = 'Grade ' + fkGrade;
+    els.fkLevel.textContent = fkLevel(fkScore);
+  }
+
+  inputEl.addEventListener('input', analyze);
+  analyze();
+})();
+</script>

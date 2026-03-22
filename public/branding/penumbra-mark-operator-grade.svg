@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <defs>
+    <linearGradient id="pfog-frame" x1="38" y1="38" x2="122" y2="122" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f2ecff"/>
+      <stop offset="0.45" stop-color="#cbb9ef"/>
+      <stop offset="1" stop-color="#8da0bc"/>
+    </linearGradient>
+  </defs>
+  <rect x="38" y="38" width="84" height="84" rx="20" stroke="url(#pfog-frame)" stroke-width="6"/>
+  <circle cx="84" cy="80" r="22" fill="url(#pfog-frame)" opacity="0.94"/>
+  <circle cx="72" cy="80" r="22" fill="#090b12"/>
+  <path d="M52 117H108" stroke="#8da0bc" stroke-width="5" stroke-linecap="round" opacity="0.78"/>
+</svg>

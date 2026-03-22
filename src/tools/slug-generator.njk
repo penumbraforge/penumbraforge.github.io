@@ -1,0 +1,212 @@
+---
+toolSlug: slug-generator
+permalink: /tools/slug-generator/
+---
+
+<div class="tool-row" style="margin-bottom:0.75rem; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+  <div class="tool-options" role="group" aria-label="Mode">
+    <button class="tool-option active" data-mode="single" aria-pressed="true">Single</button>
+    <button class="tool-option" data-mode="bulk" aria-pressed="false">Bulk (one per line)</button>
+  </div>
+</div>
+
+<div class="tool-row" style="margin-bottom:0.75rem; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+  <div style="display:flex; align-items:center; gap:0.5rem;">
+    <label style="font-size:0.82rem;">Separator:</label>
+    <div class="tool-options" role="group" aria-label="Separator">
+      <button class="tool-option active" data-sep="-" aria-pressed="true">hyphen (-)</button>
+      <button class="tool-option" data-sep="_" aria-pressed="false">underscore (_)</button>
+      <button class="tool-option" data-sep="" aria-pressed="false">none</button>
+    </div>
+  </div>
+  <label style="font-size:0.82rem; display:flex; align-items:center; gap:0.4rem;">
+    <input type="checkbox" id="sg-lowercase" checked style="accent-color:var(--color-accent,#6366f1);"> Lowercase
+  </label>
+  <label style="font-size:0.82rem; display:flex; align-items:center; gap:0.4rem;">
+    <input type="checkbox" id="sg-transliterate" checked style="accent-color:var(--color-accent,#6366f1);"> Transliterate accents
+  </label>
+  <div style="display:flex; align-items:center; gap:0.4rem;">
+    <label for="sg-maxlen" style="font-size:0.82rem; white-space:nowrap;">Max length:</label>
+    <input id="sg-maxlen" type="number" min="0" max="500" value="0" placeholder="0=no limit" style="width:70px; padding:0.3rem 0.45rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:4px; color:var(--color-text,#e2e8f0); font-size:0.82rem;">
+    <span style="font-size:0.75rem; color:var(--color-muted,#94a3b8);">(0 = no limit)</span>
+  </div>
+</div>
+
+<div id="sg-single-panel">
+  <div class="tool-group">
+    <label for="sg-input">Input text</label>
+    <input id="sg-input" type="text" placeholder="My Article Title — With special characters!" style="padding:0.6rem 0.75rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:6px; color:var(--color-text,#e2e8f0); font-size:1rem; width:100%; box-sizing:border-box; font-family:inherit;">
+  </div>
+
+  <div class="output-area" style="margin-top:0;">
+    <button class="btn btn--copy" id="sg-copy">Copy</button>
+    <pre id="sg-output" style="font-size:1.1rem; font-weight:700; word-break:break-all;"></pre>
+  </div>
+  <div id="sg-char-count" style="font-size:0.78rem; color:var(--color-muted,#94a3b8); margin-top:0.3rem;"></div>
+</div>
+
+<div id="sg-bulk-panel" style="display:none;">
+  <div class="tool-group">
+    <label for="sg-bulk-input">Input (one phrase per line)</label>
+    <textarea id="sg-bulk-input" rows="8" placeholder="My First Post&#10;Hello World!&#10;Café au lait&#10;Product: Top-Shelf (2024)" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+  <div class="output-area">
+    <button class="btn btn--copy" id="sg-bulk-copy">Copy All</button>
+    <pre id="sg-bulk-output" style="word-break:break-all;"></pre>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modeBtns  = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
+  var sepBtns   = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-sep]'));
+  var lcEl      = document.getElementById('sg-lowercase');
+  var transEl   = document.getElementById('sg-transliterate');
+  var maxLenEl  = document.getElementById('sg-maxlen');
+  var inputEl   = document.getElementById('sg-input');
+  var outputEl  = document.getElementById('sg-output');
+  var charCount = document.getElementById('sg-char-count');
+  var copyBtn   = document.getElementById('sg-copy');
+  var bulkInput = document.getElementById('sg-bulk-input');
+  var bulkOutput = document.getElementById('sg-bulk-output');
+  var bulkCopy  = document.getElementById('sg-bulk-copy');
+  var singlePanel = document.getElementById('sg-single-panel');
+  var bulkPanel   = document.getElementById('sg-bulk-panel');
+
+  var currentMode = 'single';
+  var currentSep  = '-';
+
+  /* Transliteration map for common accented/special chars */
+  var TRANSLITERATE = {
+    'à':'a','á':'a','â':'a','ã':'a','ä':'a','å':'a','æ':'ae',
+    'ç':'c','è':'e','é':'e','ê':'e','ë':'e',
+    'ì':'i','í':'i','î':'i','ï':'i',
+    'ð':'d','ñ':'n','ò':'o','ó':'o','ô':'o','õ':'o','ö':'o','ø':'o',
+    'ù':'u','ú':'u','û':'u','ü':'u','ý':'y','þ':'th','ß':'ss',
+    'ÿ':'y','œ':'oe','ƒ':'f',
+    // Uppercase
+    'À':'A','Á':'A','Â':'A','Ã':'A','Ä':'A','Å':'A','Æ':'AE',
+    'Ç':'C','È':'E','É':'E','Ê':'E','Ë':'E',
+    'Ì':'I','Í':'I','Î':'I','Ï':'I',
+    'Ð':'D','Ñ':'N','Ò':'O','Ó':'O','Ô':'O','Õ':'O','Ö':'O','Ø':'O',
+    'Ù':'U','Ú':'U','Û':'U','Ü':'U','Ý':'Y','Þ':'TH',
+    // Misc
+    '–':'-','—':'-','…':'...','©':'c','®':'r','™':'tm',
+    '\'':'-','`':'-','\u2019':'-','\u2018':'-',
+    '&':'and','@':'at','#':'','+':'plus','%':'percent',
+    '=':'-','|':'-','/':'-','\\':'-',',':'-','.':'-',';':'-',':':'-',
+    '!':'','?':'','(':'',')':'','[':'',']':'','{':'','}':'',
+    '"':'','<':'','>':'','*':'','^':'','~':'','`':'',
+  };
+
+  function transliterate(str) {
+    return str.split('').map(function (ch) {
+      return TRANSLITERATE.hasOwnProperty(ch) ? TRANSLITERATE[ch] : ch;
+    }).join('');
+  }
+
+  function slugify(text) {
+    var result = text;
+
+    if (transEl.checked) result = transliterate(result);
+    if (lcEl.checked) result = result.toLowerCase();
+
+    var sep = currentSep;
+
+    // Replace non-alphanumeric (and not separator chars) with separator
+    result = result.replace(/[^a-zA-Z0-9\-_]/g, sep || ' ');
+
+    if (sep) {
+      // Collapse multiple separators
+      var escapedSep = sep.replace(/[-]/g, '\\-');
+      result = result.replace(new RegExp('[' + escapedSep + '\\s]+', 'g'), sep);
+      // Trim leading/trailing separators
+      result = result.replace(new RegExp('^[' + escapedSep + ']+|[' + escapedSep + ']+$', 'g'), '');
+    } else {
+      result = result.replace(/\s+/g, '');
+    }
+
+    // Apply max length
+    var maxLen = parseInt(maxLenEl.value) || 0;
+    if (maxLen > 0 && result.length > maxLen) {
+      result = result.slice(0, maxLen);
+      // Trim trailing separator
+      if (sep) result = result.replace(new RegExp('[' + sep.replace(/[-]/g, '\\-') + ']+$'), '');
+    }
+
+    return result;
+  }
+
+  function convertSingle() {
+    var slug = slugify(inputEl.value);
+    outputEl.textContent = slug;
+    charCount.textContent = slug.length > 0 ? slug.length + ' characters' : '';
+  }
+
+  function convertBulk() {
+    var lines = bulkInput.value.split('\n');
+    var slugs = lines.map(function (line) { return slugify(line); });
+    bulkOutput.textContent = slugs.join('\n');
+  }
+
+  function convert() {
+    if (currentMode === 'single') convertSingle();
+    else convertBulk();
+  }
+
+  modeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentMode = btn.getAttribute('data-mode');
+      modeBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      singlePanel.style.display = currentMode === 'single' ? '' : 'none';
+      bulkPanel.style.display   = currentMode === 'bulk' ? '' : 'none';
+      convert();
+    });
+  });
+
+  sepBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentSep = btn.getAttribute('data-sep');
+      sepBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      convert();
+    });
+  });
+
+  [lcEl, transEl, maxLenEl].forEach(function (el) {
+    el.addEventListener('change', convert);
+    el.addEventListener('input', convert);
+  });
+
+  inputEl.addEventListener('input', convertSingle);
+  bulkInput.addEventListener('input', convertBulk);
+
+  function makeCopyHandler(srcEl, btn, origText) {
+    btn.addEventListener('click', function () {
+      var text = srcEl.textContent;
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          btn.textContent = 'Copied!';
+          setTimeout(function () { btn.textContent = origText; }, 2000);
+        });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        try { document.execCommand('copy'); btn.textContent = 'Copied!'; } catch (e) { btn.textContent = 'Failed'; }
+        document.body.removeChild(ta);
+        setTimeout(function () { btn.textContent = origText; }, 2000);
+      }
+    });
+  }
+
+  makeCopyHandler(outputEl, copyBtn, 'Copy');
+  makeCopyHandler(bulkOutput, bulkCopy, 'Copy All');
+
+  // Sample
+  inputEl.value = 'My Article Title — With Café & Special Characters!';
+  convertSingle();
+})();
+</script>

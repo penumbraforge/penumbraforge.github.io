@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#06060c"/>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="40%" r="30%">
+      <stop offset="0%" stop-color="rgba(184,165,214,0.08)"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <radialGradient id="orb" cx="50%" cy="45%" r="45%">
+      <stop offset="0%" stop-color="#c4a8d8"/>
+      <stop offset="100%" stop-color="#6a5a8e"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <circle cx="600" cy="250" r="32" fill="url(#orb)"/>
+  <text x="600" y="330" text-anchor="middle" fill="#687a8e" font-family="-apple-system, sans-serif" font-size="14" letter-spacing="4" text-transform="uppercase">PENUMBRA FORGE</text>
+  <text x="600" y="370" text-anchor="middle" fill="#e8e4ef" font-family="-apple-system, sans-serif" font-size="28" font-weight="300">Software, forged by Shadoe.</text>
+  <text x="600" y="405" text-anchor="middle" fill="#666" font-family="-apple-system, sans-serif" font-size="14">Security tools · Local AI · Automation</text>
+</svg>

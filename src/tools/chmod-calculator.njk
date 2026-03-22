@@ -1,0 +1,230 @@
+---
+toolSlug: chmod-calculator
+permalink: /tools/chmod-calculator/
+---
+
+<div class="tool-row" style="flex-wrap:wrap;gap:16px;align-items:flex-start;">
+
+  <div style="flex:1;min-width:280px;">
+    <div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:0;border:1px solid var(--border);border-radius:4px;overflow:hidden;">
+
+      <!-- Header row -->
+      <div style="padding:8px 12px;background:var(--surface-1);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);"></div>
+      <div style="padding:8px 0;background:var(--surface-1);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);text-align:center;">Read</div>
+      <div style="padding:8px 0;background:var(--surface-1);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);text-align:center;">Write</div>
+      <div style="padding:8px 0;background:var(--surface-1);border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);text-align:center;">Execute</div>
+
+      <!-- Owner row -->
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:12px;color:var(--text-1);font-weight:500;display:flex;align-items:center;">Owner</div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
+        <input type="checkbox" id="cb-or" class="chmod-cb" data-who="o" data-perm="r" data-bit="256" checked aria-label="Owner read">
+      </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
+        <input type="checkbox" id="cb-ow" class="chmod-cb" data-who="o" data-perm="w" data-bit="128" checked aria-label="Owner write">
+      </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
+        <input type="checkbox" id="cb-ox" class="chmod-cb" data-who="o" data-perm="x" data-bit="64" aria-label="Owner execute">
+      </div>
+
+      <!-- Group row -->
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:12px;color:var(--text-1);font-weight:500;display:flex;align-items:center;">Group</div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
+        <input type="checkbox" id="cb-gr" class="chmod-cb" data-who="g" data-perm="r" data-bit="32" checked aria-label="Group read">
+      </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
+        <input type="checkbox" id="cb-gw" class="chmod-cb" data-who="g" data-perm="w" data-bit="16" aria-label="Group write">
+      </div>
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
+        <input type="checkbox" id="cb-gx" class="chmod-cb" data-who="g" data-perm="x" data-bit="8" aria-label="Group execute">
+      </div>
+
+      <!-- Other row -->
+      <div style="padding:10px 12px;border-right:1px solid var(--border);font-size:12px;color:var(--text-1);font-weight:500;display:flex;align-items:center;">Other</div>
+      <div style="padding:10px 0;border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
+        <input type="checkbox" id="cb-wr" class="chmod-cb" data-who="w" data-perm="r" data-bit="4" checked aria-label="Other read">
+      </div>
+      <div style="padding:10px 0;border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
+        <input type="checkbox" id="cb-ww" class="chmod-cb" data-who="w" data-perm="w" data-bit="2" aria-label="Other write">
+      </div>
+      <div style="padding:10px 0;text-align:center;display:flex;align-items:center;justify-content:center;">
+        <input type="checkbox" id="cb-wx" class="chmod-cb" data-who="w" data-perm="x" data-bit="1" aria-label="Other execute">
+      </div>
+
+    </div>
+  </div>
+
+  <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:12px;">
+
+    <div class="tool-group" style="margin-bottom:0;">
+      <label for="chmod-numeric" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Numeric (Octal)</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="chmod-numeric" value="644" maxlength="4" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);font-size:20px;width:90px;letter-spacing:0.1em;">
+        <button class="btn btn--copy" id="copy-numeric" aria-label="Copy numeric value" style="position:static;">Copy</button>
+      </div>
+    </div>
+
+    <div class="tool-group" style="margin-bottom:0;">
+      <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Symbolic</label>
+      <div id="chmod-symbolic" style="font-family:var(--font-mono);font-size:16px;color:var(--text-1);padding:8px 0;letter-spacing:0.06em;"></div>
+    </div>
+
+    <div class="tool-group" style="margin-bottom:0;">
+      <label for="chmod-filename" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Filename</label>
+      <input type="text" id="chmod-filename" value="filename" spellcheck="false" autocomplete="off">
+    </div>
+
+    <div class="tool-group" style="margin-bottom:0;">
+      <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Command</label>
+      <div class="output-area" style="min-height:auto;padding:10px 70px 10px 12px;">
+        <button class="btn btn--copy" id="copy-command" aria-label="Copy chmod command">Copy</button>
+        <span id="chmod-command" style="font-family:var(--font-mono);font-size:13px;"></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="tool-row" style="align-items:center;flex-wrap:wrap;gap:8px;margin-top:4px;">
+  <span style="font-size:12px;color:var(--text-2);margin-right:4px;">Presets:</span>
+  <button class="tool-option" data-mode="644">644</button>
+  <button class="tool-option" data-mode="755">755</button>
+  <button class="tool-option" data-mode="700">700</button>
+  <button class="tool-option" data-mode="600">600</button>
+  <button class="tool-option" data-mode="777">777</button>
+  <button class="tool-option" data-mode="400">400</button>
+</div>
+
+<script>
+(function () {
+  var numericEl  = document.getElementById('chmod-numeric');
+  var symbolicEl = document.getElementById('chmod-symbolic');
+  var commandEl  = document.getElementById('chmod-command');
+  var filenameEl = document.getElementById('chmod-filename');
+  var copyNum    = document.getElementById('copy-numeric');
+  var copyCmd    = document.getElementById('copy-command');
+
+  var checkboxes = Array.prototype.slice.call(document.querySelectorAll('.chmod-cb'));
+
+  /* bits: Owner=256/128/64, Group=32/16/8, Other=4/2/1 */
+
+  function getValueFromCheckboxes() {
+    var val = 0;
+    checkboxes.forEach(function (cb) {
+      if (cb.checked) val += parseInt(cb.getAttribute('data-bit'), 10);
+    });
+    return val;
+  }
+
+  function setCheckboxesFromValue(val) {
+    checkboxes.forEach(function (cb) {
+      var bit = parseInt(cb.getAttribute('data-bit'), 10);
+      cb.checked = (val & bit) !== 0;
+    });
+  }
+
+  function numericToSymbolic(val) {
+    var chars = '';
+    var bits = [[256, 'r'], [128, 'w'], [64, 'x'],
+                [32,  'r'], [16,  'w'], [8,  'x'],
+                [4,   'r'], [2,   'w'], [1,  'x']];
+    for (var i = 0; i < bits.length; i++) {
+      chars += (val & bits[i][0]) ? bits[i][1] : '-';
+    }
+    return chars;
+  }
+
+  function updateOutputs() {
+    var val     = getValueFromCheckboxes();
+    var octal   = val.toString(8).padStart ? val.toString(8) : val.toString(8);
+    /* ensure 3-digit octal */
+    while (octal.length < 3) octal = '0' + octal;
+    numericEl.value = octal;
+
+    var sym = numericToSymbolic(val);
+    symbolicEl.textContent = sym;
+
+    var fname = filenameEl.value.trim() || 'filename';
+    commandEl.textContent = 'chmod ' + octal + ' ' + fname;
+  }
+
+  function applyNumericInput() {
+    var raw = numericEl.value.trim();
+    /* accept 3-digit octal, possibly prefixed with 0 */
+    if (/^0?[0-7]{3}$/.test(raw)) {
+      var val = parseInt(raw, 8);
+      setCheckboxesFromValue(val);
+      var octal = val.toString(8);
+      while (octal.length < 3) octal = '0' + octal;
+      numericEl.value = octal;
+      symbolicEl.textContent = numericToSymbolic(val);
+      var fname = filenameEl.value.trim() || 'filename';
+      commandEl.textContent = 'chmod ' + octal + ' ' + fname;
+    }
+  }
+
+  /* Checkbox events */
+  checkboxes.forEach(function (cb) {
+    cb.addEventListener('change', updateOutputs);
+  });
+
+  /* Numeric input */
+  numericEl.addEventListener('input', applyNumericInput);
+
+  /* Filename input */
+  filenameEl.addEventListener('input', function () {
+    var octal = numericEl.value;
+    var fname = filenameEl.value.trim() || 'filename';
+    commandEl.textContent = 'chmod ' + octal + ' ' + fname;
+  });
+
+  /* Presets */
+  var presetBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
+  presetBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      presetBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+
+      var octal = btn.getAttribute('data-mode');
+      numericEl.value = octal;
+      applyNumericInput();
+    });
+  });
+
+  function copyText(text, btn, originalLabel) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = originalLabel; }, 2000);
+      }).catch(function () {
+        btn.textContent = 'Failed';
+        setTimeout(function () { btn.textContent = originalLabel; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try { document.execCommand('copy'); btn.textContent = 'Copied!'; }
+      catch (e) { btn.textContent = 'Failed'; }
+      document.body.removeChild(ta);
+      setTimeout(function () { btn.textContent = originalLabel; }, 2000);
+    }
+  }
+
+  copyNum.addEventListener('click', function () {
+    copyText(numericEl.value, copyNum, 'Copy');
+  });
+
+  copyCmd.addEventListener('click', function () {
+    copyText(commandEl.textContent, copyCmd, 'Copy');
+  });
+
+  /* Initial render — match default checkboxes (Owner r+w = 644) */
+  updateOutputs();
+})();
+</script>

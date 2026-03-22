@@ -1,0 +1,456 @@
+---
+toolSlug: env-linter
+permalink: /tools/env-linter/
+---
+
+<div class="tool-group">
+  <label for="env-input">Paste .env file contents</label>
+  <textarea id="env-input" rows="14" placeholder="DATABASE_URL=postgres://user:password@localhost/mydb&#10;API_KEY=sk-abc123&#10;DEBUG=true&#10;SECRET_TOKEN=&#10;PORT=3000&#10;REDIS_URL=redis://localhost:6379" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Example files">
+    <button class="tool-option" id="ex-typical">Typical app</button>
+    <button class="tool-option" id="ex-messy">Messy file</button>
+  </div>
+  <button class="btn" id="btn-lint">Lint</button>
+</div>
+
+<div id="env-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div id="env-summary" style="display:none;" class="env-summary"></div>
+
+<div id="env-issues" style="display:none;"></div>
+
+<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border, #e5e7eb);">
+
+<div class="tool-group">
+  <label>.env.example output <span style="font-weight:400; color:var(--text-3, #9ca3af);">(values replaced with placeholders)</span></label>
+  <div class="output-area" style="margin-top:8px;">
+    <button class="btn btn--copy" id="btn-copy-example" aria-label="Copy .env.example">Copy</button>
+    <pre id="env-example-output" aria-label=".env.example output"></pre>
+  </div>
+</div>
+
+<style>
+  .env-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+
+  .env-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 3px;
+    padding: 3px 10px;
+    font-weight: 600;
+    border: 1px solid var(--border, #e5e7eb);
+    background: var(--surface-0, #f9fafb);
+    color: var(--text-1, #111827);
+  }
+
+  .env-badge--error   { border-left: 3px solid #ef4444; }
+  .env-badge--warning { border-left: 3px solid #f59e0b; }
+  .env-badge--info    { border-left: 3px solid #3b82f6; }
+  .env-badge--ok      { border-left: 3px solid #10b981; }
+
+  .env-issue-list {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .env-issue {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: var(--surface-0, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
+    font-family: var(--font-sans, sans-serif);
+    font-size: 13px;
+  }
+
+  .env-issue--error   { border-left: 3px solid #ef4444; }
+  .env-issue--warning { border-left: 3px solid #f59e0b; }
+  .env-issue--info    { border-left: 3px solid #3b82f6; }
+
+  .env-issue-line {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    color: var(--text-3, #9ca3af);
+    padding-top: 1px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .env-severity {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .env-severity--error   { color: #ef4444; }
+  .env-severity--warning { color: #d97706; }
+  .env-severity--info    { color: #3b82f6; }
+
+  .env-issue-msg {
+    color: var(--text-1, #111827);
+    flex: 1;
+  }
+
+  .env-issue-key {
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    color: var(--text-1, #111827);
+  }
+
+  .env-section-title {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3, #9ca3af);
+    margin: 0 0 8px;
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var inputEl      = document.getElementById("env-input");
+  var lintBtn      = document.getElementById("btn-lint");
+  var errorEl      = document.getElementById("env-error");
+  var summaryEl    = document.getElementById("env-summary");
+  var issuesEl     = document.getElementById("env-issues");
+  var exampleEl    = document.getElementById("env-example-output");
+  var copyExBtn    = document.getElementById("btn-copy-example");
+
+  // ── Examples ────────────────────────────────────────────────────────────
+  var EXAMPLES = {
+    typical: [
+      "# Application config",
+      "NODE_ENV=production",
+      "PORT=3000",
+      "DATABASE_URL=postgres://admin:s3cr3t@db.example.com/myapp",
+      "REDIS_URL=redis://localhost:6379",
+      "",
+      "# Auth",
+      "JWT_SECRET=my-super-secret-key-change-me",
+      "SESSION_TIMEOUT=3600",
+      "",
+      "# External APIs",
+      "STRIPE_API_KEY=sk_live_abc123def456",
+      "SENDGRID_API_KEY=SG.xxxx",
+      "SENTRY_DSN=https://abc@sentry.io/123",
+      "",
+      "# Feature flags",
+      "ENABLE_BETA=true",
+      "MAX_UPLOAD_SIZE_MB=50"
+    ].join("\n"),
+    messy: [
+      "database_url=postgres://localhost/mydb",
+      "API KEY=bad key with spaces",
+      "SECRET=",
+      "DEBUG=true",
+      "PORT=3000",
+      "PORT=8080",
+      "password=hunter2",
+      "# TOKEN=old-disabled-token",
+      "ADMIN_TOKEN=admin-secret-abc",
+      "UNQUOTED=value with spaces",
+      "MALFORMED",
+      "ANOTHER DB=postgres://other",
+      "MY_SECRET=abc!@#def",
+      "EMPTY_VALUE="
+    ].join("\n")
+  };
+
+  document.getElementById("ex-typical").addEventListener("click", function () {
+    inputEl.value = EXAMPLES.typical;
+    lint();
+  });
+  document.getElementById("ex-messy").addEventListener("click", function () {
+    inputEl.value = EXAMPLES.messy;
+    lint();
+  });
+
+  // ── Secret key patterns ──────────────────────────────────────────────────
+  var SECRET_PATTERNS = [
+    /password/i, /passwd/i, /secret/i, /token/i, /api.?key/i,
+    /auth.?key/i, /private.?key/i, /credentials/i, /signing.?key/i,
+    /access.?key/i, /client.?secret/i, /encryption.?key/i
+  ];
+
+  function looksLikeSecret(key) {
+    return SECRET_PATTERNS.some(function (rx) { return rx.test(key); });
+  }
+
+  // ── Placeholder descriptions ─────────────────────────────────────────────
+  function placeholderFor(key) {
+    var k = key.toLowerCase();
+    if (/url|dsn/.test(k))           return "your-" + key.toLowerCase().replace(/_/g, "-");
+    if (/port/.test(k))              return "PORT_NUMBER";
+    if (/host/.test(k))              return "hostname-or-ip";
+    if (/password|passwd/.test(k))   return "YOUR_PASSWORD_HERE";
+    if (/secret/.test(k))            return "YOUR_SECRET_HERE";
+    if (/token/.test(k))             return "YOUR_TOKEN_HERE";
+    if (/api.?key|key/.test(k))      return "YOUR_API_KEY_HERE";
+    if (/timeout|ttl|size|max/.test(k)) return "NUMERIC_VALUE";
+    if (/enable|disable|debug|flag/.test(k)) return "true_or_false";
+    if (/env|environment/.test(k))   return "development_or_production";
+    return "YOUR_VALUE_HERE";
+  }
+
+  // ── Parser ───────────────────────────────────────────────────────────────
+  function parseEnv(text) {
+    var lines = text.split("\n");
+    var entries = [];
+    var seenKeys = {};
+
+    lines.forEach(function (rawLine, idx) {
+      var lineNum = idx + 1;
+      var trimmed = rawLine.trim();
+
+      var entry = {
+        lineNum: lineNum,
+        raw: rawLine,
+        trimmed: trimmed,
+        isBlank: trimmed === "",
+        isComment: trimmed.startsWith("#"),
+        key: null,
+        value: null,
+        issues: []
+      };
+
+      if (!entry.isBlank && !entry.isComment) {
+        var eqIdx = trimmed.indexOf("=");
+        if (eqIdx === -1) {
+          entry.issues.push({ severity: "error", msg: "Line has no '=' separator — not a valid key=value pair" });
+        } else {
+          entry.key   = trimmed.slice(0, eqIdx).trim();
+          entry.value = trimmed.slice(eqIdx + 1);
+
+          // Check for spaces in key (invalid)
+          if (/\s/.test(entry.key)) {
+            entry.issues.push({ severity: "error", msg: "Key contains spaces — this is invalid in most .env parsers" });
+          }
+
+          // Check UPPER_SNAKE_CASE
+          if (entry.key && !/^[A-Z][A-Z0-9_]*$/.test(entry.key) && !/\s/.test(entry.key)) {
+            entry.issues.push({ severity: "warning", msg: "Key is not UPPER_SNAKE_CASE convention" });
+          }
+
+          // Duplicate key
+          if (entry.key && !(/\s/.test(entry.key))) {
+            var cleanKey = entry.key;
+            if (seenKeys[cleanKey] !== undefined) {
+              entry.issues.push({ severity: "error", msg: "Duplicate key — first seen on line " + seenKeys[cleanKey] + ". Later value silently overwrites the earlier one" });
+            } else {
+              seenKeys[cleanKey] = lineNum;
+            }
+          }
+
+          // Empty value
+          if (entry.value === "") {
+            entry.issues.push({ severity: "warning", msg: "Empty value — if this is intentional, consider adding a comment explaining it" });
+          }
+
+          // Unquoted value with spaces
+          if (entry.value && !entry.value.startsWith('"') && !entry.value.startsWith("'") && /\s/.test(entry.value)) {
+            entry.issues.push({ severity: "error", msg: "Value contains spaces but is not quoted — behavior varies by parser" });
+          }
+
+          // Unescaped special chars in unquoted value
+          if (entry.value && !entry.value.startsWith('"') && !entry.value.startsWith("'")) {
+            if (/[#$`!]/.test(entry.value)) {
+              entry.issues.push({ severity: "warning", msg: "Value contains special characters (#, $, `, !) that may cause issues in unquoted values" });
+            }
+          }
+
+          // Secret without warning
+          if (entry.key && looksLikeSecret(entry.key) && entry.value && entry.value.length > 0) {
+            entry.issues.push({ severity: "info", msg: "Potential secret/credential — ensure this file is in .gitignore and never committed to version control" });
+          }
+        }
+      }
+
+      // Commented-out key=value that might be active
+      if (entry.isComment) {
+        var commentBody = trimmed.slice(1).trim();
+        if (/^[A-Z_a-z][A-Z_a-z0-9]*\s*=/.test(commentBody)) {
+          entry.issues.push({ severity: "info", msg: "Commented-out key=value — verify this is intentionally disabled and not accidentally commented" });
+          entry.key = commentBody.split("=")[0].trim();
+          entry.isCommentedKV = true;
+        }
+      }
+
+      entries.push(entry);
+    });
+
+    return entries;
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = "";
+  }
+  function hideError() {
+    errorEl.textContent = "";
+    errorEl.style.display = "none";
+  }
+
+  function copyText(text, btn, label) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = label; }, 2000);
+      }).catch(function () {
+        btn.textContent = "Failed";
+        setTimeout(function () { btn.textContent = label; }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); btn.textContent = "Copied!"; }
+      catch (e) { btn.textContent = "Failed"; }
+      document.body.removeChild(ta);
+      setTimeout(function () { btn.textContent = label; }, 2000);
+    }
+  }
+
+  function lint() {
+    var raw = inputEl.value;
+    hideError();
+
+    if (!raw.trim()) {
+      summaryEl.style.display = "none";
+      issuesEl.style.display = "none";
+      exampleEl.textContent = "";
+      return;
+    }
+
+    var entries = parseEnv(raw);
+
+    // Collect all issues with metadata
+    var allIssues = [];
+    entries.forEach(function (entry) {
+      entry.issues.forEach(function (issue) {
+        allIssues.push({ lineNum: entry.lineNum, key: entry.key, issue: issue });
+      });
+    });
+
+    var errors   = allIssues.filter(function (i) { return i.issue.severity === "error";   }).length;
+    var warnings = allIssues.filter(function (i) { return i.issue.severity === "warning"; }).length;
+    var infos    = allIssues.filter(function (i) { return i.issue.severity === "info";    }).length;
+    var totalKeys = entries.filter(function (e) { return e.key && !e.isBlank && !e.isCommentedKV; }).length;
+
+    // Summary badges
+    while (summaryEl.firstChild) summaryEl.removeChild(summaryEl.firstChild);
+
+    function makeBadge(text, mod) {
+      var span = document.createElement("span");
+      span.className = "env-badge env-badge--" + mod;
+      span.textContent = text;
+      return span;
+    }
+
+    summaryEl.appendChild(makeBadge(totalKeys + " keys", "ok"));
+    if (errors)   summaryEl.appendChild(makeBadge(errors + " error" + (errors !== 1 ? "s" : ""), "error"));
+    if (warnings) summaryEl.appendChild(makeBadge(warnings + " warning" + (warnings !== 1 ? "s" : ""), "warning"));
+    if (infos)    summaryEl.appendChild(makeBadge(infos + " notice" + (infos !== 1 ? "s" : ""), "info"));
+    if (!errors && !warnings && !infos) summaryEl.appendChild(makeBadge("No issues found", "ok"));
+    summaryEl.style.display = "";
+
+    // Issues list
+    while (issuesEl.firstChild) issuesEl.removeChild(issuesEl.firstChild);
+
+    if (allIssues.length > 0) {
+      var titleEl = document.createElement("div");
+      titleEl.className = "env-section-title";
+      titleEl.textContent = "Issues";
+      issuesEl.appendChild(titleEl);
+
+      var ul = document.createElement("ul");
+      ul.className = "env-issue-list";
+
+      allIssues.forEach(function (item) {
+        var li = document.createElement("li");
+        li.className = "env-issue env-issue--" + item.issue.severity;
+
+        var lineSpan = document.createElement("span");
+        lineSpan.className = "env-issue-line";
+        lineSpan.textContent = "L" + item.lineNum;
+
+        var sevSpan = document.createElement("span");
+        sevSpan.className = "env-severity env-severity--" + item.issue.severity;
+        sevSpan.textContent = item.issue.severity;
+
+        var msgSpan = document.createElement("span");
+        msgSpan.className = "env-issue-msg";
+        if (item.key) {
+          var keySpan = document.createElement("span");
+          keySpan.className = "env-issue-key";
+          keySpan.textContent = item.key + ": ";
+          msgSpan.appendChild(keySpan);
+        }
+        msgSpan.appendChild(document.createTextNode(item.issue.msg));
+
+        li.appendChild(lineSpan);
+        li.appendChild(sevSpan);
+        li.appendChild(msgSpan);
+        ul.appendChild(li);
+      });
+
+      issuesEl.appendChild(ul);
+    } else {
+      var okEl = document.createElement("div");
+      okEl.className = "env-badge env-badge--ok";
+      okEl.style.cssText = "display:inline-flex; margin-bottom:16px;";
+      okEl.textContent = "No issues found — your .env file looks clean!";
+      issuesEl.appendChild(okEl);
+    }
+
+    issuesEl.style.display = "";
+
+    // Generate .env.example
+    var exampleLines = entries.map(function (entry) {
+      if (entry.isBlank) return "";
+      if (entry.isComment && !entry.isCommentedKV) return entry.raw;
+      if (entry.isCommentedKV) return entry.raw; // keep commented-out KVs as-is
+      if (entry.key && entry.value !== null) {
+        return entry.key + "=" + placeholderFor(entry.key);
+      }
+      return entry.raw; // malformed lines kept as-is
+    });
+
+    exampleEl.textContent = exampleLines.join("\n");
+  }
+
+  lintBtn.addEventListener("click", lint);
+  inputEl.addEventListener("input", lint);
+
+  copyExBtn.addEventListener("click", function () {
+    copyText(exampleEl.textContent, copyExBtn, "Copy");
+  });
+})();
+</script>

@@ -1,0 +1,432 @@
+---
+toolSlug: http-status-codes
+permalink: /tools/http-status-codes/
+---
+
+<div class="tool-group">
+  <label for="hsc-search">Search by code or name</label>
+  <input type="text" id="hsc-search" placeholder="e.g. 404, not found, redirect, auth..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Filter by category">
+    <button class="tool-option active" data-group="all" aria-pressed="true">All</button>
+    <button class="tool-option" data-group="1" aria-pressed="false">1xx</button>
+    <button class="tool-option" data-group="2" aria-pressed="false">2xx</button>
+    <button class="tool-option" data-group="3" aria-pressed="false">3xx</button>
+    <button class="tool-option" data-group="4" aria-pressed="false">4xx</button>
+    <button class="tool-option" data-group="5" aria-pressed="false">5xx</button>
+  </div>
+</div>
+
+<div id="hsc-results" role="list" aria-label="HTTP status codes"></div>
+<div id="hsc-empty" style="display:none; font-family:var(--font-sans); font-size:13px; color:var(--text-3); padding:20px; text-align:center;"></div>
+
+<style>
+  .hsc-group {
+    margin-bottom: 24px;
+  }
+  .hsc-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hsc-group-badge {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+  }
+  .hsc-group-desc {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .hsc-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .hsc-card:hover { border-color: var(--text-3); }
+  .hsc-card.expanded { border-color: var(--accent); }
+  .hsc-card-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface-0);
+    user-select: none;
+  }
+  .hsc-code {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 700;
+    min-width: 44px;
+    flex-shrink: 0;
+  }
+  .hsc-name {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+    flex: 1;
+  }
+  .hsc-short {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--text-3);
+    flex: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hsc-tags {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .hsc-tag {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--surface-1);
+    color: var(--text-3);
+    border: 1px solid var(--border);
+  }
+  .hsc-tag--cacheable { background: rgba(100,180,130,0.12); color: #64b482; border-color: rgba(100,180,130,0.3); }
+  .hsc-tag--unofficial { background: rgba(200,140,80,0.12); color: #c8a050; border-color: rgba(200,140,80,0.3); }
+  .hsc-chevron {
+    font-size: 10px;
+    color: var(--text-3);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .hsc-card.expanded .hsc-chevron { transform: rotate(180deg); }
+  .hsc-detail {
+    display: none;
+    padding: 14px 16px;
+    background: var(--surface-1);
+    border-top: 1px solid var(--border);
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+  .hsc-card.expanded .hsc-detail { display: block; }
+  .hsc-detail-desc {
+    color: var(--text-1);
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+  .hsc-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 600px) { .hsc-detail-grid { grid-template-columns: 1fr; } }
+  .hsc-detail-cell {
+    background: var(--surface-0);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+  }
+  .hsc-detail-cell-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+  .hsc-detail-cell-val {
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* Group colors */
+  .hsc-1xx .hsc-group-badge { background: rgba(100,150,210,0.15); color: #6496d2; }
+  .hsc-1xx .hsc-code         { color: #6496d2; }
+  .hsc-1xx .hsc-card.expanded { border-color: #6496d2; }
+
+  .hsc-2xx .hsc-group-badge  { background: rgba(90,170,120,0.15); color: #5aaa78; }
+  .hsc-2xx .hsc-code          { color: #5aaa78; }
+  .hsc-2xx .hsc-card.expanded { border-color: #5aaa78; }
+
+  .hsc-3xx .hsc-group-badge  { background: rgba(160,130,200,0.15); color: #a082c8; }
+  .hsc-3xx .hsc-code          { color: #a082c8; }
+  .hsc-3xx .hsc-card.expanded { border-color: #a082c8; }
+
+  .hsc-4xx .hsc-group-badge  { background: rgba(210,140,60,0.15); color: #d28c3c; }
+  .hsc-4xx .hsc-code          { color: #d28c3c; }
+  .hsc-4xx .hsc-card.expanded { border-color: #d28c3c; }
+
+  .hsc-5xx .hsc-group-badge  { background: rgba(200,80,80,0.15); color: #c85050; }
+  .hsc-5xx .hsc-code          { color: #c85050; }
+  .hsc-5xx .hsc-card.expanded { border-color: #c85050; }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var CODES = [
+    // 1xx
+    { code: 100, name: "Continue", short: "Initial part of request received; client should continue", desc: "The server has received the request headers and the client should proceed to send the request body. This is used to avoid sending a large request body before the server has accepted the request.", usage: "Used with Expect: 100-continue header to check if the server will accept a large upload before sending it.", encounter: "Rarely seen directly; handled automatically by HTTP clients when uploading large files.", tags: [] },
+    { code: 101, name: "Switching Protocols", short: "Server is switching to a different protocol", desc: "The server understands and is willing to comply with the client's request to switch protocols. This is commonly used when upgrading an HTTP connection to WebSocket.", usage: "Upgrading an HTTP connection to WebSocket, or switching from HTTP/1.1 to HTTP/2.", encounter: "When establishing a WebSocket connection — the browser handles this transparently.", tags: [] },
+    { code: 102, name: "Processing", short: "Server has received the request and is processing it", desc: "A WebDAV extension indicating the server has received and is processing the request, but no response is available yet. Prevents the client from timing out.", usage: "WebDAV operations that take a long time to process.", encounter: "WebDAV file servers, some task queues with long processing times.", tags: [] },
+    { code: 103, name: "Early Hints", short: "Send some response headers before the final response", desc: "Used to preload resources while the server is still preparing the main response. The server can send Link headers to hint the browser to start preloading assets.", usage: "Performance optimization — send Link: preload headers before the main HTML response is ready.", encounter: "Modern CDNs and servers like Cloudflare, nginx 1.13.9+.", tags: [] },
+
+    // 2xx
+    { code: 200, name: "OK", short: "Request succeeded", desc: "The standard response for successful HTTP requests. The actual response depends on the request method: GET returns the resource, POST returns the result of the action.", usage: "Every successful API call, page load, asset fetch.", encounter: "The most common status code — virtually every successful request.", tags: ["cacheable"] },
+    { code: 201, name: "Created", short: "Request succeeded and a new resource was created", desc: "The request was fulfilled and a new resource was created as a result. The Location header often contains the URL of the newly created resource.", usage: "POST requests that create new database records, files, or entities.", encounter: "REST APIs after creating a new user, post, item, or record.", tags: [] },
+    { code: 202, name: "Accepted", short: "Request accepted but processing not yet complete", desc: "The request has been accepted for processing, but the processing has not been completed. It is intentionally non-committal — there is no guarantee the processing will complete.", usage: "Asynchronous operations, job queues, batch processing systems.", encounter: "APIs where processing is deferred (email sending, video encoding, report generation).", tags: [] },
+    { code: 203, name: "Non-Authoritative Information", short: "Response from a third-party proxy or cache", desc: "The returned information is not from the originating server but from a proxy or cache that has modified the response. The payload is the same as if 200 were returned.", usage: "Transforming proxies that modify the response (adding headers, compressing, etc.).", encounter: "CDNs and caching proxies that transform content.", tags: ["cacheable"] },
+    { code: 204, name: "No Content", short: "Request succeeded, no response body", desc: "The server successfully processed the request and is not returning any content. Often used for DELETE operations or when a form submission doesn't need to navigate away.", usage: "DELETE requests, PATCH updates where no data needs to be returned, preflight OPTIONS requests.", encounter: "After deleting a resource, submitting a background form, CORS preflight responses.", tags: [] },
+    { code: 205, name: "Reset Content", short: "Request succeeded; client should reset the document view", desc: "The server successfully processed the request, and the client should reset the document view. Useful for clearing form data after submission.", usage: "After submitting a form — tells the browser to clear the form fields.", encounter: "Rarely used; some custom form-handling APIs.", tags: [] },
+    { code: 206, name: "Partial Content", short: "Server is delivering only part of the resource (byte range)", desc: "The server is delivering only part of the resource due to a Range header in the request. Used for resumable downloads and streaming media.", usage: "Video/audio streaming, resumable file downloads, serving specific byte ranges.", encounter: "Streaming video in browsers, download managers resuming interrupted downloads.", tags: ["cacheable"] },
+    { code: 207, name: "Multi-Status", short: "Multiple status codes for multiple resources (WebDAV)", desc: "A WebDAV response that conveys information about multiple resources in situations where multiple status codes might be appropriate.", usage: "WebDAV batch operations where each sub-request has its own status.", encounter: "WebDAV file management, some batch REST APIs.", tags: [] },
+    { code: 208, name: "Already Reported", short: "Members of a DAV binding already enumerated", desc: "A WebDAV response used inside a 207 to avoid enumerating the members of multiple bindings to the same collection repeatedly.", usage: "Complex WebDAV operations with recursive directory structures.", encounter: "Advanced WebDAV implementations only.", tags: [] },
+    { code: 226, name: "IM Used", short: "Response is a result of instance manipulations (delta encoding)", desc: "The server has fulfilled a GET request for the resource and the response is a representation of the result of one or more instance-manipulations applied to the current instance.", usage: "HTTP delta encoding — sending only changes since the last response.", encounter: "Rarely implemented; some specialized caching systems.", tags: [] },
+
+    // 3xx
+    { code: 300, name: "Multiple Choices", short: "Multiple options for the resource", desc: "The request has more than one possible response. The user-agent or user should choose one of them. There is no standardized way of choosing, but HTML links to the possibilities are recommended.", usage: "Content negotiation when multiple formats are available.", encounter: "Rarely seen; some legacy APIs with multiple content type options.", tags: [] },
+    { code: 301, name: "Moved Permanently", short: "Resource has permanently moved to a new URL", desc: "The URL of the requested resource has been changed permanently. The new URL is given in the response. Search engines update their index to the new URL.", usage: "Permanent redirects: old URLs to new URLs, HTTP to HTTPS redirects, www to non-www.", encounter: "Website migrations, URL restructuring, canonical URL enforcement.", tags: ["cacheable"] },
+    { code: 302, name: "Found", short: "Resource temporarily at a different URL", desc: "The URI of the requested resource has been changed temporarily. The client should continue to use the original URI for future requests. (Despite the name 'Found', it means 'temporarily moved.')", usage: "Temporary redirects, login redirects, A/B testing redirects.", encounter: "After login redirect to originally requested page, maintenance mode redirects.", tags: [] },
+    { code: 303, name: "See Other", short: "Redirect to the result at another URL", desc: "The server is redirecting the client to a different resource, using a GET request, even if the original request was a POST. Used to prevent duplicate form submissions on refresh.", usage: "Post/Redirect/Get pattern — after a form submission, redirect to a results page.", encounter: "Form submissions that redirect to a confirmation or results page.", tags: [] },
+    { code: 304, name: "Not Modified", short: "Resource hasn't changed; use cached version", desc: "Indicates the resource has not been modified since the version specified by the request headers (If-Modified-Since or If-None-Match). The client can use its cached version.", usage: "Conditional GET requests for cache validation.", encounter: "Browser loading cached resources — saves bandwidth by not re-downloading unchanged files.", tags: ["cacheable"] },
+    { code: 307, name: "Temporary Redirect", short: "Temporary redirect, preserve HTTP method", desc: "The target resource resides temporarily under a different URI. Unlike 302, the client MUST NOT change the request method when following the redirect. POST stays POST.", usage: "Temporary redirects where preserving the HTTP method matters (POST → POST).", encounter: "API versioning redirects, server maintenance redirects that need to preserve POST data.", tags: [] },
+    { code: 308, name: "Permanent Redirect", short: "Permanent redirect, preserve HTTP method", desc: "The target resource has been assigned a new permanent URI. Like 301, but the client MUST NOT change the request method when following the redirect. POST stays POST.", usage: "Permanent API endpoint changes where clients use POST/PUT/DELETE.", encounter: "REST API migrations, permanent endpoint changes.", tags: ["cacheable"] },
+
+    // 4xx
+    { code: 400, name: "Bad Request", short: "Server cannot process the request due to client error", desc: "The server cannot or will not process the request due to something that is perceived to be a client error (malformed request syntax, invalid request message framing, or deceptive request routing).", usage: "Invalid JSON, missing required fields, malformed request parameters.", encounter: "API calls with wrong request format, validation errors, malformed URLs.", tags: [] },
+    { code: 401, name: "Unauthorized", short: "Authentication is required and has failed or not been provided", desc: "The client must authenticate itself to get the requested response. Despite the name, this means unauthenticated — the user needs to log in. The response includes a WWW-Authenticate header.", usage: "Accessing protected APIs without credentials, expired tokens.", encounter: "API calls without Authorization header, expired JWT tokens, invalid API keys.", tags: [] },
+    { code: 402, name: "Payment Required", short: "Reserved for future use (payment systems)", desc: "Originally created to allow digital payment systems, this code is rarely used by standard web services. Some APIs use it for subscription limits.", usage: "Rate limit exceeded on paid tier, subscription required to access feature.", encounter: "Some payment APIs (Stripe, Braintree), developer API plans.", tags: ["unofficial"] },
+    { code: 403, name: "Forbidden", short: "Server refuses to authorize the request", desc: "The client does not have access rights to the content. Unlike 401, the client's identity is known but they don't have permission. Re-authenticating will make no difference.", usage: "Accessing files without permission, user lacks role for the action, IP is blocked.", encounter: "Accessing admin endpoints as a regular user, reading files without permission.", tags: [] },
+    { code: 404, name: "Not Found", short: "The requested resource could not be found", desc: "The server cannot find the requested resource. This doesn't indicate whether the absence is temporary or permanent. A 410 should be used if the resource was permanently removed.", usage: "Missing pages, deleted resources, typos in API endpoints.", encounter: "The most well-known status code — broken links, deleted pages, wrong API paths.", tags: ["cacheable"] },
+    { code: 405, name: "Method Not Allowed", short: "HTTP method not supported for this resource", desc: "The request method is known by the server but is not supported by the target resource. The response must include an Allow header with the list of supported methods.", usage: "Sending POST to a read-only endpoint, using DELETE on a list resource.", encounter: "REST API misuse, static file servers rejecting POST requests.", tags: [] },
+    { code: 406, name: "Not Acceptable", short: "Resource not available in the requested format", desc: "The server cannot produce a response matching the list of acceptable values defined in the request's proactive content negotiation headers (Accept, Accept-Encoding, etc.).", usage: "Requesting JSON from an API that only serves XML, requesting a language not available.", encounter: "Strict content negotiation APIs, internationalized applications.", tags: [] },
+    { code: 407, name: "Proxy Authentication Required", short: "Authentication required with a proxy", desc: "Similar to 401, but authentication needs to be done via a proxy. The proxy must return a Proxy-Authenticate header.", usage: "Corporate proxy servers requiring authentication.", encounter: "Enterprise networks with authenticated proxies.", tags: [] },
+    { code: 408, name: "Request Timeout", short: "Server timed out waiting for the request", desc: "The server would like to shut down this unused connection. It is sent on an idle connection by some servers, even without any previous request by the client.", usage: "Slow networks, clients that connected but didn't send data fast enough.", encounter: "Long-running file uploads on slow connections, keep-alive connections left idle.", tags: [] },
+    { code: 409, name: "Conflict", short: "Request conflicts with current state of the resource", desc: "The request conflicts with the current state of the server. Most often used for conflicts in multi-user APIs where two requests try to modify the same resource simultaneously.", usage: "Duplicate resource creation, optimistic locking failures, edit conflicts.", encounter: "Creating a user with an email that already exists, concurrent edit conflicts in wikis.", tags: [] },
+    { code: 410, name: "Gone", short: "Resource is permanently gone (not just missing)", desc: "The target resource is no longer available at the origin server and this condition is likely to be permanent. Clients with links should delete them. Unlike 404, this is definitive.", usage: "Permanently deleted content, deprecated API endpoints that will never return.", encounter: "Deleted posts/pages that will never come back, deprecated API versions.", tags: ["cacheable"] },
+    { code: 411, name: "Length Required", short: "Content-Length header required", desc: "The server refuses to accept the request without a defined Content-Length header in the request.", usage: "Upload endpoints that require knowing the size upfront.", encounter: "Some older or strict upload handlers.", tags: [] },
+    { code: 412, name: "Precondition Failed", short: "Precondition in request headers was not met", desc: "The client has indicated preconditions in its headers (If-Match, If-None-Match, If-Modified-Since, If-Unmodified-Since) which the server does not meet.", usage: "Optimistic locking — prevent overwrites if the resource was modified since last read.", encounter: "Conditional PUT/DELETE requests for concurrency control.", tags: [] },
+    { code: 413, name: "Content Too Large", short: "Request body is larger than the server allows", desc: "The request entity is larger than limits defined by the server. The server may close the connection or return a Retry-After header.", usage: "File upload size limits, request body limits in web frameworks.", encounter: "Uploading large files that exceed server limits (nginx client_max_body_size).", tags: [] },
+    { code: 414, name: "URI Too Long", short: "Request URI is longer than the server will interpret", desc: "The URI requested by the client is longer than the server is willing to interpret.", usage: "Overly long query strings, base64-encoded data in URLs.", encounter: "Rare — usually URLs are kept short, but can happen with poorly designed GET-heavy APIs.", tags: [] },
+    { code: 415, name: "Unsupported Media Type", short: "Server won't accept the request payload format", desc: "The media format of the requested data is not supported by the server, so the server is rejecting the request. Check the Content-Type header.", usage: "Sending XML to a JSON-only API, wrong multipart boundary, wrong encoding.", encounter: "API calls with wrong Content-Type header (e.g., text/plain instead of application/json).", tags: [] },
+    { code: 416, name: "Range Not Satisfiable", short: "The byte range specified is not valid for the resource", desc: "The range specified by the Range header in the request cannot be fulfilled. The range might be outside the size of the target URI's data.", usage: "Resumable download requests with invalid byte ranges.", encounter: "Download managers with corrupted resume information, byte-range requests on small files.", tags: [] },
+    { code: 417, name: "Expectation Failed", short: "Expectation in Expect header cannot be met", desc: "The expectation indicated by the Expect request header field cannot be met by the server.", usage: "Server doesn't support the Expect: 100-continue header.", encounter: "Clients sending Expect: 100-continue to servers that don't support it.", tags: [] },
+    { code: 418, name: "I'm a Teapot", short: "The server refuses to brew coffee because it is a teapot", desc: "This code was defined as an April Fools' joke in RFC 2324 (Hyper Text Coffee Pot Control Protocol). Any attempt to brew coffee with a teapot should result in this code. Surprisingly, it's a real HTTP status code that many servers implement.", usage: "Easter eggs, joke APIs, bots deterrence (returning 418 to scrapers), the Teapot website.", encounter: "Google, GitHub, and many other servers implement this. Try /teapot on google.com.", tags: ["unofficial"] },
+    { code: 421, name: "Misdirected Request", short: "Request directed to a server unable to produce a response", desc: "The request was directed at a server that is not able to produce a response. This can be sent by a server that is not configured to produce responses for the combination of scheme and authority included in the request URI.", usage: "HTTP/2 connection reuse issues, misconfigured virtual hosts.", encounter: "HTTP/2 servers with multiple domains on the same connection.", tags: [] },
+    { code: 422, name: "Unprocessable Content", short: "Request is well-formed but contains semantic errors", desc: "The request is well-formed, syntactically correct, but contains semantic errors and cannot be processed. Unlike 400 which is about syntax, 422 is about business logic validation failures.", usage: "Validation errors (value out of range, invalid date, required field missing), business rule violations.", encounter: "REST APIs returning detailed validation errors, form submissions with invalid data.", tags: [] },
+    { code: 423, name: "Locked", short: "Resource is locked (WebDAV)", desc: "The resource that is being accessed is locked. WebDAV servers use this when a file is checked out by another user.", usage: "WebDAV file locking, preventing concurrent edits.", encounter: "WebDAV-enabled file servers, some document collaboration systems.", tags: [] },
+    { code: 424, name: "Failed Dependency", short: "Request failed due to failure of a previous request (WebDAV)", desc: "The method could not be performed on the resource because the requested action depended on another action and that action failed.", usage: "WebDAV batch operations where one step depends on another.", encounter: "Complex WebDAV operations.", tags: [] },
+    { code: 425, name: "Too Early", short: "Server unwilling to process a potentially-replayed request", desc: "Indicates that the server is unwilling to risk processing a request that might be replayed. Used in the context of TLS early data (0-RTT).", usage: "TLS 1.3 early data (0-RTT) requests that might be replayed.", encounter: "Very modern TLS implementations with 0-RTT support.", tags: [] },
+    { code: 426, name: "Upgrade Required", short: "Client must upgrade to use a different protocol", desc: "The server refuses to perform the request using the current protocol but will do so after the client upgrades to a different protocol. The server sends an Upgrade header with required protocol.", usage: "Forcing TLS upgrade, requiring HTTP/2.", encounter: "Servers that require HTTPS, services enforcing HTTP/2.", tags: [] },
+    { code: 428, name: "Precondition Required", short: "Conditional request headers required", desc: "The origin server requires the request to be conditional. This response is intended to prevent the 'lost update' problem — a client GETs a resource's state, modifies it, and PUTs it back to the server, when meanwhile a third party has modified the state on the server.", usage: "APIs requiring optimistic locking via If-Match headers.", encounter: "REST APIs enforcing safe concurrent modifications.", tags: [] },
+    { code: 429, name: "Too Many Requests", short: "Rate limit exceeded; try again later", desc: "The user has sent too many requests in a given amount of time (rate limiting). The response should include a Retry-After header indicating when the client can try again.", usage: "API rate limiting, DDoS protection, abuse prevention.", encounter: "GitHub API, Twitter API, any production API with rate limits. Very common.", tags: [] },
+    { code: 431, name: "Request Header Fields Too Large", short: "Request headers are too large", desc: "The server is unwilling to process the request because its header fields are too large. Can occur for individual headers or all headers combined.", usage: "Cookie overflow, excessively large Authorization tokens.", encounter: "Applications with too many cookies, JWTs that grow too large.", tags: [] },
+    { code: 451, name: "Unavailable For Legal Reasons", short: "Access denied due to legal demands (censorship, copyright)", desc: "The user requested a resource that cannot legally be provided, such as a web page censored by a government, or content blocked due to copyright law. The code is a reference to Ray Bradbury's novel Fahrenheit 451.", usage: "DMCA takedowns, government censorship compliance, geo-restricted content.", encounter: "Content blocked by government orders, DMCA-removed content, geo-blocked media.", tags: ["unofficial"] },
+
+    // 5xx
+    { code: 500, name: "Internal Server Error", short: "Generic server-side error", desc: "The server encountered an unexpected condition that prevented it from fulfilling the request. This is a catch-all error when the server doesn't have a more specific 5xx code.", usage: "Uncaught exceptions, database connection failures, out-of-memory errors.", encounter: "The most common server error — unhandled exceptions in application code.", tags: [] },
+    { code: 501, name: "Not Implemented", short: "Server does not support the functionality required", desc: "The server does not support the functionality required to fulfill the request. This is the appropriate response when the server does not recognize the request method and is not capable of supporting it.", usage: "HTTP methods not implemented by the server (e.g., PATCH on a server only supporting GET/POST).", encounter: "Old servers, simple HTTP servers, proxies that don't support all methods.", tags: [] },
+    { code: 502, name: "Bad Gateway", short: "Upstream server gave an invalid response", desc: "The server was acting as a gateway or proxy and received an invalid response from the upstream server.", usage: "Reverse proxy can't reach the application server, upstream server crashed.", encounter: "nginx/Apache upstream errors, load balancers when app servers are down.", tags: [] },
+    { code: 503, name: "Service Unavailable", short: "Server temporarily unable to handle the request", desc: "The server is not ready to handle the request. Common causes are server overload or maintenance downtime. A Retry-After header may indicate when the server will be available.", usage: "Server maintenance, overloaded server, deployment in progress.", encounter: "Planned maintenance windows, traffic spikes overwhelming servers.", tags: [] },
+    { code: 504, name: "Gateway Timeout", short: "Upstream server didn't respond in time", desc: "The server was acting as a gateway or proxy and did not receive a timely response from an upstream server.", usage: "Slow database queries, external API timeouts, application server hangs.", encounter: "Slow database queries exceeding proxy timeouts, external service dependencies hanging.", tags: [] },
+    { code: 505, name: "HTTP Version Not Supported", short: "Server doesn't support the HTTP version used", desc: "The HTTP version used in the request is not supported by the server.", usage: "Clients using very old (HTTP/0.9, HTTP/1.0) or very new HTTP versions the server can't handle.", encounter: "Rare — mostly very old or misconfigured clients hitting modern servers.", tags: [] },
+    { code: 506, name: "Variant Also Negotiates", short: "Internal configuration error in content negotiation", desc: "Transparent content negotiation for the request results in a circular reference. This is a misconfiguration in the server.", usage: "Misconfigured content negotiation on the server.", encounter: "Rare — server misconfiguration.", tags: [] },
+    { code: 507, name: "Insufficient Storage", short: "Server cannot store the representation needed to complete the request (WebDAV)", desc: "The method could not be performed on the resource because the server is unable to store the representation needed to successfully complete the request.", usage: "Server disk full, storage quota exceeded.", encounter: "WebDAV uploads when disk is full, file storage systems at capacity.", tags: [] },
+    { code: 508, name: "Loop Detected", short: "Server detected an infinite loop (WebDAV)", desc: "The server detected an infinite loop while processing a request with Depth: infinity. Indicates the resource is subject to a loop in a redirecting chain.", usage: "WebDAV PROPFIND or COPY operations causing infinite recursion.", encounter: "Complex WebDAV directory structures.", tags: [] },
+    { code: 510, name: "Not Extended", short: "Further extensions to the request are required", desc: "Further extensions to the request are required for the server to fulfill it. The server would like the client to use a more specific request.", usage: "HTTP Extension Framework (RFC 2774) — rarely implemented.", encounter: "Virtually never encountered in practice.", tags: [] },
+    { code: 511, name: "Network Authentication Required", short: "Captive portal — network authentication required", desc: "The client needs to authenticate to gain network access. Intended for use by intercepting proxies used to control access to the network (e.g., captive portals in hotels, airports, cafes).", usage: "Wi-Fi captive portals requiring login before granting internet access.", encounter: "Hotel/airport Wi-Fi login pages, coffee shop Wi-Fi that requires accepting terms.", tags: [] }
+  ];
+
+  var searchEl  = document.getElementById("hsc-search");
+  var resultsEl = document.getElementById("hsc-results");
+  var emptyEl   = document.getElementById("hsc-empty");
+  var groupBtns = Array.prototype.slice.call(document.querySelectorAll(".tool-option[data-group]"));
+
+  var currentGroup = "all";
+  var currentQuery = "";
+
+  var GROUP_META = {
+    1: { label: "1xx Informational", desc: "Request received, continuing process" },
+    2: { label: "2xx Success", desc: "The action was successfully received, understood, and accepted" },
+    3: { label: "3xx Redirection", desc: "Further action needs to be taken to complete the request" },
+    4: { label: "4xx Client Error", desc: "The request contains bad syntax or cannot be fulfilled" },
+    5: { label: "5xx Server Error", desc: "The server failed to fulfill an apparently valid request" }
+  };
+
+  function getGroup(code) { return Math.floor(code / 100); }
+
+  function render() {
+    while (resultsEl.firstChild) resultsEl.removeChild(resultsEl.firstChild);
+
+    var q = currentQuery.toLowerCase().trim();
+
+    var filtered = CODES.filter(function (c) {
+      var groupMatch = currentGroup === "all" || getGroup(c.code) === parseInt(currentGroup, 10);
+      if (!groupMatch) return false;
+      if (!q) return true;
+      return String(c.code).indexOf(q) !== -1 ||
+             c.name.toLowerCase().indexOf(q) !== -1 ||
+             c.short.toLowerCase().indexOf(q) !== -1 ||
+             c.desc.toLowerCase().indexOf(q) !== -1 ||
+             c.usage.toLowerCase().indexOf(q) !== -1;
+    });
+
+    if (!filtered.length) {
+      emptyEl.textContent = "No status codes match \"" + currentQuery + "\"";
+      emptyEl.style.display = "";
+      return;
+    }
+    emptyEl.style.display = "none";
+
+    // Group by category
+    var groups = {};
+    filtered.forEach(function (c) {
+      var g = getGroup(c.code);
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(c);
+    });
+
+    [1,2,3,4,5].forEach(function (g) {
+      if (!groups[g]) return;
+      var meta = GROUP_META[g];
+
+      var groupDiv = document.createElement("div");
+      groupDiv.className = "hsc-group hsc-" + g + "xx";
+
+      // Group header
+      var header = document.createElement("div");
+      header.className = "hsc-group-header";
+
+      var badge = document.createElement("span");
+      badge.className = "hsc-group-badge";
+      badge.textContent = meta.label;
+      header.appendChild(badge);
+
+      var gdesc = document.createElement("span");
+      gdesc.className = "hsc-group-desc";
+      gdesc.textContent = meta.desc;
+      header.appendChild(gdesc);
+
+      groupDiv.appendChild(header);
+
+      groups[g].forEach(function (c) {
+        var card = document.createElement("div");
+        card.className = "hsc-card";
+        card.setAttribute("role", "listitem");
+
+        var summary = document.createElement("div");
+        summary.className = "hsc-card-summary";
+
+        var codeEl = document.createElement("span");
+        codeEl.className = "hsc-code";
+        codeEl.textContent = c.code;
+        summary.appendChild(codeEl);
+
+        var nameEl = document.createElement("span");
+        nameEl.className = "hsc-name";
+        nameEl.textContent = c.name;
+        summary.appendChild(nameEl);
+
+        var shortEl = document.createElement("span");
+        shortEl.className = "hsc-short";
+        shortEl.textContent = c.short;
+        summary.appendChild(shortEl);
+
+        var tagsEl = document.createElement("span");
+        tagsEl.className = "hsc-tags";
+        c.tags.forEach(function (t) {
+          var tag = document.createElement("span");
+          tag.className = "hsc-tag hsc-tag--" + t;
+          tag.textContent = t;
+          tagsEl.appendChild(tag);
+        });
+        summary.appendChild(tagsEl);
+
+        var chev = document.createElement("span");
+        chev.className = "hsc-chevron";
+        chev.textContent = "\u25bc";
+        chev.setAttribute("aria-hidden", "true");
+        summary.appendChild(chev);
+
+        card.appendChild(summary);
+
+        // Detail panel
+        var detail = document.createElement("div");
+        detail.className = "hsc-detail";
+
+        var ddesc = document.createElement("div");
+        ddesc.className = "hsc-detail-desc";
+        ddesc.textContent = c.desc;
+        detail.appendChild(ddesc);
+
+        var grid = document.createElement("div");
+        grid.className = "hsc-detail-grid";
+
+        function cell(label, val) {
+          var d = document.createElement("div");
+          d.className = "hsc-detail-cell";
+          var lbl = document.createElement("div");
+          lbl.className = "hsc-detail-cell-label";
+          lbl.textContent = label;
+          var v = document.createElement("div");
+          v.className = "hsc-detail-cell-val";
+          v.textContent = val;
+          d.appendChild(lbl);
+          d.appendChild(v);
+          return d;
+        }
+
+        grid.appendChild(cell("Common usage", c.usage));
+        grid.appendChild(cell("When you see it", c.encounter));
+        detail.appendChild(grid);
+        card.appendChild(detail);
+
+        // Toggle
+        summary.addEventListener("click", function () {
+          var isOpen = card.classList.contains("expanded");
+          card.classList.toggle("expanded", !isOpen);
+        });
+
+        groupDiv.appendChild(card);
+      });
+
+      resultsEl.appendChild(groupDiv);
+    });
+  }
+
+  groupBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      groupBtns.forEach(function (b) {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+      currentGroup = btn.getAttribute("data-group");
+      render();
+    });
+  });
+
+  searchEl.addEventListener("input", function () {
+    currentQuery = searchEl.value;
+    render();
+  });
+
+  render();
+})();
+</script>

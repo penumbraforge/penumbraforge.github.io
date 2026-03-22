@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <defs>
+    <linearGradient id="fs-ring" x1="40" y1="38" x2="122" y2="122" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#efe7ff"/>
+      <stop offset="0.5" stop-color="#cbb9ef"/>
+      <stop offset="1" stop-color="#8a73bb"/>
+    </linearGradient>
+  </defs>
+  <path d="M80 32L115 52V108L80 128L45 108V52L80 32Z" stroke="url(#fs-ring)" stroke-width="6" stroke-linejoin="round"/>
+  <circle cx="83" cy="80" r="21" fill="url(#fs-ring)" opacity="0.92"/>
+  <circle cx="71" cy="80" r="21" fill="#090b12"/>
+</svg>

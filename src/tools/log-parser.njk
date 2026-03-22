@@ -1,0 +1,697 @@
+---
+toolSlug: log-parser
+permalink: /tools/log-parser/
+---
+
+<div class="tool-group">
+  <label for="log-input">Paste log output</label>
+  <textarea id="log-input" rows="12" placeholder="Paste Apache, Nginx, syslog, JSON, or timestamped log lines here…" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Example logs">
+    <button class="tool-option" id="ex-apache">Apache</button>
+    <button class="tool-option" id="ex-nginx">Nginx</button>
+    <button class="tool-option" id="ex-syslog">Syslog</button>
+    <button class="tool-option" id="ex-json">JSON logs</button>
+    <button class="tool-option" id="ex-app">App logs</button>
+  </div>
+</div>
+
+<div id="log-summary" style="display:none;" class="log-summary"></div>
+
+<div class="tool-row" style="flex-wrap:wrap; gap:12px; margin-bottom:8px;" id="log-controls" style="display:none;">
+  <div>
+    <span class="log-ctrl-label">Filter levels:</span>
+    <span id="log-level-filters" class="log-level-filters"></span>
+  </div>
+  <div style="flex:1; min-width:180px;">
+    <input type="search" id="log-search" placeholder="Search logs…" autocomplete="off" spellcheck="false" class="log-search-input">
+  </div>
+  <div>
+    <label class="log-ctrl-label" for="log-sort">Sort:</label>
+    <select id="log-sort" class="log-sort-select">
+      <option value="asc">Oldest first</option>
+      <option value="desc">Newest first</option>
+      <option value="none">Original order</option>
+    </select>
+  </div>
+</div>
+
+<div id="log-format-badge" style="display:none;" class="log-format-badge"></div>
+
+<div id="log-output" class="log-output" aria-label="Parsed log entries" aria-live="polite"></div>
+
+<style>
+  .log-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 13px;
+  }
+
+  .log-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 3px;
+    padding: 3px 10px;
+    font-weight: 600;
+    border: 1px solid var(--border, #e5e7eb);
+    background: var(--surface-0, #f9fafb);
+    color: var(--text-1, #111827);
+  }
+
+  .log-stat--error   { border-left: 3px solid #ef4444; }
+  .log-stat--warn    { border-left: 3px solid #f59e0b; }
+  .log-stat--info    { border-left: 3px solid #3b82f6; }
+  .log-stat--ok      { border-left: 3px solid #10b981; }
+
+  .log-ctrl-label {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2, #374151);
+    margin-right: 6px;
+  }
+
+  .log-level-filters {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .log-level-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border, #e5e7eb);
+    cursor: pointer;
+    background: var(--surface-0, #f9fafb);
+    color: var(--text-2, #374151);
+    user-select: none;
+  }
+
+  .log-level-chip.active-filter { color: #fff; }
+  .log-level-chip[data-level="FATAL"].active-filter,
+  .log-level-chip[data-level="ERROR"].active-filter  { background: #ef4444; border-color: #ef4444; }
+  .log-level-chip[data-level="WARN"].active-filter,
+  .log-level-chip[data-level="WARNING"].active-filter { background: #f59e0b; border-color: #f59e0b; }
+  .log-level-chip[data-level="INFO"].active-filter   { background: #3b82f6; border-color: #3b82f6; }
+  .log-level-chip[data-level="DEBUG"].active-filter  { background: #6b7280; border-color: #6b7280; }
+  .log-level-chip[data-level="TRACE"].active-filter  { background: #9ca3af; border-color: #9ca3af; }
+
+  .log-search-input {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 13px;
+    padding: 5px 10px;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 3px;
+    background: var(--surface-bg, #fff);
+    color: var(--text-1, #111827);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .log-sort-select {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 13px;
+    padding: 5px 8px;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 3px;
+    background: var(--surface-bg, #fff);
+    color: var(--text-1, #111827);
+  }
+
+  .log-format-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 12px;
+    color: var(--text-3, #9ca3af);
+    margin-bottom: 8px;
+    background: var(--surface-0, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 3px;
+    padding: 3px 10px;
+  }
+
+  .log-output {
+    margin-top: 4px;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 4px;
+    overflow: hidden;
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+    max-height: 520px;
+    overflow-y: auto;
+  }
+
+  .log-entry {
+    display: grid;
+    grid-template-columns: 160px 52px 1fr;
+    gap: 0;
+    padding: 3px 0;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    align-items: baseline;
+    min-height: 22px;
+  }
+
+  .log-entry:last-child { border-bottom: none; }
+
+  .log-entry--error { background: #fef2f2; }
+  .log-entry--warn  { background: #fffbeb; }
+  .log-entry--fatal { background: #fde8e8; }
+
+  .log-entry-ts {
+    padding: 0 8px;
+    color: var(--text-3, #9ca3af);
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    align-self: center;
+  }
+
+  .log-entry-level {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0 4px;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  .log-entry-level--fatal,
+  .log-entry-level--error   { color: #ef4444; }
+  .log-entry-level--warn    { color: #d97706; }
+  .log-entry-level--info    { color: #2563eb; }
+  .log-entry-level--debug   { color: #6b7280; }
+  .log-entry-level--trace   { color: #9ca3af; }
+  .log-entry-level--unknown { color: var(--text-3, #9ca3af); }
+
+  .log-entry-msg {
+    padding: 0 8px;
+    color: var(--text-1, #111827);
+    word-break: break-word;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+
+  .log-entry-msg--error { color: #b91c1c; }
+  .log-entry-msg--warn  { color: #92400e; }
+  .log-entry-msg--fatal { color: #7f1d1d; font-weight: 700; }
+
+  .log-search-highlight {
+    background: #fef08a;
+    border-radius: 2px;
+    color: #111827;
+  }
+
+  .log-empty-msg {
+    padding: 24px;
+    text-align: center;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 14px;
+    color: var(--text-3, #9ca3af);
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var inputEl      = document.getElementById("log-input");
+  var summaryEl    = document.getElementById("log-summary");
+  var controlsEl   = document.getElementById("log-controls");
+  var levelFilters = document.getElementById("log-level-filters");
+  var searchEl     = document.getElementById("log-search");
+  var sortEl       = document.getElementById("log-sort");
+  var formatBadge  = document.getElementById("log-format-badge");
+  var outputEl     = document.getElementById("log-output");
+
+  // ── Examples ──────────────────────────────────────────────────────────────
+  var EXAMPLES = {
+    apache: [
+      '192.168.1.1 - frank [10/Oct/2024:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326',
+      '10.0.0.2 - - [10/Oct/2024:13:55:40 -0700] "POST /api/login HTTP/1.1" 401 512',
+      '172.16.0.5 - alice [10/Oct/2024:13:56:02 -0700] "GET /dashboard HTTP/1.1" 200 45231',
+      '192.168.1.9 - - [10/Oct/2024:13:56:15 -0700] "GET /../../etc/passwd HTTP/1.0" 403 287',
+      '10.0.0.1 - - [10/Oct/2024:13:57:01 -0700] "GET /api/users HTTP/1.1" 500 0',
+      '192.168.1.1 - - [10/Oct/2024:13:57:45 -0700] "DELETE /api/user/5 HTTP/1.1" 204 0'
+    ].join("\n"),
+    nginx: [
+      '2024/10/10 14:20:01 [warn] 1234#1234: *1 upstream response timeout while reading upstream, client: 10.0.0.1, server: example.com',
+      '2024/10/10 14:20:05 [error] 1234#1234: *2 connect() failed (111: Connection refused) while connecting to upstream, client: 10.0.0.1',
+      '2024/10/10 14:20:10 [info] 1234#1234: *3 client connected',
+      '2024/10/10 14:21:00 [crit] 1234#1234: open() "/var/run/nginx.pid" failed (2: No such file or directory)',
+      '2024/10/10 14:21:05 [debug] 1234#1234: *4 http finalize request: 200, "/index.html"',
+      '2024/10/10 14:22:00 [error] 1234#1234: *5 SSL_do_handshake() failed (SSL: error:14094418:SSL routines:ssl3_read_bytes:tlsv1 alert unknown ca)'
+    ].join("\n"),
+    syslog: [
+      'Oct 10 14:30:01 myserver sshd[1234]: Failed password for invalid user admin from 192.168.1.100 port 22 ssh2',
+      'Oct 10 14:30:02 myserver kernel: [12345.678901] Out of memory: Kill process 5678 (java) score 890 or sacrifice child',
+      'Oct 10 14:30:05 myserver systemd[1]: Started nginx.service.',
+      'Oct 10 14:30:10 myserver cron[4321]: (root) CMD (/usr/sbin/logrotate /etc/logrotate.conf)',
+      'Oct 10 14:31:00 myserver sshd[1234]: Accepted publickey for deploy from 10.0.0.50 port 54321 ssh2',
+      'Oct 10 14:31:15 myserver kernel: [12400.100200] EXT4-fs error (device sda1): ext4_journal_check_start:61: Detected aborted journal'
+    ].join("\n"),
+    json: [
+      '{"timestamp":"2024-10-10T14:45:00.000Z","level":"INFO","service":"api","message":"Server started on port 3000","pid":12345}',
+      '{"timestamp":"2024-10-10T14:45:12.100Z","level":"DEBUG","service":"auth","message":"Token validated","user":"alice@example.com","latency_ms":3}',
+      '{"timestamp":"2024-10-10T14:46:01.500Z","level":"WARN","service":"db","message":"Slow query detected","duration_ms":2341,"query":"SELECT * FROM users"}',
+      '{"timestamp":"2024-10-10T14:46:30.000Z","level":"ERROR","service":"api","message":"Unhandled exception in /api/checkout","error":"PaymentError: Card declined","stack":"Error at checkout.js:45"}',
+      '{"timestamp":"2024-10-10T14:47:00.000Z","level":"INFO","service":"worker","message":"Job processed","job_id":"job_abc123","duration_ms":145}',
+      '{"timestamp":"2024-10-10T14:47:05.000Z","level":"FATAL","service":"db","message":"Connection pool exhausted — all 20 connections in use","pool_size":20}'
+    ].join("\n"),
+    app: [
+      '2024-10-10 14:50:00.123 [main] INFO  com.example.App - Application starting up',
+      '2024-10-10 14:50:01.456 [http-nio-8080-exec-1] DEBUG com.example.AuthFilter - Validating JWT token',
+      '2024-10-10 14:50:02.789 [http-nio-8080-exec-2] INFO  com.example.UserService - User login: user=bob@example.com',
+      '2024-10-10 14:50:15.001 [scheduler-1] WARN  com.example.EmailService - Email delivery delayed, retry 2/5',
+      '2024-10-10 14:50:30.500 [http-nio-8080-exec-3] ERROR com.example.PaymentService - Stripe API timeout after 30000ms',
+      '2024-10-10 14:50:31.000 [http-nio-8080-exec-3] ERROR com.example.PaymentService - Rolling back transaction txn_xyz789',
+      '2024-10-10 14:51:00.000 [main] INFO  com.example.HealthCheck - Status: UP, DB: OK, Cache: OK'
+    ].join("\n")
+  };
+
+  ["apache", "nginx", "syslog", "json", "app"].forEach(function (key) {
+    var btn = document.getElementById("ex-" + key);
+    if (btn) btn.addEventListener("click", function () {
+      inputEl.value = EXAMPLES[key];
+      parse();
+    });
+  });
+
+  // ── Log formats ───────────────────────────────────────────────────────────
+  var FORMATS = {
+    apache: {
+      name: "Apache/Nginx Access Log",
+      // 192.168.1.1 - frank [10/Oct/2024:13:55:36 -0700] "GET / HTTP/1.0" 200 2326
+      pattern: /^(\S+)\s+\S+\s+(\S+)\s+\[([^\]]+)\]\s+"([^"]*?)"\s+(\d{3})\s+(\S+)/,
+      parse: function (line) {
+        var m = line.match(this.pattern);
+        if (!m) return null;
+        var status = parseInt(m[5], 10);
+        var level = status >= 500 ? "ERROR" : status >= 400 ? "WARN" : "INFO";
+        return {
+          timestamp: m[3],
+          level: level,
+          source: m[1],
+          message: m[4] + " → " + m[5]
+        };
+      }
+    },
+    nginx_error: {
+      name: "Nginx Error Log",
+      // 2024/10/10 14:20:01 [warn] 1234#1234: *1 message
+      pattern: /^(\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})\s+\[(\w+)\]\s+(\d+#\d+):\s+(.*)/,
+      parse: function (line) {
+        var m = line.match(this.pattern);
+        if (!m) return null;
+        return {
+          timestamp: m[1],
+          level: m[2].toUpperCase(),
+          source: m[3],
+          message: m[4]
+        };
+      }
+    },
+    syslog: {
+      name: "Syslog",
+      // Oct 10 14:30:01 myserver sshd[1234]: message
+      pattern: /^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(\S+)\s+(\S+?)(?:\[\d+\])?:\s+(.*)/,
+      parse: function (line) {
+        var m = line.match(this.pattern);
+        if (!m) return null;
+        var msg = m[4];
+        var level = "INFO";
+        if (/error|fail|critical|fatal|panic/i.test(msg)) level = "ERROR";
+        else if (/warn|timeout|slow|retry/i.test(msg)) level = "WARN";
+        else if (/debug/i.test(msg)) level = "DEBUG";
+        return {
+          timestamp: m[1],
+          level: level,
+          source: m[2] + " " + m[3],
+          message: msg
+        };
+      }
+    },
+    json: {
+      name: "JSON (Structured)",
+      pattern: /^\s*\{/,
+      parse: function (line) {
+        var obj;
+        try {
+          obj = JSON.parse(line.trim());
+        } catch (e) {
+          return null;
+        }
+        // Common field name patterns
+        var ts  = obj.timestamp || obj.time || obj.ts || obj["@timestamp"] || obj.date || "";
+        var lvl = (obj.level || obj.severity || obj.lvl || obj.log_level || "INFO").toUpperCase();
+        var src = obj.service || obj.logger || obj.module || obj.source || obj.component || "";
+        var msg = obj.message || obj.msg || obj.body || obj.text || JSON.stringify(obj);
+        // Normalize WARN/WARNING
+        if (lvl === "WARNING") lvl = "WARN";
+        return { timestamp: String(ts), level: lvl, source: String(src), message: String(msg) };
+      }
+    },
+    applog: {
+      name: "Application Log",
+      // 2024-10-10 14:50:00.123 [thread] LEVEL  source - message
+      // 2024-10-10T14:50:00 LEVEL message
+      pattern: /^(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\s+(?:\[([^\]]+)\]\s+)?(FATAL|ERROR|WARN(?:ING)?|INFO|DEBUG|TRACE)\s*(.*?)(?:\s+-\s+(.*))?$/i,
+      parse: function (line) {
+        var m = line.match(this.pattern);
+        if (!m) return null;
+        var level = m[3].toUpperCase();
+        if (level === "WARNING") level = "WARN";
+        return {
+          timestamp: m[1],
+          level: level,
+          source: m[2] || (m[4] && m[5] ? m[4] : ""),
+          message: m[5] || m[4] || ""
+        };
+      }
+    },
+    // Generic timestamped fallback
+    generic: {
+      name: "Generic timestamped",
+      pattern: /^(\d{4}-\d{2}-\d{2}[\sT]\d{2}:\d{2}:\d{2})/,
+      parse: function (line) {
+        var m = line.match(this.pattern);
+        if (!m) return null;
+        var rest = line.slice(m[1].length).trim();
+        var level = "INFO";
+        if (/\b(FATAL|fatal)\b/.test(rest)) level = "FATAL";
+        else if (/\b(ERROR|error|ERR)\b/.test(rest)) level = "ERROR";
+        else if (/\b(WARN|warn|WARNING|warning)\b/.test(rest)) level = "WARN";
+        else if (/\b(DEBUG|debug)\b/.test(rest)) level = "DEBUG";
+        else if (/\b(TRACE|trace)\b/.test(rest)) level = "TRACE";
+        return { timestamp: m[1], level: level, source: "", message: rest };
+      }
+    }
+  };
+
+  var FORMAT_ORDER = ["json", "nginx_error", "apache", "syslog", "applog", "generic"];
+
+  function detectFormat(lines) {
+    var nonEmpty = lines.filter(function (l) { return l.trim() && !l.trim().startsWith("#"); });
+    if (!nonEmpty.length) return null;
+
+    // Score each format
+    var scores = {};
+    FORMAT_ORDER.forEach(function (f) { scores[f] = 0; });
+
+    var sample = nonEmpty.slice(0, Math.min(20, nonEmpty.length));
+
+    sample.forEach(function (line) {
+      FORMAT_ORDER.forEach(function (f) {
+        var fmt = FORMATS[f];
+        var pat = fmt.pattern;
+        if (pat instanceof RegExp) {
+          if (pat.test(line)) scores[f]++;
+        }
+        // Try full parse
+        if (fmt.parse) {
+          try {
+            if (fmt.parse(line)) scores[f] += 0.5;
+          } catch (e) {}
+        }
+      });
+    });
+
+    var best = null, bestScore = 0;
+    FORMAT_ORDER.forEach(function (f) {
+      if (scores[f] > bestScore) { bestScore = scores[f]; best = f; }
+    });
+
+    return bestScore > 0 ? best : null;
+  }
+
+  function parseLine(line, formatKey) {
+    var fmt = formatKey && FORMATS[formatKey];
+    if (fmt) {
+      try {
+        var r = fmt.parse(line);
+        if (r) { r.raw = line; r.format = formatKey; return r; }
+      } catch (e) {}
+    }
+
+    // Try all formats in order
+    for (var i = 0; i < FORMAT_ORDER.length; i++) {
+      var f = FORMATS[FORMAT_ORDER[i]];
+      if (!f) continue;
+      try {
+        var res = f.parse(line);
+        if (res) { res.raw = line; res.format = FORMAT_ORDER[i]; return res; }
+      } catch (e) {}
+    }
+
+    // Fallback: raw line
+    return { raw: line, timestamp: "", level: "UNKNOWN", source: "", message: line, format: "unknown" };
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  var allEntries   = [];
+  var activeFormat = null;
+  var levelSet     = {};
+  var activeFilters = {}; // level -> bool (true = shown)
+
+  // ── Main parse ────────────────────────────────────────────────────────────
+  function parse() {
+    var raw = inputEl.value;
+    while (outputEl.firstChild) outputEl.removeChild(outputEl.firstChild);
+    while (levelFilters.firstChild) levelFilters.removeChild(levelFilters.firstChild);
+    summaryEl.style.display = "none";
+    formatBadge.style.display = "none";
+    controlsEl.style.display = "none";
+
+    if (!raw.trim()) return;
+
+    var lines = raw.split("\n").filter(function (l) { return l.trim(); });
+    activeFormat = detectFormat(lines);
+
+    allEntries = lines.map(function (line) {
+      return parseLine(line, activeFormat);
+    });
+
+    // Gather levels
+    levelSet = {};
+    allEntries.forEach(function (e) {
+      var l = e.level || "UNKNOWN";
+      if (!levelSet[l]) levelSet[l] = 0;
+      levelSet[l]++;
+    });
+
+    // Default: all levels shown
+    activeFilters = {};
+    Object.keys(levelSet).forEach(function (l) { activeFilters[l] = true; });
+
+    // Build level filter chips
+    var LEVEL_ORDER = ["FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE", "UNKNOWN"];
+    var presentLevels = LEVEL_ORDER.filter(function (l) { return levelSet[l]; });
+    // Also include any levels not in LEVEL_ORDER
+    Object.keys(levelSet).forEach(function (l) {
+      if (LEVEL_ORDER.indexOf(l) === -1) presentLevels.push(l);
+    });
+
+    presentLevels.forEach(function (level) {
+      var chip = document.createElement("span");
+      chip.className = "log-level-chip active-filter";
+      chip.setAttribute("data-level", level);
+      chip.textContent = level + " (" + levelSet[level] + ")";
+      chip.setAttribute("role", "checkbox");
+      chip.setAttribute("aria-checked", "true");
+      chip.addEventListener("click", function () {
+        activeFilters[level] = !activeFilters[level];
+        chip.setAttribute("aria-checked", activeFilters[level] ? "true" : "false");
+        if (activeFilters[level]) {
+          chip.classList.add("active-filter");
+        } else {
+          chip.classList.remove("active-filter");
+        }
+        render();
+      });
+      levelFilters.appendChild(chip);
+    });
+
+    // Summary stats
+    while (summaryEl.firstChild) summaryEl.removeChild(summaryEl.firstChild);
+
+    var errors  = (levelSet["ERROR"]  || 0) + (levelSet["FATAL"] || 0);
+    var warns   = levelSet["WARN"]    || 0;
+    var infos   = levelSet["INFO"]    || 0;
+
+    function makeStat(text, mod) {
+      var s = document.createElement("span");
+      s.className = "log-stat log-stat--" + mod;
+      s.textContent = text;
+      return s;
+    }
+
+    summaryEl.appendChild(makeStat(lines.length + " lines", "ok"));
+    if (errors)  summaryEl.appendChild(makeStat(errors + " error" + (errors !== 1 ? "s" : ""), "error"));
+    if (warns)   summaryEl.appendChild(makeStat(warns + " warning" + (warns !== 1 ? "s" : ""), "warn"));
+    if (infos)   summaryEl.appendChild(makeStat(infos + " info", "info"));
+
+    // Time range
+    var timestamps = allEntries
+      .map(function (e) { return e.timestamp; })
+      .filter(function (t) { return t && t.length > 0; });
+    if (timestamps.length >= 2) {
+      var timeSpan = document.createElement("span");
+      timeSpan.className = "log-stat";
+      timeSpan.textContent = timestamps[0] + " → " + timestamps[timestamps.length - 1];
+      summaryEl.appendChild(timeSpan);
+    }
+
+    summaryEl.style.display = "";
+    controlsEl.style.display = "";
+
+    // Format badge
+    if (activeFormat) {
+      formatBadge.textContent = "Detected format: " + (FORMATS[activeFormat] ? FORMATS[activeFormat].name : activeFormat);
+      formatBadge.style.display = "";
+    }
+
+    render();
+  }
+
+  // ── Render (with filter + search + sort) ─────────────────────────────────
+  function escapeForDisplay(str) {
+    // We build elements using textContent so no escaping needed —
+    // but for highlight we need to work with text nodes
+    return str;
+  }
+
+  function highlightText(container, text, query) {
+    if (!query) {
+      container.textContent = text;
+      return;
+    }
+    // Case-insensitive highlight — build text nodes and mark spans
+    var lower    = text.toLowerCase();
+    var lowerQ   = query.toLowerCase();
+    var pos      = 0;
+
+    while (pos < text.length) {
+      var idx = lower.indexOf(lowerQ, pos);
+      if (idx === -1) {
+        container.appendChild(document.createTextNode(text.slice(pos)));
+        break;
+      }
+      if (idx > pos) {
+        container.appendChild(document.createTextNode(text.slice(pos, idx)));
+      }
+      var mark = document.createElement("mark");
+      mark.className = "log-search-highlight";
+      mark.textContent = text.slice(idx, idx + query.length);
+      container.appendChild(mark);
+      pos = idx + query.length;
+    }
+  }
+
+  function levelClass(level) {
+    var l = (level || "").toLowerCase();
+    if (l === "fatal")  return "fatal";
+    if (l === "error")  return "error";
+    if (l === "warn" || l === "warning") return "warn";
+    if (l === "info")   return "";
+    if (l === "debug")  return "debug";
+    if (l === "trace")  return "trace";
+    return "unknown";
+  }
+
+  function render() {
+    var query     = searchEl.value.trim();
+    var sortOrder = sortEl.value;
+
+    // Filter
+    var visible = allEntries.filter(function (e) {
+      if (!activeFilters[e.level]) return false;
+      if (query) {
+        var haystack = (e.timestamp + " " + e.level + " " + e.source + " " + e.message + " " + e.raw).toLowerCase();
+        if (haystack.indexOf(query.toLowerCase()) === -1) return false;
+      }
+      return true;
+    });
+
+    // Sort
+    if (sortOrder !== "none") {
+      visible = visible.slice(); // clone
+      visible.sort(function (a, b) {
+        var ta = a.timestamp || a.raw.slice(0, 24);
+        var tb = b.timestamp || b.raw.slice(0, 24);
+        if (ta < tb) return sortOrder === "asc" ? -1 : 1;
+        if (ta > tb) return sortOrder === "asc" ? 1  : -1;
+        return 0;
+      });
+    }
+
+    while (outputEl.firstChild) outputEl.removeChild(outputEl.firstChild);
+
+    if (!visible.length) {
+      var empty = document.createElement("div");
+      empty.className = "log-empty-msg";
+      empty.textContent = query ? "No log entries match your search." : "No log entries to display.";
+      outputEl.appendChild(empty);
+      return;
+    }
+
+    // Use a fragment for performance
+    var frag = document.createDocumentFragment();
+
+    visible.forEach(function (entry) {
+      var lc = levelClass(entry.level);
+      var row = document.createElement("div");
+      row.className = "log-entry" + (lc === "error" || lc === "fatal" ? " log-entry--error" : lc === "warn" ? " log-entry--warn" : lc === "fatal" ? " log-entry--fatal" : "");
+
+      var tsCell = document.createElement("div");
+      tsCell.className = "log-entry-ts";
+      tsCell.textContent = entry.timestamp || "—";
+
+      var lvlCell = document.createElement("div");
+      lvlCell.className = "log-entry-level log-entry-level--" + lc;
+      lvlCell.textContent = entry.level || "—";
+
+      var msgCell = document.createElement("div");
+      var msgClass = "log-entry-msg";
+      if (lc === "error")  msgClass += " log-entry-msg--error";
+      else if (lc === "warn") msgClass += " log-entry-msg--warn";
+      else if (lc === "fatal") msgClass += " log-entry-msg--fatal";
+      msgCell.className = msgClass;
+
+      var displayText = entry.source ? "[" + entry.source + "] " + entry.message : entry.message;
+      if (!displayText) displayText = entry.raw;
+      // Build message safely — all via textContent/createTextNode
+      highlightText(msgCell, displayText, query);
+
+      row.appendChild(tsCell);
+      row.appendChild(lvlCell);
+      row.appendChild(msgCell);
+      frag.appendChild(row);
+    });
+
+    outputEl.appendChild(frag);
+  }
+
+  // ── Event listeners ───────────────────────────────────────────────────────
+  inputEl.addEventListener("input", parse);
+  searchEl.addEventListener("input", render);
+  sortEl.addEventListener("change", render);
+})();
+</script>

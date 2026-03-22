@@ -1,0 +1,68 @@
+---
+title: "Librarian Wiki"
+description: "mcp-librarian wiki — comprehensive documentation for the self-growing knowledge library for AI coding agents."
+permalink: /librarian/wiki/
+---
+<h1>mcp-librarian Wiki</h1>
+    <p class="subtitle">Comprehensive documentation for the self-growing knowledge library for AI coding agents.</p>
+
+    <h2 id="what-is-mcp-librarian">What is mcp-librarian?</h2>
+
+    <p>mcp-librarian is an MCP (Model Context Protocol) server that gives AI coding agents a persistent, searchable knowledge library. It exposes 14 tools over the MCP protocol that let agents find existing skills, research new topics from the web, install community-curated packs, and create permanent knowledge -- all without leaving the editor.</p>
+
+    <p>The core design principle is zero friction. When your agent starts a session, it sees a catalog of available skills. When you ask about REST APIs, security patterns, or database optimization, the agent automatically searches the library for relevant knowledge. If nothing matches, the librarian researches the topic from authoritative web sources and creates a new skill on the spot. The next time anyone asks the same question, the answer is instant.</p>
+
+    <h2 id="key-concepts">Key Concepts</h2>
+
+    <h3>Skills</h3>
+    <p>A skill is a Markdown file with YAML frontmatter that contains structured knowledge on a specific topic. Skills are indexed at the section level using BM25 full-text search, so agents retrieve the narrowest useful slice of knowledge rather than entire documents. Skills are cryptographically signed with Ed25519 to detect tampering.</p>
+
+    <h3>Packs</h3>
+    <p>A pack is a collection of related skills bundled together with a <code>pack.json</code> manifest. The community repository hosts 9 curated packs covering security, API design, Git, TypeScript, Docker, PostgreSQL, testing, writing, and prompt engineering. One tool call installs a pack.</p>
+
+    <h3>Auto-Research</h3>
+    <p>When no skill matches a query, mcp-librarian searches the web, scores sources by authority (official docs rank highest), fetches content from the top results, and returns research material for the agent to synthesize into a permanent skill. The library grows organically from real questions.</p>
+
+    <h3>MCP Protocol</h3>
+    <p>MCP (Model Context Protocol) is the communication layer between AI agents and tool servers. mcp-librarian speaks MCP over stdio, which means it works with any MCP-compatible client: Claude Code, Cursor, Windsurf, or local models via Ollama and LM Studio. The server is model-agnostic -- it does not care what model is on the other end.</p>
+
+    <h2 id="wiki-pages">Documentation</h2>
+
+    <div class="wiki-cards">
+      <a href="/librarian/wiki/getting-started/" class="wiki-card">
+        <h3>Getting Started</h3>
+        <p>Installation, first run, verifying the setup, and your first skill search.</p>
+      </a>
+      <a href="/librarian/wiki/tools-reference/" class="wiki-card">
+        <h3>Tools Reference</h3>
+        <p>All 14 MCP tools with parameters, return values, and usage examples.</p>
+      </a>
+      <a href="/librarian/wiki/skill-format/" class="wiki-card">
+        <h3>Skill Format</h3>
+        <p>Markdown with YAML frontmatter, section structure, BM25 indexing, and best practices.</p>
+      </a>
+      <a href="/librarian/wiki/auto-research/" class="wiki-card">
+        <h3>Auto-Research</h3>
+        <p>How auto-research triggers, source scoring, web search, and skill creation.</p>
+      </a>
+      <a href="/librarian/wiki/community-packs/" class="wiki-card">
+        <h3>Community Packs</h3>
+        <p>9 curated packs, browsing, installing, creating your own, and contributing.</p>
+      </a>
+      <a href="/librarian/wiki/configuration/" class="wiki-card">
+        <h3>Configuration</h3>
+        <p>Environment variables, directory structure, logging, rate limiting, and MCP clients.</p>
+      </a>
+      <a href="/librarian/wiki/content-guard/" class="wiki-card">
+        <h3>Content Guard</h3>
+        <p>Prompt injection defense, code block exceptions, validation, and threat model.</p>
+      </a>
+      <a href="/librarian/wiki/signing/" class="wiki-card">
+        <h3>Ed25519 Signing</h3>
+        <p>Key generation, cryptographic signing, verification on load, and tamper detection.</p>
+      </a>
+      <a href="/librarian/wiki/local-models/" class="wiki-card">
+        <h3>Local Models</h3>
+        <p>Ollama, LM Studio, llama.cpp, model-agnostic design, and quality considerations.</p>
+      </a>
+    </div>

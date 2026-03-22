@@ -1,0 +1,277 @@
+---
+toolSlug: css-grid-generator
+permalink: /tools/css-grid-generator/
+---
+
+<style>
+  .cgg-section { margin-bottom:1rem; }
+  .cgg-label { font-size:0.78rem; font-weight:600; color:var(--color-muted,#94a3b8); display:block; margin-bottom:0.25rem; }
+  .cgg-input { padding:0.35rem 0.5rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:4px; color:var(--color-text,#e2e8f0); font-size:0.85rem; width:80px; }
+  .cgg-select { padding:0.35rem 0.5rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:4px; color:var(--color-text,#e2e8f0); font-size:0.85rem; cursor:pointer; }
+  .cgg-controls { display:flex; flex-wrap:wrap; gap:0.75rem 1.25rem; align-items:flex-end; margin-bottom:1rem; }
+  .cgg-control { display:flex; flex-direction:column; gap:0.2rem; }
+  .cgg-preview { border:1px solid var(--color-border,#334155); border-radius:8px; padding:0.75rem; background:var(--color-surface,#0f172a); min-height:180px; margin-bottom:1rem; overflow:auto; }
+  #cgg-grid-preview { transition:all 0.2s; }
+  .cgg-cell { display:flex; align-items:center; justify-content:center; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); border-radius:4px; font-size:0.75rem; color:var(--color-accent,#6366f1); font-family:var(--font-mono,monospace); min-height:50px; cursor:pointer; transition:background 0.15s; user-select:none; }
+  .cgg-cell:hover { background:rgba(99,102,241,0.25); }
+  .cgg-cell.selected { background:rgba(99,102,241,0.4); border-color:var(--color-accent,#6366f1); }
+</style>
+
+<div class="tool-row" style="margin-bottom:1rem; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+  <div class="tool-options" role="group" aria-label="Layout mode">
+    <button class="tool-option active" data-mode="grid" aria-pressed="true">CSS Grid</button>
+    <button class="tool-option" data-mode="flex" aria-pressed="false">Flexbox</button>
+  </div>
+</div>
+
+<!-- Grid controls -->
+<div id="cgg-grid-controls">
+  <div class="cgg-controls">
+    <div class="cgg-control">
+      <label class="cgg-label">Columns</label>
+      <input class="cgg-input" id="cgg-cols" type="number" min="1" max="12" value="3">
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Col size</label>
+      <select class="cgg-select" id="cgg-col-size">
+        <option value="1fr">1fr</option>
+        <option value="auto">auto</option>
+        <option value="200px">200px</option>
+        <option value="minmax(100px,1fr)">minmax(100px,1fr)</option>
+        <option value="repeat(auto-fill,minmax(150px,1fr))">auto-fill</option>
+      </select>
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Rows</label>
+      <input class="cgg-input" id="cgg-rows" type="number" min="1" max="12" value="3">
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Row size</label>
+      <select class="cgg-select" id="cgg-row-size">
+        <option value="1fr">1fr</option>
+        <option value="auto">auto</option>
+        <option value="100px">100px</option>
+        <option value="minmax(80px,1fr)">minmax(80px,1fr)</option>
+      </select>
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Gap</label>
+      <input class="cgg-input" id="cgg-gap" type="text" value="1rem" style="width:90px;">
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Justify items</label>
+      <select class="cgg-select" id="cgg-justify">
+        <option value="stretch">stretch</option>
+        <option value="start">start</option>
+        <option value="center">center</option>
+        <option value="end">end</option>
+      </select>
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Align items</label>
+      <select class="cgg-select" id="cgg-align">
+        <option value="stretch">stretch</option>
+        <option value="start">start</option>
+        <option value="center">center</option>
+        <option value="end">end</option>
+      </select>
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Cell count</label>
+      <input class="cgg-input" id="cgg-cells" type="number" min="1" max="50" value="9">
+    </div>
+  </div>
+</div>
+
+<!-- Flex controls -->
+<div id="cgg-flex-controls" style="display:none;">
+  <div class="cgg-controls">
+    <div class="cgg-control">
+      <label class="cgg-label">Direction</label>
+      <select class="cgg-select" id="cgg-flex-dir">
+        <option value="row">row</option>
+        <option value="row-reverse">row-reverse</option>
+        <option value="column">column</option>
+        <option value="column-reverse">column-reverse</option>
+      </select>
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Wrap</label>
+      <select class="cgg-select" id="cgg-flex-wrap">
+        <option value="nowrap">nowrap</option>
+        <option value="wrap">wrap</option>
+        <option value="wrap-reverse">wrap-reverse</option>
+      </select>
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Justify content</label>
+      <select class="cgg-select" id="cgg-flex-justify">
+        <option value="flex-start">flex-start</option>
+        <option value="flex-end">flex-end</option>
+        <option value="center">center</option>
+        <option value="space-between">space-between</option>
+        <option value="space-around">space-around</option>
+        <option value="space-evenly">space-evenly</option>
+      </select>
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Align items</label>
+      <select class="cgg-select" id="cgg-flex-align">
+        <option value="stretch">stretch</option>
+        <option value="flex-start">flex-start</option>
+        <option value="center">center</option>
+        <option value="flex-end">flex-end</option>
+        <option value="baseline">baseline</option>
+      </select>
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Gap</label>
+      <input class="cgg-input" id="cgg-flex-gap" type="text" value="0.5rem" style="width:90px;">
+    </div>
+    <div class="cgg-control">
+      <label class="cgg-label">Item count</label>
+      <input class="cgg-input" id="cgg-flex-items" type="number" min="1" max="20" value="6">
+    </div>
+  </div>
+</div>
+
+<div class="cgg-preview">
+  <div id="cgg-grid-preview"></div>
+</div>
+
+<div class="output-area">
+  <button class="btn btn--copy" id="cgg-copy">Copy CSS</button>
+  <pre id="cgg-output" aria-label="Generated CSS"></pre>
+</div>
+
+<script>
+(function () {
+  var modeBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
+  var gridControls = document.getElementById('cgg-grid-controls');
+  var flexControls = document.getElementById('cgg-flex-controls');
+  var previewEl    = document.getElementById('cgg-grid-preview');
+  var outputEl     = document.getElementById('cgg-output');
+  var copyBtn      = document.getElementById('cgg-copy');
+  var currentMode  = 'grid';
+
+  // Grid inputs
+  var colsEl     = document.getElementById('cgg-cols');
+  var colSizeEl  = document.getElementById('cgg-col-size');
+  var rowsEl     = document.getElementById('cgg-rows');
+  var rowSizeEl  = document.getElementById('cgg-row-size');
+  var gapEl      = document.getElementById('cgg-gap');
+  var justifyEl  = document.getElementById('cgg-justify');
+  var alignEl    = document.getElementById('cgg-align');
+  var cellsEl    = document.getElementById('cgg-cells');
+
+  // Flex inputs
+  var flexDirEl    = document.getElementById('cgg-flex-dir');
+  var flexWrapEl   = document.getElementById('cgg-flex-wrap');
+  var flexJustEl   = document.getElementById('cgg-flex-justify');
+  var flexAlignEl  = document.getElementById('cgg-flex-align');
+  var flexGapEl    = document.getElementById('cgg-flex-gap');
+  var flexItemsEl  = document.getElementById('cgg-flex-items');
+
+  function renderGrid() {
+    var cols = parseInt(colsEl.value) || 3;
+    var colSize = colSizeEl.value;
+    var rows = parseInt(rowsEl.value) || 3;
+    var rowSize = rowSizeEl.value;
+    var gap  = gapEl.value || '1rem';
+    var justify = justifyEl.value;
+    var align   = alignEl.value;
+    var numCells = parseInt(cellsEl.value) || cols * rows;
+
+    // Determine grid-template-columns
+    var colTemplate, rowTemplate;
+    if (colSize === 'repeat(auto-fill,minmax(150px,1fr))') {
+      colTemplate = 'repeat(auto-fill, minmax(150px, 1fr))';
+    } else {
+      colTemplate = 'repeat(' + cols + ', ' + colSize + ')';
+    }
+    rowTemplate = 'repeat(' + rows + ', ' + rowSize + ')';
+
+    // Apply to preview
+    previewEl.style.cssText = 'display:grid; grid-template-columns:' + colTemplate + '; grid-template-rows:' + rowTemplate + '; gap:' + gap + '; justify-items:' + justify + '; align-items:' + align + '; width:100%;';
+
+    while (previewEl.firstChild) previewEl.removeChild(previewEl.firstChild);
+    for (var i = 1; i <= numCells; i++) {
+      var cell = document.createElement('div');
+      cell.className = 'cgg-cell';
+      cell.textContent = i;
+      previewEl.appendChild(cell);
+    }
+
+    // CSS output
+    var css = '.container {\n  display: grid;\n  grid-template-columns: ' + colTemplate + ';\n  grid-template-rows: ' + rowTemplate + ';\n  gap: ' + gap + ';\n  justify-items: ' + justify + ';\n  align-items: ' + align + ';\n}';
+    outputEl.textContent = css;
+  }
+
+  function renderFlex() {
+    var dir   = flexDirEl.value;
+    var wrap  = flexWrapEl.value;
+    var just  = flexJustEl.value;
+    var align = flexAlignEl.value;
+    var gap   = flexGapEl.value || '0.5rem';
+    var count = parseInt(flexItemsEl.value) || 6;
+
+    previewEl.style.cssText = 'display:flex; flex-direction:' + dir + '; flex-wrap:' + wrap + '; justify-content:' + just + '; align-items:' + align + '; gap:' + gap + '; width:100%; min-height:120px;';
+
+    while (previewEl.firstChild) previewEl.removeChild(previewEl.firstChild);
+    for (var i = 1; i <= count; i++) {
+      var item = document.createElement('div');
+      item.className = 'cgg-cell';
+      item.style.cssText = 'min-width:50px; min-height:50px; flex-shrink:' + (wrap === 'nowrap' ? '1' : '0') + ';';
+      item.textContent = i;
+      previewEl.appendChild(item);
+    }
+
+    var css = '.container {\n  display: flex;\n  flex-direction: ' + dir + ';\n  flex-wrap: ' + wrap + ';\n  justify-content: ' + just + ';\n  align-items: ' + align + ';\n  gap: ' + gap + ';\n}\n\n.item {\n  /* flex item styles */\n}';
+    outputEl.textContent = css;
+  }
+
+  function render() {
+    if (currentMode === 'grid') renderGrid();
+    else renderFlex();
+  }
+
+  // Grid listeners
+  [colsEl, colSizeEl, rowsEl, rowSizeEl, gapEl, justifyEl, alignEl, cellsEl].forEach(function (el) {
+    el.addEventListener('input', render); el.addEventListener('change', render);
+  });
+  [flexDirEl, flexWrapEl, flexJustEl, flexAlignEl, flexGapEl, flexItemsEl].forEach(function (el) {
+    el.addEventListener('input', render); el.addEventListener('change', render);
+  });
+
+  modeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentMode = btn.getAttribute('data-mode');
+      modeBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      gridControls.style.display = currentMode === 'grid' ? '' : 'none';
+      flexControls.style.display = currentMode === 'flex' ? '' : 'none';
+      render();
+    });
+  });
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy CSS'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; } catch (e) { copyBtn.textContent = 'Failed'; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy CSS'; }, 2000);
+    }
+  });
+
+  render();
+})();
+</script>

@@ -1,0 +1,203 @@
+---
+toolSlug: json-to-typescript
+permalink: /tools/json-to-typescript/
+---
+
+<div class="tool-row" style="margin-bottom:1rem; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+  <div style="display:flex; align-items:center; gap:0.5rem;">
+    <label for="jts-root-name" style="font-size:0.85rem; white-space:nowrap;">Root interface:</label>
+    <input id="jts-root-name" type="text" value="Root" style="width:130px; padding:0.3rem 0.5rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:4px; color:var(--color-text,#e2e8f0); font-size:0.85rem;">
+  </div>
+  <div class="tool-options" role="group" aria-label="Declaration type">
+    <button class="tool-option active" data-decl="interface" aria-pressed="true">interface</button>
+    <button class="tool-option" data-decl="type" aria-pressed="false">type alias</button>
+  </div>
+  <div class="tool-options" role="group" aria-label="Options">
+    <button class="tool-option" data-opt="readonly" aria-pressed="false">readonly</button>
+    <button class="tool-option active" data-opt="export" aria-pressed="true">export</button>
+    <button class="tool-option" data-opt="optional" aria-pressed="false">optional fields</button>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+  <div class="tool-group" style="margin-bottom:0;">
+    <label for="jts-input">Paste JSON</label>
+    <textarea id="jts-input" rows="16" placeholder='{"name":"Alice","age":30,"tags":["admin","user"],"address":{"city":"NYC"}}' spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+  <div class="output-area" style="margin-bottom:0;">
+    <button class="btn btn--copy" id="jts-copy" aria-label="Copy TypeScript">Copy</button>
+    <label style="display:block; font-size:0.8rem; color:var(--color-muted,#888); margin-bottom:0.4rem;">TypeScript</label>
+    <pre id="jts-output" aria-label="Generated TypeScript" style="min-height:10rem;"></pre>
+  </div>
+</div>
+
+<div id="jts-error" style="display:none; margin-top:0.75rem;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<script>
+(function () {
+  var inputEl   = document.getElementById('jts-input');
+  var outputEl  = document.getElementById('jts-output');
+  var errorEl   = document.getElementById('jts-error');
+  var copyBtn   = document.getElementById('jts-copy');
+  var rootNameEl = document.getElementById('jts-root-name');
+  var declBtns  = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-decl]'));
+  var optBtns   = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-opt]'));
+
+  var currentDecl = 'interface';
+  var opts = { readonly: false, export: true, optional: false };
+  var interfaces = {};
+
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function tsType(val, keyName, parentName) {
+    if (val === null) return 'null';
+    if (typeof val === 'boolean') return 'boolean';
+    if (typeof val === 'number') return 'number';
+    if (typeof val === 'string') return 'string';
+    if (Array.isArray(val)) {
+      if (val.length === 0) return 'unknown[]';
+      var elementTypes = val.map(function (item) { return tsType(item, keyName, parentName); });
+      var unique = elementTypes.filter(function (t, i, a) { return a.indexOf(t) === i; });
+      var elemType = unique.length === 1 ? unique[0] : unique.join(' | ');
+      return elemType + '[]';
+    }
+    if (typeof val === 'object') {
+      var interfaceName = capitalize(keyName || 'Object');
+      // Avoid collision
+      var baseName = interfaceName;
+      var counter = 1;
+      while (interfaces[interfaceName] && JSON.stringify(interfaces[interfaceName]) !== JSON.stringify(val)) {
+        interfaceName = baseName + counter++;
+      }
+      if (!interfaces[interfaceName]) {
+        interfaces[interfaceName] = val;
+        buildInterface(interfaceName, val);
+      }
+      return interfaceName;
+    }
+    return 'unknown';
+  }
+
+  var orderedInterfaces = [];
+
+  function buildInterface(name, obj) {
+    orderedInterfaces.push(name);
+    var fields = Object.keys(obj).map(function (k) {
+      var v = obj[k];
+      var type = tsType(v, capitalize(k), name);
+      var ro = opts.readonly ? 'readonly ' : '';
+      var opt = opts.optional ? '?' : '';
+      var safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) ? k : JSON.stringify(k);
+      return '  ' + ro + safeKey + opt + ': ' + type + ';';
+    });
+    var exp = opts.export ? 'export ' : '';
+    var decl;
+    if (currentDecl === 'interface') {
+      decl = exp + 'interface ' + name + ' {\n' + fields.join('\n') + '\n}';
+    } else {
+      decl = exp + 'type ' + name + ' = {\n' + fields.join('\n') + '\n};';
+    }
+    interfaces[name + '__decl'] = decl;
+  }
+
+  function generate() {
+    var raw = inputEl.value.trim();
+    if (!raw) { outputEl.textContent = ''; hideError(); return; }
+
+    try {
+      var parsed = JSON.parse(raw);
+      interfaces = {};
+      orderedInterfaces = [];
+
+      var rootName = rootNameEl.value.trim() || 'Root';
+      rootName = capitalize(rootName);
+
+      var rootType;
+      if (Array.isArray(parsed)) {
+        rootType = tsType(parsed[0] || {}, rootName, '');
+        var exp = opts.export ? 'export ' : '';
+        var ro = opts.readonly ? 'readonly ' : '';
+        interfaces[rootName + '__decl'] = exp + 'type ' + rootName + ' = ' + ro + rootType + '[];';
+        orderedInterfaces.unshift(rootName);
+      } else if (typeof parsed === 'object' && parsed !== null) {
+        tsType(parsed, rootName, '');
+        // rename the first added to rootName
+        if (orderedInterfaces[0] && orderedInterfaces[0] !== rootName) {
+          var oldName = orderedInterfaces[0];
+          var decl = interfaces[oldName + '__decl'];
+          decl = decl.replace(new RegExp('\\b' + oldName + '\\b', 'g'), rootName);
+          interfaces[rootName + '__decl'] = decl;
+          delete interfaces[oldName + '__decl'];
+          orderedInterfaces[0] = rootName;
+        }
+      } else {
+        outputEl.textContent = '// Root value is a primitive: ' + typeof parsed;
+        hideError(); return;
+      }
+
+      // Output in reverse dependency order (deepest first)
+      var seen = {};
+      var result = [];
+      for (var i = orderedInterfaces.length - 1; i >= 0; i--) {
+        var n = orderedInterfaces[i];
+        if (!seen[n] && interfaces[n + '__decl']) {
+          seen[n] = true;
+          result.push(interfaces[n + '__decl']);
+        }
+      }
+      outputEl.textContent = result.join('\n\n');
+      hideError();
+    } catch (e) {
+      showError('JSON parse error: ' + e.message);
+      outputEl.textContent = '';
+    }
+  }
+
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = ''; }
+  function hideError() { errorEl.textContent = ''; errorEl.style.display = 'none'; }
+
+  declBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentDecl = btn.getAttribute('data-decl');
+      declBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      generate();
+    });
+  });
+
+  optBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var opt = btn.getAttribute('data-opt');
+      opts[opt] = !opts[opt];
+      btn.classList.toggle('active', opts[opt]);
+      btn.setAttribute('aria-pressed', String(opts[opt]));
+      generate();
+    });
+  });
+
+  inputEl.addEventListener('input', generate);
+  rootNameEl.addEventListener('input', generate);
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; } catch (e) { copyBtn.textContent = 'Failed'; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+  });
+
+  // Sample
+  inputEl.value = '{\n  "id": 1,\n  "name": "Alice",\n  "active": true,\n  "score": 9.5,\n  "tags": ["admin", "user"],\n  "address": {\n    "street": "123 Main St",\n    "city": "Springfield",\n    "zip": "12345"\n  },\n  "notes": null\n}';
+  generate();
+})();
+</script>

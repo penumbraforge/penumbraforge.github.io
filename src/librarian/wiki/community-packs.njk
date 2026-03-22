@@ -1,0 +1,176 @@
+---
+title: "Community Packs"
+description: "Browse, install, create, and contribute community skill packs for mcp-librarian."
+permalink: /librarian/wiki/community-packs/
+---
+<h1>Community Packs</h1>
+    <p class="subtitle">Curated skill collections -- browse, install, create your own, and contribute.</p>
+
+    <h2 id="what-are-packs">What Are Packs?</h2>
+
+    <p>A pack is a collection of related skills bundled together with a <code>pack.json</code> manifest. Packs are the primary distribution mechanism for sharing curated knowledge. One <code>install_pack</code> call downloads and installs all skills in a pack, signs them, and rebuilds the search index.</p>
+
+    <p>The community repository at <code>penumbraforge/mcp-librarian-skills</code> hosts curated packs that are maintained, tested, and ready to use. You can also create and distribute your own packs.</p>
+
+    <h2 id="available-packs">Available Packs</h2>
+
+    <p>Nine curated packs are available in the community repository. Install any pack with a single tool call.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Pack</th><th>Skills</th><th>What You Get</th></tr></thead>
+      <tbody>
+        <tr><td>security-hardening</td><td>7</td><td>OWASP defenses, input validation, SQL injection prevention, XSS, auth patterns, secrets management, HTTP security headers</td></tr>
+        <tr><td>api-design</td><td>6</td><td>REST conventions, error responses (RFC 7807), pagination, versioning, rate limiting, authentication patterns</td></tr>
+        <tr><td>git-patterns</td><td>5</td><td>Rebase vs merge, commit conventions, branch strategies, conflict resolution, reflog recovery</td></tr>
+        <tr><td>testing-patterns</td><td>5</td><td>TDD workflow, mocking strategies, integration testing, edge case thinking, testing anti-patterns</td></tr>
+        <tr><td>typescript-advanced</td><td>6</td><td>Generics, discriminated unions, type guards, branded types, conditional types, utility types</td></tr>
+        <tr><td>docker-and-compose</td><td>5</td><td>Multi-stage builds, layer caching, Compose patterns, networking, production hardening</td></tr>
+        <tr><td>postgres-patterns</td><td>5</td><td>Indexing strategies, EXPLAIN ANALYZE, zero-downtime migrations, JSONB patterns, connection pooling</td></tr>
+        <tr><td>writing-skills</td><td>3</td><td>How to write quality mcp-librarian skills -- format, structure, code examples, content guard rules</td></tr>
+        <tr><td>prompt-engineering</td><td>4</td><td>Context loading, task decomposition, specificity, debugging prompts, refactoring prompts</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="browsing-packs">Browsing Packs</h2>
+
+    <p>Use the <code>browse_packs</code> tool to see all available packs. You can filter by keyword.</p>
+
+    <div class="code-block"><span class="cmt"># Ask your agent:</span>
+<span class="dim">"What skill packs are available?"</span>
+
+<span class="cmt"># The agent calls browse_packs():</span>
+browse_packs()
+
+<span class="cmt"># Or filter by keyword:</span>
+browse_packs({ <span class="kw">query</span>: <span class="str">"security"</span> })</div>
+
+    <p>The response includes pack names, descriptions, skill counts, and install commands. The agent can present this as a list and ask which packs you want to install.</p>
+
+    <h2 id="installing-packs">Installing Packs</h2>
+
+    <p>Install a pack by name. The agent calls <code>install_pack</code> with the pack name.</p>
+
+    <div class="code-block"><span class="cmt"># Ask your agent:</span>
+<span class="dim">"Install the security-hardening and api-design packs."</span>
+
+<span class="cmt"># The agent calls:</span>
+install_pack({ <span class="kw">pack</span>: <span class="str">"security-hardening"</span> })
+install_pack({ <span class="kw">pack</span>: <span class="str">"api-design"</span> })</div>
+
+    <p>For each pack, the installer:</p>
+
+    <ol>
+      <li><strong style="color: var(--text-1);">Downloads</strong> the pack from the community repository.</li>
+      <li><strong style="color: var(--text-1);">Validates</strong> each skill's frontmatter and structure.</li>
+      <li><strong style="color: var(--text-1);">Checks content guard</strong> compliance for all skill content.</li>
+      <li><strong style="color: var(--text-1);">Deduplicates</strong> against existing skills. Skills with matching names are skipped.</li>
+      <li><strong style="color: var(--text-1);">Signs</strong> each new skill with your local Ed25519 key.</li>
+      <li><strong style="color: var(--text-1);">Writes</strong> skills to <code>~/.mcp-librarian/skills/{pack-name}/</code>.</li>
+      <li><strong style="color: var(--text-1);">Rebuilds</strong> the BM25 index to include the new skills.</li>
+    </ol>
+
+    <div class="info-box">
+      <strong>Deduplication:</strong> If you already have a skill with the same name (from a previous install or manual creation), the installer skips it. This preserves any local modifications. To force a reinstall, delete the existing skill file first.
+    </div>
+
+    <h3>Installing from a URL</h3>
+
+    <p>You can also install packs from a direct URL instead of the community repository. This is useful for private team packs or third-party pack sources.</p>
+
+    <div class="code-block">install_pack({ <span class="kw">pack</span>: <span class="str">"https://github.com/yourteam/internal-packs/releases/download/v1.0/team-patterns.tar.gz"</span> })</div>
+
+    <h2 id="creating-packs">Creating Your Own Pack</h2>
+
+    <p>Use <code>export_pack</code> to bundle selected skills into a shareable pack.</p>
+
+    <div class="code-block"><span class="cmt"># Ask your agent:</span>
+<span class="dim">"Export my deployment, code-review, and incident-runbook skills as a pack called team-patterns."</span>
+
+<span class="cmt"># The agent calls:</span>
+export_pack({
+  <span class="kw">name</span>: <span class="str">"team-patterns"</span>,
+  <span class="kw">skills</span>: [<span class="str">"deployment-process"</span>, <span class="str">"code-review-checklist"</span>, <span class="str">"incident-runbook"</span>],
+  <span class="kw">description</span>: <span class="str">"Internal team patterns and runbooks"</span>
+})</div>
+
+    <p>This creates a directory at <code>~/.mcp-librarian/exports/team-patterns/</code> containing the skill files and a <code>pack.json</code> manifest.</p>
+
+    <h2 id="pack-manifest">Pack Manifest Format</h2>
+
+    <p>The <code>pack.json</code> manifest describes the pack and lists its contents. This file is created automatically by <code>export_pack</code> but can also be written by hand.</p>
+
+    <div class="code-block">{
+  <span class="kw">"name"</span>: <span class="str">"team-patterns"</span>,
+  <span class="kw">"version"</span>: <span class="str">"1.0.0"</span>,
+  <span class="kw">"description"</span>: <span class="str">"Internal team patterns and runbooks"</span>,
+  <span class="kw">"author"</span>: <span class="str">"your-team"</span>,
+  <span class="kw">"skills"</span>: [
+    {
+      <span class="kw">"name"</span>: <span class="str">"deployment-process"</span>,
+      <span class="kw">"file"</span>: <span class="str">"deployment-process.md"</span>,
+      <span class="kw">"description"</span>: <span class="str">"CI/CD pipeline, environment configs, rollback procedures"</span>
+    },
+    {
+      <span class="kw">"name"</span>: <span class="str">"code-review-checklist"</span>,
+      <span class="kw">"file"</span>: <span class="str">"code-review-checklist.md"</span>,
+      <span class="kw">"description"</span>: <span class="str">"What to check in code reviews, common pitfalls"</span>
+    },
+    {
+      <span class="kw">"name"</span>: <span class="str">"incident-runbook"</span>,
+      <span class="kw">"file"</span>: <span class="str">"incident-runbook.md"</span>,
+      <span class="kw">"description"</span>: <span class="str">"Incident response steps, escalation, post-mortem template"</span>
+    }
+  ]
+}</div>
+
+    <h3>Manifest Fields</h3>
+
+    <table class="cmd-table">
+      <thead><tr><th>Field</th><th>Required</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>name</td><td>Yes</td><td>Pack identifier. Lowercase with hyphens.</td></tr>
+        <tr><td>version</td><td>Yes</td><td>Semantic version of the pack.</td></tr>
+        <tr><td>description</td><td>Yes</td><td>Brief description of what the pack contains.</td></tr>
+        <tr><td>author</td><td>No</td><td>Author or team name.</td></tr>
+        <tr><td>skills</td><td>Yes</td><td>Array of skill entries with name, file, and description.</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="contributing">Contributing Packs</h2>
+
+    <p>To contribute a pack to the community repository:</p>
+
+    <ol>
+      <li><strong style="color: var(--text-1);">Create your skills.</strong> Write well-structured skills following the <a href="/librarian/wiki/skill-format/">Skill Format</a> guide. Each skill should pass <code>validate_skill</code>.</li>
+      <li><strong style="color: var(--text-1);">Export as a pack.</strong> Use <code>export_pack</code> to generate the pack directory and manifest.</li>
+      <li><strong style="color: var(--text-1);">Test the pack.</strong> Install the pack from your local export directory to verify it installs cleanly and all skills are indexed correctly.</li>
+      <li><strong style="color: var(--text-1);">Open a pull request.</strong> Fork <code>penumbraforge/mcp-librarian-skills</code>, add your pack directory, and open a PR with a description of what the pack covers.</li>
+    </ol>
+
+    <p>Pack review criteria:</p>
+    <ul>
+      <li>All skills must pass <code>validate_skill</code> with no issues.</li>
+      <li>All skills must pass the <a href="/librarian/wiki/content-guard/">content guard</a> check.</li>
+      <li>Skills should be well-structured with descriptive headings, code examples, and focused sections.</li>
+      <li>The pack should cover a coherent topic area (not a random assortment of skills).</li>
+      <li>Content should be accurate and up to date.</li>
+    </ul>
+
+    <h2 id="pack-directory-structure">Pack Directory Structure</h2>
+
+    <p>Installed packs are stored in subdirectories under the skills directory:</p>
+
+    <div class="code-block"><span class="dim">~/.mcp-librarian/</span>
+<span class="dim">  skills/</span>
+<span class="dim">    security-hardening/</span>
+<span class="dim">      sql-injection.md</span>
+<span class="dim">      xss-prevention.md</span>
+<span class="dim">      input-validation.md</span>
+<span class="dim">      ...</span>
+<span class="dim">    api-design/</span>
+<span class="dim">      error-handling.md</span>
+<span class="dim">      pagination.md</span>
+<span class="dim">      ...</span>
+<span class="dim">    graphql-federation.md</span>       <span class="cmt"># standalone skill (no pack)</span></div>
+
+    <p>Standalone skills (created via <code>create_skill</code> or auto-research) live directly in the <code>skills/</code> directory. Pack skills live in their pack's subdirectory. Both are indexed identically by the BM25 search engine.</p>

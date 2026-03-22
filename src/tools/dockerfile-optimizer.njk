@@ -1,0 +1,692 @@
+---
+toolSlug: dockerfile-optimizer
+permalink: /tools/dockerfile-optimizer/
+---
+
+<div class="tool-group">
+  <label for="df-input">Paste Dockerfile</label>
+  <textarea id="df-input" rows="14" placeholder="FROM ubuntu:latest&#10;RUN apt-get update&#10;RUN apt-get install -y curl&#10;COPY . .&#10;RUN npm install&#10;RUN npm run build&#10;CMD [&quot;node&quot;, &quot;server.js&quot;]" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Example Dockerfiles">
+    <button class="tool-option" id="ex-node">Node.js app</button>
+    <button class="tool-option" id="ex-python">Python app</button>
+    <button class="tool-option" id="ex-good">Well-optimized</button>
+  </div>
+</div>
+
+<div id="df-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div id="df-summary" style="display:none;" class="df-summary"></div>
+
+<div id="df-results" style="display:none;"></div>
+
+<style>
+  .df-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+
+  .df-score-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface-0);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-weight: 600;
+  }
+
+  .df-score-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .df-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface-0);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 10px;
+    color: var(--text-2);
+    font-size: 12px;
+  }
+
+  .df-stat-count {
+    font-weight: 600;
+    color: var(--text-1);
+  }
+
+  .df-group {
+    margin-bottom: 16px;
+  }
+
+  .df-group-title {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    margin: 0 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .df-issue {
+    display: flex;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface-0);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+  }
+
+  .df-issue:last-child { margin-bottom: 0; }
+
+  .df-issue-sev {
+    flex-shrink: 0;
+    width: 54px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 1px;
+  }
+
+  .df-issue--error   .df-issue-sev { background: rgba(200,80,80,0.18); color: #e07070; }
+  .df-issue--warning .df-issue-sev { background: rgba(200,160,40,0.18); color: #c8a838; }
+  .df-issue--info    .df-issue-sev { background: rgba(80,140,200,0.18); color: #5b8db8; }
+
+  .df-issue--error   { border-left: 3px solid #c85050; }
+  .df-issue--warning { border-left: 3px solid #c8a838; }
+  .df-issue--info    { border-left: 3px solid #5b8db8; }
+
+  .df-issue-body { flex: 1; min-width: 0; }
+
+  .df-issue-title {
+    font-weight: 600;
+    color: var(--text-1);
+    margin-bottom: 3px;
+  }
+
+  .df-issue-desc {
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .df-issue-fix {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-2);
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px 8px;
+    font-family: var(--font-mono);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .df-issue-fix-label {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-3);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .df-all-good {
+    padding: 20px;
+    text-align: center;
+    color: #5aaa78;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    background: rgba(90,170,120,0.08);
+    border: 1px solid rgba(90,170,120,0.25);
+    border-radius: 4px;
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var inputEl   = document.getElementById("df-input");
+  var errorEl   = document.getElementById("df-error");
+  var summaryEl = document.getElementById("df-summary");
+  var resultsEl = document.getElementById("df-results");
+
+  // ── Example Dockerfiles ─────────────────────────────────────────────────
+  var EXAMPLES = {
+    "ex-node": [
+      "FROM ubuntu:latest",
+      "RUN apt-get update",
+      "RUN apt-get install -y nodejs npm",
+      "WORKDIR /app",
+      "COPY . .",
+      "RUN npm install",
+      "RUN npm run build",
+      "EXPOSE 3000",
+      "CMD [\"node\", \"server.js\"]"
+    ].join("\n"),
+
+    "ex-python": [
+      "FROM python:3",
+      "RUN pip install flask sqlalchemy",
+      "COPY . /app",
+      "WORKDIR /app",
+      "RUN pip install -r requirements.txt",
+      "USER root",
+      "ENV SECRET_KEY=mysecret123",
+      "CMD python app.py"
+    ].join("\n"),
+
+    "ex-good": [
+      "FROM node:20-alpine AS builder",
+      "WORKDIR /app",
+      "COPY package*.json ./",
+      "RUN npm ci --only=production",
+      "COPY . .",
+      "RUN npm run build",
+      "",
+      "FROM node:20-alpine",
+      "WORKDIR /app",
+      "RUN addgroup -S appgroup && adduser -S appuser -G appgroup",
+      "COPY --from=builder /app/dist ./dist",
+      "COPY --from=builder /app/node_modules ./node_modules",
+      "USER appuser",
+      "EXPOSE 3000",
+      "CMD [\"node\", \"dist/server.js\"]"
+    ].join("\n")
+  };
+
+  ["ex-node", "ex-python", "ex-good"].forEach(function (id) {
+    var btn = document.getElementById(id);
+    if (btn) btn.addEventListener("click", function () {
+      inputEl.value = EXAMPLES[id];
+      analyze();
+    });
+  });
+
+  // ── Dockerfile parser ───────────────────────────────────────────────────
+  function parseDockerfile(text) {
+    var lines = text.split("\n");
+    var instructions = [];
+    var current = null;
+
+    for (var i = 0; i < lines.length; i++) {
+      var raw = lines[i];
+      var trimmed = raw.trim();
+
+      // Skip blank lines and comments
+      if (!trimmed || trimmed.charAt(0) === "#") {
+        if (current) {
+          instructions.push(current);
+          current = null;
+        }
+        continue;
+      }
+
+      // Continuation
+      if (current && current.continued) {
+        current.value += "\n" + trimmed.replace(/\\$/, "").trimRight();
+        current.continued = trimmed.slice(-1) === "\\";
+        if (!current.continued) {
+          instructions.push(current);
+          current = null;
+        }
+        continue;
+      }
+
+      // Parse instruction
+      var space = trimmed.indexOf(" ");
+      var instr, value;
+      if (space === -1) {
+        instr = trimmed.toUpperCase();
+        value = "";
+      } else {
+        instr = trimmed.slice(0, space).toUpperCase();
+        value = trimmed.slice(space + 1).trim();
+      }
+
+      var continued = value.slice(-1) === "\\";
+      if (continued) value = value.slice(0, -1).trimRight();
+
+      current = { instr: instr, value: value, line: i + 1, continued: continued };
+
+      if (!continued) {
+        instructions.push(current);
+        current = null;
+      }
+    }
+
+    if (current) instructions.push(current);
+    return instructions;
+  }
+
+  // ── Checks ──────────────────────────────────────────────────────────────
+  // Each check returns an array of issue objects:
+  //   { category, severity, title, desc, fix? }
+  // severity: "error" | "warning" | "info"
+
+  var CHECKS = [
+
+    // ── Layer optimization ───────────────────────────────────────────────
+    function checkMultipleRunChain(instrs) {
+      var runs = instrs.filter(function (i) { return i.instr === "RUN"; });
+      // Count consecutive RUN instructions
+      var consecutiveGroups = [];
+      var group = [];
+      for (var i = 0; i < instrs.length; i++) {
+        if (instrs[i].instr === "RUN") {
+          group.push(instrs[i]);
+        } else {
+          if (group.length >= 2) consecutiveGroups.push(group.slice());
+          group = [];
+        }
+      }
+      if (group.length >= 2) consecutiveGroups.push(group);
+
+      var issues = [];
+      consecutiveGroups.forEach(function (grp) {
+        issues.push({
+          category: "Layer Optimization",
+          severity: "warning",
+          title: grp.length + " consecutive RUN instructions",
+          desc: "Each RUN creates a separate layer. Combining them reduces the image size and build time.",
+          fix: "RUN " + grp.map(function (g) { return g.value; }).join(" \\\n    && ")
+        });
+      });
+      return issues;
+    },
+
+    // ── Image size ───────────────────────────────────────────────────────
+    function checkLatestTag(instrs) {
+      var issues = [];
+      instrs.filter(function (i) { return i.instr === "FROM"; }).forEach(function (i) {
+        var val = i.value.split(" ")[0]; // strip AS alias
+        if (/:latest$/.test(val) || !val.includes(":")) {
+          issues.push({
+            category: "Image Size",
+            severity: "warning",
+            title: "Unpinned base image: " + val,
+            desc: "Using :latest or no tag makes builds non-reproducible. Pin to a specific version.",
+            fix: "FROM " + val.replace(/:latest$/, "") + ":<specific-version>"
+          });
+        }
+      });
+      return issues;
+    },
+
+    function checkNonAlpineBase(instrs) {
+      var issues = [];
+      var froms = instrs.filter(function (i) { return i.instr === "FROM"; });
+      var hasMultiStage = froms.length > 1;
+      var stages = froms.map(function (f) { return f.value.toLowerCase(); });
+
+      var heavyBases = ["ubuntu", "debian", "centos", "fedora", "amazonlinux", "oraclelinux"];
+      stages.forEach(function (s, idx) {
+        var image = s.split(":")[0].split(" ")[0].split("/").pop();
+        if (heavyBases.indexOf(image) !== -1) {
+          issues.push({
+            category: "Image Size",
+            severity: "info",
+            title: "Consider a slimmer base image (" + froms[idx].value.split(" ")[0] + ")",
+            desc: "Full OS images can be 100-800MB. Slim or Alpine variants are typically 5-50MB.",
+            fix: "Use " + image + ":slim, " + image + ":alpine, or switch to alpine directly"
+          });
+        }
+      });
+
+      // Suggest multi-stage if not already used
+      if (!hasMultiStage) {
+        var hasNodeOrGo = stages.some(function (s) {
+          return /^(node|golang|rust|maven|gradle)/.test(s.split(":")[0].split("/").pop());
+        });
+        if (hasNodeOrGo) {
+          issues.push({
+            category: "Image Size",
+            severity: "info",
+            title: "Consider multi-stage builds",
+            desc: "Compile/build in a full image, then copy only artifacts to a slim runtime image.",
+            fix: "FROM node:20 AS builder\n# ... build steps ...\n\nFROM node:20-alpine\nCOPY --from=builder /app/dist ./dist"
+          });
+        }
+      }
+
+      return issues;
+    },
+
+    function checkAptCacheNotCleaned(instrs) {
+      var issues = [];
+      instrs.filter(function (i) { return i.instr === "RUN"; }).forEach(function (i) {
+        var v = i.value;
+        var hasAptGet = /apt-get\s+install/.test(v) || /apt\s+install/.test(v);
+        var cleansCache = /rm\s+-rf\s+\/var\/lib\/apt/.test(v) || /apt-get\s+clean/.test(v);
+        if (hasAptGet && !cleansCache) {
+          issues.push({
+            category: "Image Size",
+            severity: "warning",
+            title: "apt cache not cleaned after install",
+            desc: "Leaving apt cache in the image adds unnecessary megabytes.",
+            fix: "RUN apt-get update \\\n    && apt-get install -y --no-install-recommends <packages> \\\n    && rm -rf /var/lib/apt/lists/*"
+          });
+        }
+      });
+      return issues;
+    },
+
+    // ── Security ─────────────────────────────────────────────────────────
+    function checkRunAsRoot(instrs) {
+      var hasUser = instrs.some(function (i) { return i.instr === "USER"; });
+      var userInstrs = instrs.filter(function (i) { return i.instr === "USER"; });
+      var lastUser = userInstrs.length ? userInstrs[userInstrs.length - 1].value.trim() : null;
+      var runningAsRoot = !hasUser || lastUser === "root" || lastUser === "0";
+
+      if (runningAsRoot) {
+        return [{
+          category: "Security",
+          severity: "error",
+          title: "Container runs as root",
+          desc: "Running as root inside a container is a security risk. Create a dedicated non-root user.",
+          fix: "RUN addgroup -S appgroup && adduser -S appuser -G appgroup\nUSER appuser"
+        }];
+      }
+      return [];
+    },
+
+    function checkSecretsInEnv(instrs) {
+      var secretPatterns = [
+        /(?:password|passwd|secret|api[_-]?key|token|auth|credential)/i
+      ];
+      var issues = [];
+      instrs.filter(function (i) { return i.instr === "ENV" || i.instr === "ARG"; }).forEach(function (i) {
+        if (secretPatterns.some(function (p) { return p.test(i.value); })) {
+          issues.push({
+            category: "Security",
+            severity: "error",
+            title: "Possible secret in " + i.instr + " instruction (line " + i.line + ")",
+            desc: "Secrets baked into ENV or ARG are visible in image metadata and history.",
+            fix: "Use Docker secrets (--secret), environment variables at runtime, or a secrets manager"
+          });
+        }
+      });
+      return issues;
+    },
+
+    function checkPinnedPackageVersions(instrs) {
+      var issues = [];
+      instrs.filter(function (i) { return i.instr === "RUN"; }).forEach(function (i) {
+        var v = i.value;
+        // apt-get install without version pins
+        if (/apt-get\s+install/.test(v)) {
+          var pkgList = v.match(/apt-get\s+install\s+[^|&\n]*/);
+          if (pkgList) {
+            var hasPins = /=/.test(pkgList[0]);
+            if (!hasPins) {
+              issues.push({
+                category: "Security",
+                severity: "info",
+                title: "Package versions not pinned in apt-get install",
+                desc: "Unpinned packages can lead to different versions being installed on each build.",
+                fix: "apt-get install -y package=1.2.3-4"
+              });
+            }
+          }
+        }
+      });
+      return issues;
+    },
+
+    // ── Caching ──────────────────────────────────────────────────────────
+    function checkCopyBeforeInstall(instrs) {
+      var issues = [];
+      var copyAll = instrs.filter(function (i) { return i.instr === "COPY" || i.instr === "ADD"; });
+      var firstCopyAll = null;
+
+      for (var i = 0; i < instrs.length; i++) {
+        var inst = instrs[i];
+        if ((inst.instr === "COPY" || inst.instr === "ADD") &&
+            !/package.*json|requirements\.txt|go\.mod|go\.sum|Gemfile|pom\.xml|build\.gradle|Cargo\.toml/.test(inst.value)) {
+          // A broad COPY before a dependency install?
+          var hasInstallAfter = false;
+          for (var j = i + 1; j < instrs.length; j++) {
+            var next = instrs[j];
+            if (next.instr === "RUN" &&
+                /(npm\s+install|npm\s+ci|pip\s+install|go\s+mod\s+download|bundle\s+install|cargo\s+build)/.test(next.value)) {
+              hasInstallAfter = true;
+              break;
+            }
+          }
+          if (hasInstallAfter && firstCopyAll === null) {
+            firstCopyAll = inst;
+          }
+        }
+      }
+
+      if (firstCopyAll) {
+        issues.push({
+          category: "Caching",
+          severity: "warning",
+          title: "COPY . before dependency install breaks layer cache",
+          desc: "Copying all source files before installing dependencies means dependencies are re-downloaded on every code change.",
+          fix: "# Copy only dependency manifests first:\nCOPY package*.json ./\nRUN npm ci\n# Then copy the rest:\nCOPY . ."
+        });
+      }
+      return issues;
+    },
+
+    function checkAddVsCopy(instrs) {
+      var issues = [];
+      instrs.filter(function (i) { return i.instr === "ADD"; }).forEach(function (i) {
+        var v = i.value;
+        // ADD is OK for URLs and tar archives; warn for plain local files
+        if (!/https?:\/\//.test(v) && !/(\.tar|\.tgz|\.tar\.gz|\.tar\.bz2|\.tar\.xz)/.test(v)) {
+          issues.push({
+            category: "Caching",
+            severity: "info",
+            title: "Use COPY instead of ADD for local files",
+            desc: "ADD has implicit behaviour (URL fetching, auto-extract). COPY is explicit and predictable.",
+            fix: "COPY " + v
+          });
+        }
+      });
+      return issues;
+    }
+  ];
+
+  // ── Analyze ──────────────────────────────────────────────────────────────
+  var CATEGORY_ORDER = ["Layer Optimization", "Image Size", "Security", "Caching"];
+
+  function analyze() {
+    var raw = inputEl.value;
+    if (!raw.trim()) {
+      hideError();
+      summaryEl.style.display = "none";
+      resultsEl.style.display = "none";
+      return;
+    }
+
+    var instrs;
+    try {
+      instrs = parseDockerfile(raw);
+    } catch (err) {
+      showError("Parse error: " + err.message);
+      return;
+    }
+
+    if (!instrs.length) {
+      showError("No Dockerfile instructions found.");
+      return;
+    }
+
+    hideError();
+
+    // Run all checks
+    var allIssues = [];
+    CHECKS.forEach(function (check) {
+      try {
+        var found = check(instrs);
+        if (found && found.length) allIssues = allIssues.concat(found);
+      } catch (e) {
+        // Individual check failure should not crash the tool
+      }
+    });
+
+    renderSummary(allIssues);
+    renderResults(allIssues);
+  }
+
+  function renderSummary(issues) {
+    while (summaryEl.firstChild) summaryEl.removeChild(summaryEl.firstChild);
+
+    var errors   = issues.filter(function (i) { return i.severity === "error"; }).length;
+    var warnings = issues.filter(function (i) { return i.severity === "warning"; }).length;
+    var infos    = issues.filter(function (i) { return i.severity === "info"; }).length;
+
+    // Score pill
+    var score = 100 - errors * 20 - warnings * 10 - infos * 5;
+    score = Math.max(0, Math.min(100, score));
+    var color = score >= 80 ? "#5aaa78" : score >= 50 ? "#c8a838" : "#e07070";
+
+    var pill = document.createElement("span");
+    pill.className = "df-score-pill";
+    var dot = document.createElement("span");
+    dot.className = "df-score-dot";
+    dot.style.background = color;
+    var label = document.createElement("span");
+    label.style.color = color;
+    label.textContent = "Score: " + score + "/100";
+    pill.appendChild(dot);
+    pill.appendChild(label);
+    summaryEl.appendChild(pill);
+
+    function stat(count, label) {
+      var span = document.createElement("span");
+      span.className = "df-stat";
+      var cnt = document.createElement("span");
+      cnt.className = "df-stat-count";
+      cnt.textContent = count;
+      span.appendChild(cnt);
+      span.appendChild(document.createTextNode(" " + label));
+      return span;
+    }
+
+    summaryEl.appendChild(stat(errors, errors === 1 ? "error" : "errors"));
+    summaryEl.appendChild(stat(warnings, warnings === 1 ? "warning" : "warnings"));
+    summaryEl.appendChild(stat(infos, infos === 1 ? "suggestion" : "suggestions"));
+
+    summaryEl.style.display = "";
+  }
+
+  function renderResults(issues) {
+    while (resultsEl.firstChild) resultsEl.removeChild(resultsEl.firstChild);
+
+    if (!issues.length) {
+      var good = document.createElement("div");
+      good.className = "df-all-good";
+      good.textContent = "No issues found — this Dockerfile looks well-optimized!";
+      resultsEl.appendChild(good);
+      resultsEl.style.display = "";
+      return;
+    }
+
+    // Group by category
+    var byCategory = {};
+    issues.forEach(function (issue) {
+      var cat = issue.category || "Other";
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(issue);
+    });
+
+    var orderedCats = CATEGORY_ORDER.filter(function (c) { return byCategory[c]; });
+    Object.keys(byCategory).forEach(function (c) {
+      if (orderedCats.indexOf(c) === -1) orderedCats.push(c);
+    });
+
+    orderedCats.forEach(function (cat) {
+      var group = document.createElement("div");
+      group.className = "df-group";
+
+      var title = document.createElement("p");
+      title.className = "df-group-title";
+      title.textContent = cat;
+      group.appendChild(title);
+
+      byCategory[cat].forEach(function (issue) {
+        var div = document.createElement("div");
+        div.className = "df-issue df-issue--" + issue.severity;
+
+        var sev = document.createElement("span");
+        sev.className = "df-issue-sev";
+        sev.textContent = issue.severity;
+        div.appendChild(sev);
+
+        var body = document.createElement("div");
+        body.className = "df-issue-body";
+
+        var t = document.createElement("div");
+        t.className = "df-issue-title";
+        t.textContent = issue.title;
+        body.appendChild(t);
+
+        var d = document.createElement("div");
+        d.className = "df-issue-desc";
+        d.textContent = issue.desc;
+        body.appendChild(d);
+
+        if (issue.fix) {
+          var fixWrap = document.createElement("div");
+          fixWrap.className = "df-issue-fix";
+          var fixLabel = document.createElement("span");
+          fixLabel.className = "df-issue-fix-label";
+          fixLabel.textContent = "Suggested fix";
+          var fixCode = document.createElement("code");
+          fixCode.textContent = issue.fix;
+          fixWrap.appendChild(fixLabel);
+          fixWrap.appendChild(fixCode);
+          body.appendChild(fixWrap);
+        }
+
+        div.appendChild(body);
+        group.appendChild(div);
+      });
+
+      resultsEl.appendChild(group);
+    });
+
+    resultsEl.style.display = "";
+  }
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = "";
+  }
+  function hideError() {
+    errorEl.textContent = "";
+    errorEl.style.display = "none";
+  }
+
+  inputEl.addEventListener("input", analyze);
+})();
+</script>

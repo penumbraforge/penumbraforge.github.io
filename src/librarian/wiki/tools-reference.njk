@@ -1,0 +1,404 @@
+---
+title: "Tools Reference"
+description: "Complete reference for all 14 MCP tools exposed by mcp-librarian, with parameters, return values, and examples."
+permalink: /librarian/wiki/tools-reference/
+---
+<h1>Tools Reference</h1>
+    <p class="subtitle">All 14 MCP tools exposed by mcp-librarian, grouped by function.</p>
+
+    <p>Every tool is available to any MCP-compatible client. The agent calls these tools automatically based on context, but you can also ask the agent to use a specific tool directly.</p>
+
+    <h2 id="discovery">Discovery Tools</h2>
+
+    <p>Tools for finding existing knowledge in the library.</p>
+
+    <h3 id="find_and_load">find_and_load</h3>
+    <p>The primary entry point for knowledge retrieval. Searches the library for a matching skill and returns it. If no skill matches, triggers <a href="/librarian/wiki/auto-research/">auto-research</a> -- searches the web for authoritative sources and returns research content for skill creation.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>query</td><td>string</td><td>Natural language search query (e.g., "REST API error handling")</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> If a skill matches, returns the full skill content with section slugs. If no match, returns auto-research results with source URLs and extracted content, along with a prompt for the agent to create a skill.</p>
+
+    <div class="code-block"><span class="cmt">// Agent calls find_and_load when it detects a relevant topic</span>
+find_and_load({ <span class="kw">query</span>: <span class="str">"SQL injection prevention"</span> })
+
+<span class="cmt">// Returns skill content if found:</span>
+{
+  <span class="kw">"found"</span>: <span class="val">true</span>,
+  <span class="kw">"skill"</span>: <span class="str">"security-hardening/sql-injection"</span>,
+  <span class="kw">"content"</span>: <span class="str">"## Parameterized Queries\n..."</span>,
+  <span class="kw">"sections"</span>: [<span class="str">"parameterized-queries"</span>, <span class="str">"orm-safety"</span>, <span class="str">"stored-procedures"</span>]
+}
+
+<span class="cmt">// Returns research if no skill found:</span>
+{
+  <span class="kw">"found"</span>: <span class="val">false</span>,
+  <span class="kw">"research"</span>: { <span class="kw">"sources"</span>: [...], <span class="kw">"content"</span>: <span class="str">"..."</span> }
+}</div>
+
+    <h3 id="find_skill">find_skill</h3>
+    <p>BM25 full-text search across skill names, descriptions, categories, and section content. Returns ranked results with relevance scores. Unlike <code>find_and_load</code>, this tool does not trigger auto-research when no results are found.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>query</td><td>string</td><td>Search query with stemming support</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Array of matching skills ranked by BM25 score, each with name, description, category, score, and available sections.</p>
+
+    <div class="code-block">find_skill({ <span class="kw">query</span>: <span class="str">"authentication patterns"</span> })
+
+<span class="cmt">// Returns ranked results:</span>
+{
+  <span class="kw">"results"</span>: [
+    { <span class="kw">"name"</span>: <span class="str">"auth-patterns"</span>, <span class="kw">"score"</span>: <span class="val">4.82</span>, <span class="kw">"category"</span>: <span class="str">"security"</span> },
+    { <span class="kw">"name"</span>: <span class="str">"jwt-best-practices"</span>, <span class="kw">"score"</span>: <span class="val">3.14</span>, <span class="kw">"category"</span>: <span class="str">"security"</span> }
+  ]
+}</div>
+
+    <h3 id="list_skills">list_skills</h3>
+    <p>Lists all installed skills with metadata. Useful for understanding what knowledge is available and checking integrity status across the library.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td colspan="3"><em>No parameters</em></td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Array of all skills with name, version, category, description, integrity status (VERIFIED / TAMPERED / UNSIGNED), and section slugs.</p>
+
+    <div class="code-block">list_skills()
+
+{
+  <span class="kw">"skills"</span>: [
+    {
+      <span class="kw">"name"</span>: <span class="str">"sql-injection"</span>,
+      <span class="kw">"version"</span>: <span class="str">"1.0.0"</span>,
+      <span class="kw">"category"</span>: [<span class="str">"security"</span>],
+      <span class="kw">"description"</span>: <span class="str">"SQL injection prevention patterns"</span>,
+      <span class="kw">"integrity"</span>: <span class="str">"VERIFIED"</span>,
+      <span class="kw">"sections"</span>: [<span class="str">"parameterized-queries"</span>, <span class="str">"orm-safety"</span>]
+    }
+  ],
+  <span class="kw">"total"</span>: <span class="val">1</span>
+}</div>
+
+    <h2 id="loading">Loading Tools</h2>
+
+    <p>Tools for loading specific skills or sub-sections of skills.</p>
+
+    <h3 id="load_skill">load_skill</h3>
+    <p>Load a complete skill by name. Returns the full Markdown content plus a list of available section slugs that can be loaded individually with <code>load_section</code>.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>name</td><td>string</td><td>The skill name (from search results or list_skills)</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Full skill content, frontmatter metadata, integrity status, and array of section slugs.</p>
+
+    <div class="code-block">load_skill({ <span class="kw">name</span>: <span class="str">"api-design/error-handling"</span> })
+
+{
+  <span class="kw">"name"</span>: <span class="str">"error-handling"</span>,
+  <span class="kw">"content"</span>: <span class="str">"## RFC 7807 Problem Details\n..."</span>,
+  <span class="kw">"integrity"</span>: <span class="str">"VERIFIED"</span>,
+  <span class="kw">"sections"</span>: [<span class="str">"rfc-7807"</span>, <span class="str">"http-status-codes"</span>, <span class="str">"error-envelopes"</span>]
+}</div>
+
+    <h3 id="load_section">load_section</h3>
+    <p>Load a specific section within a skill by its slug path. This is the precision tool for minimal context loading -- the agent pulls only the exact section it needs instead of the entire skill.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>name</td><td>string</td><td>The skill name</td></tr>
+        <tr><td>section</td><td>string</td><td>Section slug (from load_skill or find_skill results)</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> The content of the specific section only.</p>
+
+    <div class="code-block">load_section({ <span class="kw">name</span>: <span class="str">"api-design/error-handling"</span>, <span class="kw">section</span>: <span class="str">"rfc-7807"</span> })
+
+{
+  <span class="kw">"section"</span>: <span class="str">"rfc-7807"</span>,
+  <span class="kw">"content"</span>: <span class="str">"### RFC 7807 Problem Details\nThe standard format for..."</span>
+}</div>
+
+    <h2 id="research">Research Tools</h2>
+
+    <p>Tools for gathering new information from the web.</p>
+
+    <h3 id="research_topic">research_topic</h3>
+    <p>Searches the web for a topic, scores sources by authority (official documentation ranked highest), and fetches content from the top-scoring results. Returns structured research that can be used to create new skills.</p>
+
+    <p>Unlike <code>find_and_load</code>, this tool always performs web research regardless of whether matching skills exist. Use it when you need fresh information or want to supplement existing knowledge.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>topic</td><td>string</td><td>The topic to research</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Array of scored sources with extracted content, plus a summary of the research quality.</p>
+
+    <div class="code-block">research_topic({ <span class="kw">topic</span>: <span class="str">"Bun runtime HTTP server"</span> })
+
+{
+  <span class="kw">"sources"</span>: [
+    {
+      <span class="kw">"url"</span>: <span class="str">"https://bun.sh/docs/api/http"</span>,
+      <span class="kw">"authority"</span>: <span class="val">0.95</span>,
+      <span class="kw">"type"</span>: <span class="str">"official-docs"</span>,
+      <span class="kw">"content"</span>: <span class="str">"Bun.serve() starts a high-performance HTTP server..."</span>
+    },
+    {
+      <span class="kw">"url"</span>: <span class="str">"https://developer.mozilla.org/en-US/docs/Web/API/Request"</span>,
+      <span class="kw">"authority"</span>: <span class="val">0.88</span>,
+      <span class="kw">"type"</span>: <span class="str">"reference"</span>,
+      <span class="kw">"content"</span>: <span class="str">"The Request interface of the Fetch API..."</span>
+    }
+  ],
+  <span class="kw">"quality"</span>: <span class="str">"high"</span>
+}</div>
+
+    <p>See <a href="/librarian/wiki/auto-research/">Auto-Research</a> for details on source authority scoring.</p>
+
+    <h3 id="fetch_page">fetch_page</h3>
+    <p>Fetch a single URL and extract readable text. Strips HTML tags, preserves code blocks and headings, and returns clean content suitable for skill creation.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>url</td><td>string</td><td>The URL to fetch</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Extracted text content from the page with code blocks and headings preserved.</p>
+
+    <div class="code-block">fetch_page({ <span class="kw">url</span>: <span class="str">"https://docs.example.com/api/auth"</span> })
+
+{
+  <span class="kw">"url"</span>: <span class="str">"https://docs.example.com/api/auth"</span>,
+  <span class="kw">"title"</span>: <span class="str">"Authentication - Example API Docs"</span>,
+  <span class="kw">"content"</span>: <span class="str">"## Authentication\nAll API requests require..."</span>
+}</div>
+
+    <h2 id="management">Management Tools</h2>
+
+    <p>Tools for creating and validating skills.</p>
+
+    <h3 id="create_skill">create_skill</h3>
+    <p>Validate, sign, save, and index a new skill. The skill content is checked against the <a href="/librarian/wiki/content-guard/">content guard</a>, signed with Ed25519, written to disk, and the BM25 index is rebuilt atomically. The agent immediately sees the new skill in its catalog.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>name</td><td>string</td><td>Skill name (used as filename, lowercase with hyphens)</td></tr>
+        <tr><td>content</td><td>string</td><td>Full skill content including YAML frontmatter</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Confirmation with skill path, section count, and index status.</p>
+
+    <div class="code-block">create_skill({
+  <span class="kw">name</span>: <span class="str">"graphql-federation"</span>,
+  <span class="kw">content</span>: <span class="str">"---\nname: graphql-federation\nversion: 1.0.0\ncategory: [api, graphql]\ndescription: GraphQL federation patterns and best practices\n---\n\n## Gateway Architecture\n..."</span>
+})
+
+{
+  <span class="kw">"created"</span>: <span class="str">"~/.mcp-librarian/skills/graphql-federation.md"</span>,
+  <span class="kw">"sections"</span>: <span class="val">4</span>,
+  <span class="kw">"indexed"</span>: <span class="val">true</span>,
+  <span class="kw">"signed"</span>: <span class="val">true</span>
+}</div>
+
+    <h3 id="validate_skill">validate_skill</h3>
+    <p>Check a skill's structure, frontmatter completeness, and <a href="/librarian/wiki/content-guard/">content guard</a> compliance without saving it. Use this to verify a skill before creating it, or to check an existing skill for issues.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>content</td><td>string</td><td>Full skill content including YAML frontmatter</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Validation result with pass/fail status and any issues found.</p>
+
+    <div class="code-block">validate_skill({
+  <span class="kw">content</span>: <span class="str">"---\nname: test\n---\nSome content"</span>
+})
+
+{
+  <span class="kw">"valid"</span>: <span class="val">false</span>,
+  <span class="kw">"issues"</span>: [
+    <span class="str">"Missing required frontmatter field: version"</span>,
+    <span class="str">"Missing required frontmatter field: category"</span>,
+    <span class="str">"Missing required frontmatter field: description"</span>
+  ]
+}</div>
+
+    <h3 id="export_pack">export_pack</h3>
+    <p>Bundle selected skills into a shareable pack with a <code>pack.json</code> manifest. The exported pack can be shared with others or submitted to the community repository.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>name</td><td>string</td><td>Pack name for the export</td></tr>
+        <tr><td>skills</td><td>array</td><td>Array of skill names to include</td></tr>
+        <tr><td>description</td><td>string</td><td>Pack description for the manifest</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Export path and manifest details.</p>
+
+    <div class="code-block">export_pack({
+  <span class="kw">name</span>: <span class="str">"my-team-patterns"</span>,
+  <span class="kw">skills</span>: [<span class="str">"deployment-process"</span>, <span class="str">"code-review-checklist"</span>, <span class="str">"incident-runbook"</span>],
+  <span class="kw">description</span>: <span class="str">"Internal team patterns and runbooks"</span>
+})
+
+{
+  <span class="kw">"exported"</span>: <span class="str">"~/.mcp-librarian/exports/my-team-patterns/"</span>,
+  <span class="kw">"skills"</span>: <span class="val">3</span>,
+  <span class="kw">"manifest"</span>: <span class="str">"pack.json"</span>
+}</div>
+
+    <p>See <a href="/librarian/wiki/community-packs/">Community Packs</a> for the pack manifest format and how to contribute.</p>
+
+    <h2 id="packs">Pack Tools</h2>
+
+    <p>Tools for browsing and installing community skill packs.</p>
+
+    <h3 id="browse_packs">browse_packs</h3>
+    <p>Browse available community skill packs. Returns pack names, descriptions, skill counts, and install commands. Supports keyword filtering.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>query</td><td>string (optional)</td><td>Keyword filter (e.g., "security", "testing")</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Array of available packs with metadata.</p>
+
+    <div class="code-block">browse_packs({ <span class="kw">query</span>: <span class="str">"security"</span> })
+
+{
+  <span class="kw">"packs"</span>: [
+    {
+      <span class="kw">"name"</span>: <span class="str">"security-hardening"</span>,
+      <span class="kw">"description"</span>: <span class="str">"OWASP defenses, input validation, SQL injection prevention, XSS, auth patterns"</span>,
+      <span class="kw">"skills"</span>: <span class="val">7</span>
+    }
+  ]
+}</div>
+
+    <h3 id="install_pack">install_pack</h3>
+    <p>Download, validate, and install a skill pack from the community repository or a direct URL. Skills are verified, signed, deduplicated against existing skills, and the BM25 index is rebuilt.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>pack</td><td>string</td><td>Pack name from browse_packs, or a direct URL to a pack</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Installation result with skill count and index status.</p>
+
+    <div class="code-block">install_pack({ <span class="kw">pack</span>: <span class="str">"api-design"</span> })
+
+{
+  <span class="kw">"installed"</span>: <span class="str">"api-design"</span>,
+  <span class="kw">"skills_added"</span>: <span class="val">6</span>,
+  <span class="kw">"skills_skipped"</span>: <span class="val">0</span>,
+  <span class="kw">"index_rebuilt"</span>: <span class="val">true</span>
+}</div>
+
+    <div class="info-box">
+      <strong>Deduplication:</strong> If you already have a skill with the same name, the installer skips it rather than overwriting. This preserves any local modifications you have made.
+    </div>
+
+    <h2 id="system">System Tools</h2>
+
+    <p>Tools for checking server and skill health.</p>
+
+    <h3 id="skill_status">skill_status</h3>
+    <p>Check the cryptographic integrity of a single skill. Computes the Ed25519 signature of the current file content and compares it to the stored signature. Reports VERIFIED, TAMPERED, or UNSIGNED.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>name</td><td>string</td><td>The skill name to check</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Integrity status and details.</p>
+
+    <div class="code-block">skill_status({ <span class="kw">name</span>: <span class="str">"sql-injection"</span> })
+
+<span class="cmt">// Clean skill:</span>
+{ <span class="kw">"name"</span>: <span class="str">"sql-injection"</span>, <span class="kw">"integrity"</span>: <span class="str">"VERIFIED"</span> }
+
+<span class="cmt">// Tampered skill:</span>
+{ <span class="kw">"name"</span>: <span class="str">"sql-injection"</span>, <span class="kw">"integrity"</span>: <span class="str">"TAMPERED"</span>, <span class="kw">"reason"</span>: <span class="str">"signature mismatch"</span> }</div>
+
+    <p>See <a href="/librarian/wiki/signing/">Ed25519 Signing</a> for details on the signing and verification process.</p>
+
+    <h3 id="server_status">server_status</h3>
+    <p>Returns version, skill count, uptime, index statistics, and configuration summary. Useful for verifying the server is running and checking the current state of the library.</p>
+
+    <table class="cmd-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td colspan="3"><em>No parameters</em></td></tr>
+      </tbody>
+    </table>
+
+    <p><strong style="color: var(--text-1);">Returns:</strong> Server status object.</p>
+
+    <div class="code-block">server_status()
+
+{
+  <span class="kw">"version"</span>: <span class="str">"3.1.0"</span>,
+  <span class="kw">"skills"</span>: <span class="val">23</span>,
+  <span class="kw">"uptime"</span>: <span class="str">"4m 12s"</span>,
+  <span class="kw">"index"</span>: { <span class="kw">"documents"</span>: <span class="val">23</span>, <span class="kw">"sections"</span>: <span class="val">142</span> },
+  <span class="kw">"home"</span>: <span class="str">"~/.mcp-librarian"</span>,
+  <span class="kw">"signing"</span>: <span class="str">"Ed25519 keypair loaded"</span>,
+  <span class="kw">"rate_limit"</span>: <span class="str">"200/min"</span>
+}</div>
+
+    <h2 id="tool-summary">Quick Reference</h2>
+
+    <table class="cmd-table">
+      <thead><tr><th>Tool</th><th>Category</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>find_and_load</td><td>Discovery</td><td>Search + auto-research in one call</td></tr>
+        <tr><td>find_skill</td><td>Discovery</td><td>BM25 search, no auto-research</td></tr>
+        <tr><td>list_skills</td><td>Discovery</td><td>List all skills with metadata</td></tr>
+        <tr><td>load_skill</td><td>Loading</td><td>Load full skill by name</td></tr>
+        <tr><td>load_section</td><td>Loading</td><td>Load specific section by slug</td></tr>
+        <tr><td>research_topic</td><td>Research</td><td>Web research with source scoring</td></tr>
+        <tr><td>fetch_page</td><td>Research</td><td>Fetch and extract single URL</td></tr>
+        <tr><td>create_skill</td><td>Management</td><td>Validate, sign, save, index</td></tr>
+        <tr><td>validate_skill</td><td>Management</td><td>Check structure without saving</td></tr>
+        <tr><td>export_pack</td><td>Management</td><td>Bundle skills into shareable pack</td></tr>
+        <tr><td>browse_packs</td><td>Packs</td><td>Browse community packs</td></tr>
+        <tr><td>install_pack</td><td>Packs</td><td>Download and install a pack</td></tr>
+        <tr><td>skill_status</td><td>System</td><td>Check skill integrity</td></tr>
+        <tr><td>server_status</td><td>System</td><td>Server health and stats</td></tr>
+      </tbody>
+    </table>

@@ -1,0 +1,326 @@
+---
+toolSlug: color-converter
+permalink: /tools/color-converter/
+---
+
+<div class="tool-row" style="gap:1rem; align-items:flex-start; flex-wrap:wrap;">
+  <div class="tool-group" style="flex:1; min-width:220px;">
+    <label for="color-input">Color value</label>
+    <div class="tool-row" style="gap:0.5rem;">
+      <input type="text" id="color-input" placeholder="#ff5733 or rgb(255,87,51) or hsl(14,100%,60%)" autocomplete="off" style="flex:1; font-family:var(--font-mono,monospace);">
+      <input type="color" id="color-picker" value="#ff5733" title="Color picker" style="width:2.75rem; height:2.5rem; padding:2px; border-radius:4px; cursor:pointer;">
+    </div>
+    <div id="color-error" style="display:none; margin-top:0.4rem;" role="alert" aria-live="polite" class="tool-error"></div>
+  </div>
+
+  <div id="color-swatch" style="width:5rem; height:5rem; border-radius:8px; background:#ff5733; flex-shrink:0; border:1px solid rgba(0,0,0,0.1); align-self:flex-end; margin-bottom:0.1rem;" aria-label="Color preview" role="img"></div>
+</div>
+
+<div id="color-outputs" style="margin-top:1rem; display:none;">
+  <div class="tool-group" style="margin-bottom:0;">
+    <label style="margin-bottom:0.5rem; display:block;">Formats</label>
+    <div id="format-rows"></div>
+  </div>
+</div>
+
+<div class="tool-group" style="margin-top:1.5rem;">
+  <label>Contrast Ratio Checker (WCAG)</label>
+  <div class="tool-row" style="gap:0.5rem; align-items:center; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:0.4rem; flex:1; min-width:180px;">
+      <div id="contrast-swatch-a" style="width:2rem; height:2rem; border-radius:4px; background:#ff5733; border:1px solid rgba(0,0,0,0.1); flex-shrink:0;"></div>
+      <input type="text" id="contrast-a" placeholder="Color A (auto-filled)" autocomplete="off" style="flex:1; font-family:var(--font-mono,monospace); font-size:0.875rem;">
+    </div>
+    <span style="color:var(--color-muted,#666); font-size:0.85rem;">vs</span>
+    <div style="display:flex; align-items:center; gap:0.4rem; flex:1; min-width:180px;">
+      <div id="contrast-swatch-b" style="width:2rem; height:2rem; border-radius:4px; background:#ffffff; border:1px solid rgba(0,0,0,0.1); flex-shrink:0;"></div>
+      <input type="text" id="contrast-b" value="#ffffff" autocomplete="off" style="flex:1; font-family:var(--font-mono,monospace); font-size:0.875rem;">
+    </div>
+  </div>
+  <div id="contrast-result" style="margin-top:0.75rem; display:none;">
+    <div id="contrast-ratio" style="font-size:1.5rem; font-weight:700; font-family:var(--font-mono,monospace);"></div>
+    <div id="contrast-badges" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.4rem;"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var colorInput   = document.getElementById('color-input');
+  var colorPicker  = document.getElementById('color-picker');
+  var colorSwatch  = document.getElementById('color-swatch');
+  var colorError   = document.getElementById('color-error');
+  var colorOutputs = document.getElementById('color-outputs');
+  var formatRows   = document.getElementById('format-rows');
+
+  var contrastA     = document.getElementById('contrast-a');
+  var contrastB     = document.getElementById('contrast-b');
+  var contrastSwatchA = document.getElementById('contrast-swatch-a');
+  var contrastSwatchB = document.getElementById('contrast-swatch-b');
+  var contrastResult  = document.getElementById('contrast-result');
+  var contrastRatioEl = document.getElementById('contrast-ratio');
+  var contrastBadges  = document.getElementById('contrast-badges');
+
+  /* ── Parsing ─────────────────────────────────────── */
+
+  function hexToRgb(hex) {
+    var s = hex.replace('#', '');
+    if (s.length === 3) s = s[0]+s[0]+s[1]+s[1]+s[2]+s[2];
+    if (s.length !== 6) return null;
+    var n = parseInt(s, 16);
+    if (isNaN(n)) return null;
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(function (v) {
+      return clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h, s, l = (max + min) / 2;
+    if (max === min) {
+      h = s = 0;
+    } else {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        default: h = ((r - g) / d + 4) / 6;
+      }
+    }
+    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+  }
+
+  function hslToRgb(h, s, l) {
+    s /= 100; l /= 100;
+    var c = (1 - Math.abs(2 * l - 1)) * s;
+    var x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    var m = l - c / 2;
+    var r, g, b;
+    if      (h < 60)  { r=c; g=x; b=0; }
+    else if (h < 120) { r=x; g=c; b=0; }
+    else if (h < 180) { r=0; g=c; b=x; }
+    else if (h < 240) { r=0; g=x; b=c; }
+    else if (h < 300) { r=x; g=0; b=c; }
+    else              { r=c; g=0; b=x; }
+    return { r: Math.round((r+m)*255), g: Math.round((g+m)*255), b: Math.round((b+m)*255) };
+  }
+
+  function parseColor(str) {
+    str = str.trim();
+    /* HEX */
+    if (/^#?[0-9a-f]{3}([0-9a-f]{3})?$/i.test(str)) {
+      return hexToRgb(str.startsWith('#') ? str : '#' + str);
+    }
+    /* rgb(...) */
+    var rgb = str.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (rgb) return { r: +rgb[1], g: +rgb[2], b: +rgb[3] };
+    /* hsl(...) */
+    var hsl = str.match(/^hsla?\(\s*(\d+)\s*,\s*(\d*\.?\d+)%\s*,\s*(\d*\.?\d+)%/i);
+    if (hsl) return hslToRgb(+hsl[1], +hsl[2], +hsl[3]);
+    /* Named colors via canvas */
+    try {
+      var cv = document.createElement('canvas');
+      cv.width = cv.height = 1;
+      var ctx = cv.getContext('2d');
+      ctx.fillStyle = '#000';
+      ctx.fillStyle = str;
+      var computed = ctx.fillStyle;
+      if (computed !== '#000000' || str.toLowerCase() === 'black') {
+        return hexToRgb(computed);
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  /* ── Rendering ─────────────────────────────────────── */
+
+  function makeCopyButton(getText) {
+    var btn = document.createElement('button');
+    btn.className = 'btn btn--copy';
+    btn.setAttribute('aria-label', 'Copy');
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = getText();
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          btn.textContent = 'Copied!';
+          setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+        }).catch(function () { btn.textContent = 'Failed'; setTimeout(function () { btn.textContent = 'Copy'; }, 2000); });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.cssText='position:fixed;opacity:0;';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        try { document.execCommand('copy'); btn.textContent='Copied!'; }
+        catch(e) { btn.textContent='Failed'; }
+        document.body.removeChild(ta);
+        setTimeout(function () { btn.textContent='Copy'; }, 2000);
+      }
+    });
+    return btn;
+  }
+
+  function renderFormats(rgb) {
+    while (formatRows.firstChild) { formatRows.removeChild(formatRows.firstChild); }
+
+    var hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    var hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+
+    var formats = [
+      { label: 'HEX',  value: hex },
+      { label: 'RGB',  value: 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')' },
+      { label: 'HSL',  value: 'hsl(' + hsl.h + ', ' + hsl.s + '%, ' + hsl.l + '%)' },
+    ];
+
+    formats.forEach(function (fmt) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;';
+
+      var lbl = document.createElement('span');
+      lbl.style.cssText = 'width:3rem; color:var(--color-muted,#666); font-size:0.8rem; flex-shrink:0;';
+      lbl.textContent = fmt.label;
+
+      var val = document.createElement('span');
+      val.style.cssText = 'font-family:var(--font-mono,monospace); flex:1;';
+      val.textContent = fmt.value;
+
+      var copyBtn = makeCopyButton(function () { return val.textContent; });
+
+      row.appendChild(lbl);
+      row.appendChild(val);
+      row.appendChild(copyBtn);
+      formatRows.appendChild(row);
+    });
+
+    colorOutputs.style.display = '';
+  }
+
+  /* ── Contrast ─────────────────────────────────────── */
+
+  function linearize(c) {
+    c /= 255;
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  }
+
+  function relativeLuminance(rgb) {
+    return 0.2126 * linearize(rgb.r) + 0.7152 * linearize(rgb.g) + 0.0722 * linearize(rgb.b);
+  }
+
+  function contrastRatio(rgb1, rgb2) {
+    var l1 = relativeLuminance(rgb1);
+    var l2 = relativeLuminance(rgb2);
+    var lighter = Math.max(l1, l2);
+    var darker  = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  function updateContrast() {
+    var rawA = contrastA.value.trim();
+    var rawB = contrastB.value.trim();
+    if (!rawA || !rawB) { contrastResult.style.display = 'none'; return; }
+
+    var rgbA = parseColor(rawA);
+    var rgbB = parseColor(rawB);
+
+    contrastSwatchA.style.background = rawA;
+    contrastSwatchB.style.background = rawB;
+
+    if (!rgbA || !rgbB) { contrastResult.style.display = 'none'; return; }
+
+    var ratio = contrastRatio(rgbA, rgbB);
+    contrastRatioEl.textContent = ratio.toFixed(2) + ':1';
+
+    while (contrastBadges.firstChild) { contrastBadges.removeChild(contrastBadges.firstChild); }
+
+    var tests = [
+      { label: 'AA Normal',   pass: ratio >= 4.5 },
+      { label: 'AA Large',    pass: ratio >= 3.0 },
+      { label: 'AAA Normal',  pass: ratio >= 7.0 },
+      { label: 'AAA Large',   pass: ratio >= 4.5 },
+    ];
+
+    tests.forEach(function (t) {
+      var badge = document.createElement('span');
+      badge.style.cssText = 'padding:0.2rem 0.55rem; border-radius:4px; font-size:0.78rem; font-weight:600; ' +
+        (t.pass
+          ? 'background:rgba(34,197,94,0.15); color:#16a34a;'
+          : 'background:rgba(239,68,68,0.12); color:#dc2626;');
+      badge.textContent = (t.pass ? '\u2713 ' : '\u2717 ') + t.label;
+      contrastBadges.appendChild(badge);
+    });
+
+    contrastResult.style.display = '';
+  }
+
+  /* ── Main update ─────────────────────────────────── */
+
+  var suppressPicker = false;
+  var suppressText   = false;
+
+  function applyColor(rgb) {
+    var hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+    colorSwatch.style.background = hex;
+    renderFormats(rgb);
+
+    /* Sync picker */
+    suppressPicker = true;
+    colorPicker.value = hex;
+    suppressPicker = false;
+
+    /* Sync contrast A */
+    contrastA.value = hex;
+    contrastSwatchA.style.background = hex;
+    updateContrast();
+  }
+
+  function showError(msg) {
+    colorError.textContent = msg;
+    colorError.style.display = '';
+  }
+
+  function hideError() {
+    colorError.textContent = '';
+    colorError.style.display = 'none';
+  }
+
+  function onTextInput() {
+    if (suppressText) return;
+    var raw = colorInput.value.trim();
+    if (!raw) { hideError(); colorOutputs.style.display = 'none'; return; }
+    var rgb = parseColor(raw);
+    if (!rgb) { showError('Could not parse color. Try: #ff5733, rgb(255,87,51), hsl(14,100%,60%)'); return; }
+    hideError();
+    applyColor(rgb);
+  }
+
+  colorInput.addEventListener('input', onTextInput);
+
+  colorPicker.addEventListener('input', function () {
+    if (suppressPicker) return;
+    var rgb = hexToRgb(colorPicker.value);
+    if (!rgb) return;
+    hideError();
+    suppressText = true;
+    colorInput.value = colorPicker.value;
+    suppressText = false;
+    applyColor(rgb);
+  });
+
+  contrastA.addEventListener('input', updateContrast);
+  contrastB.addEventListener('input', function () {
+    var raw = contrastB.value.trim();
+    if (raw) contrastSwatchB.style.background = raw;
+    updateContrast();
+  });
+
+  /* Initialize with default color */
+  colorInput.value = '#ff5733';
+  onTextInput();
+})();
+</script>

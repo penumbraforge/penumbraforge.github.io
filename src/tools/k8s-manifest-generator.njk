@@ -1,0 +1,975 @@
+---
+toolSlug: k8s-manifest-generator
+permalink: /tools/k8s-manifest-generator/
+---
+
+<div class="tool-row" style="align-items:flex-start; gap:20px; flex-wrap:wrap;">
+  <div style="flex:0 0 200px; min-width:160px;">
+    <label style="display:block; margin-bottom:8px;">Resource type</label>
+    <div class="tool-options" style="flex-direction:column; gap:4px;" role="group" aria-label="Kubernetes resource type">
+      <button class="tool-option active" data-resource="deployment" aria-pressed="true">Deployment</button>
+      <button class="tool-option" data-resource="service" aria-pressed="false">Service</button>
+      <button class="tool-option" data-resource="ingress" aria-pressed="false">Ingress</button>
+      <button class="tool-option" data-resource="configmap" aria-pressed="false">ConfigMap</button>
+      <button class="tool-option" data-resource="secret" aria-pressed="false">Secret</button>
+      <button class="tool-option" data-resource="hpa" aria-pressed="false">HorizontalPodAutoscaler</button>
+    </div>
+  </div>
+
+  <div style="flex:1; min-width:260px;">
+    <label style="display:block; margin-bottom:8px;">Configuration</label>
+    <div id="k8s-fields"></div>
+  </div>
+</div>
+
+<div class="output-area" style="margin-top:16px;">
+  <button class="btn btn--copy" id="k8s-copy" aria-label="Copy YAML manifest">Copy</button>
+  <button class="btn" id="k8s-download" style="right:80px; position:absolute;" aria-label="Download YAML">Download</button>
+  <pre id="k8s-output" aria-label="Generated Kubernetes YAML" style="font-size:11px; max-height:560px; overflow:auto;"></pre>
+</div>
+
+<style>
+  .k8s-field {
+    margin-bottom: 12px;
+  }
+  .k8s-field label {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-2);
+    margin-bottom: 4px;
+  }
+  .k8s-field input,
+  .k8s-field select,
+  .k8s-field textarea {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-0);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+  .k8s-field input:focus,
+  .k8s-field select:focus,
+  .k8s-field textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .k8s-hint {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 3px;
+  }
+  .k8s-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .k8s-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .k8s-section {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-3);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+    margin-top: 16px;
+  }
+  .k8s-section:first-child { margin-top: 0; }
+
+  .k8s-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    margin-bottom: 8px;
+  }
+  .k8s-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+  .k8s-toggle label {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-1);
+    cursor: pointer;
+    margin: 0;
+  }
+
+  .k8s-kv-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    align-items: center;
+  }
+  .k8s-kv-row input {
+    flex: 1;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-0);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    box-sizing: border-box;
+  }
+  .k8s-kv-row input:focus { outline: none; border-color: var(--accent); }
+  .k8s-kv-eq {
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .k8s-kv-remove {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-3);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 14px;
+    line-height: 1;
+    transition: all 0.1s;
+    flex-shrink: 0;
+  }
+  .k8s-kv-remove:hover { color: #c85050; border-color: #c85050; }
+  .k8s-kv-add {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--accent);
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 5px 10px;
+    width: 100%;
+    text-align: left;
+    transition: border-color 0.1s;
+  }
+  .k8s-kv-add:hover { border-color: var(--accent); }
+
+  .output-area { position: relative; }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var fieldsEl  = document.getElementById("k8s-fields");
+  var outputEl  = document.getElementById("k8s-output");
+  var copyBtn   = document.getElementById("k8s-copy");
+  var dlBtn     = document.getElementById("k8s-download");
+  var resBtns   = Array.prototype.slice.call(document.querySelectorAll(".tool-option[data-resource]"));
+
+  var currentResource = "deployment";
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  var S = {
+    deployment: {
+      name: "my-app",
+      namespace: "default",
+      replicas: "3",
+      image: "nginx:alpine",
+      containerPort: "80",
+      cpuRequest: "100m",
+      cpuLimit: "500m",
+      memRequest: "128Mi",
+      memLimit: "512Mi",
+      envVars: [{ key: "NODE_ENV", val: "production" }],
+      labels: "app: my-app",
+      livenessEnabled: true,
+      livenessPath: "/healthz",
+      livenessPort: "80",
+      readinessEnabled: true,
+      readinessPath: "/ready",
+      readinessPort: "80",
+      imagePullPolicy: "IfNotPresent"
+    },
+    service: {
+      name: "my-app-svc",
+      namespace: "default",
+      type: "ClusterIP",
+      port: "80",
+      targetPort: "80",
+      nodePort: "30080",
+      selector: "app: my-app",
+      protocol: "TCP"
+    },
+    ingress: {
+      name: "my-app-ingress",
+      namespace: "default",
+      host: "app.example.com",
+      path: "/",
+      pathType: "Prefix",
+      serviceName: "my-app-svc",
+      servicePort: "80",
+      ingressClass: "nginx",
+      tlsEnabled: false,
+      tlsSecret: "my-app-tls",
+      annotations: ""
+    },
+    configmap: {
+      name: "my-app-config",
+      namespace: "default",
+      data: [{ key: "DATABASE_URL", val: "postgres://localhost:5432/mydb" }, { key: "REDIS_URL", val: "redis://localhost:6379" }]
+    },
+    secret: {
+      name: "my-app-secret",
+      namespace: "default",
+      type: "Opaque",
+      data: [{ key: "DB_PASSWORD", val: "changeme" }, { key: "API_KEY", val: "my-secret-key" }]
+    },
+    hpa: {
+      name: "my-app-hpa",
+      namespace: "default",
+      targetName: "my-app",
+      targetKind: "Deployment",
+      minReplicas: "2",
+      maxReplicas: "10",
+      cpuTarget: "70",
+      memTarget: "80",
+      memEnabled: false
+    }
+  };
+
+  // ── Field builder helpers ─────────────────────────────────────────────────
+  function section(text) {
+    var d = document.createElement("div");
+    d.className = "k8s-section";
+    d.textContent = text;
+    return d;
+  }
+
+  function field(id, labelText, type, opts) {
+    // opts: { hint, options, state, key, placeholder }
+    var state = opts && opts.state ? opts.state : S[currentResource];
+    var key   = opts && opts.key ? opts.key : id;
+
+    var wrap = document.createElement("div");
+    wrap.className = "k8s-field";
+
+    var lbl = document.createElement("label");
+    lbl.setAttribute("for", "kf-" + id);
+    lbl.textContent = labelText;
+    wrap.appendChild(lbl);
+
+    var el;
+    if (type === "select") {
+      el = document.createElement("select");
+      el.id = "kf-" + id;
+      (opts.options || []).forEach(function (opt) {
+        var o = document.createElement("option");
+        o.value = opt;
+        o.textContent = opt;
+        if (opt === state[key]) o.selected = true;
+        el.appendChild(o);
+      });
+      el.addEventListener("change", function () { state[key] = el.value; generate(); });
+    } else {
+      el = document.createElement("input");
+      el.type = "text";
+      el.id = "kf-" + id;
+      el.value = state[key] || "";
+      el.autocomplete = "off";
+      if (opts && opts.placeholder) el.placeholder = opts.placeholder;
+      el.addEventListener("input", function () { state[key] = el.value; generate(); });
+    }
+
+    wrap.appendChild(el);
+
+    if (opts && opts.hint) {
+      var hint = document.createElement("div");
+      hint.className = "k8s-hint";
+      hint.textContent = opts.hint;
+      wrap.appendChild(hint);
+    }
+
+    return wrap;
+  }
+
+  function row(children) {
+    var d = document.createElement("div");
+    d.className = "k8s-row";
+    children.forEach(function (c) { d.appendChild(c); });
+    return d;
+  }
+
+  function row3(children) {
+    var d = document.createElement("div");
+    d.className = "k8s-row-3";
+    children.forEach(function (c) { d.appendChild(c); });
+    return d;
+  }
+
+  function toggle(id, labelText, key) {
+    var st = S[currentResource];
+    var div = document.createElement("div");
+    div.className = "k8s-toggle";
+
+    var cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.id = "kf-" + id;
+    cb.checked = !!st[key || id];
+
+    var lbl = document.createElement("label");
+    lbl.setAttribute("for", "kf-" + id);
+    lbl.textContent = labelText;
+
+    cb.addEventListener("change", function () {
+      st[key || id] = cb.checked;
+      buildFields(currentResource);
+      generate();
+    });
+
+    div.appendChild(cb);
+    div.appendChild(lbl);
+    return div;
+  }
+
+  function kvList(stateKey, keyPlaceholder, valPlaceholder, addLabel) {
+    var st = S[currentResource];
+    var wrap = document.createElement("div");
+    var kvId = "kv-" + stateKey + "-" + currentResource;
+
+    function render() {
+      while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+
+      st[stateKey].forEach(function (pair, idx) {
+        var rowEl = document.createElement("div");
+        rowEl.className = "k8s-kv-row";
+
+        var kInp = document.createElement("input");
+        kInp.type = "text";
+        kInp.value = pair.key;
+        kInp.placeholder = keyPlaceholder || "KEY";
+        kInp.autocomplete = "off";
+        kInp.addEventListener("input", function () { st[stateKey][idx].key = kInp.value; generate(); });
+
+        var eq = document.createElement("span");
+        eq.className = "k8s-kv-eq";
+        eq.textContent = "=";
+
+        var vInp = document.createElement("input");
+        vInp.type = "text";
+        vInp.value = pair.val;
+        vInp.placeholder = valPlaceholder || "VALUE";
+        vInp.autocomplete = "off";
+        vInp.addEventListener("input", function () { st[stateKey][idx].val = vInp.value; generate(); });
+
+        var rm = document.createElement("button");
+        rm.className = "k8s-kv-remove";
+        rm.textContent = "\u00d7";
+        rm.setAttribute("aria-label", "Remove");
+        rm.addEventListener("click", function () {
+          st[stateKey].splice(idx, 1);
+          render();
+          generate();
+        });
+
+        rowEl.appendChild(kInp);
+        rowEl.appendChild(eq);
+        rowEl.appendChild(vInp);
+        rowEl.appendChild(rm);
+        wrap.appendChild(rowEl);
+      });
+
+      var addBtn = document.createElement("button");
+      addBtn.className = "k8s-kv-add";
+      addBtn.textContent = "+ " + (addLabel || "Add row");
+      addBtn.addEventListener("click", function () {
+        st[stateKey].push({ key: "", val: "" });
+        render();
+        generate();
+      });
+      wrap.appendChild(addBtn);
+    }
+
+    render();
+    return wrap;
+  }
+
+  // ── Build fields ──────────────────────────────────────────────────────────
+  function buildFields(resource) {
+    while (fieldsEl.firstChild) fieldsEl.removeChild(fieldsEl.firstChild);
+    var st = S[resource];
+
+    if (resource === "deployment") {
+      fieldsEl.appendChild(section("Metadata"));
+      fieldsEl.appendChild(row([
+        field("name", "Name", "text"),
+        field("namespace", "Namespace", "text")
+      ]));
+      fieldsEl.appendChild(row([
+        field("replicas", "Replicas", "text"),
+        field("imagePullPolicy", "Image pull policy", "select", { options: ["IfNotPresent", "Always", "Never"] })
+      ]));
+
+      fieldsEl.appendChild(section("Container"));
+      fieldsEl.appendChild(field("image", "Image", "text", { hint: "e.g. nginx:alpine, gcr.io/myproject/app:latest" }));
+      fieldsEl.appendChild(row([
+        field("containerPort", "Container port", "text"),
+        field("labels", "Labels (YAML)", "text", { hint: "e.g. app: my-app" })
+      ]));
+
+      fieldsEl.appendChild(section("Resources"));
+      fieldsEl.appendChild(row([
+        field("cpuRequest", "CPU request", "text", { hint: "e.g. 100m, 0.5" }),
+        field("cpuLimit", "CPU limit", "text", { hint: "e.g. 500m, 2" })
+      ]));
+      fieldsEl.appendChild(row([
+        field("memRequest", "Memory request", "text", { hint: "e.g. 128Mi, 1Gi" }),
+        field("memLimit", "Memory limit", "text", { hint: "e.g. 512Mi, 2Gi" })
+      ]));
+
+      fieldsEl.appendChild(section("Environment Variables"));
+      fieldsEl.appendChild(kvList("envVars", "NAME", "value", "Add env var"));
+
+      fieldsEl.appendChild(section("Health Probes"));
+      fieldsEl.appendChild(toggle("livenessEnabled", "Enable liveness probe", "livenessEnabled"));
+      if (st.livenessEnabled) {
+        fieldsEl.appendChild(row([
+          field("livenessPath", "Liveness path", "text"),
+          field("livenessPort", "Liveness port", "text")
+        ]));
+      }
+      fieldsEl.appendChild(toggle("readinessEnabled", "Enable readiness probe", "readinessEnabled"));
+      if (st.readinessEnabled) {
+        fieldsEl.appendChild(row([
+          field("readinessPath", "Readiness path", "text"),
+          field("readinessPort", "Readiness port", "text")
+        ]));
+      }
+
+    } else if (resource === "service") {
+      fieldsEl.appendChild(section("Metadata"));
+      fieldsEl.appendChild(row([
+        field("name", "Name", "text"),
+        field("namespace", "Namespace", "text")
+      ]));
+
+      fieldsEl.appendChild(section("Service Configuration"));
+      fieldsEl.appendChild(field("type", "Service type", "select", { options: ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"] }));
+      fieldsEl.appendChild(row3([
+        field("port", "Port", "text"),
+        field("targetPort", "Target port", "text"),
+        field("protocol", "Protocol", "select", { options: ["TCP", "UDP", "SCTP"] })
+      ]));
+      if (st.type === "NodePort") {
+        fieldsEl.appendChild(field("nodePort", "Node port", "text", { hint: "30000-32767" }));
+      }
+      fieldsEl.appendChild(field("selector", "Selector (YAML)", "text", { hint: "e.g. app: my-app" }));
+
+    } else if (resource === "ingress") {
+      fieldsEl.appendChild(section("Metadata"));
+      fieldsEl.appendChild(row([
+        field("name", "Name", "text"),
+        field("namespace", "Namespace", "text")
+      ]));
+      fieldsEl.appendChild(field("ingressClass", "Ingress class", "text", { hint: "e.g. nginx, traefik, alb" }));
+
+      fieldsEl.appendChild(section("Routing"));
+      fieldsEl.appendChild(field("host", "Host", "text", { hint: "e.g. app.example.com" }));
+      fieldsEl.appendChild(row([
+        field("path", "Path", "text"),
+        field("pathType", "Path type", "select", { options: ["Prefix", "Exact", "ImplementationSpecific"] })
+      ]));
+      fieldsEl.appendChild(row([
+        field("serviceName", "Service name", "text"),
+        field("servicePort", "Service port", "text")
+      ]));
+
+      fieldsEl.appendChild(section("TLS"));
+      fieldsEl.appendChild(toggle("tlsEnabled", "Enable TLS", "tlsEnabled"));
+      if (st.tlsEnabled) {
+        fieldsEl.appendChild(field("tlsSecret", "TLS secret name", "text", { hint: "kubectl create secret tls name --cert=... --key=..." }));
+      }
+
+      fieldsEl.appendChild(section("Annotations (one per line, key: value)"));
+      var areaWrap = document.createElement("div");
+      areaWrap.className = "k8s-field";
+      var areaLbl = document.createElement("label");
+      areaLbl.textContent = "Annotations";
+      areaLbl.setAttribute("for", "kf-annotations");
+      var area = document.createElement("textarea");
+      area.id = "kf-annotations";
+      area.rows = 3;
+      area.value = st.annotations || "";
+      area.placeholder = "nginx.ingress.kubernetes.io/rewrite-target: /\nnginx.ingress.kubernetes.io/ssl-redirect: \"true\"";
+      area.spellcheck = false;
+      area.addEventListener("input", function () { st.annotations = area.value; generate(); });
+      areaWrap.appendChild(areaLbl);
+      areaWrap.appendChild(area);
+      fieldsEl.appendChild(areaWrap);
+
+    } else if (resource === "configmap") {
+      fieldsEl.appendChild(section("Metadata"));
+      fieldsEl.appendChild(row([
+        field("name", "Name", "text"),
+        field("namespace", "Namespace", "text")
+      ]));
+
+      fieldsEl.appendChild(section("Data"));
+      fieldsEl.appendChild(kvList("data", "KEY", "value", "Add config entry"));
+
+    } else if (resource === "secret") {
+      fieldsEl.appendChild(section("Metadata"));
+      fieldsEl.appendChild(row([
+        field("name", "Name", "text"),
+        field("namespace", "Namespace", "text")
+      ]));
+      fieldsEl.appendChild(field("type", "Secret type", "select", { options: ["Opaque", "kubernetes.io/tls", "kubernetes.io/dockerconfigjson", "kubernetes.io/service-account-token"] }));
+
+      var note = document.createElement("div");
+      note.style.cssText = "font-family:var(--font-sans);font-size:12px;color:var(--text-3);background:rgba(200,140,80,0.08);border:1px solid rgba(200,140,80,0.2);border-radius:4px;padding:8px 10px;margin-bottom:12px;";
+      note.textContent = "Values will be base64-encoded automatically in the generated YAML.";
+      fieldsEl.appendChild(note);
+
+      fieldsEl.appendChild(section("Secret Data"));
+      fieldsEl.appendChild(kvList("data", "KEY", "value", "Add secret entry"));
+
+    } else if (resource === "hpa") {
+      fieldsEl.appendChild(section("Metadata"));
+      fieldsEl.appendChild(row([
+        field("name", "Name", "text"),
+        field("namespace", "Namespace", "text")
+      ]));
+
+      fieldsEl.appendChild(section("Scale Target"));
+      fieldsEl.appendChild(row([
+        field("targetName", "Target name", "text", { hint: "Name of the Deployment/StatefulSet" }),
+        field("targetKind", "Target kind", "select", { options: ["Deployment", "StatefulSet", "ReplicaSet"] })
+      ]));
+
+      fieldsEl.appendChild(section("Replica Bounds"));
+      fieldsEl.appendChild(row([
+        field("minReplicas", "Min replicas", "text"),
+        field("maxReplicas", "Max replicas", "text")
+      ]));
+
+      fieldsEl.appendChild(section("Scaling Metrics"));
+      fieldsEl.appendChild(field("cpuTarget", "CPU target utilization (%)", "text", { hint: "Scale when CPU exceeds this percentage" }));
+      fieldsEl.appendChild(toggle("memEnabled", "Enable memory-based scaling", "memEnabled"));
+      if (st.memEnabled) {
+        fieldsEl.appendChild(field("memTarget", "Memory target utilization (%)", "text"));
+      }
+    }
+  }
+
+  // ── YAML generators ───────────────────────────────────────────────────────
+  function sanitizeName(n) {
+    return (n || "my-resource").toLowerCase().replace(/[^a-z0-9\-\.]/g, "-").replace(/^-+|-+$/g, "");
+  }
+
+  function parseLabels(labelStr) {
+    var result = {};
+    if (!labelStr) return result;
+    labelStr.split(/[,\n]/).forEach(function (pair) {
+      var sep = pair.indexOf(":");
+      if (sep === -1) return;
+      var k = pair.slice(0, sep).trim();
+      var v = pair.slice(sep + 1).trim().replace(/^["']|["']$/g, "");
+      if (k) result[k] = v;
+    });
+    return result;
+  }
+
+  function yamlLabels(obj, indent) {
+    return Object.keys(obj).map(function (k) {
+      return indent + k + ": " + obj[k];
+    }).join("\n");
+  }
+
+  function b64(s) {
+    try { return btoa(unescape(encodeURIComponent(s))); } catch (e) { return btoa(s); }
+  }
+
+  function generateDeployment() {
+    var st = S.deployment;
+    var name = sanitizeName(st.name);
+    var labels = parseLabels(st.labels);
+    if (!labels.app) labels.app = name;
+
+    var L = [
+      "apiVersion: apps/v1",
+      "kind: Deployment",
+      "metadata:",
+      "  name: " + name,
+      "  namespace: " + (st.namespace || "default"),
+      "  labels:",
+      yamlLabels(labels, "    "),
+      "spec:",
+      "  replicas: " + (parseInt(st.replicas, 10) || 3),
+      "  selector:",
+      "    matchLabels:",
+      yamlLabels(labels, "      "),
+      "  template:",
+      "    metadata:",
+      "      labels:",
+      yamlLabels(labels, "        "),
+      "    spec:",
+      "      containers:",
+      "        - name: " + name,
+      "          image: " + (st.image || "nginx:alpine"),
+      "          imagePullPolicy: " + (st.imagePullPolicy || "IfNotPresent"),
+      "          ports:",
+      "            - name: http",
+      "              containerPort: " + (parseInt(st.containerPort, 10) || 80),
+      "              protocol: TCP"
+    ];
+
+    // Resources
+    L.push(
+      "          resources:",
+      "            requests:",
+      "              cpu: \"" + (st.cpuRequest || "100m") + "\"",
+      "              memory: \"" + (st.memRequest || "128Mi") + "\"",
+      "            limits:",
+      "              cpu: \"" + (st.cpuLimit || "500m") + "\"",
+      "              memory: \"" + (st.memLimit || "512Mi") + "\""
+    );
+
+    // Env vars
+    if (st.envVars && st.envVars.length) {
+      L.push("          env:");
+      st.envVars.forEach(function (e) {
+        if (e.key) {
+          L.push("            - name: " + e.key);
+          L.push("              value: \"" + e.val + "\"");
+        }
+      });
+    }
+
+    // Liveness probe
+    if (st.livenessEnabled) {
+      L.push(
+        "          livenessProbe:",
+        "            httpGet:",
+        "              path: " + (st.livenessPath || "/healthz"),
+        "              port: " + (parseInt(st.livenessPort, 10) || 80),
+        "            initialDelaySeconds: 10",
+        "            periodSeconds: 10",
+        "            failureThreshold: 3"
+      );
+    }
+
+    // Readiness probe
+    if (st.readinessEnabled) {
+      L.push(
+        "          readinessProbe:",
+        "            httpGet:",
+        "              path: " + (st.readinessPath || "/ready"),
+        "              port: " + (parseInt(st.readinessPort, 10) || 80),
+        "            initialDelaySeconds: 5",
+        "            periodSeconds: 5",
+        "            failureThreshold: 3"
+      );
+    }
+
+    return L.join("\n");
+  }
+
+  function generateService() {
+    var st = S.service;
+    var name = sanitizeName(st.name);
+    var selector = parseLabels(st.selector);
+
+    var L = [
+      "apiVersion: v1",
+      "kind: Service",
+      "metadata:",
+      "  name: " + name,
+      "  namespace: " + (st.namespace || "default"),
+      "spec:",
+      "  type: " + (st.type || "ClusterIP"),
+      "  selector:"
+    ];
+
+    if (Object.keys(selector).length) {
+      L.push(yamlLabels(selector, "    "));
+    } else {
+      L.push("    app: " + name);
+    }
+
+    L.push(
+      "  ports:",
+      "    - name: " + (st.protocol || "TCP").toLowerCase(),
+      "      protocol: " + (st.protocol || "TCP"),
+      "      port: " + (parseInt(st.port, 10) || 80),
+      "      targetPort: " + (parseInt(st.targetPort, 10) || 80)
+    );
+
+    if (st.type === "NodePort" && st.nodePort) {
+      L.push("      nodePort: " + parseInt(st.nodePort, 10));
+    }
+
+    return L.join("\n");
+  }
+
+  function generateIngress() {
+    var st = S.ingress;
+    var name = sanitizeName(st.name);
+
+    var L = [
+      "apiVersion: networking.k8s.io/v1",
+      "kind: Ingress",
+      "metadata:",
+      "  name: " + name,
+      "  namespace: " + (st.namespace || "default")
+    ];
+
+    // Annotations
+    var annots = [];
+    if (st.ingressClass) annots.push("  kubernetes.io/ingress.class: \"" + st.ingressClass + "\"");
+    if (st.annotations) {
+      st.annotations.split("\n").forEach(function (line) {
+        var sep = line.indexOf(":");
+        if (sep === -1) return;
+        annots.push("  " + line.trim());
+      });
+    }
+
+    if (annots.length) {
+      L.push("  annotations:");
+      annots.forEach(function (a) { L.push(a); });
+    }
+
+    L.push("spec:");
+
+    if (st.ingressClass) {
+      L.push("  ingressClassName: " + st.ingressClass);
+    }
+
+    if (st.tlsEnabled) {
+      L.push(
+        "  tls:",
+        "    - hosts:",
+        "        - " + (st.host || "app.example.com"),
+        "      secretName: " + (st.tlsSecret || "my-tls-secret")
+      );
+    }
+
+    L.push(
+      "  rules:",
+      "    - host: " + (st.host || "app.example.com"),
+      "      http:",
+      "        paths:",
+      "          - path: " + (st.path || "/"),
+      "            pathType: " + (st.pathType || "Prefix"),
+      "            backend:",
+      "              service:",
+      "                name: " + (st.serviceName || "my-app-svc"),
+      "                port:",
+      "                  number: " + (parseInt(st.servicePort, 10) || 80)
+    );
+
+    return L.join("\n");
+  }
+
+  function generateConfigMap() {
+    var st = S.configmap;
+    var name = sanitizeName(st.name);
+
+    var L = [
+      "apiVersion: v1",
+      "kind: ConfigMap",
+      "metadata:",
+      "  name: " + name,
+      "  namespace: " + (st.namespace || "default"),
+      "data:"
+    ];
+
+    if (st.data && st.data.length) {
+      st.data.forEach(function (pair) {
+        if (pair.key) {
+          L.push("  " + pair.key + ": \"" + pair.val.replace(/"/g, '\\"') + "\"");
+        }
+      });
+    } else {
+      L.push("  # Add your config entries above");
+    }
+
+    return L.join("\n");
+  }
+
+  function generateSecret() {
+    var st = S.secret;
+    var name = sanitizeName(st.name);
+
+    var L = [
+      "apiVersion: v1",
+      "kind: Secret",
+      "metadata:",
+      "  name: " + name,
+      "  namespace: " + (st.namespace || "default"),
+      "type: " + (st.type || "Opaque"),
+      "data:"
+    ];
+
+    if (st.data && st.data.length) {
+      st.data.forEach(function (pair) {
+        if (pair.key) {
+          L.push("  " + pair.key + ": " + b64(pair.val));
+        }
+      });
+    } else {
+      L.push("  # Add your secret entries above (values will be base64-encoded)");
+    }
+
+    L.push("");
+    L.push("# To decode a value: echo '<base64>' | base64 -d");
+    L.push("# To encode a value: echo -n 'myvalue' | base64");
+
+    return L.join("\n");
+  }
+
+  function generateHpa() {
+    var st = S.hpa;
+    var name = sanitizeName(st.name);
+
+    var L = [
+      "apiVersion: autoscaling/v2",
+      "kind: HorizontalPodAutoscaler",
+      "metadata:",
+      "  name: " + name,
+      "  namespace: " + (st.namespace || "default"),
+      "spec:",
+      "  scaleTargetRef:",
+      "    apiVersion: apps/v1",
+      "    kind: " + (st.targetKind || "Deployment"),
+      "    name: " + sanitizeName(st.targetName || "my-app"),
+      "  minReplicas: " + (parseInt(st.minReplicas, 10) || 2),
+      "  maxReplicas: " + (parseInt(st.maxReplicas, 10) || 10),
+      "  metrics:"
+    ];
+
+    L.push(
+      "    - type: Resource",
+      "      resource:",
+      "        name: cpu",
+      "        target:",
+      "          type: Utilization",
+      "          averageUtilization: " + (parseInt(st.cpuTarget, 10) || 70)
+    );
+
+    if (st.memEnabled) {
+      L.push(
+        "    - type: Resource",
+        "      resource:",
+        "        name: memory",
+        "        target:",
+        "          type: Utilization",
+        "          averageUtilization: " + (parseInt(st.memTarget, 10) || 80)
+      );
+    }
+
+    L.push(
+      "  behavior:",
+      "    scaleDown:",
+      "      stabilizationWindowSeconds: 300",
+      "      policies:",
+      "        - type: Percent",
+      "          value: 25",
+      "          periodSeconds: 60",
+      "    scaleUp:",
+      "      stabilizationWindowSeconds: 0",
+      "      policies:",
+      "        - type: Percent",
+      "          value: 100",
+      "          periodSeconds: 15"
+    );
+
+    return L.join("\n");
+  }
+
+  function generate() {
+    var yaml;
+    try {
+      if (currentResource === "deployment")  yaml = generateDeployment();
+      else if (currentResource === "service") yaml = generateService();
+      else if (currentResource === "ingress") yaml = generateIngress();
+      else if (currentResource === "configmap") yaml = generateConfigMap();
+      else if (currentResource === "secret")  yaml = generateSecret();
+      else if (currentResource === "hpa")     yaml = generateHpa();
+      else yaml = "# Unknown resource type";
+    } catch (e) {
+      yaml = "# Error: " + e.message;
+    }
+    outputEl.textContent = yaml;
+  }
+
+  // ── Resource switching ────────────────────────────────────────────────────
+  resBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      resBtns.forEach(function (b) {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+      currentResource = btn.getAttribute("data-resource");
+      buildFields(currentResource);
+      generate();
+    });
+  });
+
+  // ── Copy / Download ───────────────────────────────────────────────────────
+  function copyText(btn, text, label) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = "Copied!";
+        setTimeout(function () { btn.textContent = label; }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); btn.textContent = "Copied!"; } catch (e) {}
+      document.body.removeChild(ta);
+      setTimeout(function () { btn.textContent = label; }, 2000);
+    }
+  }
+
+  copyBtn.addEventListener("click", function () {
+    var text = outputEl.textContent;
+    if (text) copyText(copyBtn, text, "Copy");
+  });
+
+  dlBtn.addEventListener("click", function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    var blob = new Blob([text], { type: "text/yaml" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = currentResource + ".yaml";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    dlBtn.textContent = "Downloaded!";
+    setTimeout(function () { dlBtn.textContent = "Download"; }, 2000);
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  buildFields(currentResource);
+  generate();
+})();
+</script>

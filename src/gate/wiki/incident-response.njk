@@ -1,0 +1,251 @@
+---
+title: "Incident Response"
+description: "When Gate finds a secret in pushed history, a full incident response workflow begins."
+permalink: /gate/wiki/incident-response/
+---
+<h1>Incident Response</h1>
+    <p class="subtitle">When Gate finds a secret in pushed history, a full incident response workflow begins: rotate, audit, clean, scrub, and document.</p>
+
+    <h2 id="when-ir-triggers">When Incident Response Triggers</h2>
+
+    <p>Incident response is triggered when Gate determines that a credential has been pushed to a remote repository. This is the highest-severity exposure state -- the secret may have been visible to anyone with repository access, and may have been indexed by third-party tools or scrapers.</p>
+
+    <div class="warn-box">
+      <strong>Exposure level: PUSHED</strong> -- a secret was found in remote-tracking branches (e.g., <code>origin/main</code>). Full incident response is required. Assume the credential is compromised.
+    </div>
+
+    <p>Gate detects the PUSHED state by inspecting <code>git log --remotes</code> to check whether the commit containing the finding exists in any remote-tracking ref. If it does, exposure is classified as PUSHED regardless of whether the branch was subsequently force-pushed or deleted.</p>
+
+    <h2 id="exposure-assessment">Exposure Assessment</h2>
+
+    <p>Before triggering the response workflow, Gate determines the exposure level of each finding. This assessment drives which steps are required.</p>
+
+    <table class="cmd-table">
+      <thead>
+        <tr>
+          <th>Level</th>
+          <th>Meaning</th>
+          <th>Required action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>LOCAL</td>
+          <td style="color: var(--text-2);">Staged but never committed. File is dirty or in the index only.</td>
+          <td style="color: var(--text-3);">Extract the secret. No history cleanup needed.</td>
+        </tr>
+        <tr>
+          <td>COMMITTED</td>
+          <td style="color: var(--text-2);">In local commits, but not yet pushed to any remote.</td>
+          <td style="color: var(--text-3);">Extract the secret, then amend or rebase to remove it from local history.</td>
+        </tr>
+        <tr>
+          <td>PUSHED</td>
+          <td style="color: var(--text-2);">In at least one remote-tracking branch.</td>
+          <td style="color: var(--text-3);">Full incident response: rotate, audit, clean, scrub history, document.</td>
+        </tr>
+        <tr>
+          <td>UNKNOWN</td>
+          <td style="color: var(--text-2);">Gate cannot determine git state (not a git repo, detached HEAD, etc.).</td>
+          <td style="color: var(--text-3);">Treat as PUSHED. Rotate immediately.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Gate determines exposure by running <code>git log --all --find-object</code> and cross-referencing the containing commit against remote-tracking refs via <code>git branch -r --contains &lt;commit&gt;</code>. If the git working directory is unavailable, exposure defaults to UNKNOWN.</p>
+
+    <h2 id="workflow">The 5-Step Response Workflow</h2>
+
+    <p>When exposure is PUSHED (or UNKNOWN), Gate walks through five steps in order. Each step is tracked and recorded in the incident document.</p>
+
+    <h3>Step 1: ROTATE</h3>
+
+    <p>Rotation is always the first step. A pushed secret must be considered compromised immediately -- even if no unauthorized access has occurred yet. Gate provides provider-specific rotation guidance based on the rule that matched.</p>
+
+    <p>For credentials from supported providers, Gate detects the relevant CLI tool and prints exact commands:</p>
+
+    <div class="code-block"><span class="dim">  [ROTATE]  AWS IAM Access Key detected</span>
+
+<span class="dim">  CLI detected: aws</span>
+
+<span class="prompt">  $ </span><span class="cmd">aws iam delete-access-key --access-key-id AKIAIOSFODNN7EXAMPLE</span>
+<span class="prompt">  $ </span><span class="cmd">aws iam create-access-key --user-name &lt;your-user&gt;</span>
+
+<span class="dim">  Or rotate in the console:</span>
+<span class="dim">  https://console.aws.amazon.com/iam/home#/security_credentials</span></div>
+
+    <p>Provider rotation reference:</p>
+
+    <table class="cmd-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>CLI tool</th>
+          <th>Rotation command / URL</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>AWS</td>
+          <td style="color: var(--text-2);"><code>aws</code></td>
+          <td style="color: var(--text-3);"><code>aws iam delete-access-key</code> + <code>create-access-key</code></td>
+        </tr>
+        <tr>
+          <td>GitHub</td>
+          <td style="color: var(--text-2);"><code>gh</code></td>
+          <td style="color: var(--text-3);"><code>gh auth token</code> / Settings &rarr; Developer settings &rarr; Tokens</td>
+        </tr>
+        <tr>
+          <td>Stripe</td>
+          <td style="color: var(--text-2);">--</td>
+          <td style="color: var(--text-3);">dashboard.stripe.com/apikeys &rarr; Roll key</td>
+        </tr>
+        <tr>
+          <td>Google Cloud</td>
+          <td style="color: var(--text-2);"><code>gcloud</code></td>
+          <td style="color: var(--text-3);"><code>gcloud iam service-accounts keys delete &lt;KEY_ID&gt;</code></td>
+        </tr>
+        <tr>
+          <td>Azure</td>
+          <td style="color: var(--text-2);"><code>az</code></td>
+          <td style="color: var(--text-3);"><code>az ad app credential reset --id &lt;APP_ID&gt;</code></td>
+        </tr>
+        <tr>
+          <td>Heroku</td>
+          <td style="color: var(--text-2);"><code>heroku</code></td>
+          <td style="color: var(--text-3);"><code>heroku authorizations:rotate &lt;ID&gt;</code></td>
+        </tr>
+        <tr>
+          <td>Twilio</td>
+          <td style="color: var(--text-2);">--</td>
+          <td style="color: var(--text-3);">console.twilio.com &rarr; Account &rarr; API Keys &rarr; Revoke</td>
+        </tr>
+        <tr>
+          <td>SendGrid</td>
+          <td style="color: var(--text-2);">--</td>
+          <td style="color: var(--text-3);">app.sendgrid.com/settings/api_keys &rarr; Revoke</td>
+        </tr>
+        <tr>
+          <td>Slack</td>
+          <td style="color: var(--text-2);">--</td>
+          <td style="color: var(--text-3);">api.slack.com/apps &rarr; Your App &rarr; OAuth &amp; Permissions &rarr; Revoke</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Step 2: AUDIT</h3>
+
+    <p>After rotating, check provider access logs for any usage of the exposed credential during the exposure window. Gate prints the exposure window (from the earliest commit timestamp to now) and provides direct links to each provider's audit log interface.</p>
+
+    <div class="code-block"><span class="dim">  [AUDIT]  Exposure window: 2025-11-14T09:22:00Z &rarr; now</span>
+
+<span class="dim">  AWS CloudTrail:</span>
+<span class="dim">  https://console.aws.amazon.com/cloudtrail/home#/events</span>
+<span class="dim">  Filter: AccessKeyId = AKIAIOSFODNN7EXAMPLE, time range: exposure window</span>
+
+<span class="dim">  GitHub audit log:</span>
+<span class="dim">  https://github.com/settings/security-log</span>
+<span class="dim">  Filter: actor actions during the exposure window</span></div>
+
+    <p>Look for any API calls, logins, or resource access that did not originate from your own systems. Pay particular attention to calls from unfamiliar IPs or user agents, and to actions you did not initiate (resource creation, data exports, permission changes).</p>
+
+    <h3>Step 3: CLEAN</h3>
+
+    <p>The CLEAN step removes the secret from your working code. Gate calls the auto-fix engine to extract the credential from the source file and rewrite the reference to use an environment variable.</p>
+
+    <div class="code-block"><span class="dim">  [CLEAN]  Running auto-fix on src/api/payments.ts:23</span>
+
+<span class="ok">  Extracted: STRIPE_SECRET_KEY &rarr; .env</span>
+<span class="ok">  Rewrote:   src/api/payments.ts (process.env.STRIPE_SECRET_KEY)</span>
+<span class="dim">  .env permissions: 0o600</span></div>
+
+    <p>This step only cleans the current working tree. The secret still exists in git history, which is addressed in the next step. See <a href="/gate/wiki/auto-fix/">Auto-Fix Engine</a> for details on how fixers work.</p>
+
+    <h3>Step 4: SCRUB</h3>
+
+    <p>The SCRUB step generates a script to purge the secret from the entire git history. Gate creates a <code>git-filter-repo</code> replacements file and a shell script to run it.</p>
+
+    <div class="code-block"><span class="dim">  [SCRUB]  Generating history purge script</span>
+
+<span class="ok">  ~/.gate/purge-abc123.sh       (permissions: 0o700)</span>
+<span class="ok">  ~/.gate/replacements-abc123   (permissions: 0o600)</span>
+
+<span class="dim">  Contents of purge-abc123.sh:</span>
+<span class="cmt">  #!/bin/sh
+  # Gate incident purge script -- generated 2026-01-15T14:32:00Z
+  # Review before running. This rewrites git history.
+  #
+  # Prerequisites: pip install git-filter-repo
+  git filter-repo \
+    --replace-text ~/.gate/replacements-abc123 \
+    --force
+  #
+  # After verifying the rewrite, force-push all branches:
+  # git push --force-with-lease --all
+  # git push --force-with-lease --tags
+  #
+  # BFG alternative (if git-filter-repo is unavailable):
+  # bfg --replace-text ~/.gate/replacements-abc123</span></div>
+
+    <p>The replacements file contains the literal secret value mapped to <code>***REMOVED***</code>. The force-push commands are included as comments -- you must uncomment and run them manually after verifying the rewritten history. Coordinate with all repository collaborators before force-pushing, as their local clones will need to be rebased or re-cloned.</p>
+
+    <h3>Step 5: DOCUMENT</h3>
+
+    <p>Gate creates a permanent incident record and generates a formal Markdown report.</p>
+
+    <div class="code-block"><span class="dim">  [DOCUMENT]  Creating incident record</span>
+
+<span class="ok">  ~/.gate/incidents/inc-20260115-abc123.json</span>
+<span class="ok">  ~/.gate/reports/incident-abc123.md</span></div>
+
+    <h2 id="incident-records">Incident Record Format</h2>
+
+    <p>Each incident is stored as a JSON file in <code>~/.gate/incidents/</code> with permissions 0o600. The record captures the full context of the finding, every action taken, and references to applicable compliance frameworks.</p>
+
+    <div class="code-block"><span class="cmt">{
+  "id":            "inc-20260115-abc123",
+  "detectedAt":   "2026-01-15T14:32:00Z",
+  "ruleId":        "stripe-secret-key",
+  "severity":      "CRITICAL",
+  "file":          "src/api/payments.ts",
+  "line":          23,
+  "exposure":      "PUSHED",
+  "exposureWindow": {
+    "from": "2025-11-14T09:22:00Z",
+    "to":   "2026-01-15T14:32:00Z"
+  },
+  "actions": [
+    { "step": "ROTATE",   "completedAt": "2026-01-15T14:35:00Z", "by": "user" },
+    { "step": "AUDIT",    "completedAt": "2026-01-15T14:40:00Z", "by": "user" },
+    { "step": "CLEAN",    "completedAt": "2026-01-15T14:40:01Z", "by": "gate" },
+    { "step": "SCRUB",    "completedAt": "2026-01-15T14:41:00Z", "by": "gate" },
+    { "step": "DOCUMENT", "completedAt": "2026-01-15T14:41:02Z", "by": "gate" }
+  ],
+  "compliance": [
+    "OWASP-A02", "NIST-800-63B", "CIS-16.7", "SOC2-CC6.6"
+  ],
+  "purgeScript": "~/.gate/purge-abc123.sh",
+  "report":      "~/.gate/reports/incident-abc123.md"
+}</span></div>
+
+    <h2 id="incident-reports">Incident Reports</h2>
+
+    <p>Gate can generate a formal Markdown incident report from any stored incident record. This report is suitable for sharing with security teams, auditors, or management.</p>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate report --incident inc-20260115-abc123</span></div>
+
+    <p>The generated report includes:</p>
+    <ul>
+      <li><strong style="color: var(--text-1);">Executive summary</strong> -- finding, severity, exposure level, and key dates</li>
+      <li><strong style="color: var(--text-1);">Timeline</strong> -- when the secret was introduced, when it was detected, and when each remediation step was completed</li>
+      <li><strong style="color: var(--text-1);">Actions taken</strong> -- which steps were completed, by whom, and at what time</li>
+      <li><strong style="color: var(--text-1);">Compliance references</strong> -- which controls this incident relates to (OWASP, NIST, CIS, SOC2)</li>
+      <li><strong style="color: var(--text-1);">Recommendations</strong> -- provider-specific guidance to prevent recurrence</li>
+    </ul>
+
+    <p>To list all stored incidents:</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate report --list-incidents</span></div>
+
+    <div class="info-box">
+      <strong>Tip:</strong> Incident records and reports are stored locally in <code>~/.gate/incidents/</code> and <code>~/.gate/reports/</code> with owner-only permissions (0o600). They are never sent to any remote service.
+    </div>

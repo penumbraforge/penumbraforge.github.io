@@ -1,0 +1,194 @@
+---
+toolSlug: uuid-generator
+permalink: /tools/uuid-generator/
+---
+
+<div class="tool-row">
+  <div class="tool-group" style="flex:1;">
+    <label for="uuid-quantity">Quantity</label>
+    <input type="number" id="uuid-quantity" min="1" max="100" value="1" style="width:80px;">
+  </div>
+  <div class="tool-group" style="flex:2;">
+    <label>Version</label>
+    <div class="tool-options" role="group" aria-label="UUID version">
+      <button class="tool-option active" data-version="v4" aria-pressed="true">v4 (random)</button>
+      <button class="tool-option" data-version="v7" aria-pressed="false">v7 (time-ordered)</button>
+    </div>
+  </div>
+  <div class="tool-group" style="flex:2;">
+    <label>Format</label>
+    <div class="tool-options" role="group" aria-label="Hyphen format">
+      <button class="tool-option active" data-hyphens="yes" aria-pressed="true">Hyphens</button>
+      <button class="tool-option" data-hyphens="no" aria-pressed="false">No hyphens</button>
+    </div>
+  </div>
+  <div class="tool-group" style="flex:2;">
+    <label>Case</label>
+    <div class="tool-options" role="group" aria-label="Case format">
+      <button class="tool-option active" data-case="lower" aria-pressed="true">Lowercase</button>
+      <button class="tool-option" data-case="upper" aria-pressed="false">Uppercase</button>
+    </div>
+  </div>
+</div>
+
+<div class="tool-row">
+  <button class="btn btn--primary" id="btn-generate">Generate</button>
+</div>
+
+<div class="output-area">
+  <button class="btn btn--copy" id="btn-copy" aria-label="Copy all UUIDs">Copy all</button>
+  <pre id="uuid-output" aria-label="Generated UUIDs"></pre>
+</div>
+
+<script>
+(function () {
+  var outputEl   = document.getElementById('uuid-output');
+  var copyBtn    = document.getElementById('btn-copy');
+  var genBtn     = document.getElementById('btn-generate');
+  var qtyEl      = document.getElementById('uuid-quantity');
+
+  var currentVersion = 'v4';
+  var useHyphens     = true;
+  var useUppercase   = false;
+
+  function bytesToHex(bytes) {
+    var hex = '';
+    for (var i = 0; i < bytes.length; i++) {
+      hex += ('0' + bytes[i].toString(16)).slice(-2);
+    }
+    return hex;
+  }
+
+  function generateV4() {
+    var bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant bits
+    var hex = bytesToHex(bytes);
+    return [
+      hex.slice(0, 8),
+      hex.slice(8, 12),
+      hex.slice(12, 16),
+      hex.slice(16, 20),
+      hex.slice(20, 32)
+    ].join('-');
+  }
+
+  function generateV7() {
+    var bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    var ms = Date.now();
+    // 48-bit millisecond timestamp in first 6 bytes
+    bytes[0] = (ms / 0x10000000000) & 0xff;
+    bytes[1] = (ms / 0x100000000) & 0xff;
+    bytes[2] = (ms / 0x1000000) & 0xff;
+    bytes[3] = (ms / 0x10000) & 0xff;
+    bytes[4] = (ms / 0x100) & 0xff;
+    bytes[5] = ms & 0xff;
+    bytes[6] = (bytes[6] & 0x0f) | 0x70; // version 7
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant bits
+    var hex = bytesToHex(bytes);
+    return [
+      hex.slice(0, 8),
+      hex.slice(8, 12),
+      hex.slice(12, 16),
+      hex.slice(16, 20),
+      hex.slice(20, 32)
+    ].join('-');
+  }
+
+  function applyFormat(uuid) {
+    var result = uuid;
+    if (!useHyphens) result = result.replace(/-/g, '');
+    if (useUppercase) result = result.toUpperCase();
+    return result;
+  }
+
+  function generate() {
+    var qty = Math.min(100, Math.max(1, parseInt(qtyEl.value, 10) || 1));
+    var lines = [];
+    for (var i = 0; i < qty; i++) {
+      var raw = currentVersion === 'v7' ? generateV7() : generateV4();
+      lines.push(applyFormat(raw));
+    }
+    outputEl.textContent = lines.join('\n');
+  }
+
+  // Version toggle
+  var versionBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-version]'));
+  versionBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      versionBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      currentVersion = btn.getAttribute('data-version');
+    });
+  });
+
+  // Hyphens toggle
+  var hyphenBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-hyphens]'));
+  hyphenBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      hyphenBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      useHyphens = btn.getAttribute('data-hyphens') === 'yes';
+    });
+  });
+
+  // Case toggle
+  var caseBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-case]'));
+  caseBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      caseBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      useUppercase = btn.getAttribute('data-case') === 'upper';
+    });
+  });
+
+  genBtn.addEventListener('click', generate);
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy all'; }, 2000);
+      }).catch(function () {
+        copyBtn.textContent = 'Failed';
+        setTimeout(function () { copyBtn.textContent = 'Copy all'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        copyBtn.textContent = 'Copied!';
+      } catch (e) {
+        copyBtn.textContent = 'Failed';
+      }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy all'; }, 2000);
+    }
+  });
+
+  // Generate one on load
+  generate();
+})();
+</script>

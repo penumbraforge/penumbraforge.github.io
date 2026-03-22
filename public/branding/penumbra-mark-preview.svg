@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <radialGradient id="pf-glow" cx="0" cy="0" r="1" gradientTransform="translate(128 124) rotate(90) scale(108)">
+      <stop offset="0" stop-color="#d9cbfb" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#d9cbfb" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pf-ring" x1="56" y1="56" x2="204" y2="204" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f1e9ff"/>
+      <stop offset="0.48" stop-color="#cbb9ef"/>
+      <stop offset="1" stop-color="#8a73bb"/>
+    </linearGradient>
+    <mask id="pf-notch">
+      <rect width="256" height="256" fill="#fff"/>
+      <path d="M178 168L218 208L206 220L166 180Z" fill="#000"/>
+    </mask>
+    <filter id="pf-soft" x="0" y="0" width="256" height="256" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+
+  <circle cx="128" cy="128" r="102" fill="url(#pf-glow)" filter="url(#pf-soft)"/>
+
+  <g mask="url(#pf-notch)">
+    <circle cx="128" cy="128" r="78" stroke="url(#pf-ring)" stroke-width="12"/>
+    <circle cx="128" cy="128" r="57" fill="#080a12"/>
+    <circle cx="143" cy="119" r="44" fill="url(#pf-ring)" opacity="0.92"/>
+    <circle cx="126" cy="119" r="44" fill="#080a12"/>
+  </g>
+</svg>

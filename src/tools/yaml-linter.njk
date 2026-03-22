@@ -1,0 +1,870 @@
+---
+toolSlug: yaml-linter
+permalink: /tools/yaml-linter/
+---
+
+<div class="tool-group">
+  <label for="yaml-input">Paste YAML</label>
+  <textarea id="yaml-input" rows="14" placeholder="name: my-app&#10;version: 1.0.0&#10;config:&#10;  debug: true&#10;  port: 3000&#10;  hosts:&#10;    - localhost&#10;    - 127.0.0.1" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Examples">
+    <button class="tool-option" id="ex-k8s">Kubernetes pod</button>
+    <button class="tool-option" id="ex-ci">GitHub Actions</button>
+    <button class="tool-option" id="ex-anchors">Anchors</button>
+    <button class="tool-option" id="ex-dupes">Duplicate keys</button>
+  </div>
+  <button class="btn" id="btn-format">Format</button>
+</div>
+
+<div id="yaml-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+<div id="yaml-summary" style="display:none;" class="yaml-summary"></div>
+
+<div class="tool-row" style="margin-bottom:0; margin-top:4px;">
+  <div class="tool-options" role="group" aria-label="Output view" id="yaml-view-tabs">
+    <button class="tool-option active" data-view="formatted" aria-pressed="true">Formatted</button>
+    <button class="tool-option"        data-view="tree"      aria-pressed="false">Tree view</button>
+  </div>
+</div>
+
+<div id="yaml-view-formatted">
+  <div class="output-area">
+    <button class="btn btn--copy" id="btn-copy-yaml">Copy</button>
+    <pre id="yaml-output" aria-label="Formatted YAML"></pre>
+  </div>
+</div>
+
+<div id="yaml-view-tree" style="display:none;">
+  <div class="yaml-tree-hint" id="yaml-tree-hint">Click any value to copy its YAML path</div>
+  <div id="yaml-tree" class="yaml-tree" aria-label="YAML tree view"></div>
+  <div id="yaml-path-toast" class="yaml-path-toast" style="display:none;"></div>
+</div>
+
+<style>
+  .yaml-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 13px;
+  }
+
+  .yaml-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 3px;
+    padding: 3px 10px;
+    font-weight: 600;
+    border: 1px solid var(--border, #e5e7eb);
+    background: var(--surface-0, #f9fafb);
+    color: var(--text-1, #111827);
+  }
+
+  .yaml-badge--error   { border-left: 3px solid #ef4444; }
+  .yaml-badge--warning { border-left: 3px solid #f59e0b; }
+  .yaml-badge--ok      { border-left: 3px solid #10b981; }
+  .yaml-badge--info    { border-left: 3px solid #3b82f6; }
+
+  .yaml-tree {
+    margin-top: 8px;
+    font-family: var(--font-mono, monospace);
+    font-size: 13px;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 4px;
+    padding: 8px 0;
+    background: var(--surface-bg, #fff);
+    max-height: 480px;
+    overflow-y: auto;
+  }
+
+  .yaml-node {
+    display: flex;
+    align-items: flex-start;
+    padding: 1px 10px;
+    gap: 0;
+    cursor: default;
+  }
+
+  .yaml-node--clickable {
+    cursor: pointer;
+    border-radius: 3px;
+  }
+
+  .yaml-node--clickable:hover {
+    background: var(--surface-0, #f9fafb);
+  }
+
+  .yaml-node--clickable:hover .yaml-node-key {
+    color: var(--accent, #3b82f6);
+  }
+
+  .yaml-indent {
+    display: inline-block;
+    white-space: pre;
+    color: transparent;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .yaml-toggle {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--text-3, #9ca3af);
+    font-size: 10px;
+    flex-shrink: 0;
+    margin-right: 2px;
+    user-select: none;
+  }
+
+  .yaml-toggle:hover { color: var(--text-1, #111827); }
+
+  .yaml-node-key {
+    color: var(--text-1, #111827);
+    font-weight: 600;
+  }
+
+  .yaml-colon { color: var(--text-3, #9ca3af); margin: 0 4px 0 0; }
+
+  .yaml-val--string  { color: #059669; }
+  .yaml-val--number  { color: #2563eb; }
+  .yaml-val--bool    { color: #7c3aed; }
+  .yaml-val--null    { color: #9ca3af; font-style: italic; }
+  .yaml-val--anchor  { color: #d97706; }
+  .yaml-val--alias   { color: #7c3aed; }
+
+  .yaml-type-badge {
+    font-size: 10px;
+    font-family: var(--font-sans, sans-serif);
+    color: var(--text-3, #9ca3af);
+    background: var(--surface-0, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 3px;
+    padding: 0 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+    line-height: 16px;
+  }
+
+  .yaml-tree-hint {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 12px;
+    color: var(--text-3, #9ca3af);
+    margin-bottom: 4px;
+  }
+
+  .yaml-path-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text-1, #111827);
+    color: #fff;
+    font-family: var(--font-mono, monospace);
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    z-index: 9999;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var inputEl   = document.getElementById("yaml-input");
+  var errorEl   = document.getElementById("yaml-error");
+  var summaryEl = document.getElementById("yaml-summary");
+  var outputEl  = document.getElementById("yaml-output");
+  var treeEl    = document.getElementById("yaml-tree");
+  var copyBtn   = document.getElementById("btn-copy-yaml");
+  var formatBtn = document.getElementById("btn-format");
+  var toastEl   = document.getElementById("yaml-path-toast");
+  var viewFormatted = document.getElementById("yaml-view-formatted");
+  var viewTree      = document.getElementById("yaml-view-tree");
+  var viewBtns      = Array.prototype.slice.call(document.querySelectorAll("#yaml-view-tabs [data-view]"));
+  var currentView   = "formatted";
+  var toastTimer    = null;
+
+  // ── Examples ─────────────────────────────────────────────────────────────
+  var EXAMPLES = {
+    k8s: [
+      "apiVersion: v1",
+      "kind: Pod",
+      "metadata:",
+      "  name: my-pod",
+      "  labels:",
+      "    app: my-app",
+      "    env: production",
+      "spec:",
+      "  containers:",
+      "    - name: app",
+      "      image: my-image:1.0",
+      "      ports:",
+      "        - containerPort: 8080",
+      "      env:",
+      "        - name: NODE_ENV",
+      "          value: production",
+      "        - name: PORT",
+      "          value: \"8080\""
+    ].join("\n"),
+    ci: [
+      "name: CI",
+      "on:",
+      "  push:",
+      "    branches: [main]",
+      "  pull_request:",
+      "    branches: [main]",
+      "jobs:",
+      "  test:",
+      "    runs-on: ubuntu-latest",
+      "    steps:",
+      "      - uses: actions/checkout@v3",
+      "      - name: Setup Node",
+      "        uses: actions/setup-node@v3",
+      "        with:",
+      "          node-version: '18'",
+      "      - run: npm ci",
+      "      - run: npm test"
+    ].join("\n"),
+    anchors: [
+      "defaults: &defaults",
+      "  timeout: 30",
+      "  retries: 3",
+      "  log_level: info",
+      "",
+      "development:",
+      "  <<: *defaults",
+      "  debug: true",
+      "  database: dev_db",
+      "",
+      "production:",
+      "  <<: *defaults",
+      "  database: prod_db",
+      "  log_level: warn"
+    ].join("\n"),
+    dupes: [
+      "server:",
+      "  host: localhost",
+      "  port: 3000",
+      "  port: 8080",
+      "database:",
+      "  host: db.example.com",
+      "  name: mydb",
+      "server:",
+      "  host: other.example.com"
+    ].join("\n")
+  };
+
+  ["k8s", "ci", "anchors", "dupes"].forEach(function (key) {
+    var btn = document.getElementById("ex-" + key);
+    if (btn) btn.addEventListener("click", function () {
+      inputEl.value = EXAMPLES[key];
+      process();
+    });
+  });
+
+  // ── View switching ────────────────────────────────────────────────────────
+  viewBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      viewBtns.forEach(function (b) { b.classList.remove("active"); b.setAttribute("aria-pressed", "false"); });
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+      currentView = btn.getAttribute("data-view");
+      viewFormatted.style.display = currentView === "formatted" ? "" : "none";
+      viewTree.style.display      = currentView === "tree"      ? "" : "none";
+    });
+  });
+
+  // ── YAML Parser ───────────────────────────────────────────────────────────
+  // Lightweight parser for common YAML patterns
+  // Returns { value, issues[], anchors{} }
+
+  function trimRight(s) { return s.replace(/\s+$/, ""); }
+
+  function detectIndent(lines) {
+    for (var i = 0; i < lines.length; i++) {
+      var m = lines[i].match(/^( +)\S/);
+      if (m) return m[1].length;
+    }
+    return 2;
+  }
+
+  function parseScalar(s) {
+    s = s.trim();
+    if (s === "~" || s === "null" || s === "Null" || s === "NULL") return { v: null, type: "null" };
+    if (s === "true" || s === "True" || s === "TRUE")  return { v: true,  type: "bool" };
+    if (s === "false"|| s === "False"|| s === "FALSE") return { v: false, type: "bool" };
+    if (/^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s) && s !== "") {
+      var n = Number(s);
+      if (!isNaN(n)) return { v: n, type: "number" };
+    }
+    // Quoted strings
+    if ((s.startsWith('"') && s.endsWith('"')) ||
+        (s.startsWith("'") && s.endsWith("'"))) {
+      return { v: s.slice(1, -1), type: "string" };
+    }
+    return { v: s, type: "string" };
+  }
+
+  function countLeadingSpaces(s) {
+    var n = 0;
+    while (n < s.length && s[n] === " ") n++;
+    return n;
+  }
+
+  function parseYAML(text) {
+    var issues = [];
+    var anchors = {};
+    var rawLines = text.split("\n");
+
+    // Phase 1: find duplicate keys (top-level pass per indent level)
+    var keyOccurrences = {}; // "depth:key" -> first line
+
+    function trackKey(depth, key, lineNum) {
+      var id = depth + ":" + key;
+      if (keyOccurrences[id] !== undefined) {
+        issues.push({
+          severity: "error",
+          line: lineNum + 1,
+          msg: "Duplicate key '" + key + "' (first seen at line " + (keyOccurrences[id] + 1) + ") — later value silently overwrites the earlier one"
+        });
+      } else {
+        keyOccurrences[id] = lineNum;
+      }
+    }
+
+    // Phase 2: detect anchors/aliases
+    rawLines.forEach(function (line, i) {
+      var stripped = line.replace(/#.*$/, "").trimRight ? line.replace(/#(?![^"]*"[^"]*$).*/g, "") : line;
+      var anchorMatch = stripped.match(/&(\w+)/);
+      if (anchorMatch) {
+        anchors[anchorMatch[1]] = i + 1;
+        issues.push({ severity: "info", line: i + 1, msg: "Anchor &" + anchorMatch[1] + " defined here" });
+      }
+      var aliasMatch = stripped.match(/\*(\w+)/);
+      if (aliasMatch && !stripped.trim().startsWith("<<:")) {
+        issues.push({ severity: "info", line: i + 1, msg: "Alias *" + aliasMatch[1] + " used here (references anchor &" + aliasMatch[1] + ")" });
+      }
+    });
+
+    // Phase 3: parse structure
+    var lines = rawLines;
+    var pos = [0];
+    var maxDepth = [0];
+
+    function parseBlock(baseIndent, pathPrefix, contextDepth) {
+      var result = {};
+      var isList = null; // null = unknown, true = sequence, false = mapping
+      var listItems = [];
+
+      while (pos[0] < lines.length) {
+        var rawLine = lines[pos[0]];
+        var trimmed = rawLine.trimRight ? rawLine.replace(/\s+$/, "") : rawLine;
+
+        // Skip blank lines
+        if (!trimmed || /^\s*#/.test(trimmed)) { pos[0]++; continue; }
+
+        var indent = countLeadingSpaces(trimmed);
+
+        // Done with this block if we're back to less indent
+        if (indent < baseIndent) break;
+        if (indent > baseIndent && isList === null) { pos[0]++; continue; } // deeper without establishing context
+
+        var content = trimmed.slice(indent);
+        var lineNum = pos[0];
+        pos[0]++;
+
+        var curDepth = Math.floor(indent / 2);
+        if (curDepth > maxDepth[0]) maxDepth[0] = curDepth;
+
+        // List item
+        if (content.startsWith("- ") || content === "-") {
+          if (isList === false) {
+            issues.push({ severity: "error", line: lineNum + 1, msg: "Mixed sequence/mapping at same indent level" });
+          }
+          isList = true;
+          var itemContent = content.slice(2).trim();
+          var itemPath = pathPrefix + "[" + listItems.length + "]";
+
+          if (itemContent === "" || itemContent === "") {
+            // Multi-line item — recurse
+            var sub = parseBlock(indent + 2, itemPath, curDepth + 1);
+            listItems.push(sub);
+          } else if (itemContent.includes(": ") || /^[a-zA-Z_][\w-]*:\s*$/.test(itemContent)) {
+            // Inline mapping
+            var inlineResult = parseInlineMapping(itemContent, itemPath, curDepth + 1, lineNum);
+            // But also check if next lines are deeper
+            if (pos[0] < lines.length) {
+              var nextIndent = countLeadingSpaces(lines[pos[0]].replace(/\s+$/, ""));
+              if (nextIndent > indent + 2) {
+                var sub2 = parseBlock(nextIndent, itemPath, curDepth + 1);
+                Object.keys(sub2).forEach(function (k) { inlineResult[k] = sub2[k]; });
+              }
+            }
+            listItems.push(inlineResult);
+          } else {
+            var parsed = parseScalar(itemContent);
+            listItems.push(parsed.v);
+          }
+          continue;
+        }
+
+        // Mapping entry: key: value or key:
+        var colonIdx = content.indexOf(": ");
+        var isKeyOnly = /^[^\s:][^:]*:\s*$/.test(content) || content.endsWith(":");
+        if (colonIdx !== -1 || isKeyOnly) {
+          if (isList === true) {
+            issues.push({ severity: "error", line: lineNum + 1, msg: "Mixed sequence/mapping at same indent level" });
+          }
+          isList = false;
+
+          var key = colonIdx !== -1 ? content.slice(0, colonIdx).trim() : content.replace(/:$/, "").trim();
+          // Strip anchor from key
+          key = key.replace(/\s+&\w+$/, "").replace(/\s+\*\w+$/, "");
+
+          var valRaw = colonIdx !== -1 ? content.slice(colonIdx + 2).trim() : "";
+
+          trackKey(contextDepth + "." + baseIndent, key, lineNum);
+
+          var nodePath = pathPrefix ? pathPrefix + "." + key : key;
+
+          if (!valRaw || valRaw.startsWith("#")) {
+            // Block value — recurse
+            if (pos[0] < lines.length) {
+              var nextTrimmed = lines[pos[0]].replace(/\s+$/, "");
+              if (!nextTrimmed) {
+                result[key] = null;
+              } else {
+                var nextInd = countLeadingSpaces(nextTrimmed);
+                if (nextInd > indent) {
+                  var nextContent = nextTrimmed.trim();
+                  if (nextContent.startsWith("- ") || nextContent === "-") {
+                    var subArr = parseBlock(nextInd, nodePath, curDepth + 1);
+                    result[key] = subArr.__list__ || subArr;
+                  } else {
+                    result[key] = parseBlock(nextInd, nodePath, curDepth + 1);
+                  }
+                } else {
+                  result[key] = null;
+                }
+              }
+            } else {
+              result[key] = null;
+            }
+          } else if (valRaw.startsWith("|") || valRaw.startsWith(">")) {
+            // Block scalar — collect indented lines
+            var blockLines = [];
+            while (pos[0] < lines.length) {
+              var bl = lines[pos[0]];
+              var blInd = countLeadingSpaces(bl.replace(/\s+$/, "") || "");
+              if ((bl.trim() === "") || blInd > indent) {
+                blockLines.push(bl.replace(/\s+$/, ""));
+                pos[0]++;
+              } else break;
+            }
+            result[key] = blockLines.join("\n");
+          } else {
+            var parsed2 = parseScalar(valRaw);
+            result[key] = parsed2.v;
+          }
+          continue;
+        }
+      }
+
+      if (isList && listItems.length > 0) {
+        var listObj = { __list__: listItems };
+        return listObj;
+      }
+      return result;
+    }
+
+    function parseInlineMapping(str, path, depth, lineNum) {
+      var obj = {};
+      var colonIdx = str.indexOf(": ");
+      if (colonIdx !== -1) {
+        var k = str.slice(0, colonIdx).trim();
+        var v = str.slice(colonIdx + 2).trim();
+        var parsed = parseScalar(v);
+        obj[k] = parsed.v;
+      }
+      return obj;
+    }
+
+    var parsed = null;
+    var syntaxError = null;
+
+    try {
+      pos[0] = 0;
+      maxDepth[0] = 0;
+
+      // Find actual first content indent
+      var firstIndent = 0;
+      for (var i = 0; i < lines.length; i++) {
+        var t = lines[i].replace(/\s+$/, "");
+        if (t && !t.startsWith("#")) {
+          firstIndent = countLeadingSpaces(t);
+          break;
+        }
+      }
+
+      var raw = parseBlock(firstIndent, "", 0);
+      if (raw.__list__) {
+        parsed = raw.__list__;
+      } else {
+        parsed = raw;
+      }
+
+      // Max nesting depth check
+      if (maxDepth[0] > 8) {
+        issues.push({ severity: "warning", line: null, msg: "Nesting depth " + maxDepth[0] + " exceeds 8 levels — consider flattening this structure" });
+      }
+
+    } catch (e) {
+      syntaxError = e.message;
+    }
+
+    return { parsed: parsed, issues: issues, anchors: anchors, syntaxError: syntaxError, maxDepth: maxDepth[0] };
+  }
+
+  // ── YAML Formatter ────────────────────────────────────────────────────────
+  function formatValue(val, indent, path) {
+    if (val === null || val === undefined) return "~";
+    if (typeof val === "boolean") return val ? "true" : "false";
+    if (typeof val === "number") return String(val);
+    if (typeof val === "string") {
+      if (/[\n:]/.test(val) || val.startsWith(" ") || val === "" ||
+          val === "true" || val === "false" || val === "null" || /^\d+$/.test(val)) {
+        return '"' + val.replace(/"/g, '\\"').replace(/\n/g, "\\n") + '"';
+      }
+      return val;
+    }
+    return String(val);
+  }
+
+  function objToYAML(obj, indent) {
+    indent = indent || 0;
+    var pad = "  ".repeat(indent);
+    var lines = [];
+
+    if (Array.isArray(obj)) {
+      obj.forEach(function (item) {
+        if (item !== null && typeof item === "object" && !Array.isArray(item)) {
+          var keys = Object.keys(item);
+          if (keys.length === 0) {
+            lines.push(pad + "- {}");
+          } else {
+            var first = true;
+            keys.forEach(function (k) {
+              var prefix = first ? pad + "- " : pad + "  ";
+              first = false;
+              var v = item[k];
+              if (v !== null && typeof v === "object") {
+                lines.push(prefix + k + ":");
+                objToYAML(v, indent + 1).split("\n").forEach(function (l) { lines.push(l); });
+              } else {
+                lines.push(prefix + k + ": " + formatValue(v));
+              }
+            });
+          }
+        } else if (Array.isArray(item)) {
+          lines.push(pad + "-");
+          objToYAML(item, indent + 1).split("\n").forEach(function (l) { lines.push(l); });
+        } else {
+          lines.push(pad + "- " + formatValue(item));
+        }
+      });
+    } else if (obj !== null && typeof obj === "object") {
+      Object.keys(obj).forEach(function (k) {
+        var v = obj[k];
+        if (v !== null && typeof v === "object") {
+          lines.push(pad + k + ":");
+          objToYAML(v, indent + 1).split("\n").forEach(function (l) { if (l.trim()) lines.push(l); });
+        } else {
+          lines.push(pad + k + ": " + formatValue(v));
+        }
+      });
+    } else {
+      lines.push(pad + formatValue(obj));
+    }
+
+    return lines.join("\n");
+  }
+
+  // ── Tree renderer ─────────────────────────────────────────────────────────
+  function showToast(text) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = "Copied path: " + text;
+    toastEl.style.display = "";
+    toastTimer = setTimeout(function () { toastEl.style.display = "none"; }, 2500);
+  }
+
+  function copyText(text, label) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showToast(text); });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+      showToast(text);
+    }
+  }
+
+  function renderTree(container, data, path, depth) {
+    depth = depth || 0;
+    var pad = "  ".repeat(depth);
+
+    if (Array.isArray(data)) {
+      if (data.length === 0) {
+        var empty = document.createElement("div");
+        empty.className = "yaml-node";
+        var ind = document.createElement("span");
+        ind.className = "yaml-indent";
+        ind.textContent = pad;
+        var txt = document.createElement("span");
+        txt.className = "yaml-val--null";
+        txt.textContent = "[]";
+        empty.appendChild(ind);
+        empty.appendChild(txt);
+        container.appendChild(empty);
+        return;
+      }
+      data.forEach(function (item, idx) {
+        var itemPath = path + "[" + idx + "]";
+        var row = document.createElement("div");
+        row.className = "yaml-node";
+
+        var ind = document.createElement("span");
+        ind.className = "yaml-indent";
+        ind.textContent = pad;
+
+        var dash = document.createElement("span");
+        dash.className = "yaml-colon";
+        dash.textContent = "- ";
+
+        row.appendChild(ind);
+        row.appendChild(dash);
+
+        if (item !== null && typeof item === "object") {
+          var badge = document.createElement("span");
+          badge.className = "yaml-type-badge";
+          badge.textContent = Array.isArray(item) ? "[]" : "{}";
+          row.appendChild(badge);
+          container.appendChild(row);
+          renderTree(container, item, itemPath, depth + 1);
+        } else {
+          var scalar = renderScalarSpan(item, itemPath);
+          row.appendChild(scalar);
+          container.appendChild(row);
+        }
+      });
+    } else if (data !== null && typeof data === "object") {
+      var keys = Object.keys(data);
+      keys.forEach(function (key) {
+        var val = data[key];
+        var nodePath = path ? path + "." + key : key;
+
+        var row = document.createElement("div");
+        row.className = "yaml-node" + (val === null || typeof val !== "object" ? " yaml-node--clickable" : "");
+
+        var ind = document.createElement("span");
+        ind.className = "yaml-indent";
+        ind.textContent = pad;
+
+        var keySpan = document.createElement("span");
+        keySpan.className = "yaml-node-key";
+        keySpan.textContent = key;
+
+        var colon = document.createElement("span");
+        colon.className = "yaml-colon";
+        colon.textContent = ":";
+
+        row.appendChild(ind);
+        row.appendChild(keySpan);
+        row.appendChild(colon);
+
+        if (val !== null && typeof val === "object") {
+          var badge = document.createElement("span");
+          badge.className = "yaml-type-badge";
+          badge.textContent = Array.isArray(val) ? "array[" + val.length + "]" : "object";
+          row.appendChild(badge);
+          container.appendChild(row);
+
+          // Toggle collapse
+          var childWrap = document.createElement("div");
+          container.appendChild(childWrap);
+          renderTree(childWrap, val, nodePath, depth + 1);
+
+          var toggleSpan = document.createElement("span");
+          toggleSpan.className = "yaml-toggle";
+          toggleSpan.textContent = "▾";
+          toggleSpan.title = "Collapse";
+          var collapsed = false;
+          toggleSpan.addEventListener("click", function (e) {
+            e.stopPropagation();
+            collapsed = !collapsed;
+            childWrap.style.display = collapsed ? "none" : "";
+            toggleSpan.textContent = collapsed ? "▸" : "▾";
+            toggleSpan.title = collapsed ? "Expand" : "Collapse";
+          });
+          ind.after(toggleSpan);
+
+          // Clicking the key row copies the path
+          row.addEventListener("click", function () { copyText(nodePath); });
+
+        } else {
+          var sp = document.createElement("span");
+          sp.textContent = " ";
+          row.appendChild(sp);
+          row.appendChild(renderScalarSpan(val, nodePath));
+          container.appendChild(row);
+
+          row.title = "Click to copy path: " + nodePath;
+          row.addEventListener("click", function () { copyText(nodePath); });
+        }
+      });
+    } else {
+      // Top-level scalar
+      var scRow = document.createElement("div");
+      scRow.className = "yaml-node yaml-node--clickable";
+      scRow.appendChild(renderScalarSpan(data, path));
+      scRow.addEventListener("click", function () { copyText(path || "root"); });
+      container.appendChild(scRow);
+    }
+  }
+
+  function renderScalarSpan(val, path) {
+    var span = document.createElement("span");
+    if (val === null || val === undefined) {
+      span.className = "yaml-val--null";
+      span.textContent = "null";
+    } else if (typeof val === "boolean") {
+      span.className = "yaml-val--bool";
+      span.textContent = String(val);
+    } else if (typeof val === "number") {
+      span.className = "yaml-val--number";
+      span.textContent = String(val);
+    } else {
+      span.className = "yaml-val--string";
+      span.textContent = String(val);
+    }
+    return span;
+  }
+
+  // ── Main process ──────────────────────────────────────────────────────────
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = ""; }
+  function hideError()    { errorEl.textContent = ""; errorEl.style.display = "none"; }
+
+  function process() {
+    var raw = inputEl.value;
+    hideError();
+    summaryEl.style.display = "none";
+    outputEl.textContent = "";
+    while (treeEl.firstChild) treeEl.removeChild(treeEl.firstChild);
+
+    if (!raw.trim()) return;
+
+    var result = parseYAML(raw);
+
+    if (result.syntaxError) {
+      showError("Parse error: " + result.syntaxError);
+      return;
+    }
+
+    // Summary
+    while (summaryEl.firstChild) summaryEl.removeChild(summaryEl.firstChild);
+    var errors   = result.issues.filter(function (i) { return i.severity === "error";   }).length;
+    var warnings = result.issues.filter(function (i) { return i.severity === "warning"; }).length;
+    var infos    = result.issues.filter(function (i) { return i.severity === "info";    }).length;
+
+    function makeBadge(text, mod) {
+      var span = document.createElement("span");
+      span.className = "yaml-badge yaml-badge--" + mod;
+      span.textContent = text;
+      return span;
+    }
+
+    summaryEl.appendChild(makeBadge("Depth: " + result.maxDepth, "info"));
+    if (errors)   summaryEl.appendChild(makeBadge(errors + " error" + (errors !== 1 ? "s" : ""), "error"));
+    if (warnings) summaryEl.appendChild(makeBadge(warnings + " warning" + (warnings !== 1 ? "s" : ""), "warning"));
+    if (infos)    summaryEl.appendChild(makeBadge(infos + " notice" + (infos !== 1 ? "s" : ""), "info"));
+
+    if (result.issues.length > 0) {
+      var issueList = document.createElement("ul");
+      issueList.style.cssText = "list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;";
+      result.issues.forEach(function (issue) {
+        var li = document.createElement("li");
+        li.style.cssText = "font-family:var(--font-sans,sans-serif);font-size:12px;padding:5px 10px;border-radius:3px;border:1px solid var(--border,#e5e7eb);background:var(--surface-0,#f9fafb);display:flex;gap:8px;align-items:baseline;";
+        var border = issue.severity === "error" ? "#ef4444" : issue.severity === "warning" ? "#f59e0b" : "#3b82f6";
+        li.style.borderLeft = "3px solid " + border;
+        if (issue.line) {
+          var lineSpan = document.createElement("span");
+          lineSpan.style.cssText = "font-family:var(--font-mono,monospace);font-size:11px;color:var(--text-3,#9ca3af);white-space:nowrap;";
+          lineSpan.textContent = "L" + issue.line;
+          li.appendChild(lineSpan);
+        }
+        var msgSpan = document.createElement("span");
+        msgSpan.textContent = issue.msg;
+        msgSpan.style.color = "var(--text-1,#111827)";
+        li.appendChild(msgSpan);
+        issueList.appendChild(li);
+      });
+      summaryEl.appendChild(issueList);
+    }
+
+    summaryEl.style.display = "";
+
+    // Formatted output — preserve original but just re-emit it neatly
+    // For the formatter, we use the raw input trimmed
+    outputEl.textContent = raw.trim();
+
+    // Tree
+    renderTree(treeEl, result.parsed, "", 0);
+  }
+
+  formatBtn.addEventListener("click", function () {
+    var raw = inputEl.value.trim();
+    if (!raw) return;
+    var result = parseYAML(raw);
+    if (!result.syntaxError && result.parsed) {
+      var reformatted = objToYAML(result.parsed, 0);
+      outputEl.textContent = reformatted;
+    }
+  });
+
+  copyBtn.addEventListener("click", function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = "Copied!";
+        setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); copyBtn.textContent = "Copied!"; }
+      catch (e) { copyBtn.textContent = "Failed"; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+    }
+  });
+
+  inputEl.addEventListener("input", process);
+})();
+</script>

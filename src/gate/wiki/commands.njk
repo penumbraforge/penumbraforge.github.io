@@ -1,0 +1,172 @@
+---
+title: "Commands Reference"
+description: "Complete reference for every Gate command and flag."
+permalink: /gate/wiki/commands/
+---
+<h1>Commands Reference</h1>
+    <p class="subtitle">Every Gate command and flag, organized by function.</p>
+
+    <h2 id="gate-bare">gate (bare)</h2>
+    <p>Running <code>gate</code> with no subcommand starts an interactive scan of the current directory. Equivalent to <code>gate scan --interactive</code>.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate</span></div>
+
+    <h2 id="gate-scan">gate scan</h2>
+    <p>Scan files for hardcoded secrets. This is the core command. Without arguments, it scans all files in the current directory recursively.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate scan [files...] [options]</span></div>
+
+    <h3>Flags</h3>
+    <table class="cmd-table">
+      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>--all</td><td>Scan the entire repository, including untracked files</td></tr>
+        <tr><td>--staged</td><td>Scan only git-staged files (used by the pre-commit hook)</td></tr>
+        <tr><td>--verify</td><td>Check if detected credentials are still active via provider APIs</td></tr>
+        <tr><td>--no-verify</td><td>Skip credential verification even if enabled in .gaterc</td></tr>
+        <tr><td>--interactive</td><td>Prompt for action on each finding (fix, vault, ignore, report)</td></tr>
+        <tr><td>--history N</td><td>Scan the last N commits in git history for secrets</td></tr>
+        <tr><td>--format text</td><td>Output as human-readable text (default)</td></tr>
+        <tr><td>--format json</td><td>Output as JSON</td></tr>
+        <tr><td>--format sarif</td><td>Output as SARIF 2.1.0 for GitHub Advanced Security</td></tr>
+        <tr><td>--no-color</td><td>Disable colored output (useful for piping)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Examples</h3>
+    <div class="code-block"><span class="cmt"># Scan current directory</span>
+<span class="prompt">$ </span><span class="cmd">gate scan</span>
+
+<span class="cmt"># Scan specific files</span>
+<span class="prompt">$ </span><span class="cmd">gate scan src/config.ts .env.production</span>
+
+<span class="cmt"># Scan with verification</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --verify</span>
+
+<span class="cmt"># Scan staged files (pre-commit)</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --staged</span>
+
+<span class="cmt"># Scan git history</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --history 50</span>
+
+<span class="cmt"># Output SARIF for CI</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --format sarif > results.sarif</span></div>
+
+    <h2 id="gate-fix">gate fix</h2>
+    <p>Automatically fix all findings by extracting secrets to <code>.env</code> files and rewriting source code to reference environment variables.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate fix [options]</span></div>
+
+    <h3>Flags</h3>
+    <table class="cmd-table">
+      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>--dry-run</td><td>Preview all changes without writing to disk</td></tr>
+        <tr><td>--undo</td><td>Revert the last auto-fix operation using stored snapshots</td></tr>
+      </tbody>
+    </table>
+
+    <p>See <a href="/gate/wiki/auto-fix/">Auto-Fix Engine</a> for details on how fixing works across languages.</p>
+
+    <h2 id="gate-init">gate init</h2>
+    <p>Initialize Gate in the current project. Creates a <code>.gaterc</code> configuration file and installs the pre-commit hook.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate init</span></div>
+
+    <h2 id="gate-status">gate status</h2>
+    <p>Show the current Gate configuration, hook installation status, and recent scan summary.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate status</span></div>
+
+    <h2 id="gate-report">gate report</h2>
+    <p>Generate compliance reports mapped to security frameworks.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate report [options]</span></div>
+
+    <h3>Flags</h3>
+    <table class="cmd-table">
+      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>--format text</td><td>Terminal output (default)</td></tr>
+        <tr><td>--format html</td><td>Generate an HTML compliance report</td></tr>
+        <tr><td>--format json</td><td>Generate a JSON compliance report</td></tr>
+        <tr><td>--incident &lt;id&gt;</td><td>Generate a report for a specific incident</td></tr>
+      </tbody>
+    </table>
+
+    <p>See <a href="/gate/wiki/compliance/">Compliance Reports</a> for details on framework mappings.</p>
+
+    <h2 id="gate-audit">gate audit</h2>
+    <p>View and manage the audit log. Gate maintains an integrity-chained log of all scan activity.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate audit [options]</span></div>
+
+    <h3>Flags</h3>
+    <table class="cmd-table">
+      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>--since &lt;period&gt;</td><td>Show entries from time period (e.g., 7d, 30d, 1h)</td></tr>
+        <tr><td>--stats</td><td>Show scan statistics summary</td></tr>
+        <tr><td>--export</td><td>Export the audit log as JSON</td></tr>
+        <tr><td>--verify</td><td>Verify audit log integrity chain (SHA-256 hash chain)</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="gate-vault">gate vault</h2>
+    <p>Manage encrypted secrets with the Gate vault. Uses AES-256-GCM encryption.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate vault &lt;subcommand&gt;</span></div>
+
+    <h3>Subcommands</h3>
+    <table class="cmd-table">
+      <thead><tr><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>gate vault keygen</td><td>Generate a new AES-256-GCM encryption key</td></tr>
+        <tr><td>gate vault encrypt</td><td>Encrypt a .env file to .env.enc</td></tr>
+        <tr><td>gate vault decrypt</td><td>Decrypt a .env.enc file back to .env</td></tr>
+        <tr><td>gate vault env</td><td>Decrypt and load variables into the current shell environment</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="gate-purge">gate purge</h2>
+    <p>Generate scripts to purge secrets from git history. This creates a shell script that uses <code>git filter-repo</code> or <code>BFG Repo-Cleaner</code> to remove secrets from all historical commits.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate purge</span></div>
+
+    <div class="info-box">
+      <strong>Warning:</strong> Purging git history rewrites commits and changes SHAs. This is a destructive operation. Always coordinate with your team and back up your repository before running purge scripts.
+    </div>
+
+    <h2 id="gate-install">gate install</h2>
+    <p>Install the Gate pre-commit hook into the current git repository. The hook runs <code>gate scan --staged</code> before each commit.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate install</span></div>
+
+    <h2 id="gate-uninstall">gate uninstall</h2>
+    <p>Remove the Gate pre-commit hook from the current git repository.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate uninstall</span></div>
+
+    <h2 id="gate-update">gate update</h2>
+    <p>Update Gate to the latest version.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate update</span></div>
+
+    <h2 id="gate-version">gate version</h2>
+    <p>Print the current Gate version.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate version</span></div>
+
+    <h2 id="gate-help">gate help</h2>
+    <p>Show help information for Gate or a specific command.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate help</span>
+<span class="prompt">$ </span><span class="cmd">gate help scan</span>
+<span class="prompt">$ </span><span class="cmd">gate help vault</span></div>
+
+    <h2 id="global-flags">Global Flags</h2>
+    <p>These flags work with any command.</p>
+    <table class="cmd-table">
+      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>--no-color</td><td>Disable colored terminal output</td></tr>
+        <tr><td>--help, -h</td><td>Show help for any command</td></tr>
+        <tr><td>--version, -v</td><td>Print version</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="environment-variables">Environment Variables</h2>
+    <table class="cmd-table">
+      <thead><tr><th>Variable</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>GATE_OFFLINE</td><td>Set to 1 to disable all network calls (verification, updates)</td></tr>
+        <tr><td>NO_COLOR</td><td>Standard environment variable to disable colored output</td></tr>
+        <tr><td>GATE_LOG_LEVEL</td><td>Set log verbosity: debug, info, warn, error</td></tr>
+      </tbody>
+    </table>

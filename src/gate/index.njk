@@ -1,0 +1,495 @@
+---
+permalink: /gate/
+---
+
+<!-- HERO -->
+<header class="gate-hero" id="top">
+  <div class="reveal">
+    <h1 class="gate-hero-name">gate</h1>
+  </div>
+  <div class="reveal" style="transition-delay: 0.1s;">
+    <p class="gate-hero-tagline">The first secret scanner that fixes what it finds.</p>
+  </div>
+  <div class="reveal" style="transition-delay: 0.2s;">
+    <p class="gate-hero-sub">Free. Local. No accounts. No compromises.</p>
+  </div>
+</header>
+
+<!-- QUICK START -->
+<section class="gate-section" id="quick-start">
+  <div class="gate-container">
+    <p class="section-label reveal">Quick start</p>
+    <div class="gate-install-blocks reveal" style="transition-delay: 0.05s;">
+      <div class="gate-install-block">
+        <span class="gate-install-label">zero-install</span>
+        <code><span class="prompt">$ </span>npx gate</code>
+        <button class="gate-copy-btn" onclick="copyCmd(this, 'npx gate')">copy</button>
+      </div>
+      <div class="gate-install-block">
+        <span class="gate-install-label">global</span>
+        <code><span class="prompt">$ </span>npm install -g @penumbra/gate</code>
+        <button class="gate-copy-btn" onclick="copyCmd(this, 'npm install -g @penumbra/gate')">copy</button>
+      </div>
+      <div class="gate-install-block">
+        <span class="gate-install-label">homebrew</span>
+        <code><span class="prompt">$ </span>brew install gate <span class="comment"><!-- coming soon --></span></code>
+        <button class="gate-copy-btn" onclick="copyCmd(this, 'brew install gate')">copy</button>
+      </div>
+    </div>
+    <p class="gate-install-note reveal" style="transition-delay: 0.1s;">One command. Zero config. Scanning in seconds.</p>
+  </div>
+</section>
+
+<!-- WHAT MAKES GATE DIFFERENT -->
+<section class="gate-section" id="comparison">
+  <div class="gate-container-wide">
+    <p class="section-label reveal">What makes Gate different</p>
+    <div class="gate-comparison-wrap reveal" style="transition-delay: 0.05s;">
+      <table class="gate-comparison">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th class="highlight">Gate</th>
+            <th>Gitleaks</th>
+            <th>TruffleHog</th>
+            <th>GitHub</th>
+            <th>GitGuardian</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Free / open source</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="paid">Paid</td>
+            <td class="paid">Freemium</td>
+          </tr>
+          <tr>
+            <td>Runs locally</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+          </tr>
+          <tr>
+            <td>Auto-fix engine</td>
+            <td class="yes">Yes</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+          </tr>
+          <tr>
+            <td>Credential verification</td>
+            <td class="yes">Yes</td>
+            <td class="no">No</td>
+            <td class="yes">Yes</td>
+            <td class="no">No</td>
+            <td class="paid">Paid</td>
+          </tr>
+          <tr>
+            <td>Interactive remediation</td>
+            <td class="yes">Yes</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+          </tr>
+          <tr>
+            <td>Incident response</td>
+            <td class="yes">Yes</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+            <td class="paid">Paid</td>
+          </tr>
+          <tr>
+            <td>Compliance reports</td>
+            <td class="yes">Yes</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+            <td class="paid">Paid</td>
+          </tr>
+          <tr>
+            <td>SARIF output</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="no">No</td>
+          </tr>
+          <tr>
+            <td>Git history scanning</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="no">No</td>
+            <td class="paid">Paid</td>
+          </tr>
+          <tr>
+            <td>No account required</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Yes</td>
+            <td class="no">No</td>
+            <td class="no">No</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- TERMINAL DEMO -->
+<section class="gate-section" id="demo">
+  <div class="gate-container-wide">
+    <p class="section-label reveal">What a scan looks like</p>
+    <div class="gate-terminal reveal" style="transition-delay: 0.05s;">
+      <div class="gate-terminal-bar">
+        <span class="gate-terminal-dot"></span>
+        <span class="gate-terminal-dot"></span>
+        <span class="gate-terminal-dot"></span>
+        <span class="gate-terminal-title">gate scan --verify</span>
+      </div>
+      <div class="gate-terminal-body">
+<div class="line"><span class="dim">  gate v2.0.0</span></div>
+<div class="line"></div>
+<div class="line"><span class="dim">  scanning 847 files...</span></div>
+<div class="line"></div>
+<div class="line"><span class="err">  CRITICAL</span>  <span class="file">src/api/payments.ts:23</span></div>
+<div class="line"><span class="dim">  rule:</span> <span class="text">stripe-secret-key</span></div>
+<div class="line"></div>
+<div class="line"><span class="dim">   21 |</span> <span class="text">const stripe = require('stripe');</span></div>
+<div class="line"><span class="dim">   22 |</span></div>
+<div class="line"><span class="dim">   23 |</span> <span class="text">const key = "</span><span class="underline err">sk_live_51Hb3azLk...R4pM</span><span class="text">";</span></div>
+<div class="line"><span class="dim">   24 |</span> <span class="text">const client = stripe(key);</span></div>
+<div class="line"></div>
+<div class="line"><span class="dim">  status:</span> <span class="err">LIVE</span> <span class="dim">  verified against Stripe API</span></div>
+<div class="line"><span class="dim">  match:</span>  <span class="text">sk_live_51Hb3azLk...R4pM</span>  <span class="dim">(40 chars)</span></div>
+<div class="line"></div>
+<div class="line"><span class="warn">  HIGH</span>    <span class="file">config/database.yml:8</span></div>
+<div class="line"><span class="dim">  rule:</span> <span class="text">database-connection-string</span></div>
+<div class="line"></div>
+<div class="line"><span class="dim">    7 |</span> <span class="text">production:</span></div>
+<div class="line"><span class="dim">    8 |</span> <span class="text">  url: "</span><span class="underline warn">postgres://admin:s3cr3t@db.prod...5432/app</span><span class="text">"</span></div>
+<div class="line"><span class="dim">    9 |</span> <span class="text">  pool: 10</span></div>
+<div class="line"></div>
+<div class="line"><span class="dim">  status:</span> <span class="ok">INACTIVE</span> <span class="dim">  connection refused</span></div>
+<div class="line"></div>
+<div class="line"><span class="dim">  ──────────────────────────────────────</span></div>
+<div class="line"><span class="dim">  findings:</span>  <span class="bright">2</span>  <span class="dim">(</span><span class="err">1 live</span><span class="dim">, </span><span class="ok">1 inactive</span><span class="dim">)</span></div>
+<div class="line"><span class="dim">  scanned:</span>   <span class="text">847 files in 1.2s</span></div>
+<div class="line"></div>
+<div class="line"><span class="accent">[f]</span><span class="dim"> fix</span>  <span class="accent">[v]</span><span class="dim"> vault</span>  <span class="accent">[i]</span><span class="dim"> ignore</span>  <span class="accent">[r]</span><span class="dim"> report</span>  <span class="accent">[q]</span><span class="dim"> quit</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CORE FEATURES -->
+<section class="gate-section" id="features">
+  <div class="gate-container-wide">
+    <p class="section-label reveal">Core features</p>
+    <div class="gate-features-grid reveal" style="transition-delay: 0.05s;">
+      <div class="gate-feature-card">
+        <h3>281 Detection Rules</h3>
+        <p>AWS, GCP, Azure, GitHub, Stripe, AI keys, databases, private keys. 25+ providers covered.</p>
+      </div>
+      <div class="gate-feature-card">
+        <h3>Credential Verification</h3>
+        <p>Checks if secrets are actually live against provider APIs. Know what needs immediate rotation.</p>
+      </div>
+      <div class="gate-feature-card">
+        <h3>Auto-Fix Engine</h3>
+        <p>Extracts hardcoded secrets to .env files and rewrites references across 9 languages automatically.</p>
+      </div>
+      <div class="gate-feature-card">
+        <h3>Interactive Remediation</h3>
+        <p>Single-keypress fix, vault, or ignore per finding. Fix everything in one pass through the terminal.</p>
+      </div>
+      <div class="gate-feature-card">
+        <h3>Incident Response</h3>
+        <p>5-step guided workflow: rotate credentials, audit access, clean code, scrub history, document.</p>
+      </div>
+      <div class="gate-feature-card">
+        <h3>Compliance Reports</h3>
+        <p>Generate reports mapped to OWASP, NIST 800-63B, CIS Benchmark v8, and SOC2 controls.</p>
+      </div>
+      <div class="gate-feature-card">
+        <h3>SARIF Output</h3>
+        <p>Native SARIF format for integration with GitHub Advanced Security code scanning alerts.</p>
+      </div>
+      <div class="gate-feature-card">
+        <h3>Git History Scanning</h3>
+        <p>Find secrets buried in past commits. Generates purge scripts to clean repository history.</p>
+      </div>
+      <div class="gate-feature-card">
+        <h3>Zero Config</h3>
+        <p>Smart defaults that work instantly. No setup files, no accounts, no API keys needed to start.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOCUMENTATION -->
+<section class="gate-section" id="docs">
+  <div class="gate-container-wide">
+    <p class="section-label reveal">Documentation</p>
+
+    <!-- Installation & Setup -->
+    <div class="gate-docs-section reveal" id="docs-install">
+      <h2 class="gate-docs-heading">Installation &amp; Setup</h2>
+
+      <p class="gate-docs-text">The fastest way to run Gate is with npx -- no install required. For repeated use, install globally.</p>
+
+      <div class="gate-docs-code"><span class="cmt"># Run once without installing</span>
+npx gate
+
+<span class="cmt"># Install globally</span>
+npm install -g @penumbra/gate
+
+<span class="cmt"># Verify installation</span>
+gate version</div>
+
+      <h3 class="gate-docs-sub" id="docs-init">Project setup</h3>
+      <p class="gate-docs-text">Run <code>gate init</code> in any repository to create a <code>.gaterc</code> config file and install the pre-commit hook.</p>
+
+      <div class="gate-docs-code">gate init
+<span class="cmt"># creates .gaterc and installs pre-commit hook</span></div>
+
+      <h3 class="gate-docs-sub" id="docs-config">Configuration (.gaterc)</h3>
+      <p class="gate-docs-text">Gate works with zero configuration. For customization, create a <code>.gaterc</code> file in your project root. YAML format.</p>
+
+      <div class="gate-docs-code"><span class="cmt"># .gaterc</span>
+<span class="kw">severity</span>: high            <span class="cmt"># minimum severity: low, medium, high, critical</span>
+<span class="kw">verify</span>: true              <span class="cmt"># check if secrets are live</span>
+<span class="kw">format</span>: text              <span class="cmt"># output: text, json, sarif</span>
+<span class="kw">interactive</span>: true         <span class="cmt"># prompt for fix/vault/ignore</span>
+
+<span class="kw">rules</span>:
+  <span class="kw">disable</span>:
+    - generic-high-entropy <span class="cmt"># disable noisy rules</span>
+  <span class="kw">custom</span>:                  <span class="cmt"># add your own patterns</span>
+    - <span class="kw">id</span>: internal-api-key
+      <span class="kw">pattern</span>: <span class="val">'INTERNAL_[A-Za-z0-9]{32}'</span>
+      <span class="kw">severity</span>: high
+
+<span class="kw">ignore</span>:
+  <span class="kw">files</span>:
+    - <span class="str">'**/*.test.ts'</span>       <span class="cmt"># skip test files</span>
+    - <span class="str">'vendor/**'</span>          <span class="cmt"># skip vendor directory</span>
+  <span class="kw">values</span>:
+    - <span class="str">'EXAMPLE_KEY_*'</span>      <span class="cmt"># ignore placeholder values</span></div>
+
+      <h3 class="gate-docs-sub" id="docs-gateignore">.gateignore</h3>
+      <p class="gate-docs-text">Works like .gitignore. One pattern per line. Files matching these patterns are skipped during scanning.</p>
+
+      <div class="gate-docs-code"><span class="cmt"># .gateignore</span>
+node_modules/
+dist/
+*.min.js
+vendor/
+coverage/
+__snapshots__/</div>
+    </div>
+
+    <!-- Commands Reference -->
+    <div class="gate-docs-section reveal" id="docs-commands">
+      <h2 class="gate-docs-heading">Commands Reference</h2>
+
+      <h3 class="gate-docs-sub">Scanning</h3>
+      <table class="gate-cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>gate scan [files]</td><td>Scan specific files or current directory</td></tr>
+          <tr><td>gate scan --all</td><td>Scan entire repository</td></tr>
+          <tr><td>gate scan --staged</td><td>Scan only staged files (pre-commit mode)</td></tr>
+          <tr><td>gate scan --verify</td><td>Verify found secrets against provider APIs</td></tr>
+          <tr><td>gate scan --interactive</td><td>Prompt to fix/vault/ignore each finding</td></tr>
+          <tr><td>gate scan --history N</td><td>Scan last N commits in git history</td></tr>
+          <tr><td>gate scan --format json</td><td>Output as JSON</td></tr>
+          <tr><td>gate scan --format sarif</td><td>Output as SARIF for GitHub code scanning</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="gate-docs-sub">Fixing</h3>
+      <table class="gate-cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>gate fix</td><td>Auto-fix all findings (extract to .env, rewrite code)</td></tr>
+          <tr><td>gate fix --dry-run</td><td>Preview changes without writing files</td></tr>
+          <tr><td>gate fix --undo</td><td>Revert the last auto-fix operation</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="gate-docs-sub">Reporting &amp; Audit</h3>
+      <table class="gate-cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>gate report</td><td>Generate compliance report (terminal)</td></tr>
+          <tr><td>gate report --format html</td><td>Generate HTML compliance report</td></tr>
+          <tr><td>gate report --incident &lt;id&gt;</td><td>Generate incident response report</td></tr>
+          <tr><td>gate audit --since 7d</td><td>Show audit log for time period</td></tr>
+          <tr><td>gate audit --stats</td><td>Show scan statistics summary</td></tr>
+          <tr><td>gate audit --export</td><td>Export audit log as JSON</td></tr>
+          <tr><td>gate audit --verify</td><td>Verify audit log integrity</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="gate-docs-sub">Vault &amp; Secrets</h3>
+      <table class="gate-cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>gate vault keygen</td><td>Generate a new encryption key</td></tr>
+          <tr><td>gate vault encrypt</td><td>Encrypt a .env file</td></tr>
+          <tr><td>gate vault decrypt</td><td>Decrypt a .env.enc file</td></tr>
+          <tr><td>gate vault env</td><td>Load encrypted vars into environment</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="gate-docs-sub">Utilities</h3>
+      <table class="gate-cmd-table">
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>gate init</td><td>Initialize Gate in a project</td></tr>
+          <tr><td>gate status</td><td>Show current config and hook status</td></tr>
+          <tr><td>gate install</td><td>Install the pre-commit hook</td></tr>
+          <tr><td>gate uninstall</td><td>Remove the pre-commit hook</td></tr>
+          <tr><td>gate purge</td><td>Generate scripts to purge secrets from git history</td></tr>
+          <tr><td>gate update</td><td>Update Gate to latest version</td></tr>
+          <tr><td>gate version</td><td>Print version</td></tr>
+          <tr><td>gate help</td><td>Show help</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Auto-Fix Language Support -->
+    <div class="gate-docs-section reveal" id="docs-languages">
+      <h2 class="gate-docs-heading">Auto-Fix Language Support</h2>
+      <p class="gate-docs-text">Gate's auto-fix engine understands language-specific syntax. It extracts hardcoded secrets to .env files and rewrites the source to reference environment variables using the correct idiom for each language.</p>
+      <div class="gate-lang-grid">
+        <span class="gate-lang-tag">JavaScript / TypeScript</span>
+        <span class="gate-lang-tag">Python</span>
+        <span class="gate-lang-tag">Go</span>
+        <span class="gate-lang-tag">Ruby</span>
+        <span class="gate-lang-tag">Java</span>
+        <span class="gate-lang-tag">YAML</span>
+        <span class="gate-lang-tag">Terraform</span>
+        <span class="gate-lang-tag">Dockerfile</span>
+        <span class="gate-lang-tag">JSON</span>
+      </div>
+    </div>
+
+    <!-- Credential Verification -->
+    <div class="gate-docs-section reveal" id="docs-verification">
+      <h2 class="gate-docs-heading">Credential Verification</h2>
+      <p class="gate-docs-text">When you run <code>gate scan --verify</code>, Gate makes read-only API calls to check whether detected credentials are still active. This tells you which secrets need immediate rotation versus which are already expired or invalid.</p>
+
+      <ul class="gate-docs-list">
+        <li>Read-only API calls only -- no writes, no mutations</li>
+        <li>2-second timeout per verification call</li>
+        <li>Results are cacheable to avoid repeated checks</li>
+        <li>Use <code>--no-verify</code> to disable</li>
+      </ul>
+
+      <p class="gate-docs-text">Supported providers:</p>
+
+      <div class="gate-providers-grid">
+        <span class="gate-provider-tag">AWS</span>
+        <span class="gate-provider-tag">GCP</span>
+        <span class="gate-provider-tag">Azure</span>
+        <span class="gate-provider-tag">GitHub</span>
+        <span class="gate-provider-tag">GitLab</span>
+        <span class="gate-provider-tag">Stripe</span>
+        <span class="gate-provider-tag">Twilio</span>
+        <span class="gate-provider-tag">SendGrid</span>
+        <span class="gate-provider-tag">Slack</span>
+        <span class="gate-provider-tag">OpenAI</span>
+        <span class="gate-provider-tag">Anthropic</span>
+        <span class="gate-provider-tag">npm</span>
+        <span class="gate-provider-tag">PyPI</span>
+        <span class="gate-provider-tag">Datadog</span>
+        <span class="gate-provider-tag">Mailgun</span>
+        <span class="gate-provider-tag">Shopify</span>
+      </div>
+    </div>
+
+    <!-- GitHub Action -->
+    <div class="gate-docs-section reveal" id="docs-github-action">
+      <h2 class="gate-docs-heading">GitHub Action</h2>
+      <p class="gate-docs-text">Add Gate to your CI pipeline with the official GitHub Action. Scans pull requests and pushes, uploads SARIF results to GitHub code scanning.</p>
+
+      <div class="gate-gh-action">
+        <div class="gate-gh-action-bar">.github/workflows/gate.yml</div>
+        <div class="gate-gh-action-body"><span class="kw">name</span>: Gate
+<span class="kw">on</span>: [pull_request, push]
+
+<span class="kw">jobs</span>:
+  <span class="kw">scan</span>:
+    <span class="kw">runs-on</span>: ubuntu-latest
+    <span class="kw">steps</span>:
+      - <span class="kw">uses</span>: actions/checkout@v4
+      - <span class="kw">uses</span>: penumbraforge/gate@v2
+        <span class="kw">with</span>:
+          <span class="kw">mode</span>: enforce
+          <span class="kw">verify</span>: <span class="val">true</span>
+          <span class="kw">format</span>: sarif
+          <span class="kw">fail-on</span>: high</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY PROMISE -->
+<section class="gate-section" id="security">
+  <div class="gate-container">
+    <p class="section-label reveal">Security promise</p>
+    <div class="gate-security-list reveal" style="transition-delay: 0.05s;">
+      <div class="gate-security-item"><strong>Runs 100% locally.</strong> No telemetry, no cloud, no data ever leaves your machine.</div>
+      <div class="gate-security-item"><strong>File permissions hardened.</strong> Config and vault files created with 0o600/0o700 permissions.</div>
+      <div class="gate-security-item"><strong>Atomic file writes.</strong> Writes to temp files first, then renames. No partial writes, no corruption.</div>
+      <div class="gate-security-item"><strong>Secrets redacted in output.</strong> Terminal output masks credential values. Full values never displayed.</div>
+      <div class="gate-security-item"><strong>TLS enforced for verification.</strong> All provider API calls use TLS. No plaintext credential transmission.</div>
+      <div class="gate-security-item"><strong>No shell injection.</strong> All subprocesses use execFileSync with explicit argument arrays.</div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function copyCmd(btn, text) {
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'copied';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = 'copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  // Intersection observer for reveal animations
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(function(el) {
+    observer.observe(el);
+  });
+</script>

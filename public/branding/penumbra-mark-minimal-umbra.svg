@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <defs>
+    <linearGradient id="mu-ring" x1="46" y1="42" x2="116" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#efe7ff"/>
+      <stop offset="0.5" stop-color="#cbb9ef"/>
+      <stop offset="1" stop-color="#8da0bc"/>
+    </linearGradient>
+  </defs>
+  <circle cx="80" cy="80" r="29" stroke="url(#mu-ring)" stroke-width="6"/>
+  <circle cx="89" cy="80" r="18" fill="url(#mu-ring)" opacity="0.95"/>
+  <circle cx="76" cy="80" r="18" fill="#090b12"/>
+</svg>

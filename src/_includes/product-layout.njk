@@ -1,0 +1,41 @@
+{% extends "base.njk" %}
+
+{% block title %}{{ productTitle }} | Penumbra Forge{% endblock %}
+{% block description %}{{ productDescription }}{% endblock %}
+
+{% block head %}
+<meta property="og:title" content="{{ productTitle }} | Penumbra Forge">
+<meta property="og:description" content="{{ productDescription }}">
+<meta property="og:image" content="{{ site.url }}/og-image.png">
+<meta property="og:url" content="{{ site.url }}{{ page.url }}">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+{% endblock %}
+
+{% block body %}
+<div class="product-page">
+
+  <header class="site-header">
+    <a href="/" class="site-header-brand">
+      <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+      <span class="site-header-name">Penumbra Forge</span>
+    </a>
+    <nav class="site-header-nav">
+      <a href="/">Home</a>
+      <a href="/tools/">Tools</a>
+      <a href="/gate/"{% if productName == "gate" %} class="active"{% endif %}>Gate</a>
+      {% if productName == "gate" %}<a href="/gate/wiki/">Wiki</a>{% endif %}
+      <a href="/librarian/"{% if productName == "librarian" %} class="active"{% endif %}>Librarian</a>
+      {% if productName == "librarian" %}<a href="/librarian/wiki/">Wiki</a>{% endif %}
+      <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="product-main">
+    {{ content | safe }}
+  </main>
+
+  {% include "footer.njk" %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,179 @@
+---
+toolSlug: url-encoder
+permalink: /tools/url-encoder/
+---
+
+<div class="tool-row" style="margin-bottom:1rem; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+  <div class="tool-options" role="group" aria-label="Mode">
+    <button class="tool-option active" data-mode="encode" aria-pressed="true">Encode</button>
+    <button class="tool-option" data-mode="decode" aria-pressed="false">Decode</button>
+  </div>
+  <div class="tool-options" role="group" aria-label="Encoding mode">
+    <button class="tool-option active" data-enc="component" aria-pressed="true">Component</button>
+    <button class="tool-option" data-enc="full" aria-pressed="false">Full URL</button>
+  </div>
+</div>
+
+<div class="tool-group">
+  <label for="url-input" id="url-input-label">Text to encode</label>
+  <textarea id="url-input" rows="6" placeholder="Enter text or URL to encode…" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div id="url-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div class="output-area">
+  <button class="btn btn--copy" id="url-copy" aria-label="Copy output">Copy</button>
+  <pre id="url-output" aria-label="Encoded/decoded output"></pre>
+</div>
+
+<div id="url-diff-section" style="display:none; margin-top:1rem;">
+  <div style="font-size:0.8rem; color:var(--color-muted,#666); margin-bottom:0.4rem;" id="url-diff-label">Changed characters:</div>
+  <div id="url-diff" style="font-family:var(--font-mono,monospace); font-size:0.85rem; line-height:1.8; word-break:break-all;"></div>
+</div>
+
+<script>
+(function () {
+  var inputEl    = document.getElementById('url-input');
+  var outputEl   = document.getElementById('url-output');
+  var errorEl    = document.getElementById('url-error');
+  var copyBtn    = document.getElementById('url-copy');
+  var labelEl    = document.getElementById('url-input-label');
+  var diffSection = document.getElementById('url-diff-section');
+  var diffEl     = document.getElementById('url-diff');
+  var diffLabel  = document.getElementById('url-diff-label');
+  var modeBtns   = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
+  var encBtns    = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-enc]'));
+
+  var currentMode = 'encode';
+  var currentEnc  = 'component';
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+    diffSection.style.display = 'none';
+  }
+
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+
+  /* Build a highlighted diff showing which characters changed */
+  function buildDiff(input, output, mode) {
+    /* For encode: show percent-encoded sequences highlighted
+       For decode: show decoded chars highlighted */
+    while (diffEl.firstChild) { diffEl.removeChild(diffEl.firstChild); }
+
+    if (mode === 'encode') {
+      /* Walk through output; percent sequences are highlighted */
+      var i = 0;
+      while (i < output.length) {
+        if (output[i] === '%' && i + 2 < output.length) {
+          var span = document.createElement('span');
+          span.style.cssText = 'background:var(--color-accent-muted,rgba(99,102,241,0.15)); color:var(--color-accent,#6366f1); border-radius:2px; padding:0 2px;';
+          span.textContent = output.slice(i, i + 3);
+          diffEl.appendChild(span);
+          i += 3;
+        } else {
+          var tn = document.createTextNode(output[i]);
+          diffEl.appendChild(tn);
+          i++;
+        }
+      }
+    } else {
+      /* Walk through input; percent sequences show decoded form */
+      var j = 0;
+      while (j < input.length) {
+        if (input[j] === '%' && j + 2 < input.length) {
+          var decoded = '';
+          try { decoded = decodeURIComponent(input.slice(j, j + 3)); } catch (e) { decoded = input.slice(j, j + 3); }
+          var sp = document.createElement('span');
+          sp.style.cssText = 'background:var(--color-accent-muted,rgba(99,102,241,0.15)); color:var(--color-accent,#6366f1); border-radius:2px; padding:0 2px;';
+          sp.textContent = decoded;
+          sp.title = input.slice(j, j + 3);
+          diffEl.appendChild(sp);
+          j += 3;
+        } else {
+          diffEl.appendChild(document.createTextNode(input[j]));
+          j++;
+        }
+      }
+    }
+
+    diffLabel.textContent = mode === 'encode' ? 'Encoded characters (highlighted):' : 'Decoded characters (highlighted, hover for original):';
+    diffSection.style.display = '';
+  }
+
+  function convert() {
+    var raw = inputEl.value;
+
+    if (!raw.trim()) {
+      outputEl.textContent = '';
+      hideError();
+      diffSection.style.display = 'none';
+      return;
+    }
+
+    try {
+      var result;
+      if (currentMode === 'encode') {
+        result = currentEnc === 'component' ? encodeURIComponent(raw) : encodeURI(raw);
+      } else {
+        result = currentEnc === 'component' ? decodeURIComponent(raw) : decodeURI(raw);
+      }
+      outputEl.textContent = result;
+      hideError();
+      buildDiff(raw, result, currentMode);
+    } catch (e) {
+      showError('Error: ' + e.message);
+      outputEl.textContent = '';
+    }
+  }
+
+  modeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentMode = btn.getAttribute('data-mode');
+      modeBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      labelEl.textContent = currentMode === 'encode' ? 'Text to encode' : 'URL to decode';
+      inputEl.placeholder = currentMode === 'encode' ? 'Enter text or URL to encode\u2026' : 'Paste encoded URL to decode\u2026';
+      convert();
+    });
+  });
+
+  encBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentEnc = btn.getAttribute('data-enc');
+      encBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      convert();
+    });
+  });
+
+  inputEl.addEventListener('input', convert);
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      }).catch(function () {
+        copyBtn.textContent = 'Failed';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; }
+      catch (e) { copyBtn.textContent = 'Failed'; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+  });
+})();
+</script>

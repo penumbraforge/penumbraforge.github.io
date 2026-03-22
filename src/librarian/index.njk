@@ -1,0 +1,357 @@
+---
+permalink: /librarian/
+---
+
+<!-- HERO -->
+<section class="lib-hero" aria-labelledby="hero-title">
+  <div class="lib-wrap">
+    <div class="lib-hero-product" id="hero-title">mcp-librarian</div>
+    <div class="lib-hero-badge">v3.1.0</div>
+    <p class="lib-hero-tagline">Your AI agent's knowledge library</p>
+    <p class="lib-hero-desc">Give your AI coding agent searchable, self-growing knowledge. It finds skills when relevant, researches topics from authoritative sources when they're missing, and learns permanently. Zero config. Zero friction. Works with Claude Code, Cursor, Windsurf, local models via Ollama/LM Studio, and any MCP client.</p>
+    <div class="lib-hero-actions">
+      <a href="https://github.com/penumbraforge/mcp-librarian" class="lib-btn lib-btn-outline" rel="noopener noreferrer" target="_blank">View on GitHub</a>
+      <a href="#install" class="lib-btn lib-btn-subtle">Quick Start &#8595;</a>
+    </div>
+  </div>
+</section>
+
+<!-- QUICK START -->
+<section class="lib-section" id="install" aria-labelledby="install-title">
+  <div class="lib-wrap">
+    <div class="section-label">Quick Start</div>
+    <h2 id="install-title">Install in three commands</h2>
+    <pre class="lib-pre"><code><span class="code-prompt">$</span> <span class="code-cmd">git clone</span> <span class="code-arg">https://github.com/penumbraforge/mcp-librarian.git</span>
+<span class="code-prompt">$</span> <span class="code-cmd">cd</span> <span class="code-arg">mcp-librarian</span>
+<span class="code-prompt">$</span> <span class="code-cmd">node</span> <span class="code-arg">bin/install.js</span></code></pre>
+    <p class="lib-install-note">The installer generates Ed25519 signing keys, detects your MCP client (Claude Code, Cursor, Windsurf), and configures it automatically. No npm install required.</p>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="lib-section" aria-labelledby="features-title">
+  <div class="lib-wrap">
+    <div class="section-label">Features</div>
+    <h2 id="features-title">Knowledge that finds you</h2>
+    <div class="lib-features-grid" role="list">
+
+      <div class="lib-feature-card" role="listitem">
+        <h3>Zero-Friction Awareness</h3>
+        <p>On every session start, your agent sees a catalog of available skills. It automatically searches for relevant patterns when you're working on security, APIs, databases, testing -- without being asked.</p>
+      </div>
+
+      <div class="lib-feature-card" role="listitem">
+        <h3>Auto-Research</h3>
+        <p>Ask about a topic with no existing skill? The librarian searches the web, pulls from authoritative sources (official docs, RFCs, style guides), and creates a permanent skill. No dead ends.</p>
+      </div>
+
+      <div class="lib-feature-card" role="listitem">
+        <h3>BM25 Search</h3>
+        <p>Full-text search with stemming across skill names, descriptions, and content. Sub-section chunking returns precise, focused results -- not entire documents.</p>
+      </div>
+
+      <div class="lib-feature-card" role="listitem">
+        <h3>9 Community Packs</h3>
+        <p>Browse and install curated packs without leaving your editor. Security, API design, Git, TypeScript, Docker, PostgreSQL, testing, and more. One tool call to install.</p>
+      </div>
+
+      <div class="lib-feature-card" role="listitem">
+        <h3>Ed25519 Integrity</h3>
+        <p>Every skill is cryptographically signed. Tampered files are detected and flagged on load. Content guard blocks prompt injection in prose while allowing security examples in code blocks.</p>
+      </div>
+
+      <div class="lib-feature-card" role="listitem">
+        <h3>Zero Dependencies</h3>
+        <p>Built on Node.js built-ins only. No supply chain risk. No <code>npm install</code>. Web research uses native HTTPS. Fast cold start, small footprint.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS REFERENCE -->
+<section class="lib-section" aria-labelledby="tools-title">
+  <div class="lib-wrap">
+    <div class="section-label">Tools Reference</div>
+    <h2 id="tools-title">14 MCP tools exposed to your agent</h2>
+    <div class="lib-table-wrap" role="region" aria-label="MCP tools reference table">
+      <table class="lib-table">
+        <thead>
+          <tr>
+            <th scope="col">Tool</th>
+            <th scope="col">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>find_and_load</td>
+            <td>Search and return the best matching skill in one call. If no skill exists, auto-researches the topic from authoritative web sources and returns content for skill creation. The zero-friction entry point.</td>
+          </tr>
+          <tr>
+            <td>find_skill</td>
+            <td>BM25 full-text search across skill names, descriptions, categories, and content. Returns ranked results with scores.</td>
+          </tr>
+          <tr>
+            <td>load_skill</td>
+            <td>Load a complete skill by name. Returns content and available section slugs for <code>load_section</code>.</td>
+          </tr>
+          <tr>
+            <td>load_section</td>
+            <td>Load a specific section within a skill by slug path for focused, minimal context loading.</td>
+          </tr>
+          <tr>
+            <td>list_skills</td>
+            <td>List all installed skills with metadata, categories, integrity status, and section slugs.</td>
+          </tr>
+          <tr>
+            <td>browse_packs</td>
+            <td>Browse available community skill packs with descriptions and install commands. Searchable by keyword.</td>
+          </tr>
+          <tr>
+            <td>install_pack</td>
+            <td>Download, validate, and install a skill pack from the community repo or a direct URL. Deduplicates and re-indexes.</td>
+          </tr>
+          <tr>
+            <td>research_topic</td>
+            <td>Search the web, score sources by authority (official docs first), and fetch content from the top results. For building skills from current, authoritative information.</td>
+          </tr>
+          <tr>
+            <td>fetch_page</td>
+            <td>Fetch a single URL and extract readable text. Strips HTML, preserves code blocks and headings.</td>
+          </tr>
+          <tr>
+            <td>create_skill</td>
+            <td>Validate, save, and index a new skill. Triggers catalog update so the agent immediately knows about it.</td>
+          </tr>
+          <tr>
+            <td>validate_skill</td>
+            <td>Check a skill's structure, frontmatter, and content guard compliance without saving.</td>
+          </tr>
+          <tr>
+            <td>export_pack</td>
+            <td>Write selected skills to disk as a shareable pack with <code>pack.json</code> manifest.</td>
+          </tr>
+          <tr>
+            <td>skill_status</td>
+            <td>Check cryptographic integrity of a single skill. Reports VERIFIED, TAMPERED, or UNSIGNED.</td>
+          </tr>
+          <tr>
+            <td>server_status</td>
+            <td>Returns version, skill count, uptime, index stats, and configuration summary.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- SKILL FORMAT -->
+<section class="lib-section" aria-labelledby="format-title">
+  <div class="lib-wrap">
+    <div class="section-label">Skill Format</div>
+    <h2 id="format-title">Markdown with YAML frontmatter</h2>
+    <p>Skills are plain Markdown files with structured frontmatter. The BM25 index operates at section and sub-section level, so well-structured skills return more precise search results.</p>
+    <pre class="lib-pre"><code><span class="code-meta">---</span>
+<span class="code-key">name</span>: <span class="code-str">my-skill</span>
+<span class="code-key">version</span>: <span class="code-str">1.0.0</span>
+<span class="code-key">category</span>: <span class="code-str">[development, patterns]</span>
+<span class="code-key">description</span>: <span class="code-str">Brief description for search results</span>
+<span class="code-meta">---</span>
+
+<span class="code-cmd">## Section Heading</span>
+<span class="code-comment">Content indexed at section level.</span>
+
+<span class="code-cmd">### Sub-Section</span>
+<span class="code-comment">Finer-grained content loaded independently via load_section.</span></code></pre>
+    <p class="lib-install-note" style="margin-top: 16px;">Sections map directly to <code>load_section</code> calls. The BM25 index scores each chunk independently, so agents get the narrowest useful slice of knowledge rather than an entire document.</p>
+  </div>
+</section>
+
+<!-- USAGE EXAMPLES -->
+<section class="lib-section" aria-labelledby="examples-title">
+  <div class="lib-wrap">
+    <div class="section-label">Usage Examples</div>
+    <h2 id="examples-title">How it works in practice</h2>
+    <div class="lib-examples-list">
+
+      <div class="lib-example-block">
+        <div class="lib-example-header">Automatic -- agent uses skills without being asked</div>
+        <div class="lib-example-prompt">Build me a REST API for user management</div>
+        <div class="lib-example-response">
+          Agent sees <code>api-design</code> in its skill catalog &#8594; calls <code>find_and_load("REST API patterns")</code> &#8594; loads pagination, error handling, and auth patterns &#8594; builds the API using established conventions. You never asked it to check the library -- it just did.
+        </div>
+      </div>
+
+      <div class="lib-example-block">
+        <div class="lib-example-header">Auto-research -- no skill? One gets created from the web</div>
+        <div class="lib-example-prompt">Help me set up GraphQL federation</div>
+        <div class="lib-example-response">
+          Agent calls <code>find_and_load("GraphQL federation")</code> &#8594; no matching skill found &#8594; auto-searches the web &#8594; fetches Apollo docs, graphql.org, and 3 more authoritative sources &#8594; agent creates a skill with <code>create_skill</code> &#8594; permanently indexed. Next time anyone asks, instant hit.
+        </div>
+      </div>
+
+      <div class="lib-example-block">
+        <div class="lib-example-header">Browse and install packs</div>
+        <div class="lib-example-prompt">What skill packs are available?</div>
+        <div class="lib-example-response">
+          Calling <code>browse_packs</code> &#8594; 9 packs found: security-hardening, api-design, git-patterns, testing-patterns, typescript-advanced, docker-and-compose, postgres-patterns, writing-skills, prompt-engineering. Pick any to install with one command.
+        </div>
+      </div>
+
+      <div class="lib-example-block">
+        <div class="lib-example-header">Custom tribal knowledge</div>
+        <div class="lib-example-prompt">Create a skill about our company's deployment process</div>
+        <div class="lib-example-response">
+          Agent uses <code>fetch_page</code> to pull your internal docs &#8594; synthesizes a skill covering your CI/CD pipeline, environment configs, and rollback procedures &#8594; saves with <code>create_skill</code> &#8594; catalog updates atomically. Every future session knows your deployment process.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- AVAILABLE PACKS -->
+<section class="lib-section" aria-labelledby="packs-title">
+  <div class="lib-wrap">
+    <div class="section-label">Community Packs</div>
+    <h2 id="packs-title">9 skill packs ready to install</h2>
+    <p>Say <code>install_pack({% raw %}{ pack: "name" }{% endraw %})</code> or just ask your agent to install one. Browse with <code>browse_packs</code>.</p>
+    <div class="lib-table-wrap" role="region" aria-label="Available skill packs">
+      <table class="lib-table">
+        <thead>
+          <tr>
+            <th scope="col">Pack</th>
+            <th scope="col">What you get</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>security-hardening</td>
+            <td>OWASP defenses, input validation, SQL injection prevention, XSS, auth patterns, secrets management, HTTP headers</td>
+          </tr>
+          <tr>
+            <td>api-design</td>
+            <td>REST conventions, error responses (RFC 7807), pagination, versioning, rate limiting, authentication</td>
+          </tr>
+          <tr>
+            <td>git-patterns</td>
+            <td>Rebase vs merge, commit conventions, branch strategies, conflict resolution, reflog recovery</td>
+          </tr>
+          <tr>
+            <td>testing-patterns</td>
+            <td>TDD workflow, mocking strategies, integration testing, edge case thinking, anti-patterns</td>
+          </tr>
+          <tr>
+            <td>typescript-advanced</td>
+            <td>Generics, discriminated unions, type guards, branded types, conditional types, utility types</td>
+          </tr>
+          <tr>
+            <td>docker-and-compose</td>
+            <td>Multi-stage builds, layer caching, Compose patterns, networking, production hardening</td>
+          </tr>
+          <tr>
+            <td>postgres-patterns</td>
+            <td>Indexing strategies, EXPLAIN ANALYZE, zero-downtime migrations, JSONB, connection pooling</td>
+          </tr>
+          <tr>
+            <td>writing-skills</td>
+            <td>How to write quality mcp-librarian skills -- format, structure, code examples, content guard rules</td>
+          </tr>
+          <tr>
+            <td>prompt-engineering</td>
+            <td>Context loading, task decomposition, specificity, debugging prompts, refactoring prompts</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- CONFIGURATION -->
+<section class="lib-section" aria-labelledby="config-title">
+  <div class="lib-wrap">
+    <div class="section-label">Configuration</div>
+    <h2 id="config-title">Environment variables</h2>
+    <p>All configuration is through environment variables -- no config files to manage. Set these before starting the server or in your shell profile.</p>
+    <div class="lib-table-wrap" role="region" aria-label="Configuration variables">
+      <table class="lib-table">
+        <thead>
+          <tr>
+            <th scope="col">Variable</th>
+            <th scope="col">Default</th>
+            <th scope="col">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MCP_LIBRARIAN_HOME</td>
+            <td><code>~/.mcp-librarian</code></td>
+            <td>Base directory for skills, keys, index, and exports.</td>
+          </tr>
+          <tr>
+            <td>MCP_LIBRARIAN_LOG_LEVEL</td>
+            <td><code>info</code></td>
+            <td>Logging verbosity. One of <code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code>.</td>
+          </tr>
+          <tr>
+            <td>MCP_LIBRARIAN_RATE_LIMIT</td>
+            <td><code>200</code></td>
+            <td>Maximum tool requests per minute before rate limiting kicks in.</td>
+          </tr>
+          <tr>
+            <td>MCP_LIBRARIAN_SKILLS_REPO</td>
+            <td><code>penumbraforge/mcp-librarian-skills</code></td>
+            <td>GitHub repository used as the community pack source for <code>install_pack</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- LOCAL MODELS -->
+<section class="lib-section" aria-labelledby="local-title">
+  <div class="lib-wrap">
+    <div class="section-label">Local Models</div>
+    <h2 id="local-title">Runs with any model, anywhere</h2>
+    <p>mcp-librarian is model-agnostic. It speaks the MCP protocol over stdio -- it doesn't care what model is on the other side. Cloud or local, large or small.</p>
+    <div class="lib-features-grid" role="list" style="margin-top: 24px;">
+      <div class="lib-feature-card" role="listitem">
+        <h3>Cloud Clients</h3>
+        <p>Claude Code, Cursor, Windsurf, and any MCP-compatible coding agent. Full feature support out of the box.</p>
+      </div>
+      <div class="lib-feature-card" role="listitem">
+        <h3>Local Models</h3>
+        <p>Ollama, LM Studio, llama.cpp, or any local model behind an MCP-compatible client. Search, load, install, and browse work identically. Skill creation quality scales with model capability.</p>
+      </div>
+    </div>
+    <p style="margin-top: 16px; font-size: 12px; color: var(--text-3); line-height: 1.6;">All 14 tools work regardless of the model. The only quality-dependent feature is auto-research skill creation -- larger models produce better-structured skills from web sources. Searching, loading, installing packs, and browsing are model-independent operations handled entirely by the server.</p>
+  </div>
+</section>
+
+<!-- SECURITY -->
+<section class="lib-section" aria-labelledby="security-title">
+  <div class="lib-wrap">
+    <div class="section-label">Security</div>
+    <h2 id="security-title">Defense in layers</h2>
+    <p>mcp-librarian is designed for the threat model of an AI agent with file system access. Every layer assumes the agent may be manipulated through prompt injection in the knowledge base itself.</p>
+    <ul class="lib-security-list" role="list">
+      <li>
+        <span class="lib-security-icon" aria-hidden="true">&#10003;</span>
+        <span class="lib-security-text"><strong>Ed25519 signing</strong> -- every skill is hashed and signed on write. The signature is verified on every load. A modified file fails the integrity check and is flagged before its content reaches the agent.</span>
+      </li>
+      <li>
+        <span class="lib-security-icon" aria-hidden="true">&#10003;</span>
+        <span class="lib-security-text"><strong>Content guard</strong> -- blocks prompt injection patterns in skill content. Legitimate instruction-like content inside fenced code blocks is permitted. Bare injections outside code blocks are rejected at write time.</span>
+      </li>
+      <li>
+        <span class="lib-security-icon" aria-hidden="true">&#10003;</span>
+        <span class="lib-security-text"><strong>Path guard</strong> -- all file operations are constrained to <code>MCP_LIBRARIAN_HOME</code>. Directory traversal attempts (<code>../</code>, absolute paths, symlink escapes) are rejected before any I/O occurs.</span>
+      </li>
+      <li>
+        <span class="lib-security-icon" aria-hidden="true">&#10003;</span>
+        <span class="lib-security-text"><strong>Minimal network surface</strong> -- no network access occurs except during explicit <code>install_pack</code> calls. The server makes no telemetry requests, no version checks, and no background connections of any kind.</span>
+      </li>
+    </ul>
+  </div>
+</section>

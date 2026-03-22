@@ -1,0 +1,652 @@
+---
+toolSlug: dns-builder
+permalink: /tools/dns-builder/
+---
+
+<div class="tool-row" style="margin-bottom:0;">
+  <div class="tool-options" role="tablist" aria-label="DNS record types" id="dns-tabs">
+    <button class="tool-option active" role="tab" data-type="A"     aria-selected="true">A</button>
+    <button class="tool-option" role="tab" data-type="AAAA"  aria-selected="false">AAAA</button>
+    <button class="tool-option" role="tab" data-type="CNAME" aria-selected="false">CNAME</button>
+    <button class="tool-option" role="tab" data-type="MX"    aria-selected="false">MX</button>
+    <button class="tool-option" role="tab" data-type="TXT"   aria-selected="false">TXT</button>
+    <button class="tool-option" role="tab" data-type="SRV"   aria-selected="false">SRV</button>
+    <button class="tool-option" role="tab" data-type="CAA"   aria-selected="false">CAA</button>
+    <button class="tool-option" role="tab" data-type="NS"    aria-selected="false">NS</button>
+  </div>
+</div>
+
+<div id="dns-description" class="dns-description"></div>
+
+<div id="dns-form"></div>
+
+<div id="dns-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div class="output-area" style="margin-top:12px;">
+  <button class="btn btn--copy" id="btn-copy-record" aria-label="Copy DNS record">Copy</button>
+  <pre id="dns-output" aria-label="Generated DNS record"></pre>
+</div>
+
+<div class="dns-examples" id="dns-examples"></div>
+
+<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border, #e5e7eb);">
+
+<div class="tool-group">
+  <label for="dns-parse-input">Parse existing record <span style="font-weight:400; color:var(--text-3,#9ca3af);">— paste a zone file line to explain it</span></label>
+  <input type="text" id="dns-parse-input" placeholder="mail.example.com. 3600 IN MX 10 mail.example.com." spellcheck="false" autocomplete="off" style="font-family:monospace;">
+</div>
+
+<div id="dns-parse-output" style="display:none;" class="dns-parse-result"></div>
+
+<style>
+  .dns-description {
+    background: var(--surface-0, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 13px;
+    color: var(--text-2, #374151);
+    margin: 10px 0 14px;
+    line-height: 1.55;
+  }
+
+  .dns-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .dns-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .dns-field label {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2, #374151);
+    margin: 0;
+  }
+
+  .dns-field input, .dns-field select, .dns-field textarea {
+    font-family: var(--font-mono, monospace);
+    font-size: 13px;
+    padding: 6px 8px;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 3px;
+    background: var(--surface-bg, #fff);
+    color: var(--text-1, #111827);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dns-field .dns-hint {
+    font-size: 11px;
+    color: var(--text-3, #9ca3af);
+    font-family: var(--font-sans, sans-serif);
+  }
+
+  .dns-examples {
+    margin-top: 12px;
+  }
+
+  .dns-examples-title {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3, #9ca3af);
+    margin-bottom: 8px;
+  }
+
+  .dns-example-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .dns-example-chip {
+    font-size: 12px;
+    font-family: var(--font-sans, sans-serif);
+    background: var(--surface-0, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 3px;
+    padding: 3px 10px;
+    cursor: pointer;
+    color: var(--text-2, #374151);
+    transition: border-color 0.15s;
+  }
+
+  .dns-example-chip:hover {
+    border-color: var(--accent, #3b82f6);
+    color: var(--accent, #3b82f6);
+  }
+
+  .dns-parse-result {
+    background: var(--surface-0, #f9fafb);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 4px;
+    padding: 12px 14px;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 13px;
+    color: var(--text-2, #374151);
+    line-height: 1.6;
+    margin-top: 10px;
+  }
+
+  .dns-parse-field {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .dns-parse-label {
+    font-weight: 700;
+    color: var(--text-3, #9ca3af);
+    min-width: 80px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding-top: 1px;
+  }
+
+  .dns-parse-val {
+    font-family: var(--font-mono, monospace);
+    color: var(--text-1, #111827);
+  }
+
+  .dns-parse-explain {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border, #e5e7eb);
+    font-style: italic;
+    color: var(--text-2, #374151);
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  var tabsEl      = document.getElementById("dns-tabs");
+  var descEl      = document.getElementById("dns-description");
+  var formEl      = document.getElementById("dns-form");
+  var errorEl     = document.getElementById("dns-error");
+  var outputEl    = document.getElementById("dns-output");
+  var examplesEl  = document.getElementById("dns-examples");
+  var copyBtn     = document.getElementById("btn-copy-record");
+  var parseInput  = document.getElementById("dns-parse-input");
+  var parseOutput = document.getElementById("dns-parse-output");
+
+  var currentType = "A";
+
+  // ── Record type definitions ──────────────────────────────────────────────
+  var TYPES = {
+    A: {
+      desc: "Maps a hostname to an IPv4 address. This is the most fundamental DNS record — it's what lets browsers find your server. Use it to point your domain or subdomain to a specific IP address.",
+      fields: [
+        { id: "name",  label: "Name (hostname)", placeholder: "@ or subdomain or example.com.", hint: "Use @ for root domain, or a subdomain like www" },
+        { id: "ttl",   label: "TTL (seconds)",   placeholder: "3600", hint: "Time-to-live: how long resolvers cache this record. 3600 = 1 hour" },
+        { id: "value", label: "IPv4 Address",    placeholder: "93.184.216.34", hint: "The target IPv4 address" }
+      ],
+      examples: [
+        { label: "Root domain → IP", vals: { name: "@", ttl: "3600", value: "93.184.216.34" } },
+        { label: "www → IP",         vals: { name: "www", ttl: "3600", value: "93.184.216.34" } },
+        { label: "Short TTL",        vals: { name: "@", ttl: "300", value: "93.184.216.34" } }
+      ],
+      build: function (f) {
+        if (!f.value || !validateIPv4(f.value)) return { error: "Enter a valid IPv4 address (e.g. 93.184.216.34)" };
+        return { record: formatRecord(f.name, f.ttl, "A", f.value) };
+      }
+    },
+    AAAA: {
+      desc: "Maps a hostname to an IPv6 address — the modern successor to the A record. Use it alongside an A record for dual-stack (IPv4 + IPv6) support. IPv6 addresses use eight colon-separated groups of hex digits.",
+      fields: [
+        { id: "name",  label: "Name (hostname)", placeholder: "@ or subdomain", hint: "Use @ for root domain" },
+        { id: "ttl",   label: "TTL (seconds)",   placeholder: "3600" },
+        { id: "value", label: "IPv6 Address",    placeholder: "2606:2800:220:1:248:1893:25c8:1946", hint: "Full or abbreviated IPv6 address" }
+      ],
+      examples: [
+        { label: "Root domain → IPv6", vals: { name: "@", ttl: "3600", value: "2606:2800:220:1:248:1893:25c8:1946" } },
+        { label: "www → IPv6",         vals: { name: "www", ttl: "3600", value: "::1" } }
+      ],
+      build: function (f) {
+        if (!f.value || !validateIPv6(f.value)) return { error: "Enter a valid IPv6 address" };
+        return { record: formatRecord(f.name, f.ttl, "AAAA", f.value) };
+      }
+    },
+    CNAME: {
+      desc: "Creates an alias from one hostname to another. Instead of pointing to an IP directly, CNAME delegates resolution to another name. Common uses: pointing www to the bare domain, or pointing a custom subdomain to a CDN or SaaS hostname. Cannot be used at the root domain (@).",
+      fields: [
+        { id: "name",  label: "Alias (source)",   placeholder: "www", hint: "The alias hostname — NOT the root domain" },
+        { id: "ttl",   label: "TTL (seconds)",     placeholder: "3600" },
+        { id: "value", label: "Target hostname",   placeholder: "example.com.", hint: "The canonical hostname this alias points to. Include trailing dot for absolute name." }
+      ],
+      examples: [
+        { label: "www → bare domain",    vals: { name: "www",  ttl: "3600", value: "example.com." } },
+        { label: "docs → GitHub Pages",  vals: { name: "docs", ttl: "3600", value: "myorg.github.io." } },
+        { label: "app → Heroku",         vals: { name: "app",  ttl: "3600", value: "myapp.herokuapp.com." } }
+      ],
+      build: function (f) {
+        if (!f.value) return { error: "Enter a target hostname" };
+        if (f.name === "@") return { error: "CNAME cannot be used at the root domain (@) — use an A or ALIAS record instead" };
+        return { record: formatRecord(f.name, f.ttl, "CNAME", f.value) };
+      }
+    },
+    MX: {
+      desc: "Specifies the mail server responsible for accepting email for your domain. You can have multiple MX records with different priorities — lower number = higher priority. The mail server hostname must itself have an A/AAAA record.",
+      fields: [
+        { id: "name",     label: "Domain",          placeholder: "@", hint: "Usually @ for the root domain" },
+        { id: "ttl",      label: "TTL (seconds)",    placeholder: "3600" },
+        { id: "priority", label: "Priority",         placeholder: "10", hint: "Lower number = higher priority. Common: 10, 20, 30" },
+        { id: "value",    label: "Mail server",      placeholder: "mail.example.com.", hint: "The FQDN of your mail server. Include trailing dot." }
+      ],
+      examples: [
+        { label: "Single mail server",   vals: { name: "@", ttl: "3600", priority: "10", value: "mail.example.com." } },
+        { label: "Google Workspace",     vals: { name: "@", ttl: "3600", priority: "1",  value: "aspmx.l.google.com." } },
+        { label: "Backup MX",            vals: { name: "@", ttl: "3600", priority: "20", value: "alt.mail.example.com." } }
+      ],
+      build: function (f) {
+        var pri = parseInt(f.priority, 10);
+        if (isNaN(pri) || pri < 0 || pri > 65535) return { error: "Priority must be 0–65535" };
+        if (!f.value) return { error: "Enter a mail server hostname" };
+        return { record: formatRecord(f.name, f.ttl, "MX", pri + " " + f.value) };
+      }
+    },
+    TXT: {
+      desc: "Stores arbitrary text data in DNS. Widely used for domain ownership verification (Google, GitHub, etc.), email authentication (SPF, DKIM, DMARC), and passing arbitrary configuration. Values are quoted strings.",
+      fields: [
+        { id: "name",  label: "Name",            placeholder: "@", hint: "@ for root, or _dmarc, _domainkey, etc." },
+        { id: "ttl",   label: "TTL (seconds)",   placeholder: "3600" },
+        { id: "value", label: "Text content",    placeholder: "v=spf1 include:_spf.google.com ~all", hint: "The TXT value (without quotes — they will be added automatically)" }
+      ],
+      examples: [
+        { label: "Google verification", vals: { name: "@", ttl: "3600", value: "google-site-verification=abc123def456" } },
+        { label: "SPF (G Suite)",       vals: { name: "@", ttl: "3600", value: "v=spf1 include:_spf.google.com ~all" } },
+        { label: "DMARC policy",        vals: { name: "_dmarc", ttl: "3600", value: "v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com" } }
+      ],
+      build: function (f) {
+        if (!f.value) return { error: "Enter the TXT record content" };
+        var quoted = '"' + f.value.replace(/"/g, '\\"') + '"';
+        return { record: formatRecord(f.name, f.ttl, "TXT", quoted) };
+      }
+    },
+    SRV: {
+      desc: "Defines the location of servers for specific services and protocols. Used by applications like SIP (VoIP), XMPP (chat), and game servers to automatically discover service endpoints. Name format: _service._proto.domain",
+      fields: [
+        { id: "name",     label: "Service name",   placeholder: "_sip._tcp.example.com.", hint: "Format: _service._protocol.domain" },
+        { id: "ttl",      label: "TTL (seconds)",  placeholder: "3600" },
+        { id: "priority", label: "Priority",       placeholder: "10", hint: "Lower = higher priority" },
+        { id: "weight",   label: "Weight",         placeholder: "20", hint: "Load balancing weight among same-priority records" },
+        { id: "port",     label: "Port",           placeholder: "5060", hint: "The TCP/UDP port the service runs on" },
+        { id: "value",    label: "Target host",    placeholder: "sip.example.com.", hint: "The hostname providing the service. Include trailing dot." }
+      ],
+      examples: [
+        { label: "SIP over TCP",   vals: { name: "_sip._tcp.example.com.", ttl: "3600", priority: "10", weight: "20", port: "5060", value: "sip.example.com." } },
+        { label: "XMPP client",    vals: { name: "_xmpp-client._tcp.example.com.", ttl: "3600", priority: "5", weight: "0", port: "5222", value: "xmpp.example.com." } },
+        { label: "Minecraft",      vals: { name: "_minecraft._tcp.example.com.", ttl: "3600", priority: "0", weight: "5", port: "25565", value: "mc.example.com." } }
+      ],
+      build: function (f) {
+        var pri = parseInt(f.priority, 10), wt = parseInt(f.weight, 10), port = parseInt(f.port, 10);
+        if (isNaN(pri)  || pri  < 0 || pri  > 65535) return { error: "Priority must be 0–65535" };
+        if (isNaN(wt)   || wt   < 0 || wt   > 65535) return { error: "Weight must be 0–65535" };
+        if (isNaN(port) || port < 1 || port > 65535) return { error: "Port must be 1–65535" };
+        if (!f.value) return { error: "Enter the target hostname" };
+        return { record: formatRecord(f.name, f.ttl, "SRV", pri + " " + wt + " " + port + " " + f.value) };
+      }
+    },
+    CAA: {
+      desc: "Certification Authority Authorization — specifies which certificate authorities (CAs) are allowed to issue SSL/TLS certificates for your domain. Helps prevent unauthorized certificate issuance. Ignored by CAs that don't support it, so every domain should have one.",
+      fields: [
+        { id: "name",  label: "Domain",          placeholder: "@", hint: "@ for root domain, or a specific subdomain" },
+        { id: "ttl",   label: "TTL (seconds)",   placeholder: "3600" },
+        { id: "flags", label: "Flags",           placeholder: "0", hint: "0 = advisory, 128 = critical (CA must understand this tag)" },
+        { id: "tag",   label: "Tag",             placeholder: "issue", hint: "issue = allow issuance, issuewild = wildcards only, iodef = report violations" },
+        { id: "value", label: "CA domain",       placeholder: "letsencrypt.org", hint: "The CA's domain. Use ; to disallow all." }
+      ],
+      examples: [
+        { label: "Allow Let's Encrypt",  vals: { name: "@", ttl: "3600", flags: "0", tag: "issue", value: "letsencrypt.org" } },
+        { label: "Allow DigiCert",       vals: { name: "@", ttl: "3600", flags: "0", tag: "issue", value: "digicert.com" } },
+        { label: "Disallow all CAs",     vals: { name: "@", ttl: "3600", flags: "0", tag: "issue", value: ";" } },
+        { label: "Report violations",    vals: { name: "@", ttl: "3600", flags: "0", tag: "iodef", value: "mailto:security@example.com" } }
+      ],
+      build: function (f) {
+        var flags = parseInt(f.flags, 10);
+        if (isNaN(flags) || flags < 0 || flags > 255) return { error: "Flags must be 0–255" };
+        if (!f.tag) return { error: "Select a tag" };
+        if (!f.value) return { error: "Enter the CA domain" };
+        return { record: formatRecord(f.name, f.ttl, "CAA", flags + ' ' + f.tag + ' "' + f.value + '"') };
+      }
+    },
+    NS: {
+      desc: "Name Server record — specifies which DNS servers are authoritative for a domain or subdomain. When registering a domain, you set these at your registrar. You can also delegate a subdomain to different nameservers using NS records.",
+      fields: [
+        { id: "name",  label: "Domain/zone",    placeholder: "@", hint: "@ for root domain or a subdomain to delegate" },
+        { id: "ttl",   label: "TTL (seconds)",  placeholder: "86400", hint: "NS records typically have longer TTLs — 86400 = 1 day" },
+        { id: "value", label: "Nameserver",     placeholder: "ns1.example.com.", hint: "FQDN of the nameserver. Include trailing dot." }
+      ],
+      examples: [
+        { label: "Primary NS",        vals: { name: "@", ttl: "86400", value: "ns1.example.com." } },
+        { label: "Delegate subdomain",vals: { name: "sub", ttl: "86400", value: "ns1.subdomain-host.com." } },
+        { label: "Cloudflare NS",     vals: { name: "@", ttl: "86400", value: "lara.ns.cloudflare.com." } }
+      ],
+      build: function (f) {
+        if (!f.value) return { error: "Enter a nameserver hostname" };
+        return { record: formatRecord(f.name, f.ttl, "NS", f.value) };
+      }
+    }
+  };
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function validateIPv4(s) {
+    var parts = s.trim().split(".");
+    if (parts.length !== 4) return false;
+    return parts.every(function (p) {
+      var n = parseInt(p, 10);
+      return !isNaN(n) && n >= 0 && n <= 255 && String(n) === p;
+    });
+  }
+
+  function validateIPv6(s) {
+    // Basic check — accept valid colon-hex format
+    return /^[0-9a-fA-F:]+$/.test(s.trim()) && s.indexOf(":") !== -1;
+  }
+
+  function normalizeName(name) {
+    if (!name) name = "@";
+    name = name.trim();
+    if (name === "@") return "@";
+    // Add trailing dot if missing and not bare label
+    if (name.indexOf(".") !== -1 && !name.endsWith(".")) return name + ".";
+    return name;
+  }
+
+  function normalizeTTL(ttl) {
+    var n = parseInt(ttl, 10);
+    return isNaN(n) || n < 0 ? 3600 : n;
+  }
+
+  function formatRecord(name, ttl, type, rdata) {
+    return normalizeName(name) + "\t" + normalizeTTL(ttl) + "\tIN\t" + type + "\t" + rdata;
+  }
+
+  // ── Build form ───────────────────────────────────────────────────────────
+  function buildForm(type) {
+    var def = TYPES[type];
+    while (formEl.firstChild) formEl.removeChild(formEl.firstChild);
+
+    descEl.textContent = def.desc;
+
+    var grid = document.createElement("div");
+    grid.className = "dns-field-grid";
+
+    def.fields.forEach(function (fld) {
+      var wrap = document.createElement("div");
+      wrap.className = "dns-field";
+
+      var lbl = document.createElement("label");
+      lbl.textContent = fld.label;
+      lbl.setAttribute("for", "dns-fld-" + fld.id);
+
+      var input = document.createElement("input");
+      input.type = "text";
+      input.id = "dns-fld-" + fld.id;
+      input.placeholder = fld.placeholder || "";
+      input.spellcheck = false;
+      input.autocomplete = "off";
+      input.setAttribute("autocorrect", "off");
+      input.setAttribute("autocapitalize", "off");
+      input.addEventListener("input", generateRecord);
+
+      wrap.appendChild(lbl);
+      wrap.appendChild(input);
+
+      if (fld.hint) {
+        var hint = document.createElement("span");
+        hint.className = "dns-hint";
+        hint.textContent = fld.hint;
+        wrap.appendChild(hint);
+      }
+
+      grid.appendChild(wrap);
+    });
+
+    formEl.appendChild(grid);
+
+    // Examples
+    while (examplesEl.firstChild) examplesEl.removeChild(examplesEl.firstChild);
+    if (def.examples && def.examples.length) {
+      var etitle = document.createElement("div");
+      etitle.className = "dns-examples-title";
+      etitle.textContent = "Quick examples";
+      examplesEl.appendChild(etitle);
+
+      var chips = document.createElement("div");
+      chips.className = "dns-example-chips";
+
+      def.examples.forEach(function (ex) {
+        var chip = document.createElement("button");
+        chip.className = "dns-example-chip";
+        chip.textContent = ex.label;
+        chip.addEventListener("click", function () {
+          def.fields.forEach(function (fld) {
+            var input = document.getElementById("dns-fld-" + fld.id);
+            if (input) input.value = ex.vals[fld.id] || "";
+          });
+          generateRecord();
+        });
+        chips.appendChild(chip);
+      });
+
+      examplesEl.appendChild(chips);
+    }
+
+    generateRecord();
+  }
+
+  function getFieldValues() {
+    var vals = {};
+    var def = TYPES[currentType];
+    def.fields.forEach(function (fld) {
+      var el = document.getElementById("dns-fld-" + fld.id);
+      vals[fld.id] = el ? el.value.trim() : "";
+    });
+    return vals;
+  }
+
+  function generateRecord() {
+    var def = TYPES[currentType];
+    var vals = getFieldValues();
+
+    // Require at minimum a value/address field
+    var hasAnyInput = Object.keys(vals).some(function (k) { return vals[k] !== ""; });
+    if (!hasAnyInput) {
+      errorEl.style.display = "none";
+      outputEl.textContent = "";
+      return;
+    }
+
+    var result = def.build(vals);
+    if (result.error) {
+      errorEl.textContent = result.error;
+      errorEl.style.display = "";
+      outputEl.textContent = "";
+    } else {
+      errorEl.style.display = "none";
+      outputEl.textContent = result.record;
+    }
+  }
+
+  // ── Tab switching ────────────────────────────────────────────────────────
+  var tabBtns = Array.prototype.slice.call(tabsEl.querySelectorAll("[data-type]"));
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      tabBtns.forEach(function (b) {
+        b.classList.remove("active");
+        b.setAttribute("aria-selected", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-selected", "true");
+      currentType = btn.getAttribute("data-type");
+      outputEl.textContent = "";
+      errorEl.style.display = "none";
+      buildForm(currentType);
+    });
+  });
+
+  // ── Copy ────────────────────────────────────────────────────────────────
+  copyBtn.addEventListener("click", function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = "Copied!";
+        setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand("copy"); copyBtn.textContent = "Copied!"; }
+      catch (e) { copyBtn.textContent = "Failed"; }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+    }
+  });
+
+  // ── Parse existing record ────────────────────────────────────────────────
+  var PARSE_TYPES = {
+    A:     function (rdata) { return "Points the hostname to IPv4 address " + rdata + ". Any request to this hostname will be directed to that IP."; },
+    AAAA:  function (rdata) { return "Points the hostname to IPv6 address " + rdata + ". Used for dual-stack (IPv4 + IPv6) connectivity."; },
+    CNAME: function (rdata) { return "Creates an alias — requests for this hostname are redirected to " + rdata + ", which must be separately resolved."; },
+    MX:    function (rdata) {
+      var parts = rdata.trim().split(/\s+/);
+      return "Mail server record. Priority " + parts[0] + " — emails to this domain are delivered to " + (parts[1] || "?") + ". Lower priority number = preferred server.";
+    },
+    TXT:   function (rdata) {
+      var v = rdata.replace(/^"|"$/g, "");
+      if (v.startsWith("v=spf1")) return "SPF record — defines which mail servers are authorized to send email for this domain: " + v;
+      if (v.startsWith("v=DKIM")) return "DKIM public key record — used by receiving mail servers to verify the email signature.";
+      if (v.startsWith("v=DMARC")) return "DMARC policy — instructs receiving mail servers how to handle emails that fail SPF/DKIM checks: " + v;
+      if (/google-site-verification/.test(v)) return "Google domain ownership verification token.";
+      return "Text record containing: " + v;
+    },
+    SRV:   function (rdata) {
+      var p = rdata.trim().split(/\s+/);
+      return "Service locator. Priority " + p[0] + ", weight " + p[1] + ", port " + p[2] + ", target host " + (p[3] || "?") + ".";
+    },
+    CAA:   function (rdata) {
+      var p = rdata.trim().split(/\s+/);
+      var tag = p[1] || "", val = (p[2] || "").replace(/"/g, "");
+      if (tag === "issue")     return "Allows " + val + " to issue SSL/TLS certificates for this domain.";
+      if (tag === "issuewild") return "Allows " + val + " to issue wildcard SSL/TLS certificates.";
+      if (tag === "iodef")     return "Certificate issuance violations should be reported to " + val;
+      return "CAA record: flags=" + p[0] + " tag=" + tag + " value=" + val;
+    },
+    NS:    function (rdata) { return "Nameserver record — DNS queries for this domain are handled by " + rdata + "."; }
+  };
+
+  function parseRecord(line) {
+    line = line.trim();
+    if (!line) return null;
+
+    // Tokenize respecting quoted strings
+    var tokens = [];
+    var i = 0, n = line.length, tok = "";
+    while (i < n) {
+      if (line[i] === " " || line[i] === "\t") {
+        if (tok) { tokens.push(tok); tok = ""; }
+        while (i < n && (line[i] === " " || line[i] === "\t")) i++;
+        continue;
+      }
+      if (line[i] === '"') {
+        var j = i + 1;
+        while (j < n && line[j] !== '"') j++;
+        tokens.push(line.slice(i, j + 1));
+        i = j + 1;
+        continue;
+      }
+      tok += line[i++];
+    }
+    if (tok) tokens.push(tok);
+
+    // Formats:
+    //   name ttl class type rdata...
+    //   name ttl type rdata...
+    //   name class type rdata...
+    //   name type rdata...
+    if (tokens.length < 3) return null;
+
+    var name = tokens[0];
+    var idx = 1;
+    var ttl = null, cls = null, type = null;
+
+    if (/^\d+$/.test(tokens[idx])) { ttl = tokens[idx++]; }
+    if (/^IN$/i.test(tokens[idx]) || /^CH$/i.test(tokens[idx])) { cls = tokens[idx++]; }
+    type = (tokens[idx++] || "").toUpperCase();
+    var rdata = tokens.slice(idx).join(" ");
+
+    if (!type || !PARSE_TYPES[type]) return null;
+
+    return { name: name, ttl: ttl, cls: cls || "IN", type: type, rdata: rdata };
+  }
+
+  parseInput.addEventListener("input", function () {
+    var val = parseInput.value.trim();
+    if (!val) {
+      parseOutput.style.display = "none";
+      return;
+    }
+
+    var parsed = parseRecord(val);
+    while (parseOutput.firstChild) parseOutput.removeChild(parseOutput.firstChild);
+
+    if (!parsed) {
+      var errSpan = document.createElement("span");
+      errSpan.style.color = "#ef4444";
+      errSpan.textContent = "Could not parse record. Expected format: name [ttl] [IN] type rdata";
+      parseOutput.appendChild(errSpan);
+      parseOutput.style.display = "";
+      return;
+    }
+
+    function addField(label, value) {
+      var row = document.createElement("div");
+      row.className = "dns-parse-field";
+      var lbl = document.createElement("span");
+      lbl.className = "dns-parse-label";
+      lbl.textContent = label;
+      var val = document.createElement("span");
+      val.className = "dns-parse-val";
+      val.textContent = value;
+      row.appendChild(lbl);
+      row.appendChild(val);
+      parseOutput.appendChild(row);
+    }
+
+    addField("Name", parsed.name);
+    if (parsed.ttl) addField("TTL", parsed.ttl + "s (" + Math.round(parseInt(parsed.ttl, 10) / 60) + " min)");
+    addField("Class", parsed.cls);
+    addField("Type", parsed.type);
+    addField("Data", parsed.rdata);
+
+    var expDiv = document.createElement("div");
+    expDiv.className = "dns-parse-explain";
+    var explain = PARSE_TYPES[parsed.type];
+    expDiv.textContent = explain ? explain(parsed.rdata) : "Unknown record type.";
+    parseOutput.appendChild(expDiv);
+
+    parseOutput.style.display = "";
+  });
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  buildForm("A");
+})();
+</script>
