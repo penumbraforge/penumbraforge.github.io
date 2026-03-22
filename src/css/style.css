@@ -5039,16 +5039,57 @@ a.t-card {
   z-index: 39;
 }
 
-/* Header alignment on sidebar pages — push brand past sidebar */
+/* Header alignment on sidebar pages — brand above sidebar, nav above content */
 .tool-page .site-header,
 .tools-hub-page .site-header {
-  padding-left: 276px;
+  padding: 0;
+}
+
+.site-header-sidebar {
+  display: none;
+}
+
+.tool-page .site-header-sidebar,
+.tools-hub-page .site-header-sidebar {
+  display: flex;
+  align-items: center;
+  width: 260px;
+  min-width: 260px;
+  padding: 20px 20px 20px 24px;
+  border-right: 1px solid var(--border);
+}
+
+.tool-page .site-header-main,
+.tools-hub-page .site-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  padding: 20px 40px;
+}
+
+/* Non-sidebar pages: hide the split and use default layout */
+.site-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
 }
 
 @media (max-width: 900px) {
+  .tool-page .site-header-sidebar,
+  .tools-hub-page .site-header-sidebar {
+    display: none;
+  }
+
   .tool-page .site-header,
   .tools-hub-page .site-header {
-    padding-left: 20px;
+    padding: 20px 20px;
+  }
+
+  .tool-page .site-header-main,
+  .tools-hub-page .site-header-main {
+    padding: 0;
   }
 }
 
