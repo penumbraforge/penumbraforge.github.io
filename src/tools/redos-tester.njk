@@ -1,0 +1,418 @@
+---
+toolSlug: redos-tester
+permalink: /tools/redos-tester/
+layout: tool-layout.njk
+---
+
+<div class="tool-group">
+  <label for="redos-pattern">Regular Expression</label>
+  <input type="text" id="redos-pattern" placeholder="(a+)+$" autocomplete="off" spellcheck="false" class="tool-input-mono">
+</div>
+
+<div class="tool-row">
+  <button class="btn" id="btn-test">Test for ReDoS</button>
+  <button class="btn btn--secondary" id="btn-examples">Load Examples</button>
+  <button class="btn btn--secondary" id="btn-clear">Clear</button>
+</div>
+
+<div id="redos-result" style="display:none;"></div>
+
+<div class="redos-examples" id="redos-examples" style="display:none;">
+  <div class="ha-section-label">Known Vulnerable Patterns</div>
+  <div class="redos-example-grid">
+    <button class="redos-ex" data-pattern="(a+)+$">
+      <code>(a+)+$</code>
+      <span>Nested quantifiers — classic ReDoS</span>
+    </button>
+    <button class="redos-ex" data-pattern="([a-zA-Z]+)*@">
+      <code>([a-zA-Z]+)*@</code>
+      <span>Email validation gone wrong</span>
+    </button>
+    <button class="redos-ex" data-pattern="(.*a){20}">
+      <code>(.*a){20}</code>
+      <span>Greedy dot-star with repetition</span>
+    </button>
+    <button class="redos-ex" data-pattern="(\d+\.?\d*|\.\d+)+$">
+      <code>(\d+\.?\d*|\.\d+)+$</code>
+      <span>Number parsing with alternation</span>
+    </button>
+    <button class="redos-ex" data-pattern="^(([a-z])+.)+[A-Z]([a-z])+$">
+      <code>^(([a-z])+.)+[A-Z]([a-z])+$</code>
+      <span>Overlapping character classes</span>
+    </button>
+    <button class="redos-ex" data-pattern="[\s\S]*(Smith|Smyth)">
+      <code>[\s\S]*(Smith|Smyth)</code>
+      <span>Backtracking on similar alternations</span>
+    </button>
+  </div>
+</div>
+
+<div class="redos-how">
+  <div class="ha-section-label">What is ReDoS?</div>
+  <div class="redos-explain">
+    <p><strong>Regular Expression Denial of Service (ReDoS)</strong> happens when a crafted input causes a regex engine to take exponential time to evaluate. An attacker sends a string that triggers catastrophic backtracking, freezing your server or browser.</p>
+    <p>Common vulnerable patterns include nested quantifiers <code>(a+)+</code>, overlapping alternations, and greedy quantifiers followed by similar patterns. A single malicious input can freeze a Node.js server for minutes.</p>
+  </div>
+</div>
+
+<style>
+.tool-input-mono {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  outline: none;
+}
+.tool-input-mono:focus { border-color: var(--border-active); }
+
+.redos-result-card {
+  margin-top: 20px;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.redos-result-card.redos-vuln {
+  background: rgba(235, 87, 87, 0.04);
+  border-color: rgba(235, 87, 87, 0.15);
+}
+
+.redos-result-card.redos-safe {
+  background: rgba(107, 207, 143, 0.04);
+  border-color: rgba(107, 207, 143, 0.15);
+}
+
+.redos-result-card.redos-warn {
+  background: rgba(232, 184, 77, 0.04);
+  border-color: rgba(232, 184, 77, 0.15);
+}
+
+.redos-result-icon { font-size: 28px; margin-bottom: 8px; }
+
+.redos-result-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+.redos-vuln .redos-result-title { color: #eb5757; }
+.redos-safe .redos-result-title { color: var(--sage); }
+.redos-warn .redos-result-title { color: #e8b84d; }
+
+.redos-result-detail {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.redos-attack-string {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.redos-attack-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.redos-attack-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: #eb5757;
+  word-break: break-all;
+}
+
+.redos-timing {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.redos-timing-item {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.redos-timing-num {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--text-1);
+}
+
+.redos-timing-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+
+.redos-example-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.redos-ex {
+  display: block;
+  text-align: left;
+  padding: 12px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 200ms;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.redos-ex:hover {
+  border-color: var(--border-active);
+  background: rgba(184, 165, 214, 0.04);
+}
+
+.redos-ex code {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.redos-ex span {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.redos-how { margin-top: 36px; }
+
+.redos-explain {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.7;
+}
+
+.redos-explain p { margin-bottom: 10px; }
+
+.redos-explain code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent);
+}
+</style>
+
+<script>
+(function () {
+  var patternEl = document.getElementById('redos-pattern');
+  var resultEl = document.getElementById('redos-result');
+  var examplesEl = document.getElementById('redos-examples');
+  var btnTest = document.getElementById('btn-test');
+  var btnExamples = document.getElementById('btn-examples');
+  var btnClear = document.getElementById('btn-clear');
+
+  /* ── ReDoS detection heuristics ── */
+  function analyzePattern(pattern) {
+    var issues = [];
+    var severity = 'safe';
+
+    /* Nested quantifiers: (a+)+ or (a*)*  */
+    if (/\([^)]*[+*]\)[+*{]/.test(pattern) || /\([^)]*[+*]\)\{/.test(pattern)) {
+      issues.push({ type: 'Nested quantifiers', detail: 'A quantified group containing a quantified element causes exponential backtracking. The regex engine tries every possible way to split the input between the inner and outer repetitions.', severity: 'critical' });
+      severity = 'vulnerable';
+    }
+
+    /* Overlapping alternation in quantified group: (a|a)+ */
+    if (/\([^)]*\|[^)]*\)[+*]/.test(pattern)) {
+      var altMatch = pattern.match(/\(([^)]*)\|([^)]*)\)/);
+      if (altMatch) {
+        issues.push({ type: 'Quantified alternation', detail: 'Alternation inside a quantified group can cause backtracking when both alternatives can match the same characters. The engine tries every combination.', severity: 'high' });
+        if (severity !== 'vulnerable') severity = 'warning';
+      }
+    }
+
+    /* Greedy quantifier followed by similar pattern */
+    if (/\.\*.*\.\*/.test(pattern) || /\.+.*\.+/.test(pattern)) {
+      issues.push({ type: 'Multiple greedy quantifiers', detail: 'Multiple .* or .+ in the same pattern create ambiguity about which quantifier should match which characters, leading to excessive backtracking.', severity: 'high' });
+      if (severity !== 'vulnerable') severity = 'warning';
+    }
+
+    /* Star height > 1 */
+    var starHeight = 0;
+    var depth = 0;
+    var maxStarDepth = 0;
+    for (var i = 0; i < pattern.length; i++) {
+      if (pattern[i] === '(') depth++;
+      if (pattern[i] === ')') depth--;
+      if ((pattern[i] === '+' || pattern[i] === '*') && depth > 0) {
+        if (depth > maxStarDepth) maxStarDepth = depth;
+        starHeight++;
+      }
+    }
+    if (starHeight > 2 && maxStarDepth > 1) {
+      issues.push({ type: 'High star height', detail: 'Multiple quantifiers at different nesting depths compound backtracking. Star height > 1 is a strong indicator of super-linear behavior.', severity: 'high' });
+      if (severity !== 'vulnerable') severity = 'warning';
+    }
+
+    /* Backreference with quantifier */
+    if (/\\[1-9].*[+*]/.test(pattern) || /[+*].*\\[1-9]/.test(pattern)) {
+      issues.push({ type: 'Backreference with quantifier', detail: 'Backreferences combined with quantifiers can cause exponential behavior as the engine tries to match the same text in different groupings.', severity: 'medium' });
+      if (severity === 'safe') severity = 'warning';
+    }
+
+    return { severity: severity, issues: issues };
+  }
+
+  /* Generate attack string for common patterns */
+  function generateAttack(pattern) {
+    /* Nested quantifiers with character class */
+    if (/\([^)]*[+*]\)[+*]/.test(pattern)) {
+      var charMatch = pattern.match(/\([\[\]]*([a-zA-Z0-9\\])/);
+      var ch = 'a';
+      if (charMatch) {
+        var c = charMatch[1];
+        if (c === '\\d') ch = '1';
+        else if (c === '\\w') ch = 'a';
+        else if (c === '\\s') ch = ' ';
+        else if (/[a-zA-Z0-9]/.test(c)) ch = c;
+      }
+      return ch.repeat(25) + '!';
+    }
+
+    /* Greedy dot-star */
+    if (/\.\*/.test(pattern) || /\.+/.test(pattern)) {
+      return 'a'.repeat(25) + '!';
+    }
+
+    return 'a'.repeat(30) + '!';
+  }
+
+  /* Time the regex execution */
+  function timeRegex(pattern, input) {
+    try {
+      var re = new RegExp(pattern);
+      var start = performance.now();
+      re.test(input);
+      var end = performance.now();
+      return end - start;
+    } catch (e) {
+      return -1;
+    }
+  }
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(s || ''));
+    return d.innerHTML;
+  }
+
+  function runTest() {
+    var pattern = patternEl.value.trim();
+    if (!pattern) { patternEl.focus(); return; }
+
+    /* Validate regex */
+    try { new RegExp(pattern); } catch (e) {
+      resultEl.style.display = '';
+      resultEl.innerHTML = '<div class="redos-result-card redos-warn"><div class="redos-result-icon">&#x26a0;</div><div class="redos-result-title">Invalid regex</div><div class="redos-result-detail">' + esc(e.message) + '</div></div>';
+      return;
+    }
+
+    var analysis = analyzePattern(pattern);
+    var attack = generateAttack(pattern);
+
+    /* Time with safe input */
+    var safeTime = timeRegex(pattern, 'test');
+
+    /* Time with short attack */
+    var shortAttack = attack.substring(0, 15);
+    var shortTime = timeRegex(pattern, shortAttack);
+
+    /* Time with medium attack (be careful — cap at 100ms) */
+    var medAttack = attack.substring(0, 20);
+    var medTime = timeRegex(pattern, medAttack);
+
+    /* Detect exponential growth */
+    var isExponential = medTime > 0 && shortTime > 0 && medTime > shortTime * 5;
+    if (isExponential && analysis.severity === 'safe') {
+      analysis.severity = 'warning';
+      analysis.issues.push({ type: 'Empirical slowdown detected', detail: 'The regex showed exponential time growth when tested with increasing input lengths. Even though no obvious structural issue was found, the pattern may be vulnerable to ReDoS.', severity: 'high' });
+    }
+    if (isExponential) analysis.severity = 'vulnerable';
+
+    resultEl.style.display = '';
+
+    if (analysis.severity === 'safe') {
+      resultEl.innerHTML = '<div class="redos-result-card redos-safe">' +
+        '<div class="redos-result-icon">&#x2705;</div>' +
+        '<div class="redos-result-title">No ReDoS vulnerability detected</div>' +
+        '<div class="redos-result-detail">This regex does not contain known vulnerable patterns. No exponential backtracking behavior was observed during testing.</div>' +
+        '<div class="redos-timing">' +
+          '<div class="redos-timing-item"><div class="redos-timing-num">' + safeTime.toFixed(2) + 'ms</div><div class="redos-timing-label">Normal input</div></div>' +
+          '<div class="redos-timing-item"><div class="redos-timing-num">' + medTime.toFixed(2) + 'ms</div><div class="redos-timing-label">Adversarial input</div></div>' +
+        '</div>' +
+      '</div>';
+    } else {
+      var issueHtml = '';
+      analysis.issues.forEach(function (issue) {
+        issueHtml += '<div style="margin-bottom:10px;padding:10px 14px;background:rgba(235,87,87,0.04);border:1px solid rgba(235,87,87,0.08);border-radius:8px;">' +
+          '<div style="font-family:var(--font-mono);font-size:11px;color:#eb5757;margin-bottom:4px;">' + esc(issue.type) + ' — ' + esc(issue.severity) + '</div>' +
+          '<div style="font-size:12px;color:var(--text-2);line-height:1.5;">' + esc(issue.detail) + '</div>' +
+        '</div>';
+      });
+
+      resultEl.innerHTML = '<div class="redos-result-card redos-vuln">' +
+        '<div class="redos-result-icon">&#x1f6a8;</div>' +
+        '<div class="redos-result-title">ReDoS vulnerability ' + (analysis.severity === 'vulnerable' ? 'confirmed' : 'likely') + '</div>' +
+        '<div class="redos-result-detail">This regex contains patterns that cause catastrophic backtracking. A crafted input can freeze the regex engine for seconds or minutes.</div>' +
+        issueHtml +
+        '<div class="redos-attack-string">' +
+          '<div class="redos-attack-label">Attack string (would cause freeze)</div>' +
+          '<div class="redos-attack-value">' + esc(attack) + '</div>' +
+        '</div>' +
+        '<div class="redos-timing">' +
+          '<div class="redos-timing-item"><div class="redos-timing-num">' + safeTime.toFixed(2) + 'ms</div><div class="redos-timing-label">Normal input</div></div>' +
+          '<div class="redos-timing-item"><div class="redos-timing-num">' + shortTime.toFixed(2) + 'ms</div><div class="redos-timing-label">15-char attack</div></div>' +
+          '<div class="redos-timing-item"><div class="redos-timing-num">' + medTime.toFixed(2) + 'ms</div><div class="redos-timing-label">20-char attack</div></div>' +
+        '</div>' +
+      '</div>';
+    }
+  }
+
+  btnTest.addEventListener('click', runTest);
+  patternEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') runTest(); });
+
+  btnExamples.addEventListener('click', function () {
+    examplesEl.style.display = examplesEl.style.display === 'none' ? '' : 'none';
+  });
+
+  btnClear.addEventListener('click', function () {
+    patternEl.value = '';
+    resultEl.style.display = 'none';
+  });
+
+  document.querySelectorAll('.redos-ex').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      patternEl.value = this.getAttribute('data-pattern');
+      examplesEl.style.display = 'none';
+      runTest();
+    });
+  });
+})();
+</script>

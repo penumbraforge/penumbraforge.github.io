@@ -668,5 +668,29 @@
     "relatedTools": ["site-score", "dns-builder", "dmarc-builder"],
     "status": "live",
     "isNew": true
+  },
+  {
+    "name": "ReDoS Tester",
+    "slug": "redos-tester",
+    "description": "Test regular expressions for catastrophic backtracking vulnerabilities.",
+    "longDescription": "Paste any regex and instantly detect ReDoS (Regular Expression Denial of Service) vulnerabilities. Identifies nested quantifiers, overlapping alternations, and exponential backtracking. Shows attack strings and timing analysis.",
+    "category": "intelligence",
+    "keywords": ["redos", "regex", "denial of service", "backtracking", "catastrophic", "regular expression", "security", "vulnerability"],
+    "badge": "local",
+    "relatedTools": ["regex-tester", "header-analyzer", "secrets-scanner"],
+    "status": "live",
+    "isNew": true
+  },
+  {
+    "name": "JWT Attack Workbench",
+    "slug": "jwt-attack",
+    "description": "Decode JWTs and test for real vulnerabilities — algorithm confusion, none attack, claim tampering.",
+    "longDescription": "Go beyond decoding — analyze JWTs for real-world vulnerabilities. Tests algorithm none attack (CVE-2015-9235), RS256/HS256 algorithm confusion, missing expiry, excessive lifetime, sensitive data exposure, and generates forged tokens for authorized pentesting.",
+    "category": "intelligence",
+    "keywords": ["jwt", "attack", "pentest", "algorithm confusion", "none", "vulnerability", "token", "auth", "security"],
+    "badge": "local",
+    "relatedTools": ["jwt-decoder", "breach-checker", "header-analyzer"],
+    "status": "live",
+    "isNew": true
   }
 ]

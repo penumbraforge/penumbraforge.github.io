@@ -1,0 +1,448 @@
+---
+toolSlug: jwt-attack
+permalink: /tools/jwt-attack/
+layout: tool-layout.njk
+---
+
+<div class="tool-group">
+  <label for="jwt-input">Paste a JWT token</label>
+  <textarea id="jwt-input" rows="4" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <button class="btn" id="btn-decode">Decode &amp; Analyze</button>
+  <button class="btn btn--secondary" id="btn-clear">Clear</button>
+</div>
+
+<div id="jwt-error" class="ss-error" style="display:none;"></div>
+
+<div id="jwt-results" style="display:none;">
+  <div class="jwt-panels">
+    <div class="jwt-panel">
+      <div class="jwt-panel-label">Header</div>
+      <pre class="jwt-panel-code" id="jwt-header"></pre>
+    </div>
+    <div class="jwt-panel">
+      <div class="jwt-panel-label">Payload</div>
+      <pre class="jwt-panel-code" id="jwt-payload"></pre>
+    </div>
+  </div>
+
+  <div class="jwt-claims" id="jwt-claims"></div>
+  <div class="jwt-vulns" id="jwt-vulns"></div>
+  <div class="jwt-attacks" id="jwt-attacks"></div>
+</div>
+
+<style>
+.jwt-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 640px) {
+  .jwt-panels { grid-template-columns: 1fr; }
+}
+
+.jwt-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.jwt-panel-label {
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.jwt-panel-code {
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-1);
+  line-height: 1.6;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.jwt-claims {
+  margin-bottom: 20px;
+}
+
+.jwt-claim-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(30, 30, 53, 0.5);
+  font-size: 12px;
+}
+
+.jwt-claim-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  min-width: 50px;
+}
+
+.jwt-claim-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-2);
+  flex: 1;
+}
+
+.jwt-claim-status {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.jwt-status-ok { color: var(--sage); background: rgba(107, 207, 143, 0.1); }
+.jwt-status-warn { color: #e8b84d; background: rgba(232, 184, 77, 0.1); }
+.jwt-status-bad { color: #eb5757; background: rgba(235, 87, 87, 0.1); }
+
+.jwt-vuln-card {
+  margin-bottom: 12px;
+  border: 1px solid rgba(235, 87, 87, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.jwt-vuln-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(235, 87, 87, 0.03);
+  cursor: pointer;
+}
+
+.jwt-vuln-header:hover { background: rgba(235, 87, 87, 0.06); }
+
+.jwt-vuln-sev {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: #eb5757;
+  background: rgba(235, 87, 87, 0.1);
+  flex-shrink: 0;
+}
+
+.jwt-vuln-name {
+  font-size: 14px;
+  color: var(--text-1);
+  flex: 1;
+}
+
+.jwt-vuln-chevron {
+  color: var(--muted);
+  font-size: 12px;
+  transition: transform 200ms;
+}
+
+.jwt-vuln-card.open .jwt-vuln-chevron { transform: rotate(90deg); }
+
+.jwt-vuln-detail {
+  display: none;
+  padding: 0 16px 16px;
+}
+
+.jwt-vuln-card.open .jwt-vuln-detail { display: block; }
+
+.jwt-vuln-explain {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.jwt-attack-token {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.jwt-attack-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.jwt-attack-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #eb5757;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.jwt-attack-copy {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  background: none;
+  border: 1px solid rgba(184, 165, 214, 0.15);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+.jwt-attack-copy:hover { background: rgba(184, 165, 214, 0.08); }
+
+.jwt-safe-card {
+  padding: 20px;
+  border-radius: 10px;
+  background: rgba(107, 207, 143, 0.04);
+  border: 1px solid rgba(107, 207, 143, 0.12);
+  text-align: center;
+  color: var(--sage);
+  font-size: 14px;
+}
+</style>
+
+<script>
+(function () {
+  var inputEl = document.getElementById('jwt-input');
+  var errorEl = document.getElementById('jwt-error');
+  var resultsEl = document.getElementById('jwt-results');
+  var headerEl = document.getElementById('jwt-header');
+  var payloadEl = document.getElementById('jwt-payload');
+  var claimsEl = document.getElementById('jwt-claims');
+  var vulnsEl = document.getElementById('jwt-vulns');
+  var btnDecode = document.getElementById('btn-decode');
+  var btnClear = document.getElementById('btn-clear');
+
+  function b64decode(str) {
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (str.length % 4) str += '=';
+    return JSON.parse(atob(str));
+  }
+
+  function b64encode(obj) {
+    return btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(s || ''));
+    return d.innerHTML;
+  }
+
+  function analyze() {
+    var token = inputEl.value.trim();
+    if (!token) { inputEl.focus(); return; }
+
+    var parts = token.split('.');
+    if (parts.length !== 3) {
+      errorEl.style.display = '';
+      errorEl.textContent = 'Invalid JWT — expected 3 dot-separated parts (header.payload.signature), got ' + parts.length;
+      resultsEl.style.display = 'none';
+      return;
+    }
+
+    var header, payload;
+    try { header = b64decode(parts[0]); } catch (e) {
+      errorEl.style.display = ''; errorEl.textContent = 'Failed to decode header: ' + e.message; resultsEl.style.display = 'none'; return;
+    }
+    try { payload = b64decode(parts[1]); } catch (e) {
+      errorEl.style.display = ''; errorEl.textContent = 'Failed to decode payload: ' + e.message; resultsEl.style.display = 'none'; return;
+    }
+
+    errorEl.style.display = 'none';
+    resultsEl.style.display = '';
+
+    headerEl.textContent = JSON.stringify(header, null, 2);
+    payloadEl.textContent = JSON.stringify(payload, null, 2);
+
+    /* Claims analysis */
+    var now = Math.floor(Date.now() / 1000);
+    var claimsHtml = '<div class="ha-section-label">Claims Analysis</div>';
+
+    if (payload.exp) {
+      var expired = payload.exp < now;
+      var expDate = new Date(payload.exp * 1000).toISOString();
+      claimsHtml += '<div class="jwt-claim-row"><span class="jwt-claim-name">exp</span><span class="jwt-claim-value">' + esc(expDate) + '</span><span class="jwt-claim-status ' + (expired ? 'jwt-status-bad' : 'jwt-status-ok') + '">' + (expired ? 'expired' : 'valid') + '</span></div>';
+    } else {
+      claimsHtml += '<div class="jwt-claim-row"><span class="jwt-claim-name">exp</span><span class="jwt-claim-value">not set</span><span class="jwt-claim-status jwt-status-warn">no expiry</span></div>';
+    }
+
+    if (payload.iat) {
+      var iatDate = new Date(payload.iat * 1000).toISOString();
+      var ageHours = Math.round((now - payload.iat) / 3600);
+      claimsHtml += '<div class="jwt-claim-row"><span class="jwt-claim-name">iat</span><span class="jwt-claim-value">' + esc(iatDate) + '</span><span class="jwt-claim-status jwt-status-ok">' + ageHours + 'h ago</span></div>';
+    }
+
+    if (payload.nbf) {
+      var nbfDate = new Date(payload.nbf * 1000).toISOString();
+      var notYet = payload.nbf > now;
+      claimsHtml += '<div class="jwt-claim-row"><span class="jwt-claim-name">nbf</span><span class="jwt-claim-value">' + esc(nbfDate) + '</span><span class="jwt-claim-status ' + (notYet ? 'jwt-status-warn' : 'jwt-status-ok') + '">' + (notYet ? 'not yet valid' : 'valid') + '</span></div>';
+    }
+
+    ['sub', 'iss', 'aud', 'jti', 'name', 'email', 'role', 'scope', 'permissions'].forEach(function (key) {
+      if (payload[key] !== undefined) {
+        var val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : String(payload[key]);
+        claimsHtml += '<div class="jwt-claim-row"><span class="jwt-claim-name">' + esc(key) + '</span><span class="jwt-claim-value">' + esc(val) + '</span></div>';
+      }
+    });
+
+    claimsEl.innerHTML = claimsHtml;
+
+    /* Vulnerability checks */
+    var vulns = [];
+
+    /* 1. Algorithm None attack */
+    var noneHeader = { alg: 'none', typ: 'JWT' };
+    var noneToken = b64encode(noneHeader) + '.' + parts[1] + '.';
+    vulns.push({
+      name: 'Algorithm "none" Attack (CVE-2015-9235)',
+      severity: 'critical',
+      explain: 'Some JWT libraries accept "alg": "none" and skip signature verification entirely. If the server is vulnerable, this forged token grants access without any secret key.',
+      attackToken: noneToken,
+      applicable: true,
+    });
+
+    /* 2. Algorithm confusion (RS256 → HS256) */
+    if (header.alg && header.alg.startsWith('RS')) {
+      var confusedHeader = { alg: 'HS256', typ: 'JWT' };
+      var confusedToken = b64encode(confusedHeader) + '.' + parts[1] + '.[signature-with-public-key]';
+      vulns.push({
+        name: 'Algorithm Confusion (RS256 → HS256)',
+        severity: 'critical',
+        explain: 'When a server uses RS256 (asymmetric), an attacker can switch the algorithm to HS256 (symmetric) and sign the token with the server\'s public key (which is... public). If the library doesn\'t enforce the expected algorithm, this bypasses authentication entirely.',
+        attackToken: confusedToken,
+        applicable: true,
+      });
+    }
+
+    /* 3. Missing expiry */
+    if (!payload.exp) {
+      vulns.push({
+        name: 'No Expiration Claim',
+        severity: 'high',
+        explain: 'This token has no "exp" claim, meaning it never expires. If stolen, it grants permanent access until the signing key is rotated. All JWTs should have a reasonable expiration.',
+        applicable: true,
+      });
+    }
+
+    /* 4. Long-lived token */
+    if (payload.exp && payload.iat) {
+      var lifetime = payload.exp - payload.iat;
+      if (lifetime > 86400 * 30) {
+        vulns.push({
+          name: 'Excessive Token Lifetime (' + Math.round(lifetime / 86400) + ' days)',
+          severity: 'medium',
+          explain: 'This token is valid for ' + Math.round(lifetime / 86400) + ' days. Long-lived tokens increase the window of opportunity for attackers. Access tokens should typically expire in 15-60 minutes, with refresh tokens handling renewal.',
+          applicable: true,
+        });
+      }
+    }
+
+    /* 5. Sensitive data in payload */
+    var sensitiveKeys = ['password', 'passwd', 'secret', 'credit_card', 'ssn', 'social_security', 'bank', 'private_key'];
+    var foundSensitive = [];
+    Object.keys(payload).forEach(function (key) {
+      sensitiveKeys.forEach(function (s) {
+        if (key.toLowerCase().indexOf(s) !== -1) foundSensitive.push(key);
+      });
+    });
+    if (foundSensitive.length > 0) {
+      vulns.push({
+        name: 'Sensitive Data in Payload',
+        severity: 'high',
+        explain: 'The payload contains potentially sensitive fields: ' + foundSensitive.join(', ') + '. JWT payloads are only Base64-encoded, NOT encrypted. Anyone who intercepts the token can read all claims. Never put secrets, passwords, or PII in JWT payloads.',
+        applicable: true,
+      });
+    }
+
+    /* 6. Weak algorithm */
+    if (header.alg === 'HS256') {
+      vulns.push({
+        name: 'HS256 — Susceptible to Brute Force',
+        severity: 'medium',
+        explain: 'HS256 tokens are signed with a symmetric secret key. If the key is short or predictable, an attacker can brute-force it offline using tools like hashcat or jwt-cracker. Use a key of at least 256 bits (32+ characters of random data).',
+        applicable: true,
+      });
+    }
+
+    /* 7. Missing audience claim */
+    if (!payload.aud) {
+      vulns.push({
+        name: 'No Audience Claim',
+        severity: 'low',
+        explain: 'The "aud" claim is missing. Without it, a token issued for one service could potentially be replayed against another service that shares the same signing key. Always include and validate the audience claim.',
+        applicable: true,
+      });
+    }
+
+    /* 8. Claim tampering demo */
+    var tamperedPayload = Object.assign({}, payload);
+    if (tamperedPayload.role) {
+      tamperedPayload.role = 'admin';
+    } else if (tamperedPayload.permissions) {
+      tamperedPayload.permissions = ['*'];
+    } else if (tamperedPayload.sub) {
+      tamperedPayload.admin = true;
+      tamperedPayload.role = 'admin';
+    }
+    var tamperedToken = parts[0] + '.' + b64encode(tamperedPayload) + '.' + parts[2];
+    vulns.push({
+      name: 'Claim Tampering (if signature not verified)',
+      severity: 'info',
+      explain: 'If a server decodes the JWT without verifying the signature, an attacker can modify any claim. Below is a version of this token with elevated privileges. This is why signature verification is critical.',
+      attackToken: tamperedToken,
+      applicable: true,
+    });
+
+    /* Render vulnerabilities */
+    var vulnHtml = '<div class="ha-section-label">Vulnerability Analysis</div>';
+    var vulnCount = vulns.filter(function (v) { return v.severity === 'critical' || v.severity === 'high'; }).length;
+
+    vulns.forEach(function (v, i) {
+      var sevClass = v.severity === 'info' ? 'jwt-status-warn' : '';
+      vulnHtml += '<div class="jwt-vuln-card" id="jwt-v-' + i + '">' +
+        '<div class="jwt-vuln-header" onclick="document.getElementById(\'jwt-v-' + i + '\').classList.toggle(\'open\')">' +
+          '<span class="jwt-vuln-sev" style="' + (v.severity === 'medium' ? 'color:#e8b84d;background:rgba(232,184,77,0.1);' : v.severity === 'low' ? 'color:var(--text-3);background:rgba(102,102,102,0.1);' : v.severity === 'info' ? 'color:var(--accent);background:rgba(184,165,214,0.1);' : '') + '">' + v.severity + '</span>' +
+          '<span class="jwt-vuln-name">' + esc(v.name) + '</span>' +
+          '<span class="jwt-vuln-chevron">&#x203a;</span>' +
+        '</div>' +
+        '<div class="jwt-vuln-detail">' +
+          '<div class="jwt-vuln-explain">' + esc(v.explain) + '</div>' +
+          (v.attackToken ? '<div class="jwt-attack-token"><div class="jwt-attack-label">Forged token</div><div class="jwt-attack-value">' + esc(v.attackToken) + '</div><button class="jwt-attack-copy" onclick="navigator.clipboard.writeText(\'' + v.attackToken.replace(/'/g, "\\'") + '\');this.textContent=\'Copied\';">Copy token</button></div>' : '') +
+        '</div>' +
+      '</div>';
+    });
+
+    vulnsEl.innerHTML = vulnHtml;
+  }
+
+  btnDecode.addEventListener('click', analyze);
+  btnClear.addEventListener('click', function () {
+    inputEl.value = '';
+    errorEl.style.display = 'none';
+    resultsEl.style.display = 'none';
+  });
+
+  inputEl.addEventListener('paste', function () {
+    setTimeout(function () { if (inputEl.value.trim()) analyze(); }, 50);
+  });
+})();
+</script>
