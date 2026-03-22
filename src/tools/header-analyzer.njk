@@ -1,0 +1,551 @@
+---
+toolSlug: header-analyzer
+permalink: /tools/header-analyzer/
+---
+
+<div class="tool-group">
+  <label for="header-input">Paste HTTP response headers</label>
+  <p class="tool-hint">From <code>curl -I https://example.com</code> or browser DevTools → Network → Response Headers</p>
+  <textarea id="header-input" rows="14" placeholder="HTTP/2 200
+content-type: text/html; charset=UTF-8
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-frame-options: DENY
+x-content-type-options: nosniff
+content-security-policy: default-src 'self'
+referrer-policy: strict-origin-when-cross-origin
+permissions-policy: camera=(), microphone=(), geolocation=()
+x-xss-protection: 1; mode=block
+server: cloudflare" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <button class="btn" id="btn-analyze">Analyze Headers</button>
+  <button class="btn btn--secondary" id="btn-clear">Clear</button>
+  <button class="btn btn--secondary" id="btn-example">Load Example</button>
+</div>
+
+<div id="ha-results" style="display:none;">
+  <div class="ha-grade-row" id="ha-grade-row"></div>
+  <div class="ha-findings" id="ha-findings"></div>
+  <div class="ha-missing" id="ha-missing"></div>
+</div>
+
+<style>
+.tool-hint {
+  font-size: 12px;
+  color: var(--text-3);
+  margin: -4px 0 10px;
+}
+
+.tool-hint code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--surface-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent);
+}
+
+.ha-grade-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 28px;
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.ha-grade {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.ha-grade-a { color: var(--sage); }
+.ha-grade-b { color: #a8d86b; }
+.ha-grade-c { color: #e8b84d; }
+.ha-grade-d { color: #e8a87c; }
+.ha-grade-f { color: #eb5757; }
+
+.ha-grade-summary {
+  flex: 1;
+}
+
+.ha-grade-label {
+  font-size: 15px;
+  color: var(--text-1);
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+
+.ha-grade-detail {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.ha-score-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.ha-score-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 600ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.ha-section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-3);
+  margin-bottom: 12px;
+  margin-top: 8px;
+}
+
+.ha-header-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.ha-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 150ms;
+}
+
+.ha-header-row:hover {
+  background: rgba(184, 165, 214, 0.03);
+}
+
+.ha-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ha-status-dot--good { background: var(--sage); }
+.ha-status-dot--warn { background: #e8b84d; }
+.ha-status-dot--bad { background: #eb5757; }
+.ha-status-dot--info { background: var(--accent); }
+
+.ha-header-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-1);
+  flex: 1;
+}
+
+.ha-header-verdict {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.ha-verdict--good { color: var(--sage); }
+.ha-verdict--warn { color: #e8b84d; }
+.ha-verdict--bad { color: #eb5757; }
+.ha-verdict--info { color: var(--accent); }
+
+.ha-chevron {
+  color: var(--muted);
+  font-size: 12px;
+  transition: transform 200ms;
+  flex-shrink: 0;
+}
+
+.ha-header-card.open .ha-chevron {
+  transform: rotate(90deg);
+}
+
+.ha-header-detail {
+  display: none;
+  padding: 0 16px 14px;
+}
+
+.ha-header-card.open .ha-header-detail {
+  display: block;
+}
+
+.ha-header-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--surface-2);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.ha-header-explain {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.ha-header-fix {
+  font-size: 12px;
+  padding: 10px 12px;
+  background: rgba(107, 207, 143, 0.04);
+  border: 1px solid rgba(107, 207, 143, 0.08);
+  border-radius: 8px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.ha-header-fix strong {
+  color: var(--sage);
+  font-weight: 500;
+}
+
+.ha-header-fix code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--surface-0);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent);
+}
+
+.ha-missing-card {
+  border: 1px solid rgba(235, 87, 87, 0.1);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  background: rgba(235, 87, 87, 0.02);
+}
+
+.ha-missing-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: #eb5757;
+  margin-bottom: 4px;
+}
+
+.ha-missing-why {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.ha-missing-fix {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--surface-2);
+  padding: 6px 10px;
+  border-radius: 6px;
+  word-break: break-all;
+  line-height: 1.5;
+}
+</style>
+
+<script>
+(function () {
+  var inputEl = document.getElementById('header-input');
+  var resultsEl = document.getElementById('ha-results');
+  var gradeRowEl = document.getElementById('ha-grade-row');
+  var findingsEl = document.getElementById('ha-findings');
+  var missingEl = document.getElementById('ha-missing');
+  var btnAnalyze = document.getElementById('btn-analyze');
+  var btnClear = document.getElementById('btn-clear');
+  var btnExample = document.getElementById('btn-example');
+
+  var EXAMPLE = 'HTTP/2 200\ncontent-type: text/html; charset=UTF-8\nstrict-transport-security: max-age=31536000; includeSubDomains; preload\nx-frame-options: DENY\nx-content-type-options: nosniff\nreferrer-policy: strict-origin-when-cross-origin\npermissions-policy: camera=(), microphone=(), geolocation=()\nserver: nginx/1.21.0';
+
+  /* ── Security header definitions ── */
+  var HEADERS = {
+    'strict-transport-security': {
+      name: 'Strict-Transport-Security',
+      what: 'Forces browsers to only connect via HTTPS for the specified duration. Prevents SSL-stripping attacks and accidental HTTP connections.',
+      check: function (v) {
+        if (!v) return { status: 'bad', verdict: 'Missing', fix: 'Add: <code>Strict-Transport-Security: max-age=31536000; includeSubDomains; preload</code>' };
+        var maxAge = parseInt((v.match(/max-age=(\d+)/i) || [])[1] || '0', 10);
+        if (maxAge < 31536000) return { status: 'warn', verdict: 'max-age too low (' + maxAge + 's)', explain: 'The max-age should be at least 31536000 (1 year). A shorter duration leaves a window for downgrade attacks.', fix: 'Increase to: <code>max-age=31536000; includeSubDomains; preload</code>' };
+        var hasSub = /includeSubDomains/i.test(v);
+        var hasPreload = /preload/i.test(v);
+        if (hasSub && hasPreload) return { status: 'good', verdict: 'Excellent', explain: 'HSTS is configured with a strong max-age, includeSubDomains, and preload. Browsers will refuse HTTP connections to your domain.' };
+        if (!hasSub) return { status: 'warn', verdict: 'Missing includeSubDomains', explain: 'Without includeSubDomains, subdomains can still be accessed over HTTP.', fix: 'Add: <code>includeSubDomains; preload</code>' };
+        return { status: 'good', verdict: 'Good', explain: 'HSTS is properly configured. Consider adding preload to get on the browser preload list.' };
+      }
+    },
+    'content-security-policy': {
+      name: 'Content-Security-Policy',
+      what: 'Controls which resources the browser is allowed to load. The most powerful defense against XSS, injection, and data exfiltration attacks.',
+      check: function (v) {
+        if (!v) return { status: 'bad', verdict: 'Missing', fix: 'Start with a restrictive policy: <code>Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\'; font-src \'self\'</code>' };
+        var issues = [];
+        if (/unsafe-eval/i.test(v)) issues.push('unsafe-eval allows arbitrary code execution via eval()');
+        if (/unsafe-inline/i.test(v) && /script-src/i.test(v)) issues.push('unsafe-inline in script-src defeats XSS protection — use nonces or hashes instead');
+        if (/\*\./i.test(v) || /default-src\s+\*/i.test(v)) issues.push('Wildcard sources weaken the policy significantly');
+        if (issues.length > 0) return { status: 'warn', verdict: issues.length + ' issue' + (issues.length > 1 ? 's' : ''), explain: issues.join('. ') + '.', fix: 'Tighten the policy by removing unsafe directives and wildcards. Use nonces (<code>\'nonce-abc123\'</code>) instead of <code>\'unsafe-inline\'</code> for scripts.' };
+        return { status: 'good', verdict: 'Configured', explain: 'CSP is present. Review the directives to ensure they match your application\'s needs. A restrictive policy is your strongest defense against XSS.' };
+      }
+    },
+    'x-frame-options': {
+      name: 'X-Frame-Options',
+      what: 'Prevents your page from being embedded in iframes on other sites. Blocks clickjacking attacks where an attacker overlays your page with invisible UI.',
+      check: function (v) {
+        if (!v) return { status: 'bad', verdict: 'Missing', fix: 'Add: <code>X-Frame-Options: DENY</code> (or SAMEORIGIN if you need to iframe yourself)' };
+        if (/DENY/i.test(v)) return { status: 'good', verdict: 'DENY — strong', explain: 'No site can embed your pages in an iframe. Maximum clickjacking protection.' };
+        if (/SAMEORIGIN/i.test(v)) return { status: 'good', verdict: 'SAMEORIGIN', explain: 'Only your own domain can iframe your pages. Good if you need self-framing (e.g., embedded widgets).' };
+        if (/ALLOW-FROM/i.test(v)) return { status: 'warn', verdict: 'ALLOW-FROM (deprecated)', explain: 'ALLOW-FROM is not supported by modern browsers. Use CSP frame-ancestors instead.', fix: 'Replace with: <code>Content-Security-Policy: frame-ancestors \'self\' https://trusted.com</code>' };
+        return { status: 'warn', verdict: 'Unrecognized value', explain: 'The value should be DENY or SAMEORIGIN.' };
+      }
+    },
+    'x-content-type-options': {
+      name: 'X-Content-Type-Options',
+      what: 'Prevents browsers from MIME-sniffing the content type. Without this, a browser might execute a file as JavaScript even if served as text/plain.',
+      check: function (v) {
+        if (!v) return { status: 'bad', verdict: 'Missing', fix: 'Add: <code>X-Content-Type-Options: nosniff</code>' };
+        if (/nosniff/i.test(v)) return { status: 'good', verdict: 'nosniff — correct', explain: 'Browsers will respect the declared Content-Type and won\'t try to sniff it. Prevents MIME confusion attacks.' };
+        return { status: 'warn', verdict: 'Unexpected value', explain: 'The only valid value is "nosniff".' };
+      }
+    },
+    'referrer-policy': {
+      name: 'Referrer-Policy',
+      what: 'Controls how much referrer information is sent when navigating away from your site. Protects sensitive URLs from being leaked to third parties.',
+      check: function (v) {
+        if (!v) return { status: 'warn', verdict: 'Missing', fix: 'Add: <code>Referrer-Policy: strict-origin-when-cross-origin</code>' };
+        var strong = ['no-referrer', 'strict-origin', 'strict-origin-when-cross-origin', 'same-origin'];
+        var weak = ['origin', 'origin-when-cross-origin'];
+        var bad = ['unsafe-url', 'no-referrer-when-downgrade'];
+        var val = v.trim().toLowerCase();
+        if (strong.indexOf(val) !== -1) return { status: 'good', verdict: 'Strong policy', explain: '"' + val + '" limits referrer data appropriately. Sensitive paths in your URLs won\'t be leaked to external sites.' };
+        if (weak.indexOf(val) !== -1) return { status: 'warn', verdict: 'Moderate policy', explain: '"' + val + '" sends the origin but not the full path. Consider strict-origin-when-cross-origin for better privacy.', fix: 'Upgrade to: <code>Referrer-Policy: strict-origin-when-cross-origin</code>' };
+        if (bad.indexOf(val) !== -1) return { status: 'bad', verdict: 'Weak policy', explain: '"' + val + '" leaks the full URL including paths and query strings to external sites. This can expose sensitive data like tokens or user IDs in URLs.', fix: 'Change to: <code>Referrer-Policy: strict-origin-when-cross-origin</code>' };
+        return { status: 'info', verdict: val };
+      }
+    },
+    'permissions-policy': {
+      name: 'Permissions-Policy',
+      what: 'Controls which browser features (camera, microphone, geolocation, etc.) your site and embedded iframes can use. Reduces attack surface.',
+      check: function (v) {
+        if (!v) return { status: 'warn', verdict: 'Missing', fix: 'Add: <code>Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()</code>' };
+        var disabled = (v.match(/\(\)/g) || []).length;
+        if (disabled >= 3) return { status: 'good', verdict: disabled + ' features restricted', explain: 'Good — you\'re explicitly disabling browser features you don\'t need. This prevents embedded content from accessing sensitive APIs.' };
+        return { status: 'warn', verdict: 'Partial restrictions', explain: 'Consider disabling more features you don\'t use: camera, microphone, geolocation, payment, usb, magnetometer, gyroscope.', fix: 'Example: <code>Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()</code>' };
+      }
+    },
+    'x-xss-protection': {
+      name: 'X-XSS-Protection',
+      what: 'Legacy XSS filter built into older browsers. Modern browsers have removed support. Can actually introduce vulnerabilities in some edge cases.',
+      check: function (v) {
+        if (!v) return { status: 'info', verdict: 'Not set (fine)', explain: 'This header is deprecated. Modern browsers ignore it. CSP is the proper XSS defense. Not having it is fine.' };
+        if (v.trim() === '0') return { status: 'good', verdict: 'Disabled (recommended)', explain: 'Explicitly disabled. This is the correct modern setting — the legacy XSS filter can itself be exploited in some browsers.' };
+        return { status: 'warn', verdict: 'Enabled (deprecated)', explain: 'This header is deprecated and the legacy XSS filter can introduce vulnerabilities. Disable it and rely on CSP instead.', fix: 'Set to: <code>X-XSS-Protection: 0</code> and ensure you have a Content-Security-Policy header.' };
+      }
+    },
+    'cross-origin-opener-policy': {
+      name: 'Cross-Origin-Opener-Policy',
+      what: 'Isolates your browsing context from cross-origin popups. Prevents Spectre-class side-channel attacks and cross-origin information leaks.',
+      check: function (v) {
+        if (!v) return { status: 'warn', verdict: 'Missing', fix: 'Add: <code>Cross-Origin-Opener-Policy: same-origin</code>' };
+        if (/same-origin/i.test(v)) return { status: 'good', verdict: 'same-origin — strong', explain: 'Your page is fully isolated from cross-origin windows. This enables SharedArrayBuffer and prevents Spectre-style attacks.' };
+        return { status: 'info', verdict: v.trim() };
+      }
+    },
+    'cross-origin-resource-policy': {
+      name: 'Cross-Origin-Resource-Policy',
+      what: 'Controls which origins can load your resources. Prevents your images, scripts, or data from being embedded on malicious sites.',
+      check: function (v) {
+        if (!v) return { status: 'info', verdict: 'Not set', explain: 'Consider adding this header if you want to prevent other sites from hotlinking your resources.' };
+        if (/same-origin/i.test(v)) return { status: 'good', verdict: 'same-origin', explain: 'Only your own origin can load your resources. Strong protection against hotlinking and data theft.' };
+        if (/same-site/i.test(v)) return { status: 'good', verdict: 'same-site', explain: 'Only your own site (including subdomains) can load your resources.' };
+        return { status: 'info', verdict: v.trim() };
+      }
+    }
+  };
+
+  var INFO_HEADERS = {
+    'server': { name: 'Server', check: function (v) {
+      if (!v) return null;
+      if (/\d/.test(v)) return { status: 'warn', verdict: 'Version exposed', explain: '"' + v + '" reveals your server software and version. Attackers use this to find known vulnerabilities for that exact version.', fix: 'Remove the version number. In nginx: <code>server_tokens off;</code>. In Apache: <code>ServerTokens Prod</code>' };
+      return { status: 'info', verdict: v, explain: 'Server software identified but no version number exposed.' };
+    }},
+    'x-powered-by': { name: 'X-Powered-By', check: function (v) {
+      if (!v) return null;
+      return { status: 'warn', verdict: 'Technology exposed: ' + v, explain: 'Reveals your backend technology stack. Attackers use this to target framework-specific vulnerabilities.', fix: 'Remove this header entirely. In Express: <code>app.disable(\'x-powered-by\')</code>. In PHP: set <code>expose_php = Off</code> in php.ini.' };
+    }}
+  };
+
+  function parseHeaders(raw) {
+    var headers = {};
+    var lines = raw.split('\n');
+    lines.forEach(function (line) {
+      line = line.trim();
+      if (!line || /^HTTP\//i.test(line)) return;
+      var idx = line.indexOf(':');
+      if (idx < 1) return;
+      var key = line.substring(0, idx).trim().toLowerCase();
+      var val = line.substring(idx + 1).trim();
+      headers[key] = val;
+    });
+    return headers;
+  }
+
+  function gradeScore(results) {
+    var score = 0;
+    var max = 0;
+    var weights = {
+      'strict-transport-security': 20,
+      'content-security-policy': 25,
+      'x-frame-options': 15,
+      'x-content-type-options': 10,
+      'referrer-policy': 10,
+      'permissions-policy': 10,
+      'cross-origin-opener-policy': 5,
+      'cross-origin-resource-policy': 5
+    };
+    results.forEach(function (r) {
+      var w = weights[r.key] || 5;
+      max += w;
+      if (r.result.status === 'good') score += w;
+      else if (r.result.status === 'warn') score += w * 0.4;
+      else if (r.result.status === 'info') score += w * 0.7;
+    });
+    return max > 0 ? Math.round((score / max) * 100) : 0;
+  }
+
+  function letterGrade(score) {
+    if (score >= 90) return 'A';
+    if (score >= 75) return 'B';
+    if (score >= 55) return 'C';
+    if (score >= 35) return 'D';
+    return 'F';
+  }
+
+  function analyze(raw) {
+    var headers = parseHeaders(raw);
+    var results = [];
+    var missing = [];
+
+    /* Check security headers */
+    Object.keys(HEADERS).forEach(function (key) {
+      var def = HEADERS[key];
+      var val = headers[key] || null;
+      var result = def.check(val);
+      if (val) {
+        results.push({ key: key, name: def.name, value: val, what: def.what, result: result });
+      } else {
+        missing.push({ key: key, name: def.name, what: def.what, result: result });
+      }
+    });
+
+    /* Check info headers */
+    Object.keys(INFO_HEADERS).forEach(function (key) {
+      var def = INFO_HEADERS[key];
+      var val = headers[key] || null;
+      var result = def.check(val);
+      if (result) {
+        results.push({ key: key, name: def.name, value: val, what: '', result: result });
+      }
+    });
+
+    return { results: results, missing: missing };
+  }
+
+  function render(data) {
+    resultsEl.style.display = '';
+
+    /* Grade */
+    var allChecks = data.results.concat(data.missing);
+    var score = gradeScore(allChecks);
+    var grade = letterGrade(score);
+    var gradeClass = grade === 'A' ? 'a' : grade === 'B' ? 'b' : grade === 'C' ? 'c' : grade === 'D' ? 'd' : 'f';
+    var gradeColor = grade === 'A' ? 'var(--sage)' : grade === 'B' ? '#a8d86b' : grade === 'C' ? '#e8b84d' : grade === 'D' ? '#e8a87c' : '#eb5757';
+    var labels = { A: 'Excellent security posture', B: 'Good — minor improvements possible', C: 'Fair — some important headers missing', D: 'Weak — significant gaps', F: 'Poor — most protections missing' };
+
+    gradeRowEl.innerHTML =
+      '<div class="ha-grade ha-grade-' + gradeClass + '">' + grade + '</div>' +
+      '<div class="ha-grade-summary">' +
+        '<div class="ha-grade-label">' + labels[grade] + '</div>' +
+        '<div class="ha-grade-detail">' + score + '/100 — ' + data.results.length + ' headers present, ' + data.missing.length + ' missing</div>' +
+        '<div class="ha-score-bar"><div class="ha-score-fill" style="width:' + score + '%;background:' + gradeColor + ';"></div></div>' +
+      '</div>';
+
+    /* Present headers */
+    var html = '<div class="ha-section-label">Headers Found</div>';
+    data.results.forEach(function (r, i) {
+      var s = r.result;
+      html += '<div class="ha-header-card" id="ha-card-' + i + '">' +
+        '<div class="ha-header-row" onclick="document.getElementById(\'ha-card-' + i + '\').classList.toggle(\'open\')">' +
+          '<span class="ha-status-dot ha-status-dot--' + s.status + '"></span>' +
+          '<span class="ha-header-name">' + esc(r.name) + '</span>' +
+          '<span class="ha-header-verdict ha-verdict--' + s.status + '">' + esc(s.verdict) + '</span>' +
+          '<span class="ha-chevron">&#x203a;</span>' +
+        '</div>' +
+        '<div class="ha-header-detail">' +
+          '<div class="ha-header-value">' + esc(r.value) + '</div>' +
+          (r.what ? '<div class="ha-header-explain"><strong>What it does:</strong> ' + esc(r.what) + '</div>' : '') +
+          (s.explain ? '<div class="ha-header-explain">' + esc(s.explain) + '</div>' : '') +
+          (s.fix ? '<div class="ha-header-fix"><strong>Recommendation:</strong> ' + s.fix + '</div>' : '') +
+        '</div>' +
+      '</div>';
+    });
+    findingsEl.innerHTML = html;
+
+    /* Missing headers */
+    if (data.missing.length > 0) {
+      var mhtml = '<div class="ha-section-label">Missing Headers</div>';
+      data.missing.forEach(function (m) {
+        var s = m.result;
+        if (s.status === 'info') return;
+        mhtml += '<div class="ha-missing-card">' +
+          '<div class="ha-missing-name">' + esc(m.name) + '</div>' +
+          '<div class="ha-missing-why">' + esc(m.what) + '</div>' +
+          (s.fix ? '<div class="ha-missing-fix">' + s.fix + '</div>' : '') +
+        '</div>';
+      });
+      missingEl.innerHTML = mhtml;
+    } else {
+      missingEl.innerHTML = '';
+    }
+  }
+
+  function esc(str) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(str));
+    return d.innerHTML;
+  }
+
+  btnAnalyze.addEventListener('click', function () {
+    var input = inputEl.value.trim();
+    if (!input) return;
+    render(analyze(input));
+  });
+
+  btnClear.addEventListener('click', function () {
+    inputEl.value = '';
+    resultsEl.style.display = 'none';
+  });
+
+  btnExample.addEventListener('click', function () {
+    inputEl.value = EXAMPLE;
+    render(analyze(EXAMPLE));
+  });
+
+  inputEl.addEventListener('paste', function () {
+    setTimeout(function () {
+      if (inputEl.value.trim()) render(analyze(inputEl.value.trim()));
+    }, 50);
+  });
+})();
+</script>

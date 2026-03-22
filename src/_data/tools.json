@@ -627,7 +627,8 @@
     "keywords": ["http headers", "security", "analyze", "explain", "csp", "hsts", "curl", "plain english"],
     "badge": "local",
     "relatedTools": ["security-headers", "csp-generator", "site-score"],
-    "status": "preview"
+    "status": "live",
+    "isNew": true
   },
   {
     "name": ".env Exposure Analyzer",
