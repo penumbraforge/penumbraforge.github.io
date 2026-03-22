@@ -5039,6 +5039,38 @@ a.t-card {
   z-index: 39;
 }
 
+/* Header alignment on sidebar pages — push brand past sidebar */
+.tool-page .site-header,
+.tools-hub-page .site-header {
+  padding-left: 276px;
+}
+
+@media (max-width: 900px) {
+  .tool-page .site-header,
+  .tools-hub-page .site-header {
+    padding-left: 20px;
+  }
+}
+
+/* Footer on sidebar pages — offset to align with content area */
+.tool-page .footer,
+.tools-hub-page .footer {
+  padding-left: 300px;
+}
+
+@media (max-width: 900px) {
+  .tool-page .footer,
+  .tools-hub-page .footer {
+    padding-left: 24px;
+  }
+}
+
+/* Tool CTA on sidebar pages */
+.tools-content .tool-cta {
+  padding: 32px 0;
+  text-align: left;
+}
+
 /* Tool nav inside sidebar layout (no .container wrapper) */
 .tools-content .tool-nav {
   display: flex;

@@ -155,5 +155,128 @@
   /* Init */
   updateStarStates();
   renderFavorites();
+
+  /* ============================================================
+     SPA-style content swapping — sidebar stays static
+     Each tool page is still a real HTML page (SEO intact).
+     Clicking a link fetches the page, swaps .tools-content,
+     and updates the URL via pushState.
+     ============================================================ */
+  var contentArea = document.querySelector('.tools-content');
+  var isNavigating = false;
+
+  function isToolsLink(href) {
+    return href && href.indexOf('/tools/') === 0 && href !== window.location.pathname;
+  }
+
+  function updateActiveState(path) {
+    /* Update sidebar active states */
+    items.forEach(function(item) {
+      var href = item.getAttribute('href');
+      if (href === path) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+    /* Update favorites active states */
+    var favItems = document.querySelectorAll('#favoritesList .sidebar-item');
+    favItems.forEach(function(item) {
+      var href = item.getAttribute('href');
+      if (href === path) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
+  function swapContent(url, pushState) {
+    if (isNavigating) return;
+    isNavigating = true;
+
+    fetch(url)
+      .then(function(res) {
+        if (!res.ok) throw new Error('fetch failed');
+        return res.text();
+      })
+      .then(function(html) {
+        /* Parse the fetched page */
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, 'text/html');
+        var newContent = doc.querySelector('.tools-content');
+
+        if (!newContent) {
+          /* Not a tools page — do a normal navigation */
+          window.location.href = url;
+          return;
+        }
+
+        /* Swap the content area */
+        contentArea.innerHTML = newContent.innerHTML;
+
+        /* Update URL */
+        if (pushState) {
+          history.pushState({ toolsNav: true }, '', url);
+        }
+
+        /* Update page title */
+        var newTitle = doc.querySelector('title');
+        if (newTitle) document.title = newTitle.textContent;
+
+        /* Update active states */
+        updateActiveState(url);
+        renderFavorites();
+
+        /* Scroll content to top */
+        contentArea.scrollTop = 0;
+        window.scrollTo(0, 0);
+
+        /* Execute any inline scripts in the new content (tool JS) */
+        var scripts = contentArea.querySelectorAll('script');
+        scripts.forEach(function(oldScript) {
+          var newScript = document.createElement('script');
+          if (oldScript.src) {
+            newScript.src = oldScript.src;
+          } else {
+            newScript.textContent = oldScript.textContent;
+          }
+          oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+
+        /* Close mobile sidebar if open */
+        sidebar.classList.remove('open');
+        if (overlay) overlay.classList.remove('open');
+
+        isNavigating = false;
+      })
+      .catch(function() {
+        /* Fallback to normal navigation on error */
+        window.location.href = url;
+        isNavigating = false;
+      });
+  }
+
+  /* Intercept clicks on links within the tools section */
+  document.addEventListener('click', function(e) {
+    var link = e.target.closest('a[href]');
+    if (!link) return;
+
+    var href = link.getAttribute('href');
+    if (!isToolsLink(href)) return;
+
+    /* Don't intercept if modifier keys are held (open in new tab etc) */
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+    e.preventDefault();
+    swapContent(href, true);
+  });
+
+  /* Handle browser back/forward */
+  window.addEventListener('popstate', function(e) {
+    if (window.location.pathname.indexOf('/tools/') === 0) {
+      swapContent(window.location.pathname, false);
+    }
+  });
 })();
 </script>
