@@ -5063,7 +5063,7 @@ a.t-card {
 .tools-hub-page .site-header-main {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex: 1;
   padding: 20px 40px;
 }
