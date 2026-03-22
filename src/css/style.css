@@ -5053,9 +5053,10 @@ a.t-card {
 .tools-hub-page .site-header-sidebar {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   width: 260px;
   min-width: 260px;
-  padding: 20px 20px 20px 24px;
+  padding: 20px 20px 20px 20px;
   border-right: 1px solid var(--border);
 }
 
