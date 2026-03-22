@@ -46,12 +46,9 @@ export default {
 
     const { url, token } = body;
 
-    /* ── Verify Turnstile ── */
-    if (env.TURNSTILE_SECRET) {
-      const verified = await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
-      if (!verified) {
-        return json({ error: 'Turnstile verification failed' }, 403, env);
-      }
+    /* ── Verify Turnstile (optional — rate limiting is primary protection) ── */
+    if (env.TURNSTILE_SECRET && token) {
+      await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
     }
 
     /* ── Validate URL ── */

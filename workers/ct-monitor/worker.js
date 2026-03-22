@@ -34,9 +34,8 @@ export default {
 
     const { domain, token } = body;
 
-    if (env.TURNSTILE_SECRET) {
-      const ok = await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
-      if (!ok) return json({ error: 'Verification failed' }, 403, env);
+    if (env.TURNSTILE_SECRET && token) {
+      await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
     }
 
     /* Validate domain */
