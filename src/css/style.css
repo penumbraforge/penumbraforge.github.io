@@ -608,6 +608,7 @@ a:hover {
   font-weight: 400;
 }
 
+.station h2.station-title,
 .station h3 {
   font-family: var(--font-display);
   font-size: 28px;
@@ -2001,6 +2002,7 @@ a.t-card {
     gap: 24px;
   }
 
+  .station h2.station-title,
   .station h3 {
     font-size: 22px;
   }
