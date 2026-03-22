@@ -14,7 +14,7 @@ permalink: /gate/wiki/getting-started/
 
     <h3>Global install (npm)</h3>
     <p>For regular use, install globally so the <code>gate</code> command is always available.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npm install -g @penumbra/gate</span>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npm install -g @penumbraforge/gate</span>
 
 <span class="cmt"># Verify the installation</span>
 <span class="prompt">$ </span><span class="cmd">gate version</span>
@@ -28,13 +28,13 @@ permalink: /gate/wiki/getting-started/
 
     <p>Run <code>npx gate</code> (or just <code>gate</code> if installed globally) in any directory. Gate scans all files in the current directory and its subdirectories for hardcoded secrets.</p>
 
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npx gate</span>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npx @penumbraforge/gate</span>
 
-<span class="dim">  gate v2.0.0</span>
+<span class="ok">  ✓</span> <span class="dim">Scanned 847 files in 1.2s</span>
 
-<span class="dim">  scanning 847 files...</span>
+<span class="dim">  Gate v2.0.0 · 281 rules · scanning 847 files</span>
 
-<span class="err">  CRITICAL</span>  <span class="file">src/api/payments.ts:23</span>
+<span class="dim">  [1/1]</span> <span class="err">CRITICAL</span>  <span class="file">src/api/payments.ts:23</span>
 <span class="dim">  rule:</span> stripe-secret-key
 
 <span class="dim">   21 |</span> const stripe = require('stripe');
@@ -42,11 +42,8 @@ permalink: /gate/wiki/getting-started/
 <span class="dim">   23 |</span> const key = "<span class="underline err">sk_live_51Hb3azLk...R4pM</span>";
 <span class="dim">   24 |</span> const client = stripe(key);
 
-<span class="dim">  match:</span>  sk_live_51Hb3azLk...R4pM  <span class="dim">(40 chars)</span>
-
 <span class="dim">  ──────────────────────────────────────</span>
-<span class="dim">  findings:</span>  <span class="bright">1</span>
-<span class="dim">  scanned:</span>   847 files in 1.2s</div>
+<span class="dim">  1 finding in 1 file (1 critical) — 1.2s</span></div>
 
     <p>Gate automatically skips binary files, node_modules, .git directories, and other common non-source paths. No configuration needed.</p>
 
@@ -89,11 +86,14 @@ permalink: /gate/wiki/getting-started/
     <h3>Interactive mode</h3>
     <p>When you run <code>gate scan --interactive</code> (or <code>gate</code> bare), Gate presents each finding with single-keypress options:</p>
 
-    <div class="code-block"><span class="accent">  [f]</span><span class="dim"> fix</span>     Extract to .env and rewrite source code
-<span class="accent">  [v]</span><span class="dim"> vault</span>   Encrypt and store in Gate vault
-<span class="accent">  [i]</span><span class="dim"> ignore</span>  Mark as intentional (adds inline comment)
-<span class="accent">  [r]</span><span class="dim"> report</span>  Generate a compliance report
-<span class="accent">  [q]</span><span class="dim"> quit</span>    Exit without action</div>
+    <div class="code-block"><span class="accent">  [f]</span><span class="dim"> fix</span>       Extract to .env and rewrite source code
+<span class="accent">  [v]</span><span class="dim"> vault</span>     Encrypt and store in Gate vault
+<span class="accent">  [i]</span><span class="dim"> ignore</span>    Mark as intentional (adds to .gateignore)
+<span class="accent">  [s]</span><span class="dim"> skip</span>      Skip for now
+<span class="accent">  [p]</span><span class="dim"> previous</span>  Go to previous finding
+<span class="accent">  [j]</span><span class="dim"> jump</span>      Jump to finding by number
+<span class="accent">  [?]</span><span class="dim"> explain</span>   Full remediation guide
+<span class="accent">  [q]</span><span class="dim"> quit</span>      Exit with batch action on skipped</div>
 
     <h3>Pre-commit hook</h3>
     <p>When running as a pre-commit hook, Gate scans only staged files (<code>--staged</code> mode). If secrets are found, the commit is blocked. You must fix the finding (using <code>gate fix</code>), add an ignore comment, or update your <code>.gateignore</code> before the commit will succeed.</p>

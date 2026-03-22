@@ -22,13 +22,13 @@ permalink: /gate/
     <div class="gate-install-blocks reveal" style="transition-delay: 0.05s;">
       <div class="gate-install-block">
         <span class="gate-install-label">zero-install</span>
-        <code><span class="prompt">$ </span>npx gate</code>
-        <button class="gate-copy-btn" onclick="copyCmd(this, 'npx gate')">copy</button>
+        <code><span class="prompt">$ </span>npx @penumbraforge/gate</code>
+        <button class="gate-copy-btn" onclick="copyCmd(this, 'npx @penumbraforge/gate')">copy</button>
       </div>
       <div class="gate-install-block">
         <span class="gate-install-label">global</span>
-        <code><span class="prompt">$ </span>npm install -g @penumbra/gate</code>
-        <button class="gate-copy-btn" onclick="copyCmd(this, 'npm install -g @penumbra/gate')">copy</button>
+        <code><span class="prompt">$ </span>npm install -g @penumbraforge/gate</code>
+        <button class="gate-copy-btn" onclick="copyCmd(this, 'npm install -g @penumbraforge/gate')">copy</button>
       </div>
       <div class="gate-install-block">
         <span class="gate-install-label">homebrew</span>
@@ -155,11 +155,11 @@ permalink: /gate/
         <span class="gate-terminal-title">gate scan --verify</span>
       </div>
       <div class="gate-terminal-body">
-<div class="line"><span class="dim">  gate v2.0.0</span></div>
+<div class="line"><span class="ok">  ✓</span> <span class="dim">Scanned 847 files in 1.2s</span></div>
 <div class="line"></div>
-<div class="line"><span class="dim">  scanning 847 files...</span></div>
+<div class="line"><span class="dim">  Gate v2.0.0 · 281 rules · scanning 847 files</span></div>
 <div class="line"></div>
-<div class="line"><span class="err">  CRITICAL</span>  <span class="file">src/api/payments.ts:23</span></div>
+<div class="line"><span class="dim">  [1/2]</span> <span class="err">CRITICAL</span>  <span class="file">src/api/payments.ts:23</span></div>
 <div class="line"><span class="dim">  rule:</span> <span class="text">stripe-secret-key</span></div>
 <div class="line"></div>
 <div class="line"><span class="dim">   21 |</span> <span class="text">const stripe = require('stripe');</span></div>
@@ -170,7 +170,7 @@ permalink: /gate/
 <div class="line"><span class="dim">  status:</span> <span class="err">LIVE</span> <span class="dim">  verified against Stripe API</span></div>
 <div class="line"><span class="dim">  match:</span>  <span class="text">sk_live_51Hb3azLk...R4pM</span>  <span class="dim">(40 chars)</span></div>
 <div class="line"></div>
-<div class="line"><span class="warn">  HIGH</span>    <span class="file">config/database.yml:8</span></div>
+<div class="line"><span class="dim">  [2/2]</span> <span class="warn">HIGH</span>    <span class="file">config/database.yml:8</span></div>
 <div class="line"><span class="dim">  rule:</span> <span class="text">database-connection-string</span></div>
 <div class="line"></div>
 <div class="line"><span class="dim">    7 |</span> <span class="text">production:</span></div>
@@ -180,8 +180,7 @@ permalink: /gate/
 <div class="line"><span class="dim">  status:</span> <span class="ok">INACTIVE</span> <span class="dim">  connection refused</span></div>
 <div class="line"></div>
 <div class="line"><span class="dim">  ──────────────────────────────────────</span></div>
-<div class="line"><span class="dim">  findings:</span>  <span class="bright">2</span>  <span class="dim">(</span><span class="err">1 live</span><span class="dim">, </span><span class="ok">1 inactive</span><span class="dim">)</span></div>
-<div class="line"><span class="dim">  scanned:</span>   <span class="text">847 files in 1.2s</span></div>
+<div class="line"><span class="dim">  2 findings in 2 files (1 critical, 1 high) — 1.2s</span></div>
 <div class="line"></div>
 <div class="line"><span class="accent">[f]</span><span class="dim"> fix</span>  <span class="accent">[v]</span><span class="dim"> vault</span>  <span class="accent">[i]</span><span class="dim"> ignore</span>  <span class="accent">[r]</span><span class="dim"> report</span>  <span class="accent">[q]</span><span class="dim"> quit</span></div>
       </div>
@@ -246,10 +245,10 @@ permalink: /gate/
       <p class="gate-docs-text">The fastest way to run Gate is with npx -- no install required. For repeated use, install globally.</p>
 
       <div class="gate-docs-code"><span class="cmt"># Run once without installing</span>
-npx gate
+npx @penumbraforge/gate
 
 <span class="cmt"># Install globally</span>
-npm install -g @penumbra/gate
+npm install -g @penumbraforge/gate
 
 <span class="cmt"># Verify installation</span>
 gate version</div>
@@ -313,6 +312,8 @@ __snapshots__/</div>
           <tr><td>gate scan --interactive</td><td>Prompt to fix/vault/ignore each finding</td></tr>
           <tr><td>gate scan --history N</td><td>Scan last N commits in git history</td></tr>
           <tr><td>gate scan --format json</td><td>Output as JSON</td></tr>
+          <tr><td>gate scan --changed</td><td>Scan files changed since upstream (pre-push default)</td></tr>
+          <tr><td>gate scan --max-file-size 5MB</td><td>Skip files larger than this size (default: 2MB)</td></tr>
           <tr><td>gate scan --format sarif</td><td>Output as SARIF for GitHub code scanning</td></tr>
         </tbody>
       </table>
@@ -366,12 +367,13 @@ __snapshots__/</div>
         <tbody>
           <tr><td>gate init</td><td>Initialize Gate in a project</td></tr>
           <tr><td>gate status</td><td>Show current config and hook status</td></tr>
-          <tr><td>gate install</td><td>Install the pre-commit hook</td></tr>
-          <tr><td>gate uninstall</td><td>Remove the pre-commit hook</td></tr>
+          <tr><td>gate install</td><td>Install pre-commit and pre-push hooks</td></tr>
+          <tr><td>gate uninstall</td><td>Remove Gate hooks</td></tr>
           <tr><td>gate purge</td><td>Generate scripts to purge secrets from git history</td></tr>
           <tr><td>gate update</td><td>Update Gate to latest version</td></tr>
           <tr><td>gate version</td><td>Print version</td></tr>
           <tr><td>gate help</td><td>Show help</td></tr>
+          <tr><td>gate &lt;command&gt; --help</td><td>Show help for any command</td></tr>
         </tbody>
       </table>
     </div>

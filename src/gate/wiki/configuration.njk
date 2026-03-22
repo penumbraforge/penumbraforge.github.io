@@ -8,9 +8,21 @@ permalink: /gate/wiki/configuration/
 
     <h2 id="gaterc-file">The .gaterc File</h2>
 
-    <p>Gate is configured with a <code>.gaterc</code> file written in YAML. Place it in your project root -- the same directory where you run <code>gate</code> from. Gate does not walk up to parent directories; it only loads a <code>.gaterc</code> if one exists at the exact current working directory.</p>
+    <p>Gate is configured with a <code>.gaterc</code> file written in YAML. Place it in your project root -- the same directory where you run <code>gate</code> from. Gate also supports user-level defaults at <code>~/.config/gate/config.yaml</code>.</p>
 
     <p>Run <code>gate init</code> to generate a <code>.gaterc</code> with commented defaults. All fields are optional; Gate works out of the box with no configuration file at all.</p>
+
+    <h2 id="config-hierarchy">Configuration Hierarchy</h2>
+
+    <p>Gate loads configuration from three levels, merged top-down:</p>
+
+    <ol>
+      <li><strong style="color: var(--text-1);">User config</strong> (<code>~/.config/gate/config.yaml</code>) — personal defaults (entropy threshold, output format, color preferences)</li>
+      <li><strong style="color: var(--text-1);">Project config</strong> (<code>.gaterc</code>) — project-specific rules, severity overrides, hook settings</li>
+      <li><strong style="color: var(--text-1);">CLI flags</strong> — highest priority, overrides everything for a single run</li>
+    </ol>
+
+    <p><strong>Merge strategy:</strong> Display settings (<code>output</code>, <code>hooks</code>) are deep-merged — user defaults are preserved when the project only overrides some sub-keys. Policy settings (<code>severity</code>, <code>rules</code>) are shallow-replaced — the project config takes full control.</p>
 
     <div class="info-box">
       <strong>Location:</strong> <code>.gaterc</code> must be in the project root. Gate does not search parent directories. This prevents configuration from silently leaking across projects on your machine.
@@ -29,10 +41,16 @@ permalink: /gate/wiki/configuration/
 <span class="kw">verify</span>: <span class="val">true</span></div>
 
     <h3>hooks</h3>
-    <p>Which Git hooks Gate installs when you run <code>gate init</code> or <code>gate install</code>. Currently only <code>pre-commit</code> is supported. Set to an empty list to skip hook installation.</p>
+    <p>Which Git hooks Gate installs when you run <code>gate init</code> or <code>gate install</code>. Both <code>pre-commit</code> (scans staged files) and <code>pre-push</code> (scans changed files since upstream) are supported.</p>
     <div class="code-block"><span class="cmt"># default: [pre-commit]</span>
 <span class="kw">hooks</span>:
-  - <span class="val">pre-commit</span></div>
+  - <span class="val">pre-commit</span>
+  - <span class="val">pre-push</span></div>
+
+    <h3>max_file_size</h3>
+    <p>Maximum file size to scan. Files larger than this are skipped to prevent out-of-memory issues on large minified bundles. Accepts bytes or human-readable sizes (KB, MB, GB).</p>
+    <div class="code-block"><span class="cmt"># default: 2MB (2097152 bytes)</span>
+<span class="kw">max_file_size</span>: <span class="val">5MB</span></div>
 
     <h3>severity</h3>
     <p>Override the built-in severity for any rule by its rule ID. Set to <code>ignore</code> to suppress the rule entirely. This is useful for silencing rules that generate known false positives in your codebase without adding per-file ignore comments.</p>
@@ -45,7 +63,7 @@ permalink: /gate/wiki/configuration/
     <p>Valid severity values: <code>critical</code>, <code>high</code>, <code>medium</code>, <code>low</code>, <code>ignore</code>.</p>
 
     <h3>rules</h3>
-    <p>Define custom detection rules in addition to the built-in 256 rules. Each rule requires an <code>id</code>, <code>name</code>, <code>pattern</code> (regex), and <code>severity</code>. The optional <code>remediation</code> field is shown to the user when the rule fires.</p>
+    <p>Define custom detection rules in addition to the built-in 281 rules. Each rule requires an <code>id</code>, <code>name</code>, <code>pattern</code> (regex), and <code>severity</code>. The optional <code>remediation</code> field is shown to the user when the rule fires.</p>
     <div class="code-block"><span class="kw">rules</span>:
   - <span class="kw">id</span>: <span class="str">internal-api-key</span>
     <span class="kw">name</span>: <span class="str">Internal API Key</span>

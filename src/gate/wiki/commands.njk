@@ -27,6 +27,9 @@ permalink: /gate/wiki/commands/
         <tr><td>--format text</td><td>Output as human-readable text (default)</td></tr>
         <tr><td>--format json</td><td>Output as JSON</td></tr>
         <tr><td>--format sarif</td><td>Output as SARIF 2.1.0 for GitHub Advanced Security</td></tr>
+        <tr><td>--changed</td><td>Scan files changed since upstream branch (default for pre-push hook)</td></tr>
+        <tr><td>--max-file-size &lt;size&gt;</td><td>Skip files larger than this size (default: 2MB, e.g. 5MB, 512KB)</td></tr>
+        <tr><td>--entropy-threshold &lt;N&gt;</td><td>Set entropy threshold for high-entropy string detection (default: 4.8)</td></tr>
         <tr><td>--no-color</td><td>Disable colored output (useful for piping)</td></tr>
       </tbody>
     </table>
@@ -129,7 +132,7 @@ permalink: /gate/wiki/commands/
     </div>
 
     <h2 id="gate-install">gate install</h2>
-    <p>Install the Gate pre-commit hook into the current git repository. The hook runs <code>gate scan --staged</code> before each commit.</p>
+    <p>Install Gate git hooks into the current repository. Installs a pre-commit hook (<code>gate scan --staged</code>) and a pre-push hook (<code>gate scan --changed</code>).</p>
     <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate install</span></div>
 
     <h2 id="gate-uninstall">gate uninstall</h2>
@@ -144,11 +147,12 @@ permalink: /gate/wiki/commands/
     <p>Print the current Gate version.</p>
     <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate version</span></div>
 
-    <h2 id="gate-help">gate help</h2>
-    <p>Show help information for Gate or a specific command.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate help</span>
-<span class="prompt">$ </span><span class="cmd">gate help scan</span>
-<span class="prompt">$ </span><span class="cmd">gate help vault</span></div>
+    <h2 id="gate-help">gate help / --help</h2>
+    <p>Show help information for Gate or a specific command. Use <code>--help</code> or <code>-h</code> with any command.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate --help</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --help</span>
+<span class="prompt">$ </span><span class="cmd">gate vault --help</span>
+<span class="prompt">$ </span><span class="cmd">gate fix -h</span></div>
 
     <h2 id="global-flags">Global Flags</h2>
     <p>These flags work with any command.</p>
@@ -167,6 +171,8 @@ permalink: /gate/wiki/commands/
       <tbody>
         <tr><td>GATE_OFFLINE</td><td>Set to 1 to disable all network calls (verification, updates)</td></tr>
         <tr><td>NO_COLOR</td><td>Standard environment variable to disable colored output</td></tr>
+        <tr><td>GATE_SKIP</td><td>Set to 1 to bypass the pre-commit/pre-push hook</td></tr>
+        <tr><td>GATE_NODE_PATH</td><td>Explicit path to Node.js binary for hook execution</td></tr>
         <tr><td>GATE_LOG_LEVEL</td><td>Set log verbosity: debug, info, warn, error</td></tr>
       </tbody>
     </table>
