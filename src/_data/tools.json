@@ -598,13 +598,14 @@
     "name": "IR Timeline Builder",
     "slug": "ir-timeline",
     "description": "Build visual incident response timelines for post-incident reports.",
-    "longDescription": "Build visual incident response timelines from timestamps and events. Drag, reorder, and annotate entries, then export to PDF or JSON for your post-incident reports. Runs entirely in your browser.",
+    "longDescription": "Build visual incident response timelines from timestamps and events. Add, edit, and annotate entries with severity levels, then export to JSON or CSV for your post-incident reports. Persists in your browser.",
     "category": "intelligence",
     "keywords": ["incident response", "timeline", "DFIR", "forensics", "post-incident", "report", "security", "SOC"],
     "badge": "local",
     "relatedTools": ["log-parser", "secrets-scanner", "breach-checker"],
-    "status": "preview",
-    "featured": true
+    "status": "live",
+    "featured": true,
+    "isNew": true
   },
   {
     "name": "Site Score",

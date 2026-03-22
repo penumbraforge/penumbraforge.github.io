@@ -1,0 +1,513 @@
+---
+toolSlug: ir-timeline
+permalink: /tools/ir-timeline/
+---
+
+<div class="irt-controls">
+  <button class="btn" id="btn-add">+ Add Event</button>
+  <button class="btn btn--secondary" id="btn-import">Import JSON</button>
+  <button class="btn btn--secondary" id="btn-export-json">Export JSON</button>
+  <button class="btn btn--secondary" id="btn-export-csv">Export CSV</button>
+  <button class="btn btn--secondary" id="btn-clear">Clear All</button>
+</div>
+
+<div class="irt-add-form" id="add-form" style="display:none;">
+  <div class="irt-form-row">
+    <div class="irt-field">
+      <label for="evt-time">Timestamp</label>
+      <input type="text" id="evt-time" placeholder="2026-03-22 14:30:00 UTC" autocomplete="off">
+    </div>
+    <div class="irt-field irt-field--severity">
+      <label for="evt-severity">Severity</label>
+      <select id="evt-severity">
+        <option value="info">Info</option>
+        <option value="detection">Detection</option>
+        <option value="action" selected>Action</option>
+        <option value="escalation">Escalation</option>
+        <option value="critical">Critical</option>
+        <option value="resolved">Resolved</option>
+      </select>
+    </div>
+  </div>
+  <div class="irt-field">
+    <label for="evt-title">Event Title</label>
+    <input type="text" id="evt-title" placeholder="Alert triggered — unusual API call volume" autocomplete="off">
+  </div>
+  <div class="irt-field">
+    <label for="evt-detail">Details (optional)</label>
+    <textarea id="evt-detail" rows="3" placeholder="CloudTrail showed 400+ DescribeInstances calls from IAM user 'deploy-bot' in us-east-1. Normal baseline is ~20/hour."></textarea>
+  </div>
+  <div class="irt-field">
+    <label for="evt-source">Source (optional)</label>
+    <input type="text" id="evt-source" placeholder="CloudTrail, SIEM, Slack, PagerDuty..." autocomplete="off">
+  </div>
+  <div class="irt-form-actions">
+    <button class="btn" id="btn-save-event">Save Event</button>
+    <button class="btn btn--secondary" id="btn-cancel">Cancel</button>
+  </div>
+</div>
+
+<div id="irt-empty" class="irt-empty">
+  <p>No events yet. Click <strong>+ Add Event</strong> to start building your timeline.</p>
+  <p class="irt-empty-hint">Or paste a JSON array of events using <strong>Import JSON</strong>.</p>
+</div>
+
+<div class="irt-timeline" id="irt-timeline" style="display:none;"></div>
+
+<input type="file" id="import-file" accept=".json" style="display:none;">
+
+<style>
+.irt-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.irt-add-form {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.irt-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.irt-field {
+  flex: 1;
+  margin-bottom: 12px;
+}
+
+.irt-field--severity {
+  max-width: 160px;
+}
+
+.irt-field label {
+  display: block;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-3);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.irt-field input,
+.irt-field textarea,
+.irt-field select {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 300;
+  outline: none;
+  transition: border-color 200ms;
+}
+
+.irt-field input:focus,
+.irt-field textarea:focus,
+.irt-field select:focus {
+  border-color: var(--border-active);
+}
+
+.irt-field select {
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.irt-field select option {
+  background: var(--surface-1);
+  color: var(--text-1);
+}
+
+.irt-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.irt-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-3);
+  font-size: 14px;
+}
+
+.irt-empty-hint {
+  font-size: 12px;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+/* Timeline */
+.irt-timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.irt-timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.irt-event {
+  position: relative;
+  margin-bottom: 16px;
+  padding-left: 28px;
+}
+
+.irt-event-dot {
+  position: absolute;
+  left: -24px;
+  top: 16px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--surface-0);
+  z-index: 1;
+}
+
+.irt-dot--info { background: var(--accent); }
+.irt-dot--detection { background: #e8b84d; }
+.irt-dot--action { background: var(--sage); }
+.irt-dot--escalation { background: #e8a87c; }
+.irt-dot--critical { background: #eb5757; }
+.irt-dot--resolved { background: #6bcf8f; box-shadow: 0 0 8px rgba(107, 207, 143, 0.4); }
+
+.irt-event-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  transition: border-color 200ms;
+}
+
+.irt-event-card:hover {
+  border-color: var(--border-active);
+}
+
+.irt-event-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.irt-event-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.irt-event-sev {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.irt-sev--info { color: var(--accent); background: rgba(184, 165, 214, 0.1); }
+.irt-sev--detection { color: #e8b84d; background: rgba(232, 184, 77, 0.1); }
+.irt-sev--action { color: var(--sage); background: rgba(107, 207, 143, 0.1); }
+.irt-sev--escalation { color: #e8a87c; background: rgba(232, 168, 124, 0.1); }
+.irt-sev--critical { color: #eb5757; background: rgba(235, 87, 87, 0.1); }
+.irt-sev--resolved { color: #6bcf8f; background: rgba(107, 207, 143, 0.15); }
+
+.irt-event-source {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.irt-event-title {
+  font-size: 14px;
+  color: var(--text-1);
+  font-weight: 400;
+}
+
+.irt-event-detail {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.irt-event-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.irt-event-actions button {
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 0;
+  transition: color 150ms;
+}
+
+.irt-event-actions button:hover {
+  color: var(--accent);
+}
+
+.irt-event-actions .irt-btn-delete:hover {
+  color: #eb5757;
+}
+
+@media (max-width: 640px) {
+  .irt-form-row { flex-direction: column; }
+  .irt-field--severity { max-width: none; }
+  .irt-controls { flex-direction: column; }
+}
+</style>
+
+<script>
+(function () {
+  var STORAGE_KEY = 'pf-ir-timeline';
+  var timeline = [];
+  var editingIdx = -1;
+
+  var timelineEl = document.getElementById('irt-timeline');
+  var emptyEl = document.getElementById('irt-empty');
+  var formEl = document.getElementById('add-form');
+  var btnAdd = document.getElementById('btn-add');
+  var btnCancel = document.getElementById('btn-cancel');
+  var btnSave = document.getElementById('btn-save-event');
+  var btnClear = document.getElementById('btn-clear');
+  var btnExportJson = document.getElementById('btn-export-json');
+  var btnExportCsv = document.getElementById('btn-export-csv');
+  var btnImport = document.getElementById('btn-import');
+  var importFile = document.getElementById('import-file');
+
+  var fTime = document.getElementById('evt-time');
+  var fSev = document.getElementById('evt-severity');
+  var fTitle = document.getElementById('evt-title');
+  var fDetail = document.getElementById('evt-detail');
+  var fSource = document.getElementById('evt-source');
+
+  function load() {
+    try { timeline = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch(e) { timeline = []; }
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(timeline));
+  }
+
+  function sortTimeline() {
+    timeline.sort(function (a, b) {
+      return new Date(a.time || 0) - new Date(b.time || 0);
+    });
+  }
+
+  function esc(str) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(str || ''));
+    return d.innerHTML;
+  }
+
+  function render() {
+    if (timeline.length === 0) {
+      emptyEl.style.display = '';
+      timelineEl.style.display = 'none';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+    timelineEl.style.display = '';
+
+    var html = '';
+    timeline.forEach(function (evt, i) {
+      html += '<div class="irt-event">' +
+        '<div class="irt-event-dot irt-dot--' + (evt.severity || 'info') + '"></div>' +
+        '<div class="irt-event-card">' +
+          '<div class="irt-event-header">' +
+            '<span class="irt-event-time">' + esc(evt.time) + '</span>' +
+            '<span class="irt-event-sev irt-sev--' + (evt.severity || 'info') + '">' + esc(evt.severity || 'info') + '</span>' +
+            (evt.source ? '<span class="irt-event-source">' + esc(evt.source) + '</span>' : '') +
+          '</div>' +
+          '<div class="irt-event-title">' + esc(evt.title) + '</div>' +
+          (evt.detail ? '<div class="irt-event-detail">' + esc(evt.detail) + '</div>' : '') +
+          '<div class="irt-event-actions">' +
+            '<button onclick="window._irtEdit(' + i + ')">edit</button>' +
+            '<button class="irt-btn-delete" onclick="window._irtDelete(' + i + ')">delete</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    });
+
+    timelineEl.innerHTML = html;
+  }
+
+  function showForm(evt) {
+    formEl.style.display = '';
+    fTime.value = evt ? evt.time : '';
+    fSev.value = evt ? evt.severity : 'action';
+    fTitle.value = evt ? evt.title : '';
+    fDetail.value = evt ? evt.detail : '';
+    fSource.value = evt ? evt.source : '';
+    fTime.focus();
+
+    if (!evt) {
+      /* Pre-fill timestamp with current UTC */
+      var now = new Date();
+      var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+      fTime.value = now.getUTCFullYear() + '-' + pad(now.getUTCMonth() + 1) + '-' + pad(now.getUTCDate()) + ' ' + pad(now.getUTCHours()) + ':' + pad(now.getUTCMinutes()) + ':' + pad(now.getUTCSeconds()) + ' UTC';
+      fTitle.focus();
+    }
+  }
+
+  function hideForm() {
+    formEl.style.display = 'none';
+    editingIdx = -1;
+    fTime.value = '';
+    fTitle.value = '';
+    fDetail.value = '';
+    fSource.value = '';
+  }
+
+  btnAdd.addEventListener('click', function () {
+    editingIdx = -1;
+    showForm(null);
+  });
+
+  btnCancel.addEventListener('click', hideForm);
+
+  btnSave.addEventListener('click', function () {
+    var title = fTitle.value.trim();
+    if (!title) { fTitle.focus(); return; }
+
+    var evt = {
+      time: fTime.value.trim(),
+      severity: fSev.value,
+      title: title,
+      detail: fDetail.value.trim(),
+      source: fSource.value.trim()
+    };
+
+    if (editingIdx >= 0) {
+      timeline[editingIdx] = evt;
+    } else {
+      timeline.push(evt);
+    }
+
+    sortTimeline();
+    save();
+    render();
+    hideForm();
+  });
+
+  window._irtEdit = function (idx) {
+    editingIdx = idx;
+    showForm(timeline[idx]);
+  };
+
+  window._irtDelete = function (idx) {
+    timeline.splice(idx, 1);
+    save();
+    render();
+  };
+
+  btnClear.addEventListener('click', function () {
+    if (timeline.length === 0) return;
+    if (!confirm('Remove all events from the timeline?')) return;
+    timeline = [];
+    save();
+    render();
+  });
+
+  /* Export JSON */
+  btnExportJson.addEventListener('click', function () {
+    if (timeline.length === 0) return;
+    var blob = new Blob([JSON.stringify(timeline, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'ir-timeline-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  /* Export CSV */
+  btnExportCsv.addEventListener('click', function () {
+    if (timeline.length === 0) return;
+    var csvEsc = function (s) {
+      s = (s || '').replace(/"/g, '""');
+      return '"' + s + '"';
+    };
+    var rows = ['Timestamp,Severity,Title,Details,Source'];
+    timeline.forEach(function (e) {
+      rows.push([csvEsc(e.time), csvEsc(e.severity), csvEsc(e.title), csvEsc(e.detail), csvEsc(e.source)].join(','));
+    });
+    var blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'ir-timeline-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  /* Import JSON */
+  btnImport.addEventListener('click', function () {
+    importFile.click();
+  });
+
+  importFile.addEventListener('change', function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      try {
+        var data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data)) throw new Error('not array');
+        data.forEach(function (evt) {
+          if (evt.title) timeline.push({
+            time: evt.time || evt.timestamp || '',
+            severity: evt.severity || 'info',
+            title: evt.title || evt.event || '',
+            detail: evt.detail || evt.details || evt.description || '',
+            source: evt.source || ''
+          });
+        });
+        sortTimeline();
+        save();
+        render();
+      } catch (err) {
+        alert('Invalid JSON. Expected an array of objects with at least a "title" field.');
+      }
+    };
+    reader.readAsText(file);
+    importFile.value = '';
+  });
+
+  /* Init */
+  load();
+  render();
+})();
+</script>
