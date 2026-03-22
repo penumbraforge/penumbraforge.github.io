@@ -1,0 +1,399 @@
+---
+toolSlug: site-score
+permalink: /tools/site-score/
+---
+
+<div class="tool-group">
+  <label for="ss-url">Enter a URL to scan</label>
+  <div class="ss-input-row">
+    <input type="text" id="ss-url" placeholder="https://example.com" autocomplete="off" spellcheck="false">
+    <button class="btn" id="btn-scan">Scan</button>
+  </div>
+</div>
+
+<div id="ss-status" class="ss-status" style="display:none;"></div>
+<div id="ss-error" class="ss-error" style="display:none;"></div>
+
+<div id="ss-results" style="display:none;">
+  <div class="ha-grade-row" id="ss-grade-row"></div>
+  <div id="ss-findings"></div>
+  <div id="ss-missing"></div>
+  <div class="ss-raw-toggle">
+    <button class="btn btn--secondary" id="btn-raw">Show Raw Headers</button>
+  </div>
+  <pre class="ss-raw" id="ss-raw" style="display:none;"></pre>
+</div>
+
+<!-- Turnstile widget (invisible mode) -->
+<div id="turnstile-container"></div>
+
+<style>
+.ss-input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.ss-input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 300;
+  outline: none;
+  transition: border-color 200ms;
+}
+
+.ss-input-row input:focus {
+  border-color: var(--border-active);
+}
+
+.ss-status {
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: rgba(184, 165, 214, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 13px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ss-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: ss-spin 0.8s linear infinite;
+}
+
+@keyframes ss-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ss-error {
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: rgba(235, 87, 87, 0.04);
+  border: 1px solid rgba(235, 87, 87, 0.12);
+  color: #eb5757;
+  font-size: 13px;
+  margin-top: 16px;
+}
+
+.ss-raw-toggle {
+  margin-top: 20px;
+}
+
+.ss-raw {
+  margin-top: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-2);
+  overflow-x: auto;
+  line-height: 1.6;
+}
+</style>
+
+<script>
+(function () {
+  var WORKER_URL = 'https://site-score.penumbraforge.workers.dev';
+  var TURNSTILE_SITE_KEY = '0x4AAAAAAAXXXXXXXXXXXXXX'; /* Replace after Turnstile setup */
+
+  var urlInput = document.getElementById('ss-url');
+  var btnScan = document.getElementById('btn-scan');
+  var statusEl = document.getElementById('ss-status');
+  var errorEl = document.getElementById('ss-error');
+  var resultsEl = document.getElementById('ss-results');
+  var gradeRowEl = document.getElementById('ss-grade-row');
+  var findingsEl = document.getElementById('ss-findings');
+  var missingEl = document.getElementById('ss-missing');
+  var rawEl = document.getElementById('ss-raw');
+  var btnRaw = document.getElementById('btn-raw');
+  var turnstileToken = null;
+
+  /* ── Load Turnstile ── */
+  var tsScript = document.createElement('script');
+  tsScript.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
+  tsScript.async = true;
+  document.head.appendChild(tsScript);
+
+  window.onTurnstileLoad = function () {
+    if (window.turnstile) {
+      window.turnstile.render('#turnstile-container', {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: function (token) { turnstileToken = token; },
+        'expired-callback': function () { turnstileToken = null; },
+        size: 'invisible',
+      });
+    }
+  };
+
+  /* ── Header analysis (shared logic with header-analyzer) ── */
+  var HEADERS = {
+    'strict-transport-security': {
+      name: 'Strict-Transport-Security', weight: 20,
+      what: 'Forces HTTPS connections, prevents SSL-stripping attacks.',
+      check: function (v) {
+        if (!v) return { status: 'bad', verdict: 'Missing', fix: 'Strict-Transport-Security: max-age=31536000; includeSubDomains; preload' };
+        var ma = parseInt((v.match(/max-age=(\d+)/i) || [])[1] || '0', 10);
+        if (ma < 31536000) return { status: 'warn', verdict: 'max-age too low', explain: 'Should be at least 31536000 (1 year).' };
+        var full = /includeSubDomains/i.test(v) && /preload/i.test(v);
+        return { status: 'good', verdict: full ? 'Excellent' : 'Good', explain: full ? 'Full HSTS with preload.' : 'Consider adding includeSubDomains and preload.' };
+      }
+    },
+    'content-security-policy': {
+      name: 'Content-Security-Policy', weight: 25,
+      what: 'Controls allowed resources, primary XSS defense.',
+      check: function (v) {
+        if (!v) return { status: 'bad', verdict: 'Missing', fix: "Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'" };
+        var issues = [];
+        if (/unsafe-eval/i.test(v)) issues.push('unsafe-eval allows code injection');
+        if (/unsafe-inline.*script/i.test(v) || /script-src[^;]*unsafe-inline/i.test(v)) issues.push('unsafe-inline in scripts weakens XSS protection');
+        if (issues.length) return { status: 'warn', verdict: issues.length + ' issue(s)', explain: issues.join('. ') };
+        return { status: 'good', verdict: 'Configured' };
+      }
+    },
+    'x-frame-options': {
+      name: 'X-Frame-Options', weight: 15,
+      what: 'Prevents clickjacking via iframe embedding.',
+      check: function (v) {
+        if (!v) return { status: 'bad', verdict: 'Missing', fix: 'X-Frame-Options: DENY' };
+        if (/DENY/i.test(v)) return { status: 'good', verdict: 'DENY' };
+        if (/SAMEORIGIN/i.test(v)) return { status: 'good', verdict: 'SAMEORIGIN' };
+        return { status: 'warn', verdict: v };
+      }
+    },
+    'x-content-type-options': {
+      name: 'X-Content-Type-Options', weight: 10,
+      what: 'Prevents MIME-type sniffing attacks.',
+      check: function (v) {
+        if (!v) return { status: 'bad', verdict: 'Missing', fix: 'X-Content-Type-Options: nosniff' };
+        return { status: 'good', verdict: 'nosniff' };
+      }
+    },
+    'referrer-policy': {
+      name: 'Referrer-Policy', weight: 10,
+      what: 'Controls how much URL info is leaked to other sites.',
+      check: function (v) {
+        if (!v) return { status: 'warn', verdict: 'Missing', fix: 'Referrer-Policy: strict-origin-when-cross-origin' };
+        var strong = ['no-referrer', 'strict-origin', 'strict-origin-when-cross-origin', 'same-origin'];
+        if (strong.indexOf(v.trim().toLowerCase()) !== -1) return { status: 'good', verdict: 'Strong' };
+        if (/unsafe-url/i.test(v)) return { status: 'bad', verdict: 'Leaks full URL' };
+        return { status: 'warn', verdict: v.trim() };
+      }
+    },
+    'permissions-policy': {
+      name: 'Permissions-Policy', weight: 10,
+      what: 'Restricts browser features (camera, mic, geolocation).',
+      check: function (v) {
+        if (!v) return { status: 'warn', verdict: 'Missing', fix: 'Permissions-Policy: camera=(), microphone=(), geolocation=()' };
+        var disabled = (v.match(/\(\)/g) || []).length;
+        return { status: disabled >= 3 ? 'good' : 'warn', verdict: disabled + ' features restricted' };
+      }
+    },
+    'cross-origin-opener-policy': {
+      name: 'Cross-Origin-Opener-Policy', weight: 5,
+      what: 'Isolates browsing context from cross-origin windows.',
+      check: function (v) {
+        if (!v) return { status: 'info', verdict: 'Not set' };
+        if (/same-origin/i.test(v)) return { status: 'good', verdict: 'same-origin' };
+        return { status: 'info', verdict: v.trim() };
+      }
+    },
+    'cross-origin-resource-policy': {
+      name: 'Cross-Origin-Resource-Policy', weight: 5,
+      what: 'Prevents cross-origin resource loading (hotlinking).',
+      check: function (v) {
+        if (!v) return { status: 'info', verdict: 'Not set' };
+        return { status: 'good', verdict: v.trim() };
+      }
+    }
+  };
+
+  var INFO_HEADERS = {
+    'server': function (v) {
+      if (!v) return null;
+      if (/\d/.test(v)) return { status: 'warn', name: 'Server', verdict: 'Version exposed: ' + v, explain: 'Remove version numbers to reduce fingerprinting.' };
+      return { status: 'info', name: 'Server', verdict: v };
+    },
+    'x-powered-by': function (v) {
+      if (!v) return null;
+      return { status: 'warn', name: 'X-Powered-By', verdict: 'Exposed: ' + v, explain: 'Remove this header to hide your tech stack.' };
+    }
+  };
+
+  function analyzeHeaders(hdrs) {
+    var results = [];
+    var missing = [];
+
+    Object.keys(HEADERS).forEach(function (key) {
+      var def = HEADERS[key];
+      var val = hdrs[key] || null;
+      var result = def.check(val);
+      result.weight = def.weight;
+      if (val) {
+        results.push({ key: key, name: def.name, value: val, what: def.what, result: result });
+      } else {
+        missing.push({ key: key, name: def.name, what: def.what, result: result });
+      }
+    });
+
+    Object.keys(INFO_HEADERS).forEach(function (key) {
+      var val = hdrs[key] || null;
+      var r = INFO_HEADERS[key](val);
+      if (r) results.push({ key: key, name: r.name, value: val, what: '', result: r });
+    });
+
+    return { results: results, missing: missing };
+  }
+
+  function calcScore(all) {
+    var score = 0, max = 0;
+    all.forEach(function (r) {
+      var w = r.result.weight || 5;
+      max += w;
+      if (r.result.status === 'good') score += w;
+      else if (r.result.status === 'warn') score += w * 0.4;
+      else if (r.result.status === 'info') score += w * 0.7;
+    });
+    return max > 0 ? Math.round((score / max) * 100) : 0;
+  }
+
+  function letterGrade(s) {
+    if (s >= 90) return 'A'; if (s >= 75) return 'B'; if (s >= 55) return 'C'; if (s >= 35) return 'D'; return 'F';
+  }
+
+  function esc(str) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(str || ''));
+    return d.innerHTML;
+  }
+
+  function render(hdrs) {
+    var data = analyzeHeaders(hdrs);
+    var all = data.results.concat(data.missing);
+    var score = calcScore(all);
+    var grade = letterGrade(score);
+    var cls = { A: 'a', B: 'b', C: 'c', D: 'd', F: 'f' }[grade];
+    var color = { A: 'var(--sage)', B: '#a8d86b', C: '#e8b84d', D: '#e8a87c', F: '#eb5757' }[grade];
+    var labels = { A: 'Excellent security posture', B: 'Good — minor improvements possible', C: 'Fair — some important headers missing', D: 'Weak — significant gaps', F: 'Poor — most protections missing' };
+
+    var scannedUrl = hdrs._url || urlInput.value;
+
+    gradeRowEl.innerHTML =
+      '<div class="ha-grade ha-grade-' + cls + '">' + grade + '</div>' +
+      '<div class="ha-grade-summary">' +
+        '<div class="ha-grade-label">' + labels[grade] + '</div>' +
+        '<div class="ha-grade-detail">' + score + '/100 — ' + esc(scannedUrl) + '</div>' +
+        '<div class="ha-score-bar"><div class="ha-score-fill" style="width:' + score + '%;background:' + color + '"></div></div>' +
+      '</div>';
+
+    /* Present headers */
+    var html = '<div class="ha-section-label">Headers Found</div>';
+    data.results.forEach(function (r, i) {
+      var s = r.result;
+      html += '<div class="ha-header-card" id="ss-card-' + i + '">' +
+        '<div class="ha-header-row" onclick="document.getElementById(\'ss-card-' + i + '\').classList.toggle(\'open\')">' +
+          '<span class="ha-status-dot ha-status-dot--' + s.status + '"></span>' +
+          '<span class="ha-header-name">' + esc(r.name) + '</span>' +
+          '<span class="ha-header-verdict ha-verdict--' + s.status + '">' + esc(s.verdict) + '</span>' +
+          '<span class="ha-chevron">&#x203a;</span>' +
+        '</div>' +
+        '<div class="ha-header-detail">' +
+          '<div class="ha-header-value">' + esc(r.value) + '</div>' +
+          (r.what ? '<div class="ha-header-explain"><strong>What it does:</strong> ' + esc(r.what) + '</div>' : '') +
+          (s.explain ? '<div class="ha-header-explain">' + esc(s.explain) + '</div>' : '') +
+          (s.fix ? '<div class="ha-header-fix"><strong>Recommended:</strong> <code>' + esc(s.fix) + '</code></div>' : '') +
+        '</div>' +
+      '</div>';
+    });
+    findingsEl.innerHTML = html;
+
+    /* Missing */
+    if (data.missing.length > 0) {
+      var mhtml = '<div class="ha-section-label">Missing Headers</div>';
+      data.missing.forEach(function (m) {
+        var s = m.result;
+        if (s.status === 'info') return;
+        mhtml += '<div class="ha-missing-card">' +
+          '<div class="ha-missing-name">' + esc(m.name) + '</div>' +
+          '<div class="ha-missing-why">' + esc(m.what) + '</div>' +
+          (s.fix ? '<div class="ha-missing-fix">' + esc(s.fix) + '</div>' : '') +
+        '</div>';
+      });
+      missingEl.innerHTML = mhtml;
+    } else {
+      missingEl.innerHTML = '';
+    }
+
+    /* Raw headers */
+    var rawText = '';
+    Object.keys(hdrs).forEach(function (k) {
+      if (k.charAt(0) !== '_') rawText += k + ': ' + hdrs[k] + '\n';
+    });
+    rawEl.textContent = rawText;
+
+    statusEl.style.display = 'none';
+    resultsEl.style.display = '';
+  }
+
+  btnScan.addEventListener('click', function () {
+    var url = urlInput.value.trim();
+    if (!url) { urlInput.focus(); return; }
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    urlInput.value = url;
+
+    errorEl.style.display = 'none';
+    resultsEl.style.display = 'none';
+    statusEl.style.display = '';
+    statusEl.innerHTML = '<div class="ss-spinner"></div> Scanning ' + esc(url) + '...';
+
+    fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url, token: turnstileToken || '' }),
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.error) {
+          statusEl.style.display = 'none';
+          errorEl.style.display = '';
+          errorEl.textContent = data.error;
+          return;
+        }
+        render(data.headers);
+        /* Reset Turnstile for next scan */
+        if (window.turnstile) window.turnstile.reset();
+        turnstileToken = null;
+      })
+      .catch(function (err) {
+        statusEl.style.display = 'none';
+        errorEl.style.display = '';
+        errorEl.textContent = 'Worker unavailable. The Site Score worker may not be deployed yet.';
+      });
+  });
+
+  /* Enter key to scan */
+  urlInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') btnScan.click();
+  });
+
+  /* Raw toggle */
+  btnRaw.addEventListener('click', function () {
+    var showing = rawEl.style.display !== 'none';
+    rawEl.style.display = showing ? 'none' : '';
+    btnRaw.textContent = showing ? 'Show Raw Headers' : 'Hide Raw Headers';
+  });
+})();
+</script>

@@ -616,8 +616,9 @@
     "keywords": ["security score", "scan", "headers", "ssl", "tls", "grade", "audit", "pentest", "privacy"],
     "badge": "worker",
     "relatedTools": ["security-headers", "csp-generator", "header-analyzer"],
-    "status": "preview",
-    "featured": true
+    "status": "live",
+    "featured": true,
+    "isNew": true
   },
   {
     "name": "Header Analyzer",
