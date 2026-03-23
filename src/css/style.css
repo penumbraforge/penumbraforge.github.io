@@ -5099,16 +5099,19 @@ a.t-card {
   }
 }
 
-/* Footer on sidebar pages — offset to align with content area */
+/* Footer on sidebar pages — offset past sidebar */
 .tool-page .footer,
 .tools-hub-page .footer {
-  padding-left: 300px;
+  margin-left: 260px;
+  padding: 32px 40px;
+  max-width: none;
 }
 
 @media (max-width: 900px) {
   .tool-page .footer,
   .tools-hub-page .footer {
-    padding-left: 24px;
+    margin-left: 0;
+    padding: 24px;
   }
 }
 

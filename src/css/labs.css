@@ -27,13 +27,7 @@
   text-decoration: none;
 }
 
-.lab-topbar-orb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 45% 40%, #c4a8d8, #6a5a8e);
-  box-shadow: 0 0 8px rgba(184, 165, 214, 0.3);
-}
+/* Eclipse orb inherits from site-header-orb in style.css */
 
 .lab-topbar-sep {
   width: 1px;
