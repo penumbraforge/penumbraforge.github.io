@@ -5099,26 +5099,33 @@ a.t-card {
   }
 }
 
-/* Footer on sidebar pages — offset past sidebar */
-.tool-page .footer,
-.tools-hub-page .footer {
-  margin-left: 260px;
-  padding: 32px 40px;
+/* Unified tool footer — spans full width below sidebar + content */
+.tool-footer-unified {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 40px;
+  border-top: 1px solid rgba(184, 165, 214, 0.04);
+  font-size: 11px;
+  color: #444;
+  background: var(--surface-0);
   max-width: none;
+  margin: 0;
 }
 
-@media (max-width: 900px) {
-  .tool-page .footer,
-  .tools-hub-page .footer {
-    margin-left: 0;
+.tool-footer-unified .footer-left { flex-shrink: 0; }
+.tool-footer-unified .footer-center { display: flex; gap: 20px; }
+.tool-footer-unified .footer-right { display: flex; gap: 20px; flex-shrink: 0; }
+.tool-footer-unified a { color: #444; text-decoration: none; transition: color 200ms; }
+.tool-footer-unified a:hover { color: var(--accent); }
+
+@media (max-width: 768px) {
+  .tool-footer-unified {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
     padding: 24px;
   }
-}
-
-/* Tool CTA on sidebar pages */
-.tools-content .tool-cta {
-  padding: 32px 0;
-  text-align: left;
 }
 
 /* Tool nav inside sidebar layout (no .container wrapper) */
