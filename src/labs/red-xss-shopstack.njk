@@ -261,75 +261,56 @@ res.setHeader('Content-Security-Policy',
   ServerLogs.add('info', 'ShopStack server started on port 3000');
   ServerLogs.add('info', 'Database connected — 8 products loaded');
 
-  var iframe = document.getElementById('lab-target');
   var httpReq = document.getElementById('http-req');
   var httpResp = document.getElementById('http-resp');
 
-  /* Listen for iframe navigation to detect search queries */
-  var checkInterval = setInterval(function() {
-    try {
-      var iframeSrc = iframe.contentWindow.location.href;
-      /* Can't access cross-origin — expected */
-    } catch(e) {
-      /* Expected — sandbox blocks access */
-    }
-  }, 2000);
+  /* Listen for postMessage from ShopStack iframe */
+  window.addEventListener('message', function(e) {
+    if (!e.data || e.data.type !== 'shopstack-nav') return;
 
-  /* Use postMessage from the iframe to communicate objectives.
-     Since we can't directly observe the iframe due to sandbox,
-     we'll monitor URL changes via the iframe's src attribute
-     and use a polling approach on the Worker. */
+    var query = e.data.query || '';
+    var path = e.data.path || '';
 
-  /* Monitor iframe navigation via onload */
-  var searchCount = 0;
-  var htmlInjected = false;
-  var xssExecuted = false;
-
-  iframe.addEventListener('load', function() {
-    searchCount++;
-    var src = iframe.src || '';
-
-    /* Extract query from URL */
-    var qMatch = src.match(/[?&]q=([^&]*)/);
-    var query = qMatch ? decodeURIComponent(qMatch[1]) : '';
-
-    if (query && searchCount > 1) {
-      /* Update HTTP inspector */
-      httpReq.innerHTML = '<span class="lab-http-method">GET</span> /search?q=' + escHtml(query).substring(0, 60) + ' HTTP/1.1\n' +
+    /* Update HTTP inspector on every navigation */
+    if (path) {
+      var displayPath = path + (query ? '?q=' + encodeURIComponent(query) : '');
+      httpReq.innerHTML = '<span class="lab-http-method">GET</span> ' + escHtml(displayPath).substring(0, 60) + ' HTTP/1.1\n' +
         '<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">acme-shopstack.com</span>\n' +
         '<span class="lab-http-hname">Cookie:</span> <span class="lab-http-hval">session=eyJhZG1pbiI6ZmFsc2V9</span>\n' +
         '<span class="lab-http-hname">User-Agent:</span> <span class="lab-http-hval">Mozilla/5.0</span>';
 
       httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status">200 OK</span>\n' +
         '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">text/html; charset=UTF-8</span>\n' +
-        '<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span>\n\n' +
-        '<span class="lab-http-hval">&lt;h2&gt;Results for: <span class="lab-http-vuln">' + escHtml(query) + '</span>&lt;/h2&gt;</span>';
+        '<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span>' +
+        (query ? '\n\n<span class="lab-http-hval">&lt;h2&gt;Results for: <span class="lab-http-vuln">' + escHtml(query) + '</span>&lt;/h2&gt;</span>' : '');
 
-      ServerLogs.add('info', 'GET /search?q=' + query.substring(0, 40) + ' — 200');
+      ServerLogs.add('info', 'GET ' + displayPath.substring(0, 50) + ' — 200');
+    }
 
-      /* Objective 1: Recon — any search */
-      Engine.tryCompleteObjective('recon');
+    if (!query) return;
 
-      /* Objective 2: HTML injection — contains HTML tags */
-      if (/<[a-zA-Z]/.test(query)) {
-        Engine.tryCompleteObjective('inject');
-        ServerLogs.add('warn', 'HTML markup detected in search query — reflected unsanitized');
-      }
+    /* Objective 1: Recon — any search query */
+    Engine.tryCompleteObjective('recon');
 
-      /* Objective 3: XSS — contains event handlers or script */
-      var xssPatterns = [/onerror\s*=/i, /onload\s*=/i, /onfocus\s*=/i, /onclick\s*=/i,
-        /onmouseover\s*=/i, /ontoggle\s*=/i, /<script/i, /javascript:/i];
-      if (xssPatterns.some(function(p) { return p.test(query); })) {
-        Engine.tryCompleteObjective('execute');
-        ServerLogs.add('err', 'XSS payload executed in client context');
+    /* Objective 2: HTML injection — query contains HTML tags */
+    if (/<[a-zA-Z]/.test(query)) {
+      Engine.tryCompleteObjective('inject');
+      ServerLogs.add('warn', 'HTML markup detected in search query — reflected unsanitized');
+    }
 
-        /* Objective 4: Cookie access */
-        if (/document\.cookie/i.test(query)) {
-          setTimeout(function() {
-            Engine.tryCompleteObjective('exfiltrate');
-            ServerLogs.add('critical', 'Session cookie accessed via XSS: session=eyJhZG1pbiI6ZmFsc2V9');
-          }, 500);
-        }
+    /* Objective 3: XSS — query contains event handlers or script tags */
+    var xssPatterns = [/onerror\s*=/i, /onload\s*=/i, /onfocus\s*=/i, /onclick\s*=/i,
+      /onmouseover\s*=/i, /ontoggle\s*=/i, /<script/i, /javascript:/i];
+    if (xssPatterns.some(function(p) { return p.test(query); })) {
+      Engine.tryCompleteObjective('execute');
+      ServerLogs.add('err', 'XSS payload executed in client context');
+
+      /* Objective 4: Cookie exfiltration */
+      if (/document\.cookie/i.test(query)) {
+        setTimeout(function() {
+          Engine.tryCompleteObjective('exfiltrate');
+          ServerLogs.add('critical', 'Session cookie accessed via XSS: session=eyJhZG1pbiI6ZmFsc2V9');
+        }, 500);
       }
     }
   });

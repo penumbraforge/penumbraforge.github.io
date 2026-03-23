@@ -118,7 +118,28 @@ function shell(title, activePage, content) {
   </div>
   <div class="container">${content}</div>
   <div class="footer">© 2026 ShopStack Inc. — All rights reserved. | <a href="#" style="color:#999;">Privacy</a> | <a href="#" style="color:#999;">Terms</a></div>
-  <script>document.cookie="session=eyJhZG1pbiI6ZmFsc2UsInVzZXIiOiJndWVzdCJ9;path=/";</script>
+  <script>
+  document.cookie="session=eyJhZG1pbiI6ZmFsc2UsInVzZXIiOiJndWVzdCJ9;path=/";
+  // Notify parent frame of page loads for lab objective tracking
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var q = params.get('q');
+    window.parent.postMessage({
+      type: 'shopstack-nav',
+      path: window.location.pathname,
+      query: q || '',
+      url: window.location.href
+    }, '*');
+  } catch(e) {}
+  // Form submission handler
+  document.querySelectorAll('form').forEach(function(f) {
+    f.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var input = f.querySelector('input[name=q]');
+      if (input) window.location = '/search?q=' + encodeURIComponent(input.value);
+    });
+  });
+  </script>
 </body></html>`;
 }
 
