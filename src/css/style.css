@@ -966,7 +966,7 @@ html {
   align-items: center;
   justify-content: space-between;
   gap: 40px;
-  padding: 20px 80px;
+  padding: 16px 20px 16px 20px;
   width: 100%;
   position: relative;
   z-index: 5;
