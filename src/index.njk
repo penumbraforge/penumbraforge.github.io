@@ -16,12 +16,12 @@ layout: base.njk
   <div class="hero-split">
     <div>
       <p class="hero-label reveal reveal-delay-1">Penumbra Forge</p>
-      <h1 class="reveal reveal-delay-2">Security tools &amp; software,<br>forged by <strong>Shadoe</strong></h1>
-      <p class="hero-subtitle reveal reveal-delay-3">One-person studio. Open source security tools, privacy-first utilities, and hands-on security labs. No compromises.</p>
+      <h1 class="reveal reveal-delay-2">Security tools, labs &amp; software<br>forged by <strong>Shadoe</strong></h1>
+      <p class="hero-subtitle reveal reveal-delay-3">Independent security studio. Privacy-first tools, hands-on offensive and defensive security labs, and open source software — built by a senior CIRT engineer.</p>
       <div class="hero-stats reveal reveal-delay-4">
-        <div><div class="stat-num">63</div><div class="stat-label">Browser Tools</div></div>
-        <div><div class="stat-num">12</div><div class="stat-label">Security Labs</div></div>
-        <div><div class="stat-num">4</div><div class="stat-label">Products</div></div>
+        <div><div class="stat-num">63</div><div class="stat-label">Tools</div></div>
+        <div><div class="stat-num">12</div><div class="stat-label">Labs</div></div>
+        <div><div class="stat-num">3</div><div class="stat-label">Products</div></div>
       </div>
     </div>
     <div class="reveal reveal-delay-3">
@@ -168,25 +168,50 @@ layout: base.njk
 <div class="section-gap section-gap-lg"></div>
 
 <div class="section">
-  <div class="section-divider reveal"><span>Developer Tools</span></div>
+  <div class="section-divider reveal"><span>Security Labs</span></div>
 
   <div class="section-head reveal">
     <div>
-      <h2>Built for developers who care</h2>
+      <h2>Learn by breaking things</h2>
+      <p class="section-desc">Attack real vulnerabilities, then investigate the same incidents from the defender's chair. Red team meets blue team — no setup, no accounts, no risk.</p>
+    </div>
+    <span class="section-count">12 labs</span>
+  </div>
+
+  <div class="tools-grid">
+    <a href="/labs/red/xss-shopstack/" class="t-card reveal reveal-delay-1"><div class="t-icon" style="color:#eb5757;">&#x1f534;</div><h4>Reflected XSS</h4><p>Steal session cookies via injection</p><span class="local-badge" style="color:rgba(235,87,87,0.5);">red team — beginner</span></a>
+    <a href="/labs/red/sqli-vaultbank/" class="t-card reveal reveal-delay-2"><div class="t-icon" style="color:#eb5757;">&#x1f534;</div><h4>SQL Injection</h4><p>Extract credentials from a real database</p><span class="local-badge" style="color:rgba(235,87,87,0.5);">red team — intermediate</span></a>
+    <a href="/labs/blue/alert-triage/" class="t-card reveal reveal-delay-3"><div class="t-icon" style="color:#82aaff;">&#x1f535;</div><h4>Alert Triage</h4><p>Classify SIEM alerts under pressure</p><span class="local-badge" style="color:rgba(130,170,255,0.5);">blue team — beginner</span></a>
+    <a href="/labs/blue/soar-playbook/" class="t-card reveal reveal-delay-4"><div class="t-icon" style="color:#82aaff;">&#x1f535;</div><h4>Build the Playbook</h4><p>Design SOAR automation for phishing</p><span class="local-badge" style="color:rgba(130,170,255,0.5);">blue team — advanced</span></a>
+  </div>
+
+  <div class="tools-cta-row reveal">
+    <a href="/labs/" class="tools-cta">Browse all 12 labs &rarr;</a>
+  </div>
+</div>
+
+<div class="section-gap section-gap-lg"></div>
+
+<div class="section">
+  <div class="section-divider reveal"><span>Developer &amp; Security Tools</span></div>
+
+  <div class="section-head reveal">
+    <div>
+      <h2>63 tools, zero tracking</h2>
       <p class="section-desc">Privacy-first developer and security utilities. No accounts, no tracking — most tools run entirely in your browser.</p>
     </div>
     <span class="section-count">63 tools &amp; counting</span>
   </div>
 
   <div class="tools-grid">
-    <a href="/tools/json-formatter/" class="t-card reveal reveal-delay-1"><div class="t-icon">{&thinsp;}</div><h4>JSON Formatter</h4><p>Pretty-print, minify, validate</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/jwt-decoder/" class="t-card reveal reveal-delay-2"><div class="t-icon">&#x1f511;</div><h4>JWT Decoder</h4><p>Inspect tokens and claims</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/secrets-scanner/" class="t-card reveal reveal-delay-3"><div class="t-icon">&#x1f6e1;</div><h4>Secrets Scanner</h4><p>Detect exposed API keys</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/subnet-calculator/" class="t-card reveal reveal-delay-4"><div class="t-icon">&#x1f310;</div><h4>Subnet Calculator</h4><p>Visual CIDR and IP ranges</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/cron-builder/" class="t-card reveal reveal-delay-5"><div class="t-icon">&#x23f0;</div><h4>Cron Builder</h4><p>Visual cron expression editor</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/hash-generator/" class="t-card reveal reveal-delay-6"><div class="t-icon">#</div><h4>Hash Generator</h4><p>SHA-256, SHA-512, MD5</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/regex-tester/" class="t-card reveal reveal-delay-7"><div class="t-icon">&#x1f50d;</div><h4>Regex Tester</h4><p>Live pattern matching</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/password-generator/" class="t-card reveal"><div class="t-icon">&#x1f512;</div><h4>Password Generator</h4><p>Cryptographic randomness</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/env-analyzer/" class="t-card reveal reveal-delay-1"><div class="t-icon">&#x1f50d;</div><h4>.env Exposure Analyzer</h4><p>Map blast radius of leaked secrets</p><span class="local-badge">intelligence tool</span></a>
+    <a href="/tools/header-analyzer/" class="t-card reveal reveal-delay-2"><div class="t-icon">&#x1f6e1;</div><h4>Header Analyzer</h4><p>Paste headers, get a security grade</p><span class="local-badge">intelligence tool</span></a>
+    <a href="/tools/breach-checker/" class="t-card reveal reveal-delay-3"><div class="t-icon">&#x1f6a8;</div><h4>Breach Checker</h4><p>Check credentials via k-anonymity</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/jwt-attack/" class="t-card reveal reveal-delay-4"><div class="t-icon">&#x1f511;</div><h4>JWT Attack Workbench</h4><p>Test JWT vulnerabilities</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/site-score/" class="t-card reveal reveal-delay-5"><div class="t-icon">&#x1f3af;</div><h4>Site Score</h4><p>Scan any URL for security headers</p><span class="local-badge">scans via edge worker</span></a>
+    <a href="/tools/ir-timeline/" class="t-card reveal reveal-delay-6"><div class="t-icon">&#x23f1;</div><h4>IR Timeline Builder</h4><p>Build incident response timelines</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/redos-tester/" class="t-card reveal reveal-delay-7"><div class="t-icon">&#x26a0;</div><h4>ReDoS Tester</h4><p>Find catastrophic backtracking</p><span class="local-badge">runs in your browser</span></a>
+    <a href="/tools/json-formatter/" class="t-card reveal"><div class="t-icon">{&thinsp;}</div><h4>JSON Formatter</h4><p>Pretty-print, minify, validate</p><span class="local-badge">runs in your browser</span></a>
   </div>
 
   <div class="tools-cta-row reveal">
@@ -206,8 +231,8 @@ layout: base.njk
     </div>
     <div>
       <div class="about-body">
-        <p>Penumbra Forge is a one-person software studio. By day, I'm a senior information security engineer on a CIRT team, building SOAR automations that my team uses every single day. By night, I build the tools I wish existed — things that respect your privacy, run on your hardware, and don't need a cloud account to function.</p>
-        <p>Everything I ship is shaped by years in datacenters, NOCs, and incident response: secure by default, minimal attack surface, no unnecessary dependencies.</p>
+        <p>Penumbra Forge is a one-person security studio. By day, I'm a senior information security engineer on a CIRT team — architecting SOAR automations and building integrations that my team uses to respond to real incidents. By night, I build the tools and training I wish existed.</p>
+        <p>Everything here is shaped by 7 years in datacenters, NOCs, and incident response — from shared hosting to senior engineer, with no certifications or formal education. Just shipped work and demonstrated ability.</p>
       </div>
       <div class="tech-row">
         <span class="tech-chip">Python</span>
