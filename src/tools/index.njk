@@ -58,12 +58,12 @@ permalink: /tools/
 
     {# Category sections #}
     {% set categoryOrder = [
-      { key: "intelligence", label: "Intelligence", icon: "🔍" },
-      { key: "security", label: "Security", icon: "🛡" },
-      { key: "encoding", label: "Encoding", icon: "{}" },
+      { key: "intelligence", label: "Intelligence", icon: "+" },
+      { key: "security", label: "Security", icon: "◆" },
+      { key: "encoding", label: "Encoding", icon: "⟨⟩" },
       { key: "devops", label: "DevOps", icon: "⚙" },
-      { key: "web", label: "Web", icon: "🌐" },
-      { key: "text", label: "Text", icon: "✎" }
+      { key: "web", label: "Web", icon: "◎" },
+      { key: "text", label: "Text", icon: "¶" }
     ] %}
 
     {% for cat in categoryOrder %}
@@ -80,7 +80,7 @@ permalink: /tools/
         {% for tool in catTools %}
         <a href="/tools/{{ tool.slug }}/" class="t-card" data-category="{{ tool.category }}" data-keywords="{{ tool.keywords | join(' ') }} {{ tool.name | lower }}">
           <div class="t-icon" aria-hidden="true">
-            {% if tool.category == "security" %}&#x1f6e1;{% elif tool.category == "encoding" %}{&thinsp;}{% elif tool.category == "devops" %}&#x2699;{% elif tool.category == "web" %}&#x1f310;{% elif tool.category == "text" %}&#x270e;{% elif tool.category == "intelligence" %}&#x1f50d;{% else %}&#x2726;{% endif %}
+            {% if tool.category == "security" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/></svg>{% elif tool.category == "encoding" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>{% elif tool.category == "devops" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>{% elif tool.category == "web" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>{% elif tool.category == "text" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>{% elif tool.category == "intelligence" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>{% else %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>{% endif %}
           </div>
           <h4>{{ tool.name }}</h4>
           <p>{{ tool.description }}</p>
