@@ -498,6 +498,234 @@
      Export to global scope
      ════════════════════════════════════════════════════ */
 
+  /* ════════════════════════════════════════════════════
+     Sync System — Forge Key cloud sync
+     ════════════════════════════════════════════════════ */
+
+  var SYNC_URL = 'https://lab-sync.penumbraforge.workers.dev';
+
+  var SyncSystem = {
+    async save(forgeKey) {
+      var storageKey = await ForgeKey.deriveStorageKey(forgeKey);
+      var plaintext = ProgressStore.exportData();
+      var encrypted = await ForgeKey.encrypt(forgeKey, plaintext);
+
+      var resp = await fetch(SYNC_URL + '/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storageKey: storageKey,
+          ciphertext: encrypted.ciphertext,
+          iv: encrypted.iv,
+        }),
+      });
+
+      var data = await resp.json();
+      if (data.error) throw new Error(data.error);
+
+      // Save the forge key locally (encrypted reference only)
+      var store = ProgressStore.load();
+      store.forgeKey = forgeKey;
+      ProgressStore.save();
+
+      return true;
+    },
+
+    async restore(forgeKey) {
+      var storageKey = await ForgeKey.deriveStorageKey(forgeKey);
+
+      var resp = await fetch(SYNC_URL + '/load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storageKey: storageKey }),
+      });
+
+      var data = await resp.json();
+      if (data.error) throw new Error(data.error);
+
+      var plaintext = await ForgeKey.decrypt(forgeKey, data.iv, data.ciphertext);
+      ProgressStore.importData(plaintext);
+
+      // Save the forge key locally
+      var store = ProgressStore.load();
+      store.forgeKey = forgeKey;
+      ProgressStore.save();
+
+      return true;
+    },
+
+    getStoredForgeKey: function () {
+      var store = ProgressStore.load();
+      return store.forgeKey || null;
+    },
+  };
+
+  /* ════════════════════════════════════════════════════
+     Forge Key Modal UI
+     ════════════════════════════════════════════════════ */
+
+  var ForgeKeyUI = {
+    init: function () {
+      this._createModal();
+      this._bindEvents();
+    },
+
+    _createModal: function () {
+      var modal = document.createElement('div');
+      modal.id = 'forge-key-modal';
+      modal.className = 'fk-modal';
+      modal.innerHTML =
+        '<div class="fk-card">' +
+          '<div class="fk-close" id="fk-close">&times;</div>' +
+          '<div id="fk-view-main" class="fk-view">' +
+            '<div class="fk-title">Forge Key</div>' +
+            '<div class="fk-desc">Your progress is encrypted with your Forge Key. We can\'t see your data. We don\'t know who you are.</div>' +
+            '<div class="fk-encrypt-badge">&#x1f512; AES-256-GCM — your key never leaves your browser</div>' +
+            '<div class="fk-actions">' +
+              '<button class="fk-btn fk-btn-primary" id="fk-btn-new">Generate New Forge Key</button>' +
+              '<button class="fk-btn fk-btn-secondary" id="fk-btn-restore">Restore with Existing Key</button>' +
+            '</div>' +
+            '<div class="fk-stored" id="fk-stored" style="display:none;">' +
+              '<div class="fk-stored-label">Current Forge Key</div>' +
+              '<div class="fk-stored-key" id="fk-stored-key"></div>' +
+              '<button class="fk-btn fk-btn-primary" id="fk-btn-sync-now" style="margin-top:10px;">Sync Now</button>' +
+            '</div>' +
+          '</div>' +
+          '<div id="fk-view-generate" class="fk-view" style="display:none;">' +
+            '<div class="fk-title">Your Forge Key</div>' +
+            '<div class="fk-key-display" id="fk-generated-key"></div>' +
+            '<div class="fk-key-warning">Write this down. It\'s your only way back.<br>We <strong>cannot recover it</strong> — that\'s the point.</div>' +
+            '<button class="fk-btn fk-btn-copy" id="fk-btn-copy">Copy Key</button>' +
+            '<button class="fk-btn fk-btn-primary" id="fk-btn-save" style="margin-top:8px;">I\'ve Saved It — Encrypt &amp; Sync</button>' +
+            '<div class="fk-status" id="fk-save-status"></div>' +
+          '</div>' +
+          '<div id="fk-view-restore" class="fk-view" style="display:none;">' +
+            '<div class="fk-title">Restore Progress</div>' +
+            '<div class="fk-desc">Enter your Forge Key to decrypt and restore your progress.</div>' +
+            '<input type="text" class="fk-input" id="fk-restore-input" placeholder="ember-cascade-7x9k" autocomplete="off" spellcheck="false">' +
+            '<button class="fk-btn fk-btn-primary" id="fk-btn-do-restore" style="margin-top:10px;">Decrypt &amp; Restore</button>' +
+            '<button class="fk-btn fk-btn-secondary" id="fk-btn-back" style="margin-top:6px;">Back</button>' +
+            '<div class="fk-status" id="fk-restore-status"></div>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(modal);
+    },
+
+    _bindEvents: function () {
+      var self = this;
+      var modal = document.getElementById('forge-key-modal');
+
+      document.getElementById('fk-close').addEventListener('click', function () { self.hide(); });
+      modal.addEventListener('click', function (e) { if (e.target === modal) self.hide(); });
+
+      document.getElementById('fk-btn-new').addEventListener('click', function () {
+        var key = ForgeKey.generate();
+        document.getElementById('fk-generated-key').textContent = key;
+        self._showView('generate');
+      });
+
+      document.getElementById('fk-btn-copy').addEventListener('click', function () {
+        var key = document.getElementById('fk-generated-key').textContent;
+        navigator.clipboard.writeText(key);
+        this.textContent = 'Copied!';
+        setTimeout(function () { document.getElementById('fk-btn-copy').textContent = 'Copy Key'; }, 2000);
+      });
+
+      document.getElementById('fk-btn-save').addEventListener('click', async function () {
+        var key = document.getElementById('fk-generated-key').textContent;
+        var status = document.getElementById('fk-save-status');
+        status.textContent = 'Encrypting and syncing...';
+        status.className = 'fk-status fk-status-info';
+        try {
+          await SyncSystem.save(key);
+          status.textContent = 'Synced! Your progress is encrypted and saved.';
+          status.className = 'fk-status fk-status-ok';
+          self._updateStoredDisplay();
+          setTimeout(function () { self.hide(); }, 2000);
+        } catch (err) {
+          status.textContent = 'Error: ' + err.message;
+          status.className = 'fk-status fk-status-err';
+        }
+      });
+
+      document.getElementById('fk-btn-restore').addEventListener('click', function () {
+        self._showView('restore');
+      });
+
+      document.getElementById('fk-btn-back').addEventListener('click', function () {
+        self._showView('main');
+      });
+
+      document.getElementById('fk-btn-do-restore').addEventListener('click', async function () {
+        var key = document.getElementById('fk-restore-input').value.trim();
+        var status = document.getElementById('fk-restore-status');
+        if (!key) { document.getElementById('fk-restore-input').focus(); return; }
+
+        status.textContent = 'Decrypting...';
+        status.className = 'fk-status fk-status-info';
+        try {
+          await SyncSystem.restore(key);
+          status.textContent = 'Restored! Reloading...';
+          status.className = 'fk-status fk-status-ok';
+          setTimeout(function () { location.reload(); }, 1500);
+        } catch (err) {
+          status.textContent = err.message === 'No data found for this Forge Key'
+            ? 'No progress found for this Forge Key. Check your key and try again.'
+            : 'Decryption failed. Wrong key or corrupted data.';
+          status.className = 'fk-status fk-status-err';
+        }
+      });
+
+      // Sync now button
+      document.getElementById('fk-btn-sync-now').addEventListener('click', async function () {
+        var key = SyncSystem.getStoredForgeKey();
+        if (!key) return;
+        this.textContent = 'Syncing...';
+        try {
+          await SyncSystem.save(key);
+          this.textContent = 'Synced!';
+          setTimeout(function () { document.getElementById('fk-btn-sync-now').textContent = 'Sync Now'; }, 2000);
+        } catch (err) {
+          this.textContent = 'Error';
+          setTimeout(function () { document.getElementById('fk-btn-sync-now').textContent = 'Sync Now'; }, 2000);
+        }
+      });
+
+      // Restore input enter key
+      document.getElementById('fk-restore-input').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') document.getElementById('fk-btn-do-restore').click();
+      });
+    },
+
+    _showView: function (view) {
+      document.getElementById('fk-view-main').style.display = view === 'main' ? '' : 'none';
+      document.getElementById('fk-view-generate').style.display = view === 'generate' ? '' : 'none';
+      document.getElementById('fk-view-restore').style.display = view === 'restore' ? '' : 'none';
+    },
+
+    _updateStoredDisplay: function () {
+      var key = SyncSystem.getStoredForgeKey();
+      var el = document.getElementById('fk-stored');
+      var keyEl = document.getElementById('fk-stored-key');
+      if (key) {
+        el.style.display = '';
+        keyEl.textContent = key;
+      } else {
+        el.style.display = 'none';
+      }
+    },
+
+    show: function () {
+      this._showView('main');
+      this._updateStoredDisplay();
+      document.getElementById('forge-key-modal').classList.add('visible');
+    },
+
+    hide: function () {
+      document.getElementById('forge-key-modal').classList.remove('visible');
+    },
+  };
+
   window.PenumbraLabs = {
     Engine: LabEngine,
     Progress: ProgressStore,
@@ -506,5 +734,7 @@
     Toast: ToastSystem,
     ServerLogs: ServerLogs,
     ForgeKey: ForgeKey,
+    Sync: SyncSystem,
+    ForgeKeyUI: ForgeKeyUI,
   };
 })();

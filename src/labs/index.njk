@@ -37,6 +37,24 @@ permalink: /labs/
     <div style="display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;color:var(--sage);background:rgba(107,207,143,0.05);border:1px solid rgba(107,207,143,0.1);padding:6px 16px;border-radius:20px;">&#x1f512; Real vulnerabilities on isolated origins — your browser and this site are never at risk</div>
   </div>
 
+  <!-- Profile Bar -->
+  <div class="labs-profile" id="labs-profile">
+    <div class="labs-profile-avatar">&#x1f9d1;&#x200d;&#x1f4bb;</div>
+    <div class="labs-profile-info">
+      <div class="labs-profile-name" id="profile-name">Anonymous Operator</div>
+      <div class="labs-profile-level" id="profile-level">Level 1 — Script Kiddie</div>
+    </div>
+    <div class="labs-xp-bar">
+      <div class="labs-xp-label"><span>XP</span><span id="profile-xp-text">0 / 100</span></div>
+      <div class="labs-xp-track"><div class="labs-xp-fill" id="profile-xp-fill" style="width:0%;"></div></div>
+    </div>
+    <div class="labs-profile-stats">
+      <div class="labs-profile-stat"><div class="labs-profile-stat-num" id="profile-completed">0</div><div class="labs-profile-stat-label">Completed</div></div>
+      <div class="labs-profile-stat"><div class="labs-profile-stat-num" id="profile-inprogress">0</div><div class="labs-profile-stat-label">In Progress</div></div>
+    </div>
+    <button class="labs-sync-btn" id="btn-forge-key">&#x1f512; Forge Key</button>
+  </div>
+
   <!-- Red Team Labs -->
   <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:16px;">&#x1f534; Red Team — Offensive Labs</div>
 
@@ -110,3 +128,28 @@ permalink: /labs/
 </div>
 
 <script src="/js/lab-engine.js"></script>
+<script>
+(function() {
+  var Labs = PenumbraLabs;
+  var profile = Labs.Progress.getProfile();
+  var counts = Labs.Progress.getLabCount();
+  var level = Labs.Xp.levelForXp(profile.xp);
+  var title = Labs.Xp.titleForLevel(level);
+  var progress = Labs.Xp.progressToNextLevel(profile.xp);
+  var nextXp = Labs.Xp.xpForNextLevel(level);
+  var currentXp = Labs.Xp.xpForLevel(level);
+
+  document.getElementById('profile-name').textContent = profile.alias || 'Anonymous Operator';
+  document.getElementById('profile-level').textContent = 'Level ' + level + ' — ' + title;
+  document.getElementById('profile-xp-text').textContent = profile.xp + ' / ' + nextXp;
+  document.getElementById('profile-xp-fill').style.width = Math.round(progress * 100) + '%';
+  document.getElementById('profile-completed').textContent = counts.completed;
+  document.getElementById('profile-inprogress').textContent = counts.inProgress;
+
+  // Forge Key modal
+  Labs.ForgeKeyUI.init();
+  document.getElementById('btn-forge-key').addEventListener('click', function() {
+    Labs.ForgeKeyUI.show();
+  });
+})();
+</script>

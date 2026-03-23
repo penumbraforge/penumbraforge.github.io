@@ -1,0 +1,11 @@
+name = "lab-sync"
+main = "worker.js"
+compatibility_date = "2026-03-22"
+account_id = "e32f51ad99dc43fb5249086282786c6f"
+
+[vars]
+ALLOWED_ORIGIN = "https://penumbraforge.com"
+
+[[kv_namespaces]]
+binding = "FORGE_KEYS"
+id = "79ec1462de3147baac63cb80cd05f745"

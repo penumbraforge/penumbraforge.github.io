@@ -666,6 +666,281 @@
 .diff-intermediate { color: #e8b84d; background: rgba(232, 184, 77, 0.1); }
 .diff-advanced { color: #eb5757; background: rgba(235, 87, 87, 0.1); }
 
+/* ── Forge Key Modal ── */
+.fk-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 9, 0.88);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+
+.fk-modal.visible { display: flex; }
+
+.fk-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 460px;
+  width: 100%;
+  position: relative;
+}
+
+.fk-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  font-size: 20px;
+  color: var(--text-3);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.fk-close:hover { color: var(--text-1); }
+
+.fk-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--text-1);
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+.fk-desc {
+  font-size: 13px;
+  color: var(--text-3);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.fk-encrypt-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(107, 207, 143, 0.04);
+  border: 1px solid rgba(107, 207, 143, 0.08);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--sage);
+  margin-bottom: 20px;
+}
+
+.fk-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fk-btn {
+  padding: 11px 20px;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  transition: all 200ms;
+  text-align: center;
+  width: 100%;
+}
+
+.fk-btn-primary {
+  background: rgba(184, 165, 214, 0.12);
+  color: var(--accent-strong);
+  border: 1px solid rgba(184, 165, 214, 0.15);
+}
+
+.fk-btn-primary:hover { background: rgba(184, 165, 214, 0.2); }
+
+.fk-btn-secondary {
+  background: var(--surface-2);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+
+.fk-btn-secondary:hover { border-color: var(--border-active); }
+
+.fk-btn-copy {
+  background: rgba(107, 207, 143, 0.08);
+  color: var(--sage);
+  border: 1px solid rgba(107, 207, 143, 0.12);
+}
+
+.fk-btn-copy:hover { background: rgba(107, 207, 143, 0.15); }
+
+.fk-key-display {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  color: var(--accent-strong);
+  text-align: center;
+  padding: 20px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+  user-select: all;
+}
+
+.fk-key-warning {
+  font-size: 12px;
+  color: var(--text-3);
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.fk-key-warning strong { color: var(--text-1); font-weight: 500; }
+
+.fk-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  outline: none;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.fk-input:focus { border-color: var(--accent); }
+
+.fk-status {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.fk-status-info { color: var(--accent); }
+.fk-status-ok { color: var(--sage); background: rgba(107, 207, 143, 0.06); }
+.fk-status-err { color: #eb5757; background: rgba(235, 87, 87, 0.06); }
+
+.fk-stored {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.fk-stored-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+
+.fk-stored-key {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--accent);
+  padding: 10px 14px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+/* ── Profile Bar (Labs Hub) ── */
+.labs-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  border-radius: 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  margin-bottom: 36px;
+}
+
+.labs-profile-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(184, 165, 214, 0.15), rgba(107, 207, 143, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.labs-profile-info { flex: 1; }
+
+.labs-profile-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--text-1);
+  font-weight: 400;
+}
+
+.labs-profile-level {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.labs-xp-bar { flex: 1; max-width: 260px; }
+
+.labs-xp-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+
+.labs-xp-track {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.labs-xp-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--sage));
+}
+
+.labs-profile-stats { display: flex; gap: 20px; }
+.labs-profile-stat { text-align: center; }
+.labs-profile-stat-num { font-family: var(--font-display); font-size: 18px; color: var(--text-1); }
+.labs-profile-stat-label { font-family: var(--font-mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.labs-sync-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 150ms;
+}
+
+.labs-sync-btn:hover { color: var(--accent); border-color: var(--border-active); }
+
+@media (max-width: 768px) {
+  .labs-profile { flex-wrap: wrap; gap: 12px; }
+  .labs-xp-bar { max-width: 100%; min-width: 100%; }
+}
+
 /* ── Mobile ── */
 @media (max-width: 1024px) {
   .lab-mission-panel { width: 280px; min-width: 240px; }
