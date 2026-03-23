@@ -60,20 +60,119 @@ const STYLES = `
   .promo-banner { background: linear-gradient(135deg, #ff6b6b, #ee5a5a); color: #fff; padding: 12px 24px; text-align: center; font-size: 13px; font-weight: 500; }
 `;
 
+function shell(title, activePage, content) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} — ShopStack</title><style>${STYLES}</style></head>
+<body>
+  <div class="promo-banner">🔥 Spring Sale — 20% off all electronics with code SPRING26</div>
+  <div class="header">
+    <a href="/" class="logo">Shop<span>Stack</span></a>
+    <div class="nav">
+      <a href="/"${activePage==='home'?' class="active"':''}>Products</a>
+      <a href="/search"${activePage==='search'?' class="active"':''}>Search</a>
+      <a href="/categories"${activePage==='categories'?' class="active"':''}>Categories</a>
+      <a href="/cart"${activePage==='cart'?' class="active"':''}>Cart <span class="cart-badge">2</span></a>
+      <a href="/account"${activePage==='account'?' class="active"':''}>Account</a>
+    </div>
+  </div>
+  <div class="container">${content}</div>
+  <div class="footer">© 2026 ShopStack Inc. — All rights reserved. | <a href="#" style="color:#999;">Privacy</a> | <a href="#" style="color:#999;">Terms</a></div>
+  <script>document.cookie="session=eyJhZG1pbiI6ZmFsc2UsInVzZXIiOiJndWVzdCJ9;path=/";</script>
+</body></html>`;
+}
+
+function renderCategories() {
+  const cats = [
+    { name:'Electronics', count:5, emoji:'💻' },
+    { name:'Audio', count:1, emoji:'🎵' },
+    { name:'Furniture', count:2, emoji:'🪑' },
+    { name:'Accessories', count:3, emoji:'⌚' },
+    { name:'Monitors', count:2, emoji:'🖥️' },
+    { name:'Peripherals', count:4, emoji:'⌨️' },
+  ];
+  const cards = cats.map(c => `<div class="product" onclick="window.location='/search?q=${encodeURIComponent(c.name)}'"><div class="product-img">${c.emoji}</div><div class="product-name">${c.name}</div><div class="product-price">${c.count} products</div></div>`).join('');
+  return shell('Categories', 'categories', `<div class="breadcrumb"><a href="/">Home</a> › Categories</div><h2 style="font-size:18px;margin-bottom:16px;">Browse Categories</h2><div class="products">${cards}</div>`);
+}
+
+function renderCart() {
+  return shell('Cart', 'cart', `
+    <div class="breadcrumb"><a href="/">Home</a> › Cart</div>
+    <h2 style="font-size:18px;margin-bottom:16px;">Your Cart (2 items)</h2>
+    <div style="background:#fff;border-radius:10px;border:1px solid #e9ecef;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:16px;padding:16px;border-bottom:1px solid #e9ecef;">
+        <div style="font-size:28px;">⌨️</div>
+        <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Mechanical Keyboard Pro</div><div style="color:#999;font-size:12px;">Qty: 1</div></div>
+        <div style="font-size:16px;color:#ff6b6b;font-weight:700;">$149.99</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;padding:16px;">
+        <div style="font-size:28px;">🎧</div>
+        <div style="flex:1;"><div style="font-weight:600;font-size:14px;">Noise-Cancelling Headphones</div><div style="color:#999;font-size:12px;">Qty: 1</div></div>
+        <div style="font-size:16px;color:#ff6b6b;font-weight:700;">$279.99</div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:10px;border:1px solid #e9ecef;padding:16px;display:flex;justify-content:space-between;align-items:center;">
+      <div><div style="font-size:12px;color:#999;">Subtotal</div><div style="font-size:24px;font-weight:700;color:#222;">$429.98</div></div>
+      <button style="padding:12px 32px;background:#ff6b6b;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Checkout</button>
+    </div>`);
+}
+
+function renderAccount() {
+  return shell('Account', 'account', `
+    <div class="breadcrumb"><a href="/">Home</a> › Account</div>
+    <h2 style="font-size:18px;margin-bottom:16px;">My Account</h2>
+    <div style="background:#fff;border-radius:10px;border:1px solid #e9ecef;padding:24px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>
+        <div><div style="font-weight:600;">Guest User</div><div style="font-size:12px;color:#999;">guest@shopstack.com</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="padding:12px;background:#f8f9fa;border-radius:8px;"><div style="font-size:11px;color:#999;text-transform:uppercase;">Orders</div><div style="font-size:18px;font-weight:600;">7</div></div>
+        <div style="padding:12px;background:#f8f9fa;border-radius:8px;"><div style="font-size:11px;color:#999;text-transform:uppercase;">Wishlist</div><div style="font-size:18px;font-weight:600;">3</div></div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:10px;border:1px solid #e9ecef;padding:24px;">
+      <h3 style="font-size:14px;margin-bottom:12px;">Recent Orders</h3>
+      <div style="border-bottom:1px solid #e9ecef;padding:10px 0;display:flex;justify-content:space-between;font-size:13px;"><span>Order #4821 — USB-C Dock</span><span style="color:#22c55e;">Delivered</span></div>
+      <div style="border-bottom:1px solid #e9ecef;padding:10px 0;display:flex;justify-content:space-between;font-size:13px;"><span>Order #4790 — LED Desk Lamp</span><span style="color:#22c55e;">Delivered</span></div>
+      <div style="padding:10px 0;display:flex;justify-content:space-between;font-size:13px;"><span>Order #4755 — Webcam 4K HDR</span><span style="color:#3b82f6;">Shipped</span></div>
+    </div>`);
+}
+
+function renderProduct(id) {
+  const p = PRODUCTS.find(pr => pr.id === parseInt(id)) || PRODUCTS[0];
+  return shell(p.name, '', `
+    <div class="breadcrumb"><a href="/">Home</a> › <a href="/categories">Electronics</a> › ${p.name}</div>
+    <div style="display:flex;gap:32px;margin-top:16px;">
+      <div style="width:300px;height:300px;background:#f0f0f0;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:80px;flex-shrink:0;">${p.img}</div>
+      <div>
+        <h1 style="font-size:24px;color:#222;margin-bottom:8px;">${p.name}</h1>
+        <div style="font-size:28px;color:#ff6b6b;font-weight:700;margin-bottom:8px;">${p.price}</div>
+        <div style="font-size:14px;color:#999;margin-bottom:16px;">★ ${p.rating} / 5.0 · ${Math.floor(Math.random()*200+50)} reviews</div>
+        <p style="font-size:14px;color:#666;line-height:1.7;margin-bottom:16px;">Premium quality ${p.name.toLowerCase()} designed for professionals and enthusiasts. Ships free within 2 business days. 30-day return policy.</p>
+        <div style="display:flex;gap:8px;">
+          <button style="padding:12px 32px;background:#ff6b6b;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Add to Cart</button>
+          <button style="padding:12px 20px;background:#f0f0f0;color:#333;border:none;border-radius:8px;font-size:14px;cursor:pointer;">♡ Wishlist</button>
+        </div>
+      </div>
+    </div>`);
+}
+
 function renderPage(url) {
   const path = new URL(url).pathname;
   const params = new URL(url).searchParams;
 
-  if (path === '/search' || path === '/search/') {
-    return renderSearch(params.get('q') || '');
-  }
+  if (path === '/search' || path === '/search/') return renderSearch(params.get('q') || '');
+  if (path === '/categories' || path === '/categories/') return renderCategories();
+  if (path === '/cart' || path === '/cart/') return renderCart();
+  if (path === '/account' || path === '/account/') return renderAccount();
+  if (path.startsWith('/product/')) return renderProduct(path.split('/')[2]);
 
   return renderHome();
 }
 
 function renderHome() {
   let productCards = PRODUCTS.map(p => `
-    <div class="product" onclick="window.location='/search?q=${encodeURIComponent(p.name)}'">
+    <div class="product" onclick="window.location='/product/${p.id}'">
       <div class="product-img">${p.img}</div>
       <div class="product-name">${p.name}</div>
       <div class="product-price">${p.price}</div>
@@ -82,21 +181,7 @@ function renderHome() {
     </div>
   `).join('');
 
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ShopStack</title><style>${STYLES}</style></head>
-<body>
-  <div class="promo-banner">🔥 Spring Sale — 20% off all electronics with code SPRING26</div>
-  <div class="header">
-    <a href="/" class="logo">Shop<span>Stack</span></a>
-    <div class="nav">
-      <a href="/" class="active">Products</a>
-      <a href="/search">Search</a>
-      <a href="#">Categories</a>
-      <a href="#">Cart <span class="cart-badge">2</span></a>
-      <a href="#">Account</a>
-    </div>
-  </div>
-  <div class="container">
+  return shell('Home', 'home', `
     <div class="search-section">
       <h2>Find what you need</h2>
       <form class="search-box" action="/search" method="GET">
@@ -105,20 +190,16 @@ function renderHome() {
       </form>
     </div>
     <h2 style="font-size:16px;margin-bottom:16px;color:#222;">Featured Products</h2>
-    <div class="products">${productCards}</div>
-  </div>
-  <div class="footer">© 2026 ShopStack Inc. — All rights reserved. | <a href="#" style="color:#999;">Privacy</a> | <a href="#" style="color:#999;">Terms</a></div>
-</body></html>`;
+    <div class="products">${productCards}</div>`);
 }
 
 function renderSearch(query) {
-  // Filter matching products
   let matchingProducts = query
     ? PRODUCTS.filter(p => p.name.toLowerCase().includes(query.toLowerCase()))
     : [];
 
   let productCards = matchingProducts.map(p => `
-    <div class="product">
+    <div class="product" onclick="window.location='/product/${p.id}'">
       <div class="product-img">${p.img}</div>
       <div class="product-name">${p.name}</div>
       <div class="product-price">${p.price}</div>
@@ -141,21 +222,7 @@ function renderSearch(query) {
     ? `<div class="results-header">Showing results for: <strong>${query}</strong></div>`
     : '<div class="results-header">Enter a search term above</div>';
 
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Search — ShopStack</title><style>${STYLES}</style></head>
-<body>
-  <div class="promo-banner">🔥 Spring Sale — 20% off all electronics with code SPRING26</div>
-  <div class="header">
-    <a href="/" class="logo">Shop<span>Stack</span></a>
-    <div class="nav">
-      <a href="/">Products</a>
-      <a href="/search" class="active">Search</a>
-      <a href="#">Categories</a>
-      <a href="#">Cart <span class="cart-badge">2</span></a>
-      <a href="#">Account</a>
-    </div>
-  </div>
-  <div class="container">
+  return shell('Search', 'search', `
     <div class="breadcrumb"><a href="/">Home</a> › <a href="/search">Search</a>${query ? ' › Results' : ''}</div>
     <div class="search-section">
       <h2>Search Products</h2>
@@ -167,23 +234,7 @@ function renderSearch(query) {
         ${resultsHeader}
         <div class="products">${productCards}</div>
       </div>
-    </div>
-  </div>
-  <div class="footer">© 2026 ShopStack Inc. — All rights reserved. | <a href="#" style="color:#999;">Privacy</a> | <a href="#" style="color:#999;">Terms</a></div>
-  <script>
-    // Simulated session cookie for the lab
-    document.cookie = "session=eyJhZG1pbiI6ZmFsc2UsInVzZXIiOiJndWVzdCJ9; path=/";
-
-    // Notify parent frame of events for the lab inspector
-    document.querySelectorAll('form').forEach(function(f) {
-      f.addEventListener('submit', function(e) {
-        e.preventDefault();
-        var q = f.querySelector('input[name=q]').value;
-        window.location = '/search?q=' + encodeURIComponent(q);
-      });
-    });
-  </script>
-</body></html>`;
+    </div>`);
 }
 
 export default {
