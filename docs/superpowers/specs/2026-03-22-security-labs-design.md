@@ -408,30 +408,39 @@ All progress is stored in `localStorage` under the key `pf-labs`:
 }
 ```
 
-### 5.2 Encrypted Cloud Sync
+### 5.2 Forge Key — Encrypted Cloud Sync
 
-When the user chooses to sync:
+Instead of user-chosen passphrases (which collide), the system generates a **Forge Key** — a unique, memorable identifier that serves as both storage address and encryption seed.
 
-1. User enters a passphrase
-2. Client derives an encryption key via PBKDF2 (100,000 iterations, SHA-256)
-3. Client also derives a storage key (separate PBKDF2 derivation with different salt) — this is a hash of the passphrase used as the KV key, so we never store the passphrase
-4. Client encrypts the progress JSON with AES-256-GCM using the encryption key
-5. Client sends `{ storageKey, ciphertext, iv, salt }` to the sync Worker
-6. Worker stores in KV under the storage key
+**Forge Key format:** `{word}-{word}-{4-char hex}` (e.g., `ember-cascade-7x9k`)
+- 2048-word curated list × 2048 × 65,536 hex suffix = **274 billion combinations**
+- Birthday paradox collision at 1 million users: **0.0000018%** — effectively zero
 
-To restore:
-1. User enters passphrase
-2. Client derives the storage key
+**First-time sync flow:**
+1. User clicks "Sync Progress"
+2. Client generates a Forge Key using `crypto.getRandomValues()`
+3. User is shown the key with instructions to write it down
+4. Client derives a **storage key** from the first two words via SHA-256 hash (KV lookup key)
+5. Client derives an **encryption key** from the full Forge Key via PBKDF2 (100,000 iterations, SHA-256)
+6. Client encrypts progress JSON with AES-256-GCM using the encryption key
+7. Client sends `{ storageKey, ciphertext, iv }` to the sync Worker
+8. Worker stores in KV under the storage key
+
+**Restore flow:**
+1. User enters their Forge Key on any device
+2. Client derives the storage key from first two words
 3. Worker returns the ciphertext
-4. Client derives the encryption key and decrypts locally
+4. Client derives the encryption key from the full Forge Key and decrypts locally
 
-**The Worker never sees the passphrase, the encryption key, or the plaintext progress.**
+**The Worker never sees the Forge Key, the encryption key, or the plaintext progress.** It only stores and retrieves opaque ciphertext addressed by a hash.
 
-Sync Worker endpoint:
+**Sync Worker endpoints:**
 ```
-POST /save   { storageKey, ciphertext, iv, salt }
-POST /load   { storageKey }  →  { ciphertext, iv, salt }
+POST /save   { storageKey, ciphertext, iv }
+POST /load   { storageKey }  →  { ciphertext, iv }
 ```
+
+**Brand messaging:** "Your Forge Key is your identity. No email. No password. No account. Write it down — it's the only way back. We can't see your progress. We can't recover your key. That's not a limitation. That's the design."
 
 ### 5.3 Gamification
 
