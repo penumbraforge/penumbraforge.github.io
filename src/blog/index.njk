@@ -1,0 +1,42 @@
+---
+layout: base.njk
+title: "Blog — Penumbra Forge"
+description: "Technical write-ups on security engineering, tool architecture, and lessons from incident response."
+permalink: /blog/
+---
+
+<link rel="stylesheet" href="/css/blog.css">
+
+<header class="site-header">
+  <a href="/" class="site-header-brand" title="Penumbra Forge">
+    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+  </a>
+  <nav class="site-header-nav">
+    <a href="/">Home</a>
+    <a href="/tools/">Tools</a>
+    <a href="/labs/">Labs</a>
+    <a href="/blog/" class="active">Blog</a>
+    <a href="/gate/">Gate</a>
+    <a href="/librarian/">Librarian</a>
+    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div class="blog-page">
+  <div class="blog-hero">
+    <div class="blog-hero-label">Blog</div>
+    <h1>Building in the open</h1>
+    <p class="blog-hero-sub">Technical write-ups on security engineering, tool architecture, and lessons from a decade in the trenches.</p>
+  </div>
+
+  <a href="/blog/building-security-labs-with-cloudflare-workers/" class="blog-post-card">
+    <div class="blog-post-meta">
+      <span class="blog-post-date">March 23, 2026</span>
+      <span class="blog-post-tag">architecture</span>
+      <span class="blog-post-tag">cloudflare workers</span>
+      <span class="blog-post-read">8 min read</span>
+    </div>
+    <div class="blog-post-title">Building browser-based security labs with Cloudflare Workers</div>
+    <p class="blog-post-excerpt">How I built a 12-lab security training platform where real XSS executes, real SQL queries run, and real race conditions trigger — all isolated on Cloudflare Workers with zero risk to users.</p>
+  </a>
+</div>

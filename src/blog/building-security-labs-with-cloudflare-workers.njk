@@ -1,0 +1,129 @@
+---
+layout: base.njk
+title: "Building browser-based security labs with Cloudflare Workers — Penumbra Forge"
+description: "How I built a 12-lab security training platform where real XSS executes, real SQL queries run, and real race conditions trigger — all isolated on Cloudflare Workers with zero risk."
+permalink: /blog/building-security-labs-with-cloudflare-workers/
+---
+
+<link rel="stylesheet" href="/css/blog.css">
+
+<header class="site-header">
+  <a href="/" class="site-header-brand" title="Penumbra Forge">
+    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+  </a>
+  <nav class="site-header-nav">
+    <a href="/">Home</a>
+    <a href="/tools/">Tools</a>
+    <a href="/labs/">Labs</a>
+    <a href="/blog/" class="active">Blog</a>
+    <a href="/gate/">Gate</a>
+    <a href="/librarian/">Librarian</a>
+    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div class="blog-page">
+  <article class="blog-article">
+    <div class="blog-article-header">
+      <h1>Building browser-based security labs with Cloudflare Workers</h1>
+      <div class="blog-post-meta">
+        <span class="blog-post-date">March 23, 2026</span>
+        <span class="blog-post-tag">architecture</span>
+        <span class="blog-post-tag">cloudflare workers</span>
+        <span class="blog-post-tag">security</span>
+        <span class="blog-post-read">8 min read</span>
+      </div>
+    </div>
+
+    <p class="blog-article-lede">I wanted to build security labs where the vulnerabilities are real. Not simulated, not pattern-matched — actually exploitable. XSS that fires JavaScript. SQL injection against a real database. SSRF that reads internal endpoints. The problem: how do you run intentionally vulnerable applications on the internet without creating actual risk?</p>
+
+    <div class="blog-body">
+      <h2>The problem with simulated vulnerabilities</h2>
+      <p>Most security training platforms fall into one of two camps. Either they simulate the vulnerability — you type a payload, a regex checks if it looks right, and you get a green checkmark — or they require a full VM environment that takes 20 minutes to set up and costs the platform real infrastructure.</p>
+      <p>Simulation teaches you to pass the test, not to find the vulnerability. If you've only ever exploited a simulated XSS where <code>&lt;script&gt;alert(1)&lt;/script&gt;</code> is the only accepted answer, you won't recognize it in the wild where the injection point is inside an HTML attribute and you need <code>" onmouseover="alert(1)</code> instead.</p>
+      <p>I wanted real execution. But I also didn't want to stand up servers, manage VMs, or create infrastructure that could be abused.</p>
+
+      <h2>The architecture: Workers as disposable targets</h2>
+      <p>Cloudflare Workers run in V8 isolates — the same sandboxing technology Chrome uses for browser tabs. Each Worker is an independent execution context with no filesystem, no persistent state, and no access to other Workers. They're essentially disposable: every request gets a fresh context.</p>
+      <p>This makes them perfect for security labs. I can write intentionally vulnerable code inside a Worker, and even if someone finds a way to "break" the vulnerability beyond what I intended, they're still trapped in a V8 sandbox with nowhere to go.</p>
+
+      <div class="blog-diagram">penumbraforge.com (static — GitHub Pages)
+          │
+          │  &lt;iframe sandbox="allow-scripts"&gt;
+          │
+          ▼
+lab-xss.penumbraforge.workers.dev    ← real vulnerable app
+lab-sqli.penumbraforge.workers.dev   ← real vulnerable app
+lab-ssrf.penumbraforge.workers.dev   ← real vulnerable app
+lab-jwt.penumbraforge.workers.dev    ← real vulnerable app
+lab-race.penumbraforge.workers.dev   ← real vulnerable app</div>
+
+      <p>Each lab is a separate Worker serving a full web application — complete with navigation, realistic data, branding, and the intentional vulnerability. The lab page on <code>penumbraforge.com</code> embeds the Worker in a sandboxed iframe.</p>
+
+      <h2>Three layers of isolation</h2>
+      <p>The security model has three independent layers. Any one of them alone would be sufficient. Together, they make it mathematically impossible for a lab exploit to affect the main site.</p>
+
+      <h3>Layer 1: Origin isolation</h3>
+      <p>The Workers run on <code>*.penumbraforge.workers.dev</code>. The main site is <code>penumbraforge.com</code>. These are different origins. The browser's Same-Origin Policy — the most battle-tested security boundary on the internet — prevents any cross-origin access to cookies, localStorage, DOM, or authenticated requests.</p>
+
+      <h3>Layer 2: Iframe sandbox</h3>
+      <p>The iframe uses <code>sandbox="allow-scripts allow-forms allow-popups"</code>. Notice what's missing: <code>allow-same-origin</code>. Without it, the iframe gets a null origin — it can't even access its own Worker's cookies from the parent context.</p>
+
+      <h3>Layer 3: V8 isolate</h3>
+      <p>Even if someone found a browser zero-day to escape the iframe (worth millions on the exploit market), they'd land in a Cloudflare V8 isolate with no filesystem, no network access beyond <code>fetch()</code>, and no access to my Cloudflare account.</p>
+
+      <h2>Making the vulnerabilities real</h2>
+      <p>Each lab has a different approach to making the vulnerability genuine:</p>
+
+      <h3>XSS (ShopStack)</h3>
+      <p>The Worker serves an HTML page where the search query is interpolated directly into the response via template literals. No encoding, no sanitization. When you search for <code>&lt;img src=x onerror=alert(document.cookie)&gt;</code>, that literal string becomes part of the HTML, the browser creates an img element, the src fails, the onerror handler fires, and JavaScript executes. Real XSS.</p>
+
+      <pre><code>// The vulnerable code in the Worker
+const resultsHeader = `&lt;div&gt;Results for: &lt;strong&gt;${query}&lt;/strong&gt;&lt;/div&gt;`;
+// query comes directly from the URL parameter — no encoding</code></pre>
+
+      <h3>SQL Injection (VaultBank)</h3>
+      <p>This one was interesting. I didn't want to run a database on the Worker — that would create shared state between users. Instead, the Worker serves the UI and the SQL query string, but the actual database runs client-side via <a href="https://sql.js.org/">sql.js</a> — SQLite compiled to WebAssembly. Each user gets their own isolated database instance with pre-populated tables.</p>
+      <p>The Worker concatenates user input into the SQL query string, and the browser executes it against the local SQLite instance. When you inject <code>' UNION SELECT username, password_hash FROM users--</code>, it hits a real database and returns real results.</p>
+
+      <h3>Race Condition (GiftRush)</h3>
+      <p>The Worker maintains an in-memory balance per session. The redemption endpoint checks the balance and deducts it in separate operations with a deliberate 50ms delay between them. When you send 5 concurrent requests, multiple requests pass the balance check before any of them deduct — creating a real TOCTOU (time-of-check-time-of-use) vulnerability.</p>
+
+      <div class="blog-callout blog-callout-insight">
+        <strong>Why in-memory state works here:</strong> Workers are stateless by default, but in-memory Maps persist across requests within the same isolate instance. The balance lives in a Map keyed by session ID. When the Worker cold-starts, everyone gets a fresh balance — which is actually the desired behavior for a lab.
+      </div>
+
+      <h2>The red-to-blue connection</h2>
+      <p>The feature I'm most proud of: completing a red team lab unlocks the blue team investigation of the same incident.</p>
+      <p>You exploit XSS on ShopStack (RED-01). Then you switch to BLUE-02 and investigate the ShopStack breach from the SOC analyst's perspective. The logs you're analyzing contain the same attack you just performed — the reconnaissance, the HTML injection test, the XSS payload, the session exfiltration, the unauthorized access from a foreign IP.</p>
+      <p>No other security training platform connects offense to defense this way. You can't be a good defender if you don't understand how attackers think, and you can't be a good attacker if you don't understand what defenders see.</p>
+
+      <h2>Progress without accounts</h2>
+      <p>I didn't want to require signup. No email, no password, no OAuth. The site is privacy-first — I shouldn't need to know who you are to let you learn.</p>
+      <p>Progress saves to <code>localStorage</code> by default. If you want to sync across devices, the system generates a <strong>Forge Key</strong> — a random memorable phrase like <code>ember-cascade-7x9k</code>. Your progress is encrypted client-side with AES-256-GCM using a key derived from your Forge Key via PBKDF2, then stored as opaque ciphertext in Cloudflare KV.</p>
+      <p>I literally cannot see your progress. I don't know who you are, what labs you've completed, or what your score is. The encryption happens in your browser before the data ever reaches my Worker.</p>
+
+      <h2>What I'd do differently</h2>
+      <p>The communication between the lab page and the Worker iframe was the hardest part to get right. Cross-origin iframes can't share state, and <code>iframe.src</code> doesn't update when the user navigates within the iframe. I ended up using <code>postMessage</code> — the Worker's pages send messages to the parent frame when significant events happen (searches, form submissions, errors). The lab page listens for these messages to track objectives.</p>
+      <p>If I started over, I'd design the <code>postMessage</code> protocol first and build everything around it, rather than retrofitting it after discovering that <code>iframe.src</code> polling doesn't work cross-origin.</p>
+
+      <h2>Try it</h2>
+      <p>The labs are live at <a href="/labs/">penumbraforge.com/labs</a>. 6 red team labs (XSS, SQLi, SSRF, JWT, race condition, IDOR) and 6 blue team labs (alert triage, breach investigation, phishing analysis, log analysis, threat containment, SOAR playbook design). No signup. No setup. Just open and start hacking.</p>
+      <p>The source is <a href="https://github.com/penumbraforge">on GitHub</a>. If you find a bug or have ideas for new labs, I'd love to hear about it.</p>
+    </div>
+
+    <div class="blog-post-footer">
+      <div class="blog-author">
+        <div class="blog-author-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div>
+          <div class="blog-author-name">Shadoe Myers</div>
+          <div class="blog-author-role">Senior InfoSec Engineer — Penumbra Forge</div>
+        </div>
+      </div>
+      <div class="blog-nav-links">
+        <a href="/blog/" class="blog-nav-link">&larr; All posts</a>
+        <a href="/labs/" class="blog-nav-link">Try the labs &rarr;</a>
+      </div>
+    </div>
+  </article>
+</div>
