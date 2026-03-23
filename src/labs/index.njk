@@ -7,7 +7,7 @@ permalink: /labs/
 
 <link rel="stylesheet" href="/css/labs.css">
 
-<header class="site-header" style="padding: 16px 40px;">
+<header class="site-header" style="padding:16px 40px;position:sticky;top:0;z-index:50;background:var(--surface-0);border-bottom:1px solid var(--border);">
   <a href="/" class="site-header-brand">
     <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
     <span class="site-header-name">Penumbra Forge</span>
@@ -22,19 +22,19 @@ permalink: /labs/
   </nav>
 </header>
 
-<div style="max-width:1100px;margin:0 auto;padding:48px 40px;">
+<div class="labs-hub">
 
   <!-- Hero -->
-  <div style="text-align:center;margin-bottom:48px;">
-    <div style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--accent);margin-bottom:16px;">Security Labs</div>
-    <h1 style="font-family:var(--font-display);font-size:42px;font-weight:400;color:var(--text-1);margin-bottom:14px;letter-spacing:-0.5px;">Attack it. <strong style="font-weight:500;">Investigate it.</strong> Fix it.</h1>
-    <p style="font-size:16px;color:var(--text-3);max-width:600px;margin:0 auto 24px;line-height:1.7;">Real vulnerabilities. Real investigations. Browser-based labs with no setup, no accounts, and no risk. Learn offense and defense on the same incident.</p>
-    <div style="display:flex;justify-content:center;gap:40px;margin-bottom:20px;">
-      <div style="text-align:center;"><div style="font-family:var(--font-display);font-size:28px;color:var(--text-1);line-height:1;">5</div><div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);">Labs Live</div></div>
-      <div style="text-align:center;"><div style="font-family:var(--font-display);font-size:28px;color:var(--text-1);line-height:1;">2</div><div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);">Tracks</div></div>
-      <div style="text-align:center;"><div style="font-family:var(--font-display);font-size:28px;color:var(--text-1);line-height:1;">0</div><div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);">Setup Required</div></div>
+  <div class="labs-hero">
+    <div class="labs-hero-label">Security Labs</div>
+    <h1>Attack it. <strong>Investigate it.</strong> Fix it.</h1>
+    <p class="labs-hero-sub">Real vulnerabilities. Real investigations. Browser-based labs with no setup, no accounts, and no risk. Learn offense and defense on the same incident.</p>
+    <div class="labs-hero-stats">
+      <div class="labs-hero-stat"><div class="labs-hero-stat-num">5</div><div class="labs-hero-stat-label">Labs Live</div></div>
+      <div class="labs-hero-stat"><div class="labs-hero-stat-num">2</div><div class="labs-hero-stat-label">Tracks</div></div>
+      <div class="labs-hero-stat"><div class="labs-hero-stat-num">0</div><div class="labs-hero-stat-label">Setup Required</div></div>
     </div>
-    <div style="display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;color:var(--sage);background:rgba(107,207,143,0.05);border:1px solid rgba(107,207,143,0.1);padding:6px 16px;border-radius:20px;">&#x1f512; Real vulnerabilities on isolated origins — your browser and this site are never at risk</div>
+    <div class="labs-secure-badge">&#x1f512; Real vulnerabilities on isolated origins — your browser and this site are never at risk</div>
   </div>
 
   <!-- Profile Bar -->
@@ -56,168 +56,200 @@ permalink: /labs/
   </div>
 
   <!-- Red Team Labs -->
-  <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:16px;">&#x1f534; Red Team — Offensive Labs</div>
+  <div class="labs-section-title">&#x1f534; Red Team — Offensive Labs</div>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:48px;">
-
-    <!-- RED-01: ShopStack XSS -->
-    <a href="/labs/red/xss-shopstack/" style="text-decoration:none;color:inherit;">
-      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface-1);overflow:hidden;transition:all 400ms cubic-bezier(0.2,0,0,1);cursor:pointer;">
-        <div style="height:120px;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;position:relative;">
-          <span style="font-size:48px;opacity:0.12;position:absolute;">&#x1f6d2;</span>
-          <span style="font-family:var(--font-display);font-size:22px;color:#ff6b6b;font-weight:500;position:relative;">ShopStack</span>
+  <div class="labs-grid">
+    <a href="/labs/red/xss-shopstack/" class="lab-card">
+      <div class="lab-card-cover cover-shopstack">
+        <span class="lab-card-cover-icon">&#x1f6d2;</span>
+        <span class="lab-card-cover-brand">ShopStack</span>
+      </div>
+      <div class="lab-card-body">
+        <div class="lab-card-meta">
+          <span class="lab-card-code">RED-01</span>
+          <span class="lab-topbar-diff diff-beginner">beginner</span>
+          <span class="lab-card-time">~10 min</span>
         </div>
-        <div style="padding:16px 20px 12px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">RED-01</span>
-            <span class="lab-topbar-diff diff-beginner" style="font-size:9px;">beginner</span>
-            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-left:auto;">~10 min</span>
-          </div>
-          <div style="font-family:var(--font-display);font-size:16px;color:var(--text-1);font-weight:500;margin-bottom:6px;">Reflected XSS — Product Search</div>
-          <div style="font-size:12px;color:var(--text-3);line-height:1.5;margin-bottom:12px;">ShopStack's search page reflects user input without sanitization. Find the injection point, achieve JavaScript execution, and steal the admin session cookie.</div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;">
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">XSS</span>
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">CWE-79</span>
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">OWASP A03</span>
-          </div>
+        <div class="lab-card-title">Reflected XSS — Product Search</div>
+        <div class="lab-card-desc">ShopStack's search page reflects user input without sanitization. Find the injection point, achieve JavaScript execution, and steal the admin session cookie.</div>
+        <div class="lab-card-tags">
+          <span class="lab-card-tag">XSS</span>
+          <span class="lab-card-tag">CWE-79</span>
+          <span class="lab-card-tag">OWASP A03</span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border);">
-          <span style="font-family:var(--font-mono);font-size:11px;color:var(--accent);">Start lab &#x2192;</span>
-          <span style="font-family:var(--font-mono);font-size:10px;color:#e8b84d;">+100 xp</span>
-        </div>
+      </div>
+      <div class="lab-card-footer">
+        <span class="lab-card-cta">Start lab &#x2192;</span>
+        <span class="lab-card-xp">+100 xp</span>
       </div>
     </a>
 
-    <!-- RED-02: VaultBank SQLi -->
-    <a href="/labs/red/sqli-vaultbank/" style="text-decoration:none;color:inherit;">
-      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface-1);overflow:hidden;transition:all 400ms cubic-bezier(0.2,0,0,1);cursor:pointer;">
-        <div style="height:120px;background:linear-gradient(135deg,#0d1117,#161b22);display:flex;align-items:center;justify-content:center;position:relative;">
-          <span style="font-size:48px;opacity:0.12;position:absolute;">&#x1f3e6;</span>
-          <span style="font-family:var(--font-display);font-size:22px;color:#58a6ff;font-weight:500;position:relative;">VaultBank</span>
+    <a href="/labs/red/sqli-vaultbank/" class="lab-card">
+      <div class="lab-card-cover cover-vaultbank">
+        <span class="lab-card-cover-icon">&#x1f3e6;</span>
+        <span class="lab-card-cover-brand">VaultBank</span>
+      </div>
+      <div class="lab-card-body">
+        <div class="lab-card-meta">
+          <span class="lab-card-code">RED-02</span>
+          <span class="lab-topbar-diff diff-intermediate">intermediate</span>
+          <span class="lab-card-time">~15 min</span>
         </div>
-        <div style="padding:16px 20px 12px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">RED-02</span>
-            <span class="lab-topbar-diff diff-intermediate" style="font-size:9px;">intermediate</span>
-            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-left:auto;">~15 min</span>
-          </div>
-          <div style="font-family:var(--font-display);font-size:16px;color:var(--text-1);font-weight:500;margin-bottom:6px;">SQL Injection — Account Lookup</div>
-          <div style="font-size:12px;color:var(--text-3);line-height:1.5;margin-bottom:12px;">VaultBank's customer lookup page concatenates user input directly into SQL queries. Exploit the injection point to extract admin credentials from the database.</div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;">
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">SQLi</span>
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">CWE-89</span>
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">OWASP A03</span>
-          </div>
+        <div class="lab-card-title">SQL Injection — Account Lookup</div>
+        <div class="lab-card-desc">VaultBank's customer lookup concatenates user input directly into SQL queries. Exploit the injection to extract admin credentials from a real SQLite database.</div>
+        <div class="lab-card-tags">
+          <span class="lab-card-tag">SQLi</span>
+          <span class="lab-card-tag">CWE-89</span>
+          <span class="lab-card-tag">OWASP A03</span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border);">
-          <span style="font-family:var(--font-mono);font-size:11px;color:var(--accent);">Start lab &#x2192;</span>
-          <span style="font-family:var(--font-mono);font-size:10px;color:#e8b84d;">+150 xp</span>
-        </div>
+      </div>
+      <div class="lab-card-footer">
+        <span class="lab-card-cta">Start lab &#x2192;</span>
+        <span class="lab-card-xp">+150 xp</span>
       </div>
     </a>
 
-    <!-- RED-03: CloudSnap SSRF -->
-    <a href="/labs/red/ssrf-cloudsnap/" style="text-decoration:none;color:inherit;">
-      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface-1);overflow:hidden;transition:all 400ms cubic-bezier(0.2,0,0,1);cursor:pointer;">
-        <div style="height:120px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;position:relative;">
-          <span style="font-size:48px;opacity:0.12;position:absolute;">&#x2601;</span>
-          <span style="font-family:var(--font-display);font-size:22px;color:#82aaff;font-weight:500;position:relative;">CloudSnap</span>
+    <a href="/labs/red/ssrf-cloudsnap/" class="lab-card">
+      <div class="lab-card-cover cover-cloudsnap">
+        <span class="lab-card-cover-icon">&#x2601;</span>
+        <span class="lab-card-cover-brand">CloudSnap</span>
+      </div>
+      <div class="lab-card-body">
+        <div class="lab-card-meta">
+          <span class="lab-card-code">RED-03</span>
+          <span class="lab-topbar-diff diff-intermediate">intermediate</span>
+          <span class="lab-card-time">~15 min</span>
         </div>
-        <div style="padding:16px 20px 12px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">RED-03</span>
-            <span class="lab-topbar-diff diff-intermediate" style="font-size:9px;">intermediate</span>
-            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-left:auto;">~15 min</span>
-          </div>
-          <div style="font-family:var(--font-display);font-size:16px;color:var(--text-1);font-weight:500;margin-bottom:6px;">SSRF — Cloud Metadata Theft</div>
-          <div style="font-size:12px;color:var(--text-3);line-height:1.5;margin-bottom:12px;">CloudSnap's URL import feature fetches user-provided URLs server-side without validation. Exploit this to access internal services and steal cloud credentials.</div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;">
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">SSRF</span>
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">CWE-918</span>
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">OWASP A10</span>
-          </div>
+        <div class="lab-card-title">SSRF — Cloud Metadata Theft</div>
+        <div class="lab-card-desc">CloudSnap's URL import feature fetches URLs server-side without validation. Exploit it to access internal services and steal cloud IAM credentials.</div>
+        <div class="lab-card-tags">
+          <span class="lab-card-tag">SSRF</span>
+          <span class="lab-card-tag">CWE-918</span>
+          <span class="lab-card-tag">OWASP A10</span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border);">
-          <span style="font-family:var(--font-mono);font-size:11px;color:var(--accent);">Start lab &#x2192;</span>
-          <span style="font-family:var(--font-mono);font-size:10px;color:#e8b84d;">+150 xp</span>
-        </div>
+      </div>
+      <div class="lab-card-footer">
+        <span class="lab-card-cta">Start lab &#x2192;</span>
+        <span class="lab-card-xp">+150 xp</span>
       </div>
     </a>
 
-    <!-- RED-04: DevPortal JWT -->
-    <a href="/labs/red/jwt-devportal/" style="text-decoration:none;color:inherit;">
-      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface-1);overflow:hidden;transition:all 400ms cubic-bezier(0.2,0,0,1);cursor:pointer;">
-        <div style="height:120px;background:linear-gradient(135deg,#1a0a2e,#2d1b69);display:flex;align-items:center;justify-content:center;position:relative;">
-          <span style="font-size:48px;opacity:0.12;position:absolute;">&#x1f511;</span>
-          <span style="font-family:var(--font-display);font-size:22px;color:#c792ea;font-weight:500;position:relative;">DevPortal</span>
+    <a href="/labs/red/jwt-devportal/" class="lab-card">
+      <div class="lab-card-cover cover-devportal">
+        <span class="lab-card-cover-icon">&#x1f511;</span>
+        <span class="lab-card-cover-brand">DevPortal</span>
+      </div>
+      <div class="lab-card-body">
+        <div class="lab-card-meta">
+          <span class="lab-card-code">RED-04</span>
+          <span class="lab-topbar-diff diff-beginner">beginner</span>
+          <span class="lab-card-time">~10 min</span>
         </div>
-        <div style="padding:16px 20px 12px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">RED-04</span>
-            <span class="lab-topbar-diff diff-beginner" style="font-size:9px;">beginner</span>
-            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-left:auto;">~10 min</span>
-          </div>
-          <div style="font-family:var(--font-display);font-size:16px;color:var(--text-1);font-weight:500;margin-bottom:6px;">JWT Algorithm Confusion</div>
-          <div style="font-size:12px;color:var(--text-3);line-height:1.5;margin-bottom:12px;">DevPortal's authentication accepts JWTs without enforcing the signing algorithm. Exploit alg:none to forge an admin token and access restricted resources.</div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;">
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">JWT</span>
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">CWE-327</span>
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">OWASP A02</span>
-          </div>
+        <div class="lab-card-title">JWT Algorithm Confusion</div>
+        <div class="lab-card-desc">DevPortal's API accepts JWTs without enforcing the signing algorithm. Exploit alg:none to forge an admin token and access restricted resources.</div>
+        <div class="lab-card-tags">
+          <span class="lab-card-tag">JWT</span>
+          <span class="lab-card-tag">CVE-2015-9235</span>
+          <span class="lab-card-tag">OWASP A02</span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border);">
-          <span style="font-family:var(--font-mono);font-size:11px;color:var(--accent);">Start lab &#x2192;</span>
-          <span style="font-family:var(--font-mono);font-size:10px;color:#e8b84d;">+100 xp</span>
-        </div>
+      </div>
+      <div class="lab-card-footer">
+        <span class="lab-card-cta">Start lab &#x2192;</span>
+        <span class="lab-card-xp">+100 xp</span>
       </div>
     </a>
 
-    <!-- RED-05: GiftRush Race Condition -->
-    <a href="/labs/red/race-giftrush/" style="text-decoration:none;color:inherit;">
-      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface-1);overflow:hidden;transition:all 400ms cubic-bezier(0.2,0,0,1);cursor:pointer;">
-        <div style="height:120px;background:linear-gradient(135deg,#2e1a0a,#69401b);display:flex;align-items:center;justify-content:center;position:relative;">
-          <span style="font-size:48px;opacity:0.12;position:absolute;">&#x1f381;</span>
-          <span style="font-family:var(--font-display);font-size:22px;color:#e8b84d;font-weight:500;position:relative;">GiftRush</span>
+    <a href="/labs/red/race-giftrush/" class="lab-card">
+      <div class="lab-card-cover cover-giftrush">
+        <span class="lab-card-cover-icon">&#x1f381;</span>
+        <span class="lab-card-cover-brand">GiftRush</span>
+      </div>
+      <div class="lab-card-body">
+        <div class="lab-card-meta">
+          <span class="lab-card-code">RED-05</span>
+          <span class="lab-topbar-diff diff-advanced">advanced</span>
+          <span class="lab-card-time">~20 min</span>
         </div>
-        <div style="padding:16px 20px 12px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">RED-05</span>
-            <span class="lab-topbar-diff diff-advanced" style="font-size:9px;">advanced</span>
-            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-left:auto;">~20 min</span>
-          </div>
-          <div style="font-family:var(--font-display);font-size:16px;color:var(--text-1);font-weight:500;margin-bottom:6px;">Race Condition — Double Spend</div>
-          <div style="font-size:12px;color:var(--text-3);line-height:1.5;margin-bottom:12px;">GiftRush's redemption system checks and deducts balances in separate operations. Exploit the TOCTOU window to double-spend a gift card.</div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;">
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">Race</span>
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">CWE-362</span>
-            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">OWASP A04</span>
-          </div>
+        <div class="lab-card-title">Race Condition — Double Spend</div>
+        <div class="lab-card-desc">GiftRush's redemption system checks and deducts balances in separate operations. Exploit the TOCTOU window to double-spend a gift card.</div>
+        <div class="lab-card-tags">
+          <span class="lab-card-tag">Race</span>
+          <span class="lab-card-tag">CWE-362</span>
+          <span class="lab-card-tag">OWASP A04</span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border);">
-          <span style="font-family:var(--font-mono);font-size:11px;color:var(--accent);">Start lab &#x2192;</span>
-          <span style="font-family:var(--font-mono);font-size:10px;color:#e8b84d;">+200 xp</span>
-        </div>
+      </div>
+      <div class="lab-card-footer">
+        <span class="lab-card-cta">Start lab &#x2192;</span>
+        <span class="lab-card-xp">+200 xp</span>
       </div>
     </a>
   </div>
 
   <!-- Blue Team Labs -->
-  <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:16px;">&#x1f535; Blue Team — Defensive Labs</div>
+  <div class="labs-section-title">&#x1f535; Blue Team — Defensive Labs</div>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:48px;">
-    <div style="border:1px dashed var(--border);border-radius:14px;background:var(--surface-1);overflow:hidden;opacity:0.5;">
-      <div style="height:120px;background:linear-gradient(135deg,#0a0f1a,#101828);display:flex;align-items:center;justify-content:center;">
-        <span style="font-family:var(--font-display);font-size:22px;color:#82aaff;font-weight:500;">SOC Station</span>
+  <div class="labs-grid">
+    <div class="lab-card lab-card--coming">
+      <div class="lab-card-cover cover-soc">
+        <span class="lab-card-cover-icon">&#x1f6a8;</span>
+        <span class="lab-card-cover-brand">SOC Station</span>
       </div>
-      <div style="padding:16px 20px 12px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">BLUE-01</span>
-          <span class="lab-topbar-diff diff-beginner" style="font-size:9px;">beginner</span>
+      <div class="lab-card-body">
+        <div class="lab-card-meta">
+          <span class="lab-card-code">BLUE-01</span>
+          <span class="lab-topbar-diff diff-beginner">beginner</span>
         </div>
-        <div style="font-family:var(--font-display);font-size:16px;color:var(--text-1);font-weight:500;margin-bottom:6px;">Alert Triage — Is This Real?</div>
-        <div style="font-size:12px;color:var(--text-3);line-height:1.5;">Coming soon — classify alerts under pressure, separate signal from noise.</div>
+        <div class="lab-card-title">Alert Triage — Is This Real?</div>
+        <div class="lab-card-desc">Your SIEM fires 5 alerts overnight. Three are noise, one is a misconfigured rule, and one is a real incident. Classify each correctly under time pressure.</div>
+        <div class="lab-card-tags">
+          <span class="lab-card-tag">triage</span>
+          <span class="lab-card-tag">SIEM</span>
+          <span class="lab-card-tag">SOC</span>
+        </div>
       </div>
-      <div style="padding:12px 20px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:11px;color:var(--muted);">Coming soon</div>
+      <div class="lab-card-coming-label">Coming soon</div>
+    </div>
+
+    <div class="lab-card lab-card--coming">
+      <div class="lab-card-cover" style="background:linear-gradient(135deg,#1a0f0f,#281410);">
+        <span class="lab-card-cover-icon">&#x1f50d;</span>
+        <span class="lab-card-cover-brand" style="color:#e8a87c;">Incident Room</span>
+      </div>
+      <div class="lab-card-body">
+        <div class="lab-card-meta">
+          <span class="lab-card-code">BLUE-02</span>
+          <span class="lab-topbar-diff diff-intermediate">intermediate</span>
+        </div>
+        <div class="lab-card-title">Investigate the ShopStack Breach</div>
+        <div class="lab-card-desc">ShopStack reports stolen sessions. You have web access logs, CloudTrail, and WAF logs. Find the XSS entry point, build the timeline, determine blast radius.</div>
+        <div class="lab-card-tags">
+          <span class="lab-card-tag">investigation</span>
+          <span class="lab-card-tag">log analysis</span>
+          <span class="lab-card-tag">XSS aftermath</span>
+        </div>
+      </div>
+      <div class="lab-card-coming-label">Unlocks after RED-01</div>
+    </div>
+
+    <div class="lab-card lab-card--coming">
+      <div class="lab-card-cover" style="background:linear-gradient(135deg,#0f1a0a,#182810);">
+        <span class="lab-card-cover-icon">&#x2699;</span>
+        <span class="lab-card-cover-brand" style="color:var(--sage);">SOAR Studio</span>
+      </div>
+      <div class="lab-card-body">
+        <div class="lab-card-meta">
+          <span class="lab-card-code">BLUE-06</span>
+          <span class="lab-topbar-diff diff-advanced">advanced</span>
+        </div>
+        <div class="lab-card-title">Build the Playbook</div>
+        <div class="lab-card-desc">Your team is drowning in phishing alerts. Design a SOAR playbook that triages, enriches, and auto-remediates — then test it against a live alert stream.</div>
+        <div class="lab-card-tags">
+          <span class="lab-card-tag">SOAR</span>
+          <span class="lab-card-tag">automation</span>
+          <span class="lab-card-tag">playbook</span>
+        </div>
+      </div>
+      <div class="lab-card-coming-label">Coming soon</div>
     </div>
   </div>
 
@@ -233,7 +265,6 @@ permalink: /labs/
   var title = Labs.Xp.titleForLevel(level);
   var progress = Labs.Xp.progressToNextLevel(profile.xp);
   var nextXp = Labs.Xp.xpForNextLevel(level);
-  var currentXp = Labs.Xp.xpForLevel(level);
 
   document.getElementById('profile-name').textContent = profile.alias || 'Anonymous Operator';
   document.getElementById('profile-level').textContent = 'Level ' + level + ' — ' + title;
@@ -242,7 +273,30 @@ permalink: /labs/
   document.getElementById('profile-completed').textContent = counts.completed;
   document.getElementById('profile-inprogress').textContent = counts.inProgress;
 
-  // Forge Key modal
+  // Mark completed labs
+  var completed = Labs.Progress.getCompletedLabs();
+  completed.forEach(function(labId) {
+    var slugMap = {
+      'red-xss-shopstack': 'xss-shopstack',
+      'red-sqli-vaultbank': 'sqli-vaultbank',
+      'red-ssrf-cloudsnap': 'ssrf-cloudsnap',
+      'red-jwt-devportal': 'jwt-devportal',
+      'red-race-giftrush': 'race-giftrush'
+    };
+    var slug = slugMap[labId];
+    if (!slug) return;
+    var link = document.querySelector('a[href*="' + slug + '"]');
+    if (link) {
+      link.classList.add('lab-card--completed');
+      var cta = link.querySelector('.lab-card-cta');
+      if (cta) cta.textContent = 'Replay lab →';
+      var xp = link.querySelector('.lab-card-xp');
+      var prog = Labs.Progress.getLabProgress(labId);
+      if (xp && prog) xp.innerHTML = '&#x2713; ' + prog.score + '/100';
+      if (xp) { xp.style.color = 'var(--sage)'; }
+    }
+  });
+
   Labs.ForgeKeyUI.init();
   document.getElementById('btn-forge-key').addEventListener('click', function() {
     Labs.ForgeKeyUI.show();
