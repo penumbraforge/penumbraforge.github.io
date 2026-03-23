@@ -1,0 +1,457 @@
+---
+layout: lab-workspace-blue.njk
+permalink: /labs/blue/log-analysis/
+labCode: "BLUE-04"
+labTitle: "Signal in the Noise"
+labDifficulty: "intermediate"
+labDescription: "You have 45 log entries from 4 sources spanning a 6-hour window. One attacker is hiding in the noise. Correlate across auth, web, DNS, and firewall logs to find them."
+labCompletionText: "You successfully identified the attacker, traced their lateral movement, and determined exactly what data was exfiltrated from the network."
+---
+
+<!-- Blue Team Two-Panel Layout -->
+<div class="blue-workspace">
+
+<!-- LEFT: Mission Panel -->
+<div class="blue-mission-panel">
+  <div class="lab-panel-tabs">
+    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
+    <button class="lab-panel-tab" data-tab="evidence">Evidence</button>
+  </div>
+  <div class="lab-panel-content">
+
+<div class="lab-tab-content active" data-tab-content="mission">
+  <div class="lab-section-label">Incident Report</div>
+  <div class="lab-scenario">
+    <strong>Incident #INC-5247</strong> — At 06:00 UTC, the DLP system flagged a large outbound transfer that completed overnight. Management wants to know: who did this, how did they get in, and what did they take? You have logs from 4 sources spanning the incident window.
+  </div>
+  <div class="lab-scenario">
+    Most of these logs are <strong>normal business traffic</strong> — health checks, routine logins, standard web browsing. One threat actor is hiding in the noise. Your job is to <strong>correlate across sources</strong> to find them.
+  </div>
+
+  <div class="lab-section-label">Objectives</div>
+  <div class="lab-objective current" id="obj-attacker">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 1 — Identify the attacker's IP</span>
+      Find the external IP responsible for the intrusion
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-access">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 2 — Determine initial access</span>
+      Identify how the attacker got into the network
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-exfil">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 3 — Identify what was taken</span>
+      Determine what data was exfiltrated and how much
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-submit">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 4 — Submit findings</span>
+      Enter the attacker IP, access method, and exfiltration details
+    </div>
+  </div>
+
+  <div class="lab-section-label" style="margin-top:24px;">Log Sources</div>
+  <div class="lab-scenario">
+    <strong>Auth</strong> — SSH, VPN, and SSO authentication events<br>
+    <strong>Web</strong> — HTTP access logs from the reverse proxy<br>
+    <strong>DNS</strong> — Internal DNS resolver query logs<br>
+    <strong>Firewall</strong> — Perimeter firewall connection logs
+  </div>
+  <div class="lab-scenario">
+    <strong>Tip:</strong> Use the source filter to isolate one log type at a time. Look for the same IP appearing across multiple sources — that's your correlation signal.
+  </div>
+</div>
+
+<div class="lab-tab-content" data-tab-content="evidence">
+  <div class="lab-section-label">Evidence Log</div>
+  <div id="evidence-log" class="evidence-list">
+    <div class="evidence-empty">Findings will appear here as you investigate.</div>
+  </div>
+</div>
+
+  </div>
+</div>
+
+<!-- RIGHT: Investigation Dashboard -->
+<div class="blue-dashboard">
+
+<!-- Log Viewer Header -->
+<div class="siem-header" id="siem-header">
+  <div class="siem-header-title">Log Correlation Viewer</div>
+  <div class="siem-status-bar">
+    <div class="siem-status-item">
+      <span class="siem-status-text">Window:</span>
+      <span class="siem-status-val">01:00 — 07:00 UTC</span>
+    </div>
+    <div class="siem-status-item">
+      <span class="siem-status-text">Entries:</span>
+      <span class="siem-status-val" id="log-count">0</span>
+    </div>
+    <div class="siem-status-item">
+      <span class="siem-status-text">Sources:</span>
+      <span class="siem-status-val">4</span>
+    </div>
+  </div>
+</div>
+
+<!-- Search and filter bar -->
+<div style="padding:12px 20px;background:var(--surface-1);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-shrink:0;">
+  <input type="text" id="log-search" placeholder="Search logs... (try an IP, hostname, or keyword)" autocomplete="off" style="flex:1;padding:8px 12px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:12px;outline:none;">
+  <select id="log-source-filter" style="padding:8px 12px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;cursor:pointer;-webkit-appearance:none;">
+    <option value="all">All Sources</option>
+    <option value="auth">Auth</option>
+    <option value="web">Web</option>
+    <option value="dns">DNS</option>
+    <option value="fw">Firewall</option>
+  </select>
+  <select id="log-severity-filter" style="padding:8px 12px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;cursor:pointer;-webkit-appearance:none;">
+    <option value="all">All Levels</option>
+    <option value="critical">Critical</option>
+    <option value="warn">Warning</option>
+    <option value="info">Info</option>
+  </select>
+</div>
+
+<!-- Log entries -->
+<div class="siem-content" id="log-viewer" style="flex:1;overflow-y:auto;"></div>
+
+<!-- Debrief -->
+<div class="siem-content blue-debrief" id="blue-debrief" style="display:none;flex:1;overflow-y:auto;">
+  <div class="blue-debrief-label">Debrief — Signal in the Noise</div>
+
+  <div class="blue-debrief-card">
+    <h3>Attack Summary</h3>
+    <p>The attacker (<code>103.78.44.91</code>, Singapore) performed a targeted intrusion using stolen SSH credentials belonging to the sysadmin account <code>j.nakamura</code>. The attack followed a classic kill chain:</p>
+    <p><strong>Reconnaissance</strong> (04:15) — DNS query for <code>fileserver.internal.corp</code> from an external IP, indicating the attacker already had knowledge of internal hostnames (likely from a prior breach or social engineering).</p>
+    <p><strong>Initial Access</strong> (04:22) — Successful SSH login with valid credentials. No brute-force attempts, suggesting the credentials were obtained through phishing, credential stuffing, or a previous compromise.</p>
+    <p><strong>Collection</strong> (04:25-04:28) — Multiple file accesses to <code>/srv/data/financial-reports/</code>, including Q4 earnings, M&A documents, and board materials.</p>
+    <p><strong>Exfiltration</strong> (04:31) — 2.1 GB SCP transfer outbound to an external server at <code>45.77.132.18</code> in the Netherlands.</p>
+    <p><strong>Cleanup</strong> (04:35) — SSH session terminated cleanly. Total dwell time: 13 minutes.</p>
+  </div>
+
+  <div class="blue-debrief-card">
+    <h3>Why this was hard to find</h3>
+    <p>The attacker's activity was intentionally sparse — only 5 log entries across a 20-minute window, mixed in with 40+ entries of normal traffic. The key signals:</p>
+    <p><strong>DNS anomaly:</strong> An external IP querying for an internal hostname is highly unusual. Internal DNS queries should come from internal IPs only.</p>
+    <p><strong>Geographic anomaly:</strong> The sysadmin <code>j.nakamura</code> is based in Portland, OR. A login from Singapore at 04:22 UTC (8:22 PM SGT / 9:22 PM PDT) is suspicious but not impossible — without additional context, it could be legitimate travel.</p>
+    <p><strong>Data volume:</strong> The 2.1 GB SCP transfer stands out in the firewall logs, but only if you correlate it with the SSH login from the same IP.</p>
+  </div>
+
+  <div class="blue-debrief-card">
+    <h3>Detection improvements</h3>
+    <p><strong>DNS monitoring:</strong> Alert on DNS queries for internal hostnames (<code>*.internal.corp</code>) originating from external IP addresses. This is a strong indicator of reconnaissance by an attacker who already has internal knowledge.</p>
+    <p><strong>SSH hardening:</strong> Disable password authentication — require key-based auth or certificate-based auth. Implement IP allowlisting for SSH access. Deploy jump boxes / bastion hosts.</p>
+    <p><strong>DLP rules:</strong> Alert on SCP/SFTP transfers exceeding 100 MB to external IPs. Require approval for transfers exceeding 500 MB.</p>
+    <p><strong>UEBA baseline:</strong> Flag logins from new geolocations for privileged accounts. j.nakamura has never logged in from Singapore before — this should trigger an alert.</p>
+  </div>
+
+  <div class="blue-debrief-card">
+    <h3>Remediation</h3>
+    <p><strong>Immediate:</strong> Reset j.nakamura's credentials. Revoke all SSH keys for the account. Block <code>103.78.44.91</code> and <code>45.77.132.18</code> at the perimeter firewall. Preserve forensic images of fileserver.</p>
+    <p><strong>Short-term:</strong> Audit all SSH access logs for the past 90 days. Check if j.nakamura's credentials appear in any breach databases. Notify legal/compliance about potential financial data exfiltration.</p>
+    <p><strong>Long-term:</strong> Implement network segmentation — financial data servers should not be directly accessible via SSH from the internet. Deploy a SIEM correlation rule that links DNS reconnaissance to subsequent SSH access. Require MFA for all remote access.</p>
+  </div>
+
+  <div class="blue-debrief-card">
+    <h3>In the real world</h3>
+    <p>This attack pattern mirrors the <strong>2020 SolarWinds</strong> intrusion, where attackers maintained a low profile by limiting their activity to short, targeted sessions. The average dwell time for an attacker in 2025 is <strong>10 days</strong> (CrowdStrike Global Threat Report), but sophisticated actors can complete their objectives in under an hour.</p>
+    <p>Log correlation across multiple sources is the most effective detection technique. A single log source rarely tells the full story — it's the combination of DNS + Auth + Firewall that reveals the attacker's path through the network.</p>
+  </div>
+</div>
+
+<!-- Answer submission bar -->
+<div class="siem-summary">
+  <div style="flex:1;display:flex;gap:12px;align-items:center;">
+    <input type="text" id="answer-ip" placeholder="Attacker IP" autocomplete="off" style="width:140px;padding:7px 10px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;">
+    <input type="text" id="answer-access" placeholder="Access method (e.g. SSH)" autocomplete="off" style="width:140px;padding:7px 10px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;">
+    <input type="text" id="answer-exfil" placeholder="What was taken?" autocomplete="off" style="flex:1;padding:7px 10px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;">
+  </div>
+  <button class="siem-submit-btn" id="btn-submit">Submit Findings</button>
+</div>
+
+</div><!-- /blue-dashboard -->
+</div><!-- /blue-workspace -->
+
+<style>
+.log-entry {
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(30,30,53,0.3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: background 100ms;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.log-entry:hover { background: rgba(184,165,214,0.03); }
+.log-entry.highlighted { background: rgba(232,184,77,0.06); border-left: 2px solid #e8b84d; }
+
+.log-time { color: var(--muted); white-space: nowrap; flex-shrink: 0; width: 65px; }
+.log-source-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+.log-src-auth { color: var(--sage); background: rgba(107,207,143,0.1); }
+.log-src-web { color: var(--accent); background: rgba(184,165,214,0.1); }
+.log-src-dns { color: #82aaff; background: rgba(130,170,255,0.1); }
+.log-src-fw { color: #e8b84d; background: rgba(232,184,77,0.1); }
+.log-level { font-size: 9px; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+.log-lvl-info { color: var(--text-3); }
+.log-lvl-warn { color: #e8b84d; }
+.log-lvl-critical { color: #eb5757; }
+.log-msg { color: var(--text-2); flex: 1; word-break: break-word; }
+.log-msg .hl { color: #eb5757; background: rgba(235,87,87,0.1); padding: 0 3px; border-radius: 2px; }
+.log-msg .ip { color: var(--accent); }
+.log-msg .path { color: var(--sage); }
+.log-msg .user { color: #82aaff; }
+.log-msg .size { color: #e8b84d; }
+</style>
+
+<script>
+(function() {
+  var LAB_CONFIG = {
+    id: 'blue-log-analysis',
+    type: 'blue',
+    title: 'Signal in the Noise',
+    target: 'Log Correlation',
+    difficulty: 'intermediate',
+    estimatedTime: 20,
+    xpReward: 250,
+    hintCost: [],
+    skills: ['investigation-log-analysis', 'investigation-correlation'],
+    unlocks: [],
+    objectives: [
+      { id: 'attacker', step: 1, title: 'Identify attacker IP' },
+      { id: 'access', step: 2, title: 'Determine initial access' },
+      { id: 'exfil', step: 3, title: 'Identify exfiltrated data' },
+      { id: 'submit', step: 4, title: 'Submit findings' },
+    ],
+  };
+
+  var Engine = PenumbraLabs.Engine;
+  var Toast = PenumbraLabs.Toast;
+  Engine.init(LAB_CONFIG);
+
+  // === LOG DATA ===
+  // Attacker: 103.78.44.91 (Singapore)
+  // Normal users: various IPs
+  // The attack story is hidden among normal traffic
+
+  var LOGS = [
+    // 01:00-02:00 — Normal overnight activity
+    { time: '01:02:14', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '01:05:33', source: 'dns', level: 'info', msg: '<span class="ip">10.0.5.22</span> A <span class="path">updates.ubuntu.com</span> — NOERROR — 91.189.91.39' },
+    { time: '01:08:47', source: 'fw', level: 'info', msg: 'ALLOW <span class="ip">10.0.2.10</span> -> <span class="ip">34.102.44.9</span>:443 TCP — db-backup-agent — <span class="size">2.3 GB</span>' },
+    { time: '01:12:05', source: 'auth', level: 'info', msg: '<span class="ip">10.0.3.15</span> SSO login — <span class="user">m.chen@corp.internal</span> — success — Portland, OR' },
+    { time: '01:15:22', source: 'web', level: 'info', msg: '<span class="ip">10.0.3.15</span> GET <span class="path">/dashboard</span> 200 — Chrome/124' },
+    { time: '01:22:18', source: 'dns', level: 'info', msg: '<span class="ip">10.0.5.22</span> A <span class="path">time.google.com</span> — NOERROR — 216.239.35.0' },
+    { time: '01:30:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '01:35:44', source: 'fw', level: 'info', msg: 'ALLOW <span class="ip">10.0.5.22</span> -> <span class="ip">91.189.91.39</span>:443 TCP — apt-get — 45 MB' },
+    { time: '01:42:10', source: 'auth', level: 'info', msg: '<span class="ip">10.0.4.8</span> SSO login — <span class="user">r.patel@corp.internal</span> — success — Seattle, WA' },
+    { time: '01:48:33', source: 'dns', level: 'info', msg: '<span class="ip">10.0.4.8</span> A <span class="path">slack.com</span> — NOERROR — 34.237.168.2' },
+
+    // 02:00-03:00 — Normal early morning
+    { time: '02:00:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '02:05:19', source: 'dns', level: 'info', msg: '<span class="ip">10.0.3.15</span> A <span class="path">mail.google.com</span> — NOERROR — 142.250.80.5' },
+    { time: '02:08:42', source: 'web', level: 'info', msg: '<span class="ip">10.0.3.15</span> GET <span class="path">/reports/weekly</span> 200 — Chrome/124' },
+    { time: '02:12:55', source: 'fw', level: 'info', msg: 'ALLOW <span class="ip">10.0.3.15</span> -> <span class="ip">142.250.80.5</span>:443 TCP — Chrome — 12 MB' },
+    { time: '02:18:07', source: 'auth', level: 'info', msg: '<span class="ip">10.0.6.30</span> VPN connect — <span class="user">s.johnson@corp.internal</span> — success — Denver, CO' },
+    { time: '02:25:31', source: 'dns', level: 'info', msg: '<span class="ip">10.0.6.30</span> A <span class="path">jira.corp.internal</span> — NOERROR — 10.0.2.50' },
+    { time: '02:30:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '02:33:48', source: 'web', level: 'info', msg: '<span class="ip">10.0.6.30</span> GET <span class="path">/jira/browse/PROJ-142</span> 200 — Firefox/126' },
+    { time: '02:45:12', source: 'dns', level: 'info', msg: '<span class="ip">10.0.5.22</span> A <span class="path">registry.npmjs.org</span> — NOERROR — 104.16.16.35' },
+    { time: '02:52:09', source: 'fw', level: 'info', msg: 'ALLOW <span class="ip">10.0.5.22</span> -> <span class="ip">104.16.16.35</span>:443 TCP — npm — 88 MB' },
+
+    // 03:00-04:00 — Normal activity continues
+    { time: '03:00:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '03:04:28', source: 'auth', level: 'info', msg: '<span class="ip">10.0.4.8</span> SSO token refresh — <span class="user">r.patel@corp.internal</span> — success' },
+    { time: '03:08:55', source: 'dns', level: 'info', msg: '<span class="ip">10.0.4.8</span> A <span class="path">github.com</span> — NOERROR — 140.82.121.3' },
+    { time: '03:12:17', source: 'web', level: 'info', msg: '<span class="ip">10.0.4.8</span> GET <span class="path">/code-review/PR-891</span> 200 — Chrome/124' },
+    { time: '03:18:40', source: 'fw', level: 'info', msg: 'ALLOW <span class="ip">10.0.4.8</span> -> <span class="ip">140.82.121.3</span>:443 TCP — git-push — 4 MB' },
+    { time: '03:22:55', source: 'dns', level: 'info', msg: '<span class="ip">10.0.3.15</span> A <span class="path">drive.google.com</span> — NOERROR — 142.250.80.14' },
+    { time: '03:28:11', source: 'auth', level: 'info', msg: '<span class="ip">72.34.108.22</span> VPN connect — <span class="user">a.williams@corp.internal</span> — success — Austin, TX' },
+    { time: '03:30:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '03:35:26', source: 'web', level: 'info', msg: '<span class="ip">10.0.7.12</span> GET <span class="path">/wiki/runbook/deploy</span> 200 — Safari/17' },
+    { time: '03:42:50', source: 'dns', level: 'info', msg: '<span class="ip">10.0.7.12</span> A <span class="path">confluence.corp.internal</span> — NOERROR — 10.0.2.55' },
+    { time: '03:48:15', source: 'fw', level: 'info', msg: 'ALLOW <span class="ip">10.0.6.30</span> -> <span class="ip">10.0.2.50</span>:443 TCP — JIRA — 2 MB' },
+    { time: '03:55:33', source: 'auth', level: 'info', msg: '<span class="ip">10.0.3.15</span> SSO token refresh — <span class="user">m.chen@corp.internal</span> — success' },
+
+    // 04:00-05:00 — ATTACKER ACTIVITY mixed with normal traffic
+    { time: '04:00:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '04:03:18', source: 'dns', level: 'info', msg: '<span class="ip">10.0.4.8</span> A <span class="path">stackoverflow.com</span> — NOERROR — 151.101.1.69' },
+    { time: '04:07:44', source: 'fw', level: 'info', msg: 'ALLOW <span class="ip">10.0.4.8</span> -> <span class="ip">151.101.1.69</span>:443 TCP — Chrome — 3 MB' },
+
+    // *** ATTACKER: DNS recon ***
+    { time: '04:15:02', source: 'dns', level: 'warn', msg: '<span class="ip hl">103.78.44.91</span> A <span class="path hl">fileserver.internal.corp</span> — NOERROR — 10.0.1.50 — <span class="hl">external query for internal hostname</span>', suspicious: true },
+
+    { time: '04:18:33', source: 'web', level: 'info', msg: '<span class="ip">10.0.7.12</span> GET <span class="path">/wiki/runbook/monitoring</span> 200 — Safari/17' },
+    { time: '04:20:11', source: 'dns', level: 'info', msg: '<span class="ip">10.0.6.30</span> A <span class="path">outlook.office365.com</span> — NOERROR — 52.97.151.18' },
+
+    // *** ATTACKER: SSH login with stolen creds ***
+    { time: '04:22:47', source: 'auth', level: 'warn', msg: '<span class="ip hl">103.78.44.91</span> SSH login — <span class="user hl">j.nakamura@corp.internal</span> — <span class="hl">success</span> — Singapore, SG — key: rsa-sha2-256', suspicious: true },
+
+    { time: '04:24:05', source: 'dns', level: 'info', msg: '<span class="ip">10.0.3.15</span> A <span class="path">calendar.google.com</span> — NOERROR — 142.250.80.46' },
+
+    // *** ATTACKER: File access ***
+    { time: '04:25:18', source: 'web', level: 'warn', msg: '<span class="ip hl">103.78.44.91</span> GET <span class="path hl">/srv/data/financial-reports/Q4-2025-earnings.xlsx</span> 200 — scp/openssh', suspicious: true },
+    { time: '04:26:42', source: 'web', level: 'warn', msg: '<span class="ip hl">103.78.44.91</span> GET <span class="path hl">/srv/data/financial-reports/M&amp;A-pipeline-2026.pdf</span> 200 — scp/openssh', suspicious: true },
+    { time: '04:28:01', source: 'web', level: 'warn', msg: '<span class="ip hl">103.78.44.91</span> GET <span class="path hl">/srv/data/financial-reports/board-materials-march.pdf</span> 200 — scp/openssh', suspicious: true },
+
+    { time: '04:29:15', source: 'auth', level: 'info', msg: '<span class="ip">72.34.108.22</span> VPN keepalive — <span class="user">a.williams@corp.internal</span>' },
+    { time: '04:30:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+
+    // *** ATTACKER: Data exfiltration ***
+    { time: '04:31:08', source: 'fw', level: 'critical', msg: 'ALLOW <span class="ip hl">10.0.1.50</span> -> <span class="ip hl">45.77.132.18</span>:22 TCP — scp — <span class="size hl">2.1 GB</span> outbound — session user: <span class="user hl">j.nakamura</span>', suspicious: true },
+
+    { time: '04:33:22', source: 'dns', level: 'info', msg: '<span class="ip">10.0.5.22</span> A <span class="path">pypi.org</span> — NOERROR — 151.101.0.223' },
+
+    // *** ATTACKER: Session end ***
+    { time: '04:35:14', source: 'auth', level: 'info', msg: '<span class="ip hl">103.78.44.91</span> SSH disconnect — <span class="user">j.nakamura@corp.internal</span> — session duration: 12m 27s', suspicious: true },
+
+    { time: '04:40:28', source: 'fw', level: 'info', msg: 'ALLOW <span class="ip">10.0.5.22</span> -> <span class="ip">151.101.0.223</span>:443 TCP — pip — 156 MB' },
+    { time: '04:45:55', source: 'web', level: 'info', msg: '<span class="ip">10.0.4.8</span> GET <span class="path">/code-review/PR-892</span> 200 — Chrome/124' },
+
+    // 05:00-06:00 — Normal morning activity
+    { time: '05:00:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '05:05:17', source: 'auth', level: 'info', msg: '<span class="ip">10.0.8.5</span> SSO login — <span class="user">k.tanaka@corp.internal</span> — success — San Francisco, CA' },
+    { time: '05:10:42', source: 'dns', level: 'info', msg: '<span class="ip">10.0.8.5</span> A <span class="path">docs.google.com</span> — NOERROR — 142.250.80.33' },
+    { time: '05:15:28', source: 'web', level: 'info', msg: '<span class="ip">10.0.8.5</span> GET <span class="path">/dashboard</span> 200 — Chrome/125' },
+    { time: '05:22:14', source: 'fw', level: 'info', msg: 'ALLOW <span class="ip">10.0.8.5</span> -> <span class="ip">142.250.80.33</span>:443 TCP — Chrome — 8 MB' },
+    { time: '05:30:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '05:35:40', source: 'auth', level: 'info', msg: '<span class="ip">10.0.3.15</span> SSO login — <span class="user">m.chen@corp.internal</span> — success — Portland, OR' },
+    { time: '05:42:18', source: 'dns', level: 'info', msg: '<span class="ip">10.0.3.15</span> A <span class="path">meet.google.com</span> — NOERROR — 142.250.80.78' },
+    { time: '05:48:55', source: 'fw', level: 'info', msg: 'ALLOW <span class="ip">10.0.7.12</span> -> <span class="ip">10.0.2.55</span>:443 TCP — Confluence — 5 MB' },
+
+    // 06:00-07:00 — DLP alert triggers investigation
+    { time: '06:00:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '06:00:15', source: 'fw', level: 'critical', msg: '<span class="hl">DLP ALERT:</span> Large outbound transfer detected — <span class="size hl">2.1 GB</span> via SCP to <span class="ip hl">45.77.132.18</span> (Netherlands) — flagged for review', suspicious: true },
+    { time: '06:05:33', source: 'auth', level: 'info', msg: '<span class="ip">10.0.8.5</span> SSO token refresh — <span class="user">k.tanaka@corp.internal</span> — success' },
+    { time: '06:12:48', source: 'dns', level: 'info', msg: '<span class="ip">10.0.4.8</span> A <span class="path">aws.amazon.com</span> — NOERROR — 99.86.35.10' },
+    { time: '06:18:22', source: 'web', level: 'info', msg: '<span class="ip">10.0.4.8</span> GET <span class="path">/deployments/prod</span> 200 — Chrome/124' },
+    { time: '06:25:10', source: 'auth', level: 'info', msg: '<span class="ip">10.0.9.2</span> SSO login — <span class="user">l.martinez@corp.internal</span> — success — New York, NY' },
+    { time: '06:30:01', source: 'web', level: 'info', msg: '<span class="ip">10.0.2.10</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+  ];
+
+  var viewer = document.getElementById('log-viewer');
+  var searchInput = document.getElementById('log-search');
+  var sourceFilter = document.getElementById('log-source-filter');
+  var severityFilter = document.getElementById('log-severity-filter');
+
+  function renderLogs() {
+    var search = (searchInput.value || '').toLowerCase();
+    var source = sourceFilter.value;
+    var severity = severityFilter.value;
+
+    var filtered = LOGS.filter(function(log) {
+      if (source !== 'all' && log.source !== source) return false;
+      if (severity !== 'all' && log.level !== severity) return false;
+      if (search) {
+        var text = log.msg.replace(/<[^>]+>/g, '').toLowerCase();
+        if (text.indexOf(search) === -1 && log.time.indexOf(search) === -1) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('log-count').textContent = filtered.length + ' / ' + LOGS.length;
+
+    var html = '';
+    filtered.forEach(function(log) {
+      html += '<div class="log-entry' + (log.suspicious ? ' highlighted' : '') + '">' +
+        '<span class="log-time">' + log.time + '</span>' +
+        '<span class="log-source-tag log-src-' + log.source + '">' + log.source + '</span>' +
+        '<span class="log-level log-lvl-' + log.level + '">' + log.level + '</span>' +
+        '<span class="log-msg">' + log.msg + '</span>' +
+      '</div>';
+    });
+
+    viewer.innerHTML = html || '<div style="text-align:center;padding:40px;color:var(--muted);">No logs match your filters.</div>';
+  }
+
+  searchInput.addEventListener('input', renderLogs);
+  sourceFilter.addEventListener('change', renderLogs);
+  severityFilter.addEventListener('change', renderLogs);
+
+  function addEvidence(text) {
+    var log = document.getElementById('evidence-log');
+    if (log.querySelector('.evidence-empty')) log.innerHTML = '';
+    var elapsed = PenumbraLabs.Timer.getElapsed();
+    var time = PenumbraLabs.Timer.format(elapsed);
+    log.innerHTML += '<div class="evidence-item"><div class="evidence-item-time">' + time + '</div><div class="evidence-item-text">' + text + '</div></div>';
+  }
+
+  // Submit findings
+  document.getElementById('btn-submit').addEventListener('click', function() {
+    var ip = document.getElementById('answer-ip').value.trim();
+    var access = document.getElementById('answer-access').value.trim().toLowerCase();
+    var exfil = document.getElementById('answer-exfil').value.trim().toLowerCase();
+
+    var allCorrect = true;
+
+    // Check attacker IP
+    if (ip === '103.78.44.91') {
+      Engine.tryCompleteObjective('attacker');
+      addEvidence('Correctly identified attacker IP: 103.78.44.91');
+    } else if (ip) {
+      Toast.show('Incorrect IP — look for an external IP that appears across multiple log sources', 'error');
+      addEvidence('Submitted incorrect attacker IP: ' + ip);
+      allCorrect = false;
+    } else {
+      allCorrect = false;
+    }
+
+    // Check access method
+    if (access.indexOf('ssh') !== -1) {
+      Engine.tryCompleteObjective('access');
+      addEvidence('Correctly identified initial access: SSH with stolen credentials');
+    } else if (access) {
+      Toast.show('Check the auth logs around 04:22 — what protocol was used?', 'error');
+      addEvidence('Submitted incorrect access method: ' + access);
+      allCorrect = false;
+    } else {
+      allCorrect = false;
+    }
+
+    // Check exfiltration
+    if ((exfil.indexOf('financial') !== -1 || exfil.indexOf('report') !== -1 || exfil.indexOf('earning') !== -1) ||
+        (exfil.indexOf('2.1') !== -1 && exfil.indexOf('gb') !== -1) ||
+        (exfil.indexOf('scp') !== -1 && exfil.indexOf('2.1') !== -1)) {
+      Engine.tryCompleteObjective('exfil');
+      addEvidence('Correctly identified exfiltrated data: financial reports (2.1 GB)');
+    } else if (exfil) {
+      Toast.show('Check the web and firewall logs — what files were accessed and how much data was transferred?', 'error');
+      addEvidence('Submitted incorrect exfiltration details: ' + exfil);
+      allCorrect = false;
+    } else {
+      allCorrect = false;
+    }
+
+    // Final submit
+    var progress = Engine.getProgress();
+    if (progress.objectivesCompleted.length >= 3 || (allCorrect && ip && access && exfil)) {
+      Engine.tryCompleteObjective('submit');
+
+      // Show debrief
+      document.getElementById('log-viewer').style.display = 'none';
+      document.getElementById('siem-header').style.display = 'none';
+      document.querySelector('.siem-summary').style.display = 'none';
+      // Hide search bar
+      var searchBar = document.querySelector('.blue-dashboard > div:nth-child(2)');
+      if (searchBar) searchBar.style.display = 'none';
+      var debrief = document.getElementById('blue-debrief');
+      debrief.style.display = '';
+      debrief.style.flex = '1';
+      debrief.style.overflowY = 'auto';
+    }
+  });
+
+  // Initial render
+  renderLogs();
+})();
+</script>

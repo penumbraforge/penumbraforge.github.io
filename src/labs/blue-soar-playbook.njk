@@ -1,0 +1,1170 @@
+---
+layout: lab-workspace-blue.njk
+permalink: /labs/blue/soar-playbook/
+labCode: "BLUE-06"
+labTitle: "Build the Playbook"
+labDifficulty: "advanced"
+labDescription: "Your SOC team gets 200 phishing alerts per week. Design a SOAR playbook that triages, enriches, and auto-remediates. Then test it against a live alert stream."
+labCompletionText: "You successfully designed a SOAR playbook that automated phishing alert triage with high accuracy."
+---
+
+<!-- Blue Team Two-Panel Layout -->
+<div class="blue-workspace">
+
+<!-- LEFT: Mission & Evidence Panel -->
+<div class="blue-mission-panel">
+  <div class="lab-panel-tabs">
+    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
+    <button class="lab-panel-tab" data-tab="evidence">Evidence</button>
+  </div>
+  <div class="lab-panel-content">
+<div class="lab-tab-content active" data-tab-content="mission">
+  <div class="lab-section-label">Scenario</div>
+  <div class="lab-scenario">
+    Your SOC team is drowning. <strong>200 phishing alerts per week</strong>, and analysts are spending 15 minutes on each one — most of which turn out to be false positives. The CISO wants automation.
+  </div>
+  <div class="lab-scenario">
+    You've been tasked with designing a <strong>SOAR playbook</strong> for phishing alert triage. Build the automation workflow by selecting enrichment steps, decision points, and response actions. Then test your playbook against a stream of 10 real alerts.
+  </div>
+  <div class="lab-scenario">
+    A good playbook <strong>enriches before deciding</strong>, catches true threats, and doesn't flood analysts with false positives. Balance automation with accuracy.
+  </div>
+
+  <div class="lab-section-label">Objectives</div>
+  <div class="lab-objective current" id="obj-enrich">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 1 — Add enrichment</span>
+      Add at least 2 enrichment steps to gather threat intelligence
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-decisions">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 2 — Add decision logic</span>
+      Add at least 2 decision points to route alerts
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-actions">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 3 — Add response actions</span>
+      Include quarantine and notification actions for malicious alerts
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-test">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 4 — Test the playbook</span>
+      Run 10 alerts through your playbook and achieve 80%+ accuracy
+    </div>
+  </div>
+
+  <div class="lab-section-label" style="margin-top:24px;">Playbook Design Tips</div>
+  <div class="lab-scenario">
+    <strong>Enrich first:</strong> Always gather data before making decisions. Check sender reputation, URL safety, and domain age before routing an alert.
+  </div>
+  <div class="lab-scenario">
+    <strong>Layer your decisions:</strong> A single check isn't enough. Combine multiple signals — a new domain with a bad sender score is much more suspicious than either alone.
+  </div>
+  <div class="lab-scenario">
+    <strong>Don't over-automate:</strong> Some alerts need human eyes. Use "create ticket" for edge cases rather than auto-closing or auto-quarantining everything.
+  </div>
+</div>
+
+<div class="lab-tab-content" data-tab-content="evidence">
+  <div class="lab-section-label">Playbook Log</div>
+  <div id="evidence-log" class="evidence-list">
+    <div class="evidence-empty">Actions will appear here as you build and test your playbook.</div>
+  </div>
+</div>
+  </div>
+</div>
+
+<!-- RIGHT: SOAR Dashboard -->
+<div class="blue-dashboard">
+
+<!-- SOAR Header -->
+<div class="siem-header" id="siem-header">
+  <div class="siem-header-title">SOAR Playbook Designer</div>
+  <div class="siem-status-bar">
+    <div class="siem-status-item">
+      <div class="siem-status-dot siem-dot-live"></div>
+      <span class="siem-status-text">Mode:</span>
+      <span class="siem-status-val" id="soar-mode">Design</span>
+    </div>
+    <div class="siem-status-item">
+      <span class="siem-status-text">Steps:</span>
+      <span class="siem-status-val" id="step-count">1</span>
+    </div>
+    <div class="siem-status-item">
+      <span class="siem-status-text">Phase:</span>
+      <span class="siem-status-val" id="phase-label">Build Playbook</span>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 1: Playbook Builder -->
+<div class="siem-content" id="builder-container" style="flex:1;overflow-y:auto;">
+  <div class="soar-builder">
+    <!-- Available Actions (left) -->
+    <div class="soar-actions-panel">
+      <div class="soar-panel-label">Available Actions</div>
+      <div class="soar-panel-hint">Click to add to your playbook</div>
+      <div id="available-actions"></div>
+    </div>
+    <!-- Playbook Flow (right) -->
+    <div class="soar-flow-panel">
+      <div class="soar-panel-label">Playbook Flow</div>
+      <div class="soar-panel-hint">Your automation workflow</div>
+      <div id="playbook-flow"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 2: Test Results -->
+<div class="siem-content" id="test-container" style="flex:1;overflow-y:auto;display:none;">
+  <div id="test-results"></div>
+</div>
+
+<!-- Debrief -->
+<div class="siem-content blue-debrief" id="blue-debrief">
+  <div class="blue-debrief-label">Debrief — SOAR Playbook Design</div>
+  <div class="blue-debrief-card">
+    <h3>Your Playbook Results</h3>
+    <div id="debrief-results"></div>
+  </div>
+  <div class="blue-debrief-card">
+    <h3>SOAR Best Practices</h3>
+    <p><strong>The enrichment-first pattern:</strong> Every effective SOAR playbook starts by gathering context. Enrichment steps (reputation checks, WHOIS lookups, sandbox analysis) transform a raw alert into an informed decision. Without enrichment, you're guessing.</p>
+    <p><strong>Decision layering:</strong> No single indicator is reliable enough to act on alone. Combine sender reputation + URL analysis + domain age for a confidence score. A new domain (< 30 days) with a low sender reputation and a blocklisted URL is almost certainly malicious. Any one of those alone might be a false positive.</p>
+    <p><strong>The automation spectrum:</strong> Not everything should be fully automated. Use a tiered approach: auto-close obvious false positives, auto-quarantine obvious threats, and route edge cases to analysts. The goal is to reduce analyst workload by 60-80%, not to replace them entirely.</p>
+  </div>
+  <div class="blue-debrief-card">
+    <h3>Enrichment Sources</h3>
+    <p><strong>VirusTotal (sender reputation):</strong> Checks the sender's email address and IP against 70+ antivirus engines and threat intelligence feeds. A score above 70 means multiple engines flagged this sender as malicious.</p>
+    <p><strong>URLhaus (URL reputation):</strong> A project by Abuse.ch that tracks malware distribution URLs. If a URL in the email appears on this blocklist, it's distributing malware or is a phishing page.</p>
+    <p><strong>WHOIS (domain age):</strong> Newly registered domains (< 30 days old) are a strong phishing indicator. Attackers register domains, use them for a campaign, and abandon them. Legitimate businesses have domains that are years old.</p>
+    <p><strong>Other sources to consider:</strong> Sandbox analysis (detonate attachments), email header analysis (SPF/DKIM/DMARC failures), and internal threat intelligence (has this sender targeted us before?).</p>
+  </div>
+  <div class="blue-debrief-card">
+    <h3>Decision Thresholds</h3>
+    <p><strong>Tuning is iterative.</strong> Start with conservative thresholds (fewer auto-actions, more analyst review) and adjust based on false positive/negative rates. Review playbook performance weekly for the first month.</p>
+    <p><strong>Sender reputation > 70:</strong> This threshold catches most known malicious senders while minimizing false positives. Lower it to 50 to be more aggressive (catches more, but more false positives). Raise it to 90 for high-confidence only.</p>
+    <p><strong>Domain age < 30 days:</strong> Most phishing domains are used within days of registration. This threshold catches the majority of phishing campaigns. Some legitimate new businesses will trigger this — route to analysts rather than auto-blocking.</p>
+  </div>
+  <div class="blue-debrief-card">
+    <h3>Automation ROI</h3>
+    <p>With 200 phishing alerts per week and 15 minutes per alert, your SOC team spends <strong>50 hours per week</strong> on phishing triage alone.</p>
+    <p>A well-tuned SOAR playbook with 80% accuracy can auto-handle 160 of those 200 alerts, reducing manual triage to <strong>10 hours per week</strong> — a 40-hour savings.</p>
+    <p>At an average analyst salary, that's approximately <strong>$100,000/year in recovered productivity</strong> — time analysts can spend on threat hunting, detection engineering, and incident response instead of repetitive triage.</p>
+  </div>
+  <div class="blue-debrief-card">
+    <h3>Iterating on Playbooks</h3>
+    <p><strong>Track metrics:</strong> Monitor true positive rate, false positive rate, mean time to respond (MTTR), and analyst override rate. If analysts are overriding the playbook frequently, your thresholds need tuning.</p>
+    <p><strong>Feedback loops:</strong> When an analyst overrides a playbook decision, capture why. Use those overrides to refine decision logic and add new enrichment sources.</p>
+    <p><strong>Version control:</strong> Treat playbooks like code. Version them, review changes, and test in staging before production. A bad playbook update can auto-close real threats or quarantine legitimate emails at scale.</p>
+    <p><strong>Continuous enrichment:</strong> As new threat intelligence feeds become available, add them as enrichment steps. The more context your playbook has, the better its decisions.</p>
+  </div>
+</div>
+
+<!-- Bottom bar -->
+<div class="siem-summary" id="summary-bar">
+  <div class="siem-summary-item">
+    <div class="siem-summary-num" id="enrich-count" style="color:#6fa8dc;">0</div>
+    <div class="siem-summary-label">Enrich</div>
+  </div>
+  <div class="siem-summary-item">
+    <div class="siem-summary-num" id="decision-count" style="color:#e8b84d;">0</div>
+    <div class="siem-summary-label">Decisions</div>
+  </div>
+  <div class="siem-summary-item">
+    <div class="siem-summary-num" id="action-count" style="color:var(--sage);">0</div>
+    <div class="siem-summary-label">Actions</div>
+  </div>
+  <div class="siem-summary-progress">
+    <div class="siem-summary-bar"><div class="siem-summary-fill" id="progress-fill" style="width:0%;"></div></div>
+    <span class="siem-summary-pct" id="progress-pct">Build your playbook</span>
+  </div>
+  <button class="siem-submit-btn" id="btn-test" disabled>Test Playbook</button>
+</div>
+
+</div><!-- /blue-dashboard -->
+</div><!-- /blue-workspace -->
+
+<style>
+/* SOAR Builder Layout */
+.soar-builder {
+  display: flex;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.soar-actions-panel {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding: 16px;
+  overflow-y: auto;
+  background: rgba(15,15,30,0.3);
+}
+
+.soar-flow-panel {
+  flex: 1;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.soar-panel-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.soar-panel-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-bottom: 16px;
+}
+
+/* Available Action Cards */
+.soar-action-card {
+  padding: 10px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms;
+  user-select: none;
+}
+.soar-action-card:hover {
+  border-color: rgba(184,165,214,0.3);
+  background: rgba(184,165,214,0.04);
+}
+.soar-action-card.disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+
+.soar-action-type {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+.type-trigger { color: #b8a5d6; background: rgba(184,165,214,0.12); }
+.type-enrich { color: #6fa8dc; background: rgba(111,168,220,0.12); }
+.type-decision { color: #e8b84d; background: rgba(232,184,77,0.12); }
+.type-action-safe { color: var(--sage); background: rgba(107,207,143,0.08); }
+.type-action-block { color: #eb5757; background: rgba(235,87,87,0.08); }
+
+.soar-action-name {
+  font-size: 12px;
+  color: var(--text-1);
+  line-height: 1.4;
+}
+.soar-action-desc {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.soar-section-divider {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin: 14px 0 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* Playbook Flow Steps */
+.flow-step {
+  position: relative;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.flow-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 18px;
+  bottom: -16px;
+  width: 2px;
+  height: 16px;
+  background: var(--border);
+}
+.flow-connector {
+  height: 16px;
+  position: relative;
+}
+.flow-connector::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--border);
+}
+.flow-connector::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--border);
+  border-top: none;
+  border-right: none;
+  transform: rotate(-45deg) translateY(-50%);
+  display: none;
+}
+
+.flow-step-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 150ms;
+}
+.flow-step-card.step-trigger { border-left: 3px solid #b8a5d6; }
+.flow-step-card.step-enrich { border-left: 3px solid #6fa8dc; }
+.flow-step-card.step-decision { border-left: 3px solid #e8b84d; }
+.flow-step-card.step-action-safe { border-left: 3px solid var(--sage); }
+.flow-step-card.step-action-block { border-left: 3px solid #eb5757; }
+
+.flow-step-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.flow-step-info { flex: 1; min-width: 0; }
+
+.flow-step-type {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.flow-step-name {
+  font-size: 12px;
+  color: var(--text-1);
+  line-height: 1.3;
+}
+
+.flow-step-logic {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.flow-step-remove {
+  font-size: 14px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  transition: color 150ms, background 150ms;
+}
+.flow-step-remove:hover { color: #eb5757; background: rgba(235,87,87,0.08); }
+
+.flow-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+/* Test Results */
+.test-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.test-header-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--text-1);
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+.test-header-sub {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.test-alert {
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(30,30,53,0.3);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: background 200ms;
+}
+.test-alert.test-correct { background: rgba(107,207,143,0.03); }
+.test-alert.test-wrong { background: rgba(235,87,87,0.03); }
+
+.test-result-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.test-alert-info { flex: 1; }
+.test-alert-subject {
+  font-size: 13px;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+.test-alert-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  line-height: 1.6;
+}
+.test-alert-verdict {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  flex-shrink: 0;
+  text-align: right;
+  line-height: 1.8;
+}
+.test-verdict-playbook { color: var(--text-2); }
+.test-verdict-correct { color: var(--sage); }
+.test-verdict-wrong { color: #eb5757; }
+
+.test-score-bar {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.test-score-num {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 400;
+}
+.test-score-detail { flex: 1; }
+.test-score-label {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--text-1);
+  margin-bottom: 2px;
+}
+.test-score-sub {
+  font-size: 12px;
+  color: var(--text-3);
+}
+</style>
+
+<script>
+(function() {
+  var Engine = PenumbraLabs.Engine;
+  var Toast = PenumbraLabs.Toast;
+
+  var LAB_CONFIG = {
+    id: 'blue-soar-playbook',
+    type: 'blue',
+    title: 'SOAR Playbook Design',
+    target: 'SOC Platform',
+    difficulty: 'advanced',
+    estimatedTime: 20,
+    xpReward: 400,
+    hintCost: [],
+    skills: ['soar-playbook-design', 'soar-automation'],
+    unlocks: [],
+    objectives: [
+      { id: 'enrich', step: 1, title: 'Add enrichment steps' },
+      { id: 'decisions', step: 2, title: 'Add decision logic' },
+      { id: 'actions', step: 3, title: 'Add response actions' },
+      { id: 'test', step: 4, title: 'Test with 80%+ accuracy' },
+    ],
+  };
+
+  Engine.init(LAB_CONFIG);
+
+  // Available playbook actions
+  var AVAILABLE_ACTIONS = [
+    {
+      id: 'enrich-sender',
+      type: 'enrich',
+      typeLabel: 'ENRICH',
+      typeClass: 'type-enrich',
+      stepClass: 'step-enrich',
+      name: 'Check sender reputation',
+      desc: 'Query VirusTotal for sender IP/email reputation score (0-100)',
+      logic: 'Returns reputation_score (0-100)',
+      category: 'enrich'
+    },
+    {
+      id: 'enrich-url',
+      type: 'enrich',
+      typeLabel: 'ENRICH',
+      typeClass: 'type-enrich',
+      stepClass: 'step-enrich',
+      name: 'Check URL reputation',
+      desc: 'Query URLhaus for known malicious URLs in the email body',
+      logic: 'Returns url_on_blocklist (true/false)',
+      category: 'enrich'
+    },
+    {
+      id: 'enrich-domain',
+      type: 'enrich',
+      typeLabel: 'ENRICH',
+      typeClass: 'type-enrich',
+      stepClass: 'step-enrich',
+      name: 'Check sender domain age',
+      desc: 'WHOIS lookup to determine how old the sender\'s domain is',
+      logic: 'Returns domain_age_days (integer)',
+      category: 'enrich'
+    },
+    {
+      id: 'decision-reputation',
+      type: 'decision',
+      typeLabel: 'DECISION',
+      typeClass: 'type-decision',
+      stepClass: 'step-decision',
+      name: 'Sender reputation > 70?',
+      desc: 'Route based on VirusTotal reputation score threshold',
+      logic: 'If score > 70 -> malicious path',
+      requires: 'enrich-sender',
+      category: 'decision'
+    },
+    {
+      id: 'decision-url',
+      type: 'decision',
+      typeLabel: 'DECISION',
+      typeClass: 'type-decision',
+      stepClass: 'step-decision',
+      name: 'URL on blocklist?',
+      desc: 'Route based on URLhaus blocklist match',
+      logic: 'If URL on blocklist -> malicious path',
+      requires: 'enrich-url',
+      category: 'decision'
+    },
+    {
+      id: 'decision-domain',
+      type: 'decision',
+      typeLabel: 'DECISION',
+      typeClass: 'type-decision',
+      stepClass: 'step-decision',
+      name: 'Domain age < 30 days?',
+      desc: 'Route based on domain registration age',
+      logic: 'If domain < 30 days -> suspicious path',
+      requires: 'enrich-domain',
+      category: 'decision'
+    },
+    {
+      id: 'action-quarantine',
+      type: 'action-block',
+      typeLabel: 'ACTION',
+      typeClass: 'type-action-block',
+      stepClass: 'step-action-block',
+      name: 'Auto-quarantine email',
+      desc: 'Move the email to quarantine and prevent delivery',
+      logic: 'Quarantines email from all mailboxes',
+      category: 'action'
+    },
+    {
+      id: 'action-block-sender',
+      type: 'action-block',
+      typeLabel: 'ACTION',
+      typeClass: 'type-action-block',
+      stepClass: 'step-action-block',
+      name: 'Block sender domain',
+      desc: 'Add the sender\'s domain to the email gateway blocklist',
+      logic: 'Blocks all future email from this domain',
+      category: 'action'
+    },
+    {
+      id: 'action-notify',
+      type: 'action-safe',
+      typeLabel: 'ACTION',
+      typeClass: 'type-action-safe',
+      stepClass: 'step-action-safe',
+      name: 'Notify user',
+      desc: 'Send a notification to the recipient about the phishing attempt',
+      logic: 'Sends awareness notification to user',
+      category: 'action'
+    },
+    {
+      id: 'action-ticket',
+      type: 'action-safe',
+      typeLabel: 'ACTION',
+      typeClass: 'type-action-safe',
+      stepClass: 'step-action-safe',
+      name: 'Create ticket for analyst',
+      desc: 'Create a JIRA ticket for manual analyst review',
+      logic: 'Escalates to L2 analyst queue',
+      category: 'action'
+    },
+    {
+      id: 'action-close',
+      type: 'action-safe',
+      typeLabel: 'ACTION',
+      typeClass: 'type-action-safe',
+      stepClass: 'step-action-safe',
+      name: 'Close as false positive',
+      desc: 'Auto-close the alert as benign',
+      logic: 'Closes alert, no further action',
+      category: 'action'
+    },
+    {
+      id: 'action-reset-password',
+      type: 'action-block',
+      typeLabel: 'ACTION',
+      typeClass: 'type-action-block',
+      stepClass: 'step-action-block',
+      name: 'Reset user password',
+      desc: 'Force password reset if user may have entered credentials',
+      logic: 'Resets password, sends reset link',
+      category: 'action'
+    }
+  ];
+
+  // Test alerts
+  var TEST_ALERTS = [
+    {
+      id: 'PHISH-001',
+      subject: 'Your account has been compromised — verify now',
+      sender: 'security@micr0soft-verify.com',
+      senderReputation: 92,
+      urlOnBlocklist: true,
+      domainAge: 3,
+      isPhishing: true,
+      detail: 'Typosquatted Microsoft domain, 3-day-old domain, known phishing URL'
+    },
+    {
+      id: 'PHISH-002',
+      subject: 'Q4 Revenue Report — Review Required',
+      sender: 'reports@salesforce.com',
+      senderReputation: 5,
+      urlOnBlocklist: false,
+      domainAge: 8420,
+      isPhishing: false,
+      detail: 'Legitimate Salesforce report notification'
+    },
+    {
+      id: 'PHISH-003',
+      subject: 'Invoice #INV-29481 attached',
+      sender: 'billing@quickbooks-secure.net',
+      senderReputation: 88,
+      urlOnBlocklist: true,
+      domainAge: 7,
+      isPhishing: true,
+      detail: 'Fake QuickBooks invoice with malicious attachment link'
+    },
+    {
+      id: 'PHISH-004',
+      subject: 'Team standup notes — March 22',
+      sender: 'sarah.martinez@company.com',
+      senderReputation: 2,
+      urlOnBlocklist: false,
+      domainAge: 4380,
+      isPhishing: false,
+      detail: 'Internal team email, legitimate sender'
+    },
+    {
+      id: 'PHISH-005',
+      subject: 'Urgent: Wire transfer approval needed',
+      sender: 'cfo@company-finance.org',
+      senderReputation: 78,
+      urlOnBlocklist: false,
+      domainAge: 12,
+      isPhishing: true,
+      detail: 'BEC attack impersonating CFO from lookalike domain'
+    },
+    {
+      id: 'PHISH-006',
+      subject: 'Your package is waiting — track delivery',
+      sender: 'notify@fedex-tracking.info',
+      senderReputation: 85,
+      urlOnBlocklist: true,
+      domainAge: 5,
+      isPhishing: true,
+      detail: 'Fake FedEx notification with credential harvesting link'
+    },
+    {
+      id: 'PHISH-007',
+      subject: 'GitHub Actions workflow failed',
+      sender: 'noreply@github.com',
+      senderReputation: 1,
+      urlOnBlocklist: false,
+      domainAge: 10227,
+      isPhishing: false,
+      detail: 'Legitimate GitHub CI/CD notification'
+    },
+    {
+      id: 'PHISH-008',
+      subject: 'Shared document: Budget 2026',
+      sender: 'share@g00gle-docs.com',
+      senderReputation: 91,
+      urlOnBlocklist: true,
+      domainAge: 2,
+      isPhishing: true,
+      detail: 'Typosquatted Google domain with phishing link'
+    },
+    {
+      id: 'PHISH-009',
+      subject: 'Benefits enrollment reminder',
+      sender: 'hr@company.com',
+      senderReputation: 3,
+      urlOnBlocklist: false,
+      domainAge: 4380,
+      isPhishing: false,
+      detail: 'Legitimate HR benefits enrollment email'
+    },
+    {
+      id: 'PHISH-010',
+      subject: 'Password expires in 24 hours — update now',
+      sender: 'admin@it-helpdesk-portal.com',
+      senderReputation: 80,
+      urlOnBlocklist: true,
+      domainAge: 14,
+      isPhishing: true,
+      detail: 'Credential harvesting page disguised as IT helpdesk'
+    }
+  ];
+
+  // Playbook state
+  var playbook = [
+    { id: 'trigger', type: 'trigger', typeLabel: 'TRIGGER', typeClass: 'type-trigger', stepClass: 'step-trigger', name: 'New phishing alert received', logic: 'Fires on every new phishing alert', fixed: true }
+  ];
+
+  var phase = 'build'; // 'build' or 'test'
+
+  // Render available actions
+  function renderActions() {
+    var container = document.getElementById('available-actions');
+    var html = '';
+    var currentCategory = '';
+    var playbookIds = playbook.map(function(s) { return s.id; });
+
+    AVAILABLE_ACTIONS.forEach(function(action) {
+      if (action.category !== currentCategory) {
+        var labels = { enrich: 'Enrichment', decision: 'Decision Logic', action: 'Response Actions' };
+        html += '<div class="soar-section-divider">' + labels[action.category] + '</div>';
+        currentCategory = action.category;
+      }
+
+      var added = playbookIds.indexOf(action.id) !== -1;
+      // Check if decision step's required enrichment is in the playbook
+      var missingReq = false;
+      if (action.requires && playbookIds.indexOf(action.requires) === -1) {
+        missingReq = true;
+      }
+
+      html += '<div class="soar-action-card' + (added || missingReq ? ' disabled' : '') + '"' +
+        (!added && !missingReq ? ' onclick="addStep(\'' + action.id + '\')"' : '') +
+        (missingReq ? ' title="Requires: ' + action.requires.replace('enrich-', 'Check ') + ' enrichment step first"' : '') +
+        '>' +
+        '<div class="soar-action-type ' + action.typeClass + '">' + action.typeLabel + '</div>' +
+        '<div class="soar-action-name">' + action.name + (added ? ' (added)' : '') + (missingReq ? ' (needs enrichment)' : '') + '</div>' +
+        '<div class="soar-action-desc">' + action.desc + '</div>' +
+      '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  // Render playbook flow
+  function renderFlow() {
+    var container = document.getElementById('playbook-flow');
+    var html = '';
+
+    if (playbook.length === 0) {
+      html = '<div class="flow-empty">Add actions from the left panel to build your playbook.</div>';
+    } else {
+      playbook.forEach(function(step, i) {
+        if (i > 0) {
+          html += '<div class="flow-connector"></div>';
+        }
+        html += '<div class="flow-step">' +
+          '<div class="flow-step-card ' + step.stepClass + '">' +
+            '<div class="flow-step-num">' + (i + 1) + '</div>' +
+            '<div class="flow-step-info">' +
+              '<div class="flow-step-type ' + step.typeClass + '">' + step.typeLabel + '</div>' +
+              '<div class="flow-step-name">' + step.name + '</div>' +
+              (step.logic ? '<div class="flow-step-logic">' + step.logic + '</div>' : '') +
+            '</div>' +
+            (step.fixed ? '' : '<button class="flow-step-remove" onclick="removeStep(' + i + ')" title="Remove step">&times;</button>') +
+          '</div>' +
+        '</div>';
+      });
+    }
+
+    container.innerHTML = html;
+
+    // Update counts
+    var enrichCount = 0, decisionCount = 0, actionCount = 0;
+    playbook.forEach(function(s) {
+      if (s.type === 'enrich') enrichCount++;
+      if (s.type === 'decision') decisionCount++;
+      if (s.type === 'action-safe' || s.type === 'action-block') actionCount++;
+    });
+
+    document.getElementById('enrich-count').textContent = enrichCount;
+    document.getElementById('decision-count').textContent = decisionCount;
+    document.getElementById('action-count').textContent = actionCount;
+    document.getElementById('step-count').textContent = playbook.length;
+
+    // Check objectives
+    if (enrichCount >= 2) {
+      Engine.tryCompleteObjective('enrich');
+    }
+    if (decisionCount >= 2) {
+      Engine.tryCompleteObjective('decisions');
+    }
+
+    // Check actions objective: need quarantine AND notify
+    var hasQuarantine = playbook.some(function(s) { return s.id === 'action-quarantine'; });
+    var hasNotify = playbook.some(function(s) { return s.id === 'action-notify'; });
+    if (hasQuarantine && hasNotify) {
+      Engine.tryCompleteObjective('actions');
+    }
+
+    // Enable test button if minimum viable playbook
+    var canTest = enrichCount >= 1 && decisionCount >= 1 && actionCount >= 1;
+    document.getElementById('btn-test').disabled = !canTest;
+
+    if (canTest) {
+      document.getElementById('progress-pct').textContent = 'Ready to test';
+      document.getElementById('progress-fill').style.width = '75%';
+    } else {
+      var progress = ((enrichCount > 0 ? 1 : 0) + (decisionCount > 0 ? 1 : 0) + (actionCount > 0 ? 1 : 0)) / 3 * 75;
+      document.getElementById('progress-fill').style.width = progress + '%';
+      var needed = [];
+      if (enrichCount === 0) needed.push('enrichment');
+      if (decisionCount === 0) needed.push('decision');
+      if (actionCount === 0) needed.push('action');
+      document.getElementById('progress-pct').textContent = 'Need: ' + needed.join(', ');
+    }
+  }
+
+  // Add step to playbook
+  window.addStep = function(actionId) {
+    if (phase !== 'build') return;
+    var action = AVAILABLE_ACTIONS.find(function(a) { return a.id === actionId; });
+    if (!action) return;
+
+    // Check if already added
+    if (playbook.some(function(s) { return s.id === actionId; })) return;
+
+    // Check requirements
+    if (action.requires && !playbook.some(function(s) { return s.id === action.requires; })) {
+      Toast.show('Add the required enrichment step first', 'error');
+      return;
+    }
+
+    playbook.push({
+      id: action.id,
+      type: action.type,
+      typeLabel: action.typeLabel,
+      typeClass: action.typeClass,
+      stepClass: action.stepClass,
+      name: action.name,
+      logic: action.logic
+    });
+
+    addEvidence('Added playbook step: [' + action.typeLabel + '] ' + action.name);
+    Toast.show('Added: ' + action.name, 'success');
+
+    renderActions();
+    renderFlow();
+  };
+
+  // Remove step from playbook
+  window.removeStep = function(index) {
+    if (phase !== 'build') return;
+    if (index === 0) return; // Can't remove trigger
+
+    var removed = playbook[index];
+
+    // Check if removing an enrichment step that a decision depends on
+    if (removed.type === 'enrich') {
+      var dependentDecision = AVAILABLE_ACTIONS.find(function(a) {
+        return a.requires === removed.id && playbook.some(function(s) { return s.id === a.id; });
+      });
+      if (dependentDecision) {
+        // Also remove the dependent decision
+        var depIdx = playbook.findIndex(function(s) { return s.id === dependentDecision.id; });
+        if (depIdx > -1) {
+          playbook.splice(depIdx, 1);
+          if (depIdx < index) index--;
+          Toast.show('Also removed dependent decision: ' + dependentDecision.name, 'info');
+        }
+      }
+    }
+
+    playbook.splice(index, 1);
+    addEvidence('Removed playbook step: [' + removed.typeLabel + '] ' + removed.name);
+    Toast.show('Removed: ' + removed.name, 'info');
+
+    renderActions();
+    renderFlow();
+  };
+
+  // Run playbook against a single alert
+  function evaluateAlert(alert) {
+    var hasSenderEnrich = playbook.some(function(s) { return s.id === 'enrich-sender'; });
+    var hasUrlEnrich = playbook.some(function(s) { return s.id === 'enrich-url'; });
+    var hasDomainEnrich = playbook.some(function(s) { return s.id === 'enrich-domain'; });
+
+    var hasRepDecision = playbook.some(function(s) { return s.id === 'decision-reputation'; });
+    var hasUrlDecision = playbook.some(function(s) { return s.id === 'decision-url'; });
+    var hasDomainDecision = playbook.some(function(s) { return s.id === 'decision-domain'; });
+
+    var hasQuarantine = playbook.some(function(s) { return s.id === 'action-quarantine'; });
+    var hasBlockSender = playbook.some(function(s) { return s.id === 'action-block-sender'; });
+    var hasNotify = playbook.some(function(s) { return s.id === 'action-notify'; });
+    var hasTicket = playbook.some(function(s) { return s.id === 'action-ticket'; });
+    var hasClose = playbook.some(function(s) { return s.id === 'action-close'; });
+    var hasResetPw = playbook.some(function(s) { return s.id === 'action-reset-password'; });
+
+    // Determine if playbook would flag this as malicious
+    var flaggedMalicious = false;
+    var flaggedSuspicious = false;
+    var actions = [];
+
+    // Check decision points in order they appear in playbook
+    playbook.forEach(function(step) {
+      if (step.id === 'decision-reputation' && hasSenderEnrich) {
+        if (alert.senderReputation > 70) {
+          flaggedMalicious = true;
+        }
+      }
+      if (step.id === 'decision-url' && hasUrlEnrich) {
+        if (alert.urlOnBlocklist) {
+          flaggedMalicious = true;
+        }
+      }
+      if (step.id === 'decision-domain' && hasDomainEnrich) {
+        if (alert.domainAge < 30) {
+          flaggedSuspicious = true;
+        }
+      }
+    });
+
+    // Determine actions taken
+    if (flaggedMalicious) {
+      if (hasQuarantine) actions.push('Quarantined');
+      if (hasBlockSender) actions.push('Sender blocked');
+      if (hasNotify) actions.push('User notified');
+      if (hasResetPw) actions.push('Password reset');
+      if (actions.length === 0) {
+        if (hasTicket) actions.push('Ticket created');
+        else actions.push('Flagged (no action defined)');
+      }
+    } else if (flaggedSuspicious) {
+      if (hasTicket) actions.push('Ticket created');
+      else if (hasQuarantine) actions.push('Quarantined');
+      else actions.push('Flagged (no action defined)');
+    } else {
+      if (hasClose) actions.push('Closed as FP');
+      else if (hasTicket) actions.push('Ticket created');
+      else actions.push('No action taken');
+    }
+
+    // Determine correctness
+    var playbookSaysPhishing = flaggedMalicious || flaggedSuspicious;
+    var isCorrect = playbookSaysPhishing === alert.isPhishing;
+
+    // Special case: if it's phishing and playbook flagged suspicious but didn't quarantine, still count as partially correct
+    // (a ticket for a real phishing email is acceptable)
+    if (alert.isPhishing && flaggedSuspicious && !flaggedMalicious && hasTicket) {
+      isCorrect = true;
+    }
+
+    return {
+      correct: isCorrect,
+      verdict: playbookSaysPhishing ? 'MALICIOUS' : 'BENIGN',
+      expectedVerdict: alert.isPhishing ? 'MALICIOUS' : 'BENIGN',
+      actions: actions
+    };
+  }
+
+  // Test playbook
+  document.getElementById('btn-test').addEventListener('click', function() {
+    if (phase === 'test') return;
+    phase = 'test';
+
+    document.getElementById('soar-mode').textContent = 'Testing';
+    document.getElementById('phase-label').textContent = 'Running Alerts';
+
+    addEvidence('Started playbook test with ' + TEST_ALERTS.length + ' alerts');
+
+    // Switch views
+    document.getElementById('builder-container').style.display = 'none';
+    document.getElementById('test-container').style.display = '';
+
+    // Run all alerts
+    var correctCount = 0;
+    var results = [];
+
+    TEST_ALERTS.forEach(function(alert) {
+      var result = evaluateAlert(alert);
+      if (result.correct) correctCount++;
+      results.push({ alert: alert, result: result });
+    });
+
+    var accuracy = Math.round((correctCount / TEST_ALERTS.length) * 100);
+
+    // Render results
+    var html = '';
+
+    // Score bar
+    var scoreColor = accuracy >= 80 ? 'var(--sage)' : accuracy >= 60 ? '#e8b84d' : '#eb5757';
+    html += '<div class="test-score-bar">' +
+      '<div class="test-score-num" style="color:' + scoreColor + ';">' + accuracy + '%</div>' +
+      '<div class="test-score-detail">' +
+        '<div class="test-score-label">' + (accuracy >= 80 ? 'Excellent accuracy' : accuracy >= 60 ? 'Decent — needs tuning' : 'Needs significant improvement') + '</div>' +
+        '<div class="test-score-sub">' + correctCount + ' of ' + TEST_ALERTS.length + ' alerts handled correctly</div>' +
+      '</div>' +
+      (accuracy < 80 ? '<button class="siem-submit-btn" onclick="backToBuild()" style="flex-shrink:0;">Revise Playbook</button>' : '') +
+    '</div>';
+
+    html += '<div class="test-header">' +
+      '<div class="test-header-title">Alert Stream Results</div>' +
+      '<div class="test-header-sub">Each alert was processed through your playbook</div>' +
+    '</div>';
+
+    results.forEach(function(r) {
+      html += '<div class="test-alert ' + (r.result.correct ? 'test-correct' : 'test-wrong') + '">' +
+        '<div class="test-result-icon">' + (r.result.correct ? '&#x2705;' : '&#x274c;') + '</div>' +
+        '<div class="test-alert-info">' +
+          '<div class="test-alert-subject">' + r.alert.subject + '</div>' +
+          '<div class="test-alert-meta">' +
+            'From: ' + r.alert.sender + '<br>' +
+            'Reputation: ' + r.alert.senderReputation + '/100 | ' +
+            'URL blocklist: ' + (r.alert.urlOnBlocklist ? 'YES' : 'no') + ' | ' +
+            'Domain age: ' + r.alert.domainAge + ' days' +
+          '</div>' +
+          '<div class="test-alert-meta" style="margin-top:4px;color:var(--text-3);">' + r.alert.detail + '</div>' +
+        '</div>' +
+        '<div class="test-alert-verdict">' +
+          '<div class="test-verdict-playbook">Playbook: ' + r.result.verdict + '</div>' +
+          '<div class="' + (r.result.correct ? 'test-verdict-correct' : 'test-verdict-wrong') + '">Actual: ' + r.result.expectedVerdict + '</div>' +
+          '<div style="color:var(--text-3);margin-top:2px;">Actions: ' + r.result.actions.join(', ') + '</div>' +
+        '</div>' +
+      '</div>';
+    });
+
+    document.getElementById('test-results').innerHTML = html;
+
+    addEvidence('Playbook test complete: ' + accuracy + '% accuracy (' + correctCount + '/' + TEST_ALERTS.length + ')');
+
+    // Update summary bar
+    document.getElementById('progress-fill').style.width = '100%';
+    document.getElementById('progress-pct').textContent = accuracy + '% accuracy';
+
+    // Update button
+    var btn = document.getElementById('btn-test');
+    if (accuracy >= 80) {
+      btn.textContent = 'View Debrief';
+      btn.disabled = false;
+      btn.onclick = function() { showDebrief(accuracy, correctCount, results); };
+      Engine.tryCompleteObjective('test');
+    } else {
+      btn.textContent = 'Revise Playbook';
+      btn.disabled = false;
+      btn.onclick = function() { backToBuild(); };
+      Toast.show('Accuracy: ' + accuracy + '% — need 80% to pass. Revise your playbook.', 'error');
+    }
+  });
+
+  // Go back to build phase
+  window.backToBuild = function() {
+    phase = 'build';
+    document.getElementById('soar-mode').textContent = 'Design';
+    document.getElementById('phase-label').textContent = 'Build Playbook';
+    document.getElementById('builder-container').style.display = '';
+    document.getElementById('test-container').style.display = 'none';
+
+    var btn = document.getElementById('btn-test');
+    btn.textContent = 'Test Playbook';
+    btn.disabled = false;
+    btn.onclick = null;
+
+    renderActions();
+    renderFlow();
+    addEvidence('Returned to playbook builder for revision');
+    Toast.show('Revise your playbook and test again', 'info');
+  };
+
+  // Show debrief
+  function showDebrief(accuracy, correctCount, results) {
+    // Build debrief results
+    var debriefHtml = '<div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;padding:20px;border-radius:10px;border:1px solid var(--border);background:var(--surface-1);">' +
+      '<div style="font-family:var(--font-display);font-size:42px;color:var(--sage);">' + accuracy + '%</div>' +
+      '<div style="flex:1;">' +
+        '<div style="font-family:var(--font-display);font-size:16px;color:var(--text-1);margin-bottom:4px;">Playbook accuracy</div>' +
+        '<div style="font-size:12px;color:var(--text-3);">' + correctCount + ' of ' + TEST_ALERTS.length + ' alerts handled correctly</div>' +
+      '</div>' +
+    '</div>';
+
+    debriefHtml += '<div style="font-size:13px;color:var(--text-2);line-height:1.7;">';
+    debriefHtml += '<p><strong>Your playbook contained ' + playbook.length + ' steps:</strong></p>';
+    debriefHtml += '<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-2);padding:12px;background:var(--surface-0);border-radius:8px;border:1px solid var(--border);margin:8px 0 16px;line-height:2;">';
+    playbook.forEach(function(step, i) {
+      debriefHtml += (i + 1) + '. [' + step.typeLabel + '] ' + step.name + '<br>';
+    });
+    debriefHtml += '</div>';
+
+    // ROI calculation
+    var autoHandled = Math.round(200 * accuracy / 100);
+    var hoursSaved = Math.round(autoHandled * 15 / 60);
+    debriefHtml += '<p><strong>Projected automation impact:</strong></p>';
+    debriefHtml += '<p>At ' + accuracy + '% accuracy on 200 weekly alerts: ~' + autoHandled + ' alerts auto-handled, saving ~' + hoursSaved + ' analyst-hours per week.</p>';
+    debriefHtml += '</div>';
+
+    document.getElementById('debrief-results').innerHTML = debriefHtml;
+
+    // Show debrief
+    document.getElementById('test-container').style.display = 'none';
+    document.getElementById('siem-header').style.display = 'none';
+    var debrief = document.getElementById('blue-debrief');
+    debrief.classList.add('visible');
+    debrief.style.flex = '1';
+    debrief.style.overflowY = 'auto';
+  }
+
+  function addEvidence(text) {
+    var log = document.getElementById('evidence-log');
+    if (log.querySelector('.evidence-empty')) log.innerHTML = '';
+    var elapsed = PenumbraLabs.Timer.getElapsed();
+    var time = PenumbraLabs.Timer.format(elapsed);
+    log.innerHTML += '<div class="evidence-item"><div class="evidence-item-time">' + time + '</div><div class="evidence-item-text">' + text + '</div></div>';
+  }
+
+  // Initial render
+  renderActions();
+  renderFlow();
+})();
+</script>
