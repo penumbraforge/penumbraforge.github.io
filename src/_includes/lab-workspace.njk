@@ -130,8 +130,43 @@
   </div>
 </div>
 
+<!-- Disclaimer gate — first-time users must acknowledge before lab loads -->
+<div id="lab-disclaimer-gate" style="display:none;position:fixed;inset:0;background:var(--surface-0);z-index:999;overflow-y:auto;">
+  <div style="max-width:600px;margin:0 auto;padding:48px 32px;text-align:center;">
+    <div style="font-size:48px;margin-bottom:16px;">&#x1f6e1;</div>
+    <h2 style="font-family:var(--font-display);font-size:24px;color:var(--text-1);font-weight:400;margin-bottom:12px;">Before You Begin</h2>
+    <p style="font-size:14px;color:var(--text-3);line-height:1.7;margin-bottom:24px;">These labs contain real, intentionally vulnerable applications running on isolated infrastructure. The techniques you learn here are powerful. Use them responsibly.</p>
+    <div style="text-align:left;background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px;">
+      <div style="font-size:13px;color:var(--text-2);line-height:1.8;">
+        <div style="margin-bottom:8px;"><span style="color:var(--sage);">&#x2713;</span> These labs are for <strong style="color:var(--text-1);">education and authorized security testing only</strong></div>
+        <div style="margin-bottom:8px;"><span style="color:var(--sage);">&#x2713;</span> All vulnerable apps run on <strong style="color:var(--text-1);">isolated Workers</strong> — your browser and this site are safe</div>
+        <div style="margin-bottom:8px;"><span style="color:var(--sage);">&#x2713;</span> No real databases, servers, or cloud resources are involved</div>
+        <div style="margin-bottom:8px;"><span style="color:#eb5757;">&#x2717;</span> Do not use these techniques against systems <strong style="color:var(--text-1);">you don't own or have authorization to test</strong></div>
+        <div><span style="color:#eb5757;">&#x2717;</span> Unauthorized computer access is <strong style="color:var(--text-1);">illegal under 18 U.S.C. § 1030</strong> and equivalent laws</div>
+      </div>
+    </div>
+    <button id="lab-disclaimer-accept" style="padding:14px 40px;background:rgba(184,165,214,0.12);color:var(--accent-strong);border:1px solid rgba(184,165,214,0.15);border-radius:10px;font-family:var(--font-sans);font-size:14px;cursor:pointer;border:1px solid rgba(184,165,214,0.2);">I Understand — Start Lab</button>
+    <p style="font-size:11px;color:var(--muted);margin-top:12px;"><a href="/labs/disclaimer/" style="color:var(--text-3);">Read full responsible use policy</a></p>
+  </div>
+</div>
+
 <!-- Lab Engine -->
 <script src="/js/lab-engine.js"></script>
+
+<!-- Disclaimer check -->
+<script>
+(function() {
+  var ACCEPTED_KEY = 'pf-labs-disclaimer-accepted';
+  if (!localStorage.getItem(ACCEPTED_KEY)) {
+    var gate = document.getElementById('lab-disclaimer-gate');
+    gate.style.display = '';
+    document.getElementById('lab-disclaimer-accept').addEventListener('click', function() {
+      localStorage.setItem(ACCEPTED_KEY, Date.now().toString());
+      gate.style.display = 'none';
+    });
+  }
+})();
+</script>
 
 <!-- Tab switching -->
 <script>

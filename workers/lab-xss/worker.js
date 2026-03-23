@@ -7,6 +7,47 @@
  * running in an isolated Worker for educational purposes.
  */
 
+const RATE_LIMIT = 100;          // max requests per window
+const RATE_WINDOW = 3600000;     // 1 hour in ms
+const rateBuckets = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  let bucket = rateBuckets.get(ip);
+
+  if (!bucket || now - bucket.start > RATE_WINDOW) {
+    bucket = { start: now, count: 0 };
+    rateBuckets.set(ip, bucket);
+  }
+
+  bucket.count++;
+
+  /* Cleanup old buckets periodically */
+  if (rateBuckets.size > 10000) {
+    for (const [k, v] of rateBuckets) {
+      if (now - v.start > RATE_WINDOW) rateBuckets.delete(k);
+    }
+  }
+
+  return bucket.count > RATE_LIMIT;
+}
+
+function rateLimitPage() {
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rate Limited</title>
+<style>
+  body { background:#0d1117; color:#c9d1d9; font-family:'Courier New',monospace; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
+  .box { text-align:center; max-width:480px; padding:48px 32px; border:1px solid #30363d; border-radius:12px; background:#161b22; }
+  h1 { font-size:20px; color:#f85149; margin-bottom:16px; }
+  p { font-size:14px; line-height:1.7; color:#8b949e; }
+</style></head>
+<body><div class="box">
+  <h1>Rate Limited</h1>
+  <p>You've been rate limited. Labs allow 100 requests per hour per IP. Try again in a few minutes.</p>
+</div></body></html>`;
+}
+
 const PRODUCTS = [
   { id: 1, name: 'Mechanical Keyboard Pro', price: '$149.99', rating: 4.8, category: 'Electronics', img: '⌨️' },
   { id: 2, name: 'Ultrawide Monitor 34"', price: '$599.99', rating: 4.6, category: 'Electronics', img: '🖥️' },
@@ -250,6 +291,15 @@ export default {
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    /* ── Rate limiting ── */
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    if (isRateLimited(ip)) {
+      return new Response(rateLimitPage(), {
+        status: 429,
+        headers: { 'Content-Type': 'text/html; charset=UTF-8', ...corsHeaders },
+      });
     }
 
     // Serve the vulnerable app
