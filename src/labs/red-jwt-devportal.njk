@@ -12,7 +12,14 @@ targetPath: "auth"
 labCompletionText: "You successfully demonstrated a JWT algorithm confusion attack, forging an unsigned admin token by exploiting the server's failure to enforce the signing algorithm, gaining full administrative access to the DevPortal API."
 ---
 
-{% block mission %}
+<!-- LEFT: Mission Panel -->
+<div class="lab-mission-panel">
+  <div class="lab-panel-tabs">
+    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
+    <button class="lab-panel-tab" data-tab="source">Source</button>
+    <button class="lab-panel-tab" data-tab="hints">Hints</button>
+  </div>
+  <div class="lab-panel-content">
 <!-- ── Mission Tab ── -->
 <div class="lab-tab-content active" data-tab-content="mission">
   <div class="lab-section-label">Scenario</div>
@@ -162,9 +169,61 @@ const decoded = jwt.verify(token, publicKey, {
     <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2015-9235" target="_blank" rel="noopener">CVE-2015-9235 — JWT alg:none bypass &#x2197;</a>
   </div>
 </div>
-{% endblock %}
+  </div>
+</div>
 
-{% block labScript %}
+<!-- CENTER: Target App -->
+<div class="lab-center">
+  <div class="lab-target-bar">
+    <div class="lab-target-dots"><div class="lab-dot lab-dot-r"></div><div class="lab-dot lab-dot-y"></div><div class="lab-dot lab-dot-g"></div></div>
+    <div class="lab-target-url"><span class="lab-target-lock">&#x1f512;</span> https://api.devportal.io/auth</div>
+  </div>
+  <iframe class="lab-target-frame" id="lab-target" sandbox="allow-scripts allow-forms allow-popups" src="https://lab-jwt.penumbraforge.workers.dev/"></iframe>
+</div>
+
+<!-- RIGHT: Inspector -->
+<div class="lab-inspector">
+  <div class="lab-panel-tabs">
+    <button class="lab-panel-tab active" data-tab="http">HTTP</button>
+    <button class="lab-panel-tab" data-tab="logs">Server Logs</button>
+    <button class="lab-panel-tab" data-tab="console">Console</button>
+  </div>
+  <div class="lab-panel-content" style="padding:0;">
+    <div class="lab-tab-content active" data-tab-content="http">
+      <div class="lab-http">
+        <div class="lab-http-section">
+          <div class="lab-http-label">Request</div>
+          <pre class="lab-http-pre" id="http-req"><span class="lab-http-method">GET</span> /auth HTTP/1.1
+<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">api.devportal.io</span>
+<span class="lab-http-hname">Authorization:</span> <span class="lab-http-hval">Bearer &lt;token&gt;</span></pre>
+        </div>
+        <div class="lab-http-section">
+          <div class="lab-http-label">Response</div>
+          <pre class="lab-http-pre" id="http-resp">HTTP/1.1 <span class="lab-http-status">200 OK</span>
+<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>
+<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span></pre>
+        </div>
+      </div>
+    </div>
+    <div class="lab-tab-content" data-tab-content="logs">
+      <div class="lab-logs" id="server-logs"></div>
+    </div>
+    <div class="lab-tab-content" data-tab-content="console">
+      <div class="lab-console">
+        <div class="lab-console-output" id="console-output">
+          <div class="c-info">Penumbra Forge Security Lab v1.0</div>
+          <div class="c-info">Target: api.devportal.io</div>
+          <div class="c-info">Type 'help' for available commands.</div>
+        </div>
+        <div class="lab-console-input-row">
+          <span class="lab-console-prefix">$</span>
+          <input type="text" class="lab-console-input" id="console-input" placeholder="Enter command..." autocomplete="off">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function() {
   var LAB_CONFIG = {
@@ -301,4 +360,3 @@ const decoded = jwt.verify(token, publicKey, {
   }
 })();
 </script>
-{% endblock %}
