@@ -1,0 +1,332 @@
+---
+layout: lab-workspace.njk
+permalink: /labs/red/race-giftrush/
+labCode: "RED-05"
+labTitle: "Race Condition — Double Spend"
+labDifficulty: "advanced"
+labDescription: "GiftRush's gift card redemption system checks the balance and deducts it in separate operations without locking. Exploit the TOCTOU window to double-spend a gift card balance."
+targetUrl: "https://giftrush.com"
+targetHost: "giftrush.com"
+workerUrl: "https://lab-race.penumbraforge.workers.dev"
+targetPath: ""
+labCompletionText: "You successfully demonstrated a race condition exploit, sending concurrent redemption requests that bypassed the balance check and achieved a double spend — proving the system lacks atomic operations and proper concurrency controls."
+---
+
+{% block mission %}
+<!-- ── Mission Tab ── -->
+<div class="lab-tab-content active" data-tab-content="mission">
+  <div class="lab-section-label">Scenario</div>
+  <div class="lab-scenario">
+    <strong>GiftRush</strong> is a gift card marketplace that lets users redeem card balances instantly. A fraud analyst noticed occasional negative balances in customer accounts — something that should be impossible. Your task: confirm if a race condition exists in the redemption flow and exploit it to achieve a double spend.
+  </div>
+
+  <div class="lab-section-label">Objectives</div>
+  <div class="lab-objective current" id="obj-recon">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 1 — Reconnaissance</span>
+      View your current gift card balance and understand the redemption flow
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-redeem">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 2 — Normal redemption</span>
+      Redeem a gift card normally to see how the balance updates
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-race">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 3 — Send concurrent requests</span>
+      Use the "Send 5x Concurrent" button to fire multiple redemption requests simultaneously
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-exploit">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 4 — Achieve double spend</span>
+      Confirm the balance went negative — proving multiple requests passed the balance check before any deduction occurred
+    </div>
+  </div>
+
+  <div class="lab-section-label" style="margin-top:24px;">Security Context</div>
+  <div class="lab-scenario">
+    This lab targets <strong>CWE-362: Concurrent Execution Using Shared Resource with Improper Synchronization</strong> (Race Condition / TOCTOU). The application checks the balance (Time of Check) and deducts it (Time of Use) as separate, non-atomic operations. When multiple requests arrive simultaneously, they all pass the balance check before any deduction is written — allowing the same balance to be spent multiple times.
+  </div>
+  <div class="lab-scenario">
+    <strong>MITRE ATT&CK:</strong> T1499.004 — Application or System Exploitation<br>
+    <strong>OWASP:</strong> A04:2021 — Insecure Design<br>
+    <strong>Real-world precedent:</strong> Starbucks (2015) — gift card race condition allowed double-spending balances via concurrent API requests
+  </div>
+</div>
+
+<!-- ── Source Tab ── -->
+<div class="lab-tab-content" data-tab-content="source">
+  <div class="lab-section-label">Vulnerable Code</div>
+  <div class="lab-source-filename">&#x1f4c4; server/routes/redeem.js</div>
+  <pre class="lab-source-pre"><span class="ln"> 1</span><span class="kw">const</span> express = <span class="fn">require</span>(<span class="str">'express'</span>);
+<span class="ln"> 2</span><span class="kw">const</span> router = express.<span class="fn">Router</span>();
+<span class="ln"> 3</span><span class="kw">const</span> db = <span class="fn">require</span>(<span class="str">'../db'</span>);
+<span class="ln"> 4</span>
+<span class="ln"> 5</span><span class="cm">// POST /redeem { cardId, amount }</span>
+<span class="ln"> 6</span>router.<span class="fn">post</span>(<span class="str">'/redeem'</span>, <span class="kw">async</span> (req, res) =&gt; {
+<span class="ln"> 7</span>  <span class="kw">const</span> { cardId, amount } = req.body;
+<span class="ln"> 8</span>
+<span class="vuln"><span class="ln"> 9</span>  <span class="cm">// Step 1: Check balance (Time of Check)</span>
+<span class="ln">10</span>  <span class="kw">const</span> card = <span class="kw">await</span> db.<span class="fn">getCard</span>(cardId);
+<span class="ln">11</span>  <span class="kw">if</span> (card.balance &lt; amount) {
+<span class="ln">12</span>    <span class="kw">return</span> res.<span class="fn">status</span>(400).<span class="fn">json</span>({ error: <span class="str">'Insufficient balance'</span> });
+<span class="ln">13</span>  }
+<span class="ln">14</span>
+<span class="ln">15</span>  <span class="cm">// &#x26a0; Gap between check and deduction — no lock held</span>
+<span class="ln">16</span>  <span class="cm">// Other requests can pass the check during this window</span>
+<span class="ln">17</span>
+<span class="ln">18</span>  <span class="cm">// Step 2: Deduct balance (Time of Use)</span>
+<span class="ln">19</span>  <span class="kw">await</span> db.<span class="fn">updateBalance</span>(cardId, card.balance - amount);</span>
+<span class="ln">20</span>
+<span class="ln">21</span>  res.<span class="fn">json</span>({ success: <span class="kw">true</span>, newBalance: card.balance - amount });
+<span class="ln">22</span>});</pre>
+
+  <div class="lab-section-label">The Fix</div>
+  <div class="lab-source-filename" style="color:var(--sage);">&#x2705; server/routes/redeem-fixed.js</div>
+  <pre class="lab-source-pre"><span class="ln"> 6</span>router.<span class="fn">post</span>(<span class="str">'/redeem'</span>, <span class="kw">async</span> (req, res) =&gt; {
+<span class="ln"> 7</span>  <span class="kw">const</span> { cardId, amount } = req.body;
+<span class="ln"> 8</span>
+<span class="ln"> 9</span>  <span class="cm">// Atomic operation — check and deduct in a single statement</span>
+<span class="ln">10</span>  <span class="kw">const</span> result = <span class="kw">await</span> db.<span class="fn">query</span>(
+<span class="ln">11</span>    <span class="str">'UPDATE cards SET balance = balance - ? WHERE id = ? AND balance &gt;= ?'</span>,
+<span class="ln">12</span>    [amount, cardId, amount]
+<span class="ln">13</span>  );
+<span class="ln">14</span>
+<span class="ln">15</span>  <span class="kw">if</span> (result.affectedRows === 0) {
+<span class="ln">16</span>    <span class="kw">return</span> res.<span class="fn">status</span>(400).<span class="fn">json</span>({ error: <span class="str">'Insufficient balance'</span> });
+<span class="ln">17</span>  }
+<span class="ln">18</span>
+<span class="ln">19</span>  <span class="cm">// Also: use database-level locks (SELECT ... FOR UPDATE)</span>
+<span class="ln">20</span>  <span class="cm">// Also: implement idempotency keys to prevent duplicate requests</span>
+<span class="ln">21</span>  res.<span class="fn">json</span>({ success: <span class="kw">true</span> });
+<span class="ln">22</span>});</pre>
+</div>
+
+<!-- ── Hints Tab ── -->
+<div class="lab-tab-content" data-tab-content="hints">
+  <div class="lab-section-label">Hints</div>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Each hint costs XP. Try to solve it without them for maximum score.</p>
+
+  <div class="lab-hint" id="hint-0">
+    <div class="lab-hint-header">
+      <span>Hint 1 — General direction</span>
+      <span class="lab-hint-cost">-10 xp</span>
+    </div>
+    <div class="lab-hint-body">This is a <strong>TOCTOU</strong> (Time of Check, Time of Use) vulnerability. The server checks your balance, then deducts it — but those are two separate operations. What happens if you send multiple requests at the exact same time? They all check the balance before any of them deducts it.</div>
+  </div>
+
+  <div class="lab-hint" id="hint-1">
+    <div class="lab-hint-header">
+      <span>Hint 2 — Attack vector</span>
+      <span class="lab-hint-cost">-25 xp</span>
+    </div>
+    <div class="lab-hint-body">A single request always works correctly — the balance check happens before the deduction. The vulnerability only appears under <strong>concurrent</strong> load. You need to send multiple identical redemption requests at exactly the same time so they all read the same balance before any write occurs.</div>
+  </div>
+
+  <div class="lab-hint" id="hint-2">
+    <div class="lab-hint-header">
+      <span>Hint 3 — Full payload</span>
+      <span class="lab-hint-cost">-50 xp</span>
+    </div>
+    <div class="lab-hint-body">Use the <strong>"Send 5x Concurrent"</strong> button in the lab interface. This fires 5 identical redemption requests simultaneously using <code>Promise.all()</code>. All 5 requests hit the server at the same instant — they all read the original balance, all pass the check, and all perform a deduction. The result: the balance goes negative, proving the double spend.</div>
+  </div>
+</div>
+
+<!-- ── Debrief (shown after completion) ── -->
+<div class="lab-debrief" id="lab-debrief">
+  <div class="lab-debrief-label">Debrief — Race Condition (TOCTOU)</div>
+
+  <h3>What happened</h3>
+  <p>GiftRush's redemption endpoint performs two operations sequentially: (1) read the balance and check if it is sufficient, then (2) calculate the new balance and write it. Between these two operations, there is no lock — so concurrent requests all read the <em>same</em> original balance, all pass the check, and all perform a deduction. The result is a balance that goes negative, meaning value was spent that didn't exist.</p>
+
+  <h3>The vulnerable code</h3>
+  <pre>// Step 1: Read balance (Time of Check)
+const card = await db.getCard(cardId);
+if (card.balance < amount) return 400;
+
+// ⚠ No lock — gap between check and use
+// Step 2: Write new balance (Time of Use)
+await db.updateBalance(cardId, card.balance - amount);</pre>
+
+  <h3>The fix</h3>
+  <p>Make the check-and-deduct operation atomic. Use a single SQL statement with a <code>WHERE</code> clause that includes the balance check, or use database-level locks (<code>SELECT ... FOR UPDATE</code>). Implement idempotency keys to prevent duplicate requests from being processed.</p>
+  <pre>// Atomic: check and deduct in one statement
+const result = await db.query(
+  'UPDATE cards SET balance = balance - ? WHERE id = ? AND balance >= ?',
+  [amount, cardId, amount]
+);
+
+// If affectedRows is 0, the balance was insufficient
+// No TOCTOU window — the database handles concurrency
+
+// Also: use SELECT ... FOR UPDATE for complex flows
+// Also: implement idempotency keys per request</pre>
+
+  <h3>Real-world impact</h3>
+  <p>Race conditions in financial operations allow attackers to create value from nothing — redeeming gift cards multiple times, withdrawing more than their balance, applying discount codes repeatedly, or exploiting any check-then-act flow. These bugs are often missed in testing because they only manifest under specific timing conditions.</p>
+  <p><strong>Starbucks (2015):</strong> Security researcher Egor Homakov discovered a race condition in the Starbucks gift card API that allowed double-spending balances by sending concurrent redemption requests. By exploiting the TOCTOU window between the balance check and the deduction, an attacker could transfer or redeem the same balance multiple times before the system updated.</p>
+
+  <h3>How to find this in the wild</h3>
+  <p>Look for any endpoint that reads a value, makes a decision based on it, and then writes a new value — especially financial operations, coupon redemptions, and vote/like systems. Use tools like Turbo Intruder (Burp Suite extension) to send dozens of identical requests with precise timing. Compare the expected final state with the actual state. If the balance is lower (or higher) than expected, you have a race condition.</p>
+
+  <div class="lab-debrief-refs">
+    <div class="lab-section-label">References</div>
+    <a href="https://owasp.org/Top10/A04_2021-Insecure_Design/" target="_blank" rel="noopener">OWASP A04:2021 — Insecure Design &#x2197;</a>
+    <a href="https://cwe.mitre.org/data/definitions/362.html" target="_blank" rel="noopener">CWE-362: Race Condition &#x2197;</a>
+    <a href="https://attack.mitre.org/techniques/T1499/004/" target="_blank" rel="noopener">MITRE ATT&CK T1499.004 — Application Exploitation &#x2197;</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block labScript %}
+<script>
+(function() {
+  var LAB_CONFIG = {
+    id: 'red-race-giftrush',
+    type: 'red',
+    title: 'Race Condition',
+    target: 'GiftRush',
+    difficulty: 'advanced',
+    estimatedTime: 20,
+    xpReward: 200,
+    hintCost: [10, 25, 50],
+    skills: ['race-condition-toctou'],
+    unlocks: ['blue-investigate-giftrush'],
+    objectives: [
+      { id: 'recon', step: 1, title: 'Reconnaissance' },
+      { id: 'redeem', step: 2, title: 'Normal Redemption' },
+      { id: 'race', step: 3, title: 'Concurrent Requests' },
+      { id: 'exploit', step: 4, title: 'Double Spend' },
+    ],
+  };
+
+  var Engine = PenumbraLabs.Engine;
+  var ServerLogs = PenumbraLabs.ServerLogs;
+
+  Engine.init(LAB_CONFIG);
+  ServerLogs.init('server-logs');
+  ServerLogs.add('info', 'GiftRush API server started on port 3000');
+  ServerLogs.add('info', 'Gift card database connected — 1 card loaded ($50.00 balance)');
+
+  var iframe = document.getElementById('lab-target');
+  var httpReq = document.getElementById('http-req');
+  var httpResp = document.getElementById('http-resp');
+
+  /* Listen for postMessage from the lab iframe */
+  window.addEventListener('message', function(event) {
+    var data;
+    try {
+      data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+    } catch(e) { return; }
+
+    if (!data || data.type !== 'race-result') return;
+
+    var action = data.action || '';
+    var balance = data.balance;
+    var doubleSpend = data.doubleSpend || false;
+    var concurrent = data.concurrent || false;
+    var requestCount = data.requestCount || 1;
+    var statusCode = data.statusCode || 200;
+
+    /* Update HTTP inspector */
+    if (action === 'balance') {
+      httpReq.innerHTML = '<span class="lab-http-method">GET</span> /balance HTTP/1.1\n' +
+        '<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">giftrush.com</span>\n' +
+        '<span class="lab-http-hname">Cookie:</span> <span class="lab-http-hval">session=user_12345</span>';
+
+      httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status">200 OK</span>\n' +
+        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n\n' +
+        '{ <span class="lab-http-hname">"balance":</span> <span class="lab-http-hval">' + balance + '</span> }';
+
+      ServerLogs.add('info', 'GET /balance — $' + balance + '.00');
+      Engine.tryCompleteObjective('recon');
+    }
+
+    if (action === 'redeem') {
+      httpReq.innerHTML = '<span class="lab-http-method">POST</span> /redeem HTTP/1.1\n' +
+        '<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">giftrush.com</span>\n' +
+        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n\n' +
+        '{ <span class="lab-http-hname">"amount":</span> <span class="lab-http-hval">' + (data.amount || 10) + '</span> }' +
+        (concurrent ? '\n\n<span class="lab-http-hval" style="color:#e8b84d;">x' + requestCount + ' concurrent requests</span>' : '');
+
+      httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status">' + statusCode + ' OK</span>\n' +
+        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n\n' +
+        '{ <span class="lab-http-hname">"newBalance":</span> <span class="lab-http-hval">' + balance + '</span> }';
+
+      if (!concurrent) {
+        ServerLogs.add('info', 'POST /redeem — $' + (data.amount || 10) + ' deducted, balance: $' + balance);
+        Engine.tryCompleteObjective('redeem');
+      }
+
+      if (concurrent) {
+        Engine.tryCompleteObjective('race');
+        ServerLogs.add('warn', requestCount + ' concurrent POST /redeem requests received');
+
+        for (var i = 0; i < requestCount; i++) {
+          ServerLogs.add('info', 'Request ' + (i + 1) + '/' + requestCount + ': balance check passed (read: $' + (data.originalBalance || 50) + ')');
+        }
+        ServerLogs.add('err', 'All ' + requestCount + ' requests passed balance check before any deduction');
+      }
+
+      /* Objective 4: Exploit — balance went negative */
+      if (doubleSpend) {
+        setTimeout(function() {
+          Engine.tryCompleteObjective('exploit');
+          ServerLogs.add('critical', 'Double spend confirmed — balance: $' + balance + ' (negative!)');
+          ServerLogs.add('critical', 'TOCTOU race condition exploited — check and deduction are not atomic');
+        }, 500);
+      }
+    }
+  });
+
+  /* Hint reveals */
+  document.querySelectorAll('.lab-hint').forEach(function(hint, idx) {
+    hint.addEventListener('click', function() {
+      if (!this.classList.contains('revealed')) {
+        this.classList.add('revealed');
+        Engine.revealHint(idx);
+      }
+    });
+  });
+
+  /* Restore previous progress */
+  var progress = Engine.getProgress();
+  progress.objectivesCompleted.forEach(function(objId) {
+    var el = document.getElementById('obj-' + objId);
+    if (el) {
+      el.classList.remove('current');
+      el.classList.add('completed');
+      el.querySelector('.lab-obj-check').textContent = '\u2713';
+    }
+  });
+
+  /* Mark current objective */
+  var foundCurrent = false;
+  LAB_CONFIG.objectives.forEach(function(obj) {
+    var el = document.getElementById('obj-' + obj.id);
+    if (!el) return;
+    if (progress.objectivesCompleted.indexOf(obj.id) === -1 && !foundCurrent) {
+      el.classList.add('current');
+      foundCurrent = true;
+    }
+  });
+
+  /* Restore revealed hints */
+  progress.hintsUsed.forEach(function(idx) {
+    var hint = document.getElementById('hint-' + idx);
+    if (hint) hint.classList.add('revealed');
+  });
+
+  function escHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+})();
+</script>
+{% endblock %}
