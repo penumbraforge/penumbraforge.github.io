@@ -8,7 +8,16 @@ labDescription: "Your SIEM fires 5 alerts overnight. Three are noise, one is a m
 labCompletionText: "You successfully triaged all alerts, correctly identifying the real incident and dismissing false positives."
 ---
 
-{% block mission %}
+<!-- Blue Team Two-Panel Layout -->
+<div class="blue-workspace">
+
+<!-- LEFT: Mission & Evidence Panel -->
+<div class="blue-mission-panel">
+  <div class="lab-panel-tabs">
+    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
+    <button class="lab-panel-tab" data-tab="evidence">Evidence</button>
+  </div>
+  <div class="lab-panel-content">
 <div class="lab-tab-content active" data-tab-content="mission">
   <div class="lab-section-label">Scenario</div>
   <div class="lab-scenario">
@@ -56,9 +65,11 @@ labCompletionText: "You successfully triaged all alerts, correctly identifying t
     <div class="evidence-empty">Evidence will appear here as you classify alerts.</div>
   </div>
 </div>
-{% endblock %}
+  </div>
+</div>
 
-{% block dashboard %}
+<!-- RIGHT: Investigation Dashboard -->
+<div class="blue-dashboard">
 <!-- SIEM Header -->
 <div class="siem-header">
   <div class="siem-header-title">Meridian SIEM — Alert Queue</div>
@@ -130,9 +141,9 @@ labCompletionText: "You successfully triaged all alerts, correctly identifying t
   </div>
   <button class="siem-submit-btn" id="btn-submit" disabled>Submit Classifications</button>
 </div>
-{% endblock %}
 
-{% block labScript %}
+</div><!-- /blue-dashboard -->
+</div><!-- /blue-workspace -->
 <script>
 (function() {
   var ALERTS = [
@@ -382,4 +393,3 @@ labCompletionText: "You successfully triaged all alerts, correctly identifying t
   });
 })();
 </script>
-{% endblock %}

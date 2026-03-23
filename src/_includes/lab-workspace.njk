@@ -121,11 +121,54 @@
       if (!cmd) return;
       var out = document.getElementById('console-output');
       out.innerHTML += '<div><span class="c-prompt">$ </span>' + cmd.replace(/</g, '&lt;') + '</div>';
-      if (cmd === 'help') out.innerHTML += '<div class="c-info">Commands: help, curl, cookie, clear, whoami</div>';
-      else if (cmd === 'cookie') out.innerHTML += '<div class="c-ok">session=eyJhZG1pbiI6ZmFsc2V9</div>';
-      else if (cmd === 'whoami') out.innerHTML += '<div class="c-info">guest (unauthenticated)</div>';
-      else if (cmd === 'clear') out.innerHTML = '';
-      else out.innerHTML += '<div class="c-err">Unknown: ' + cmd.replace(/</g, '&lt;') + '</div>';
+
+      if (cmd === 'help') {
+        out.innerHTML += '<div class="c-info">Available commands:</div>';
+        out.innerHTML += '<div class="c-info">  help          — show this help</div>';
+        out.innerHTML += '<div class="c-info">  curl [url]    — simulate an HTTP request</div>';
+        out.innerHTML += '<div class="c-info">  nmap [target] — simulate a port scan</div>';
+        out.innerHTML += '<div class="c-info">  dig [domain]  — simulate DNS lookup</div>';
+        out.innerHTML += '<div class="c-info">  cookie        — show current session cookie</div>';
+        out.innerHTML += '<div class="c-info">  headers       — show response headers</div>';
+        out.innerHTML += '<div class="c-info">  clear         — clear console</div>';
+      } else if (cmd === 'cookie' || cmd === 'document.cookie') {
+        out.innerHTML += '<div class="c-ok">session=eyJhZG1pbiI6ZmFsc2UsInVzZXIiOiJndWVzdCJ9</div>';
+        out.innerHTML += '<div class="c-info">Decoded: {"admin":false,"user":"guest"}</div>';
+      } else if (cmd === 'headers') {
+        out.innerHTML += '<div>HTTP/1.1 200 OK</div>';
+        out.innerHTML += '<div>Content-Type: text/html; charset=UTF-8</div>';
+        out.innerHTML += '<div>X-Powered-By: Express</div>';
+        out.innerHTML += '<div class="c-err">No Content-Security-Policy header found</div>';
+        out.innerHTML += '<div class="c-err">No X-Frame-Options header found</div>';
+      } else if (cmd === 'clear') {
+        out.innerHTML = '';
+      } else if (cmd.startsWith('curl')) {
+        var url = cmd.replace('curl', '').replace('-I', '').replace('-v', '').trim();
+        if (url) {
+          out.innerHTML += '<div class="c-info">Connecting to ' + url.replace(/</g, '&lt;') + '...</div>';
+          out.innerHTML += '<div>HTTP/1.1 200 OK</div>';
+          out.innerHTML += '<div>Content-Type: text/html</div>';
+          out.innerHTML += '<div class="c-ok">&lt;html&gt;...response body...&lt;/html&gt;</div>';
+        } else {
+          out.innerHTML += '<div class="c-err">Usage: curl [url]</div>';
+        }
+      } else if (cmd.startsWith('nmap')) {
+        var target = cmd.replace('nmap', '').trim();
+        out.innerHTML += '<div class="c-info">Starting Nmap scan of ' + (target || 'target').replace(/</g, '&lt;') + '</div>';
+        out.innerHTML += '<div>PORT     STATE  SERVICE</div>';
+        out.innerHTML += '<div>22/tcp   open   ssh</div>';
+        out.innerHTML += '<div>80/tcp   open   http</div>';
+        out.innerHTML += '<div>443/tcp  open   https</div>';
+        out.innerHTML += '<div>3000/tcp open   node</div>';
+        out.innerHTML += '<div class="c-info">4 ports open</div>';
+      } else if (cmd.startsWith('dig')) {
+        var domain = cmd.replace('dig', '').trim();
+        out.innerHTML += '<div class="c-info">;; ANSWER SECTION:</div>';
+        out.innerHTML += '<div>' + (domain || 'target.com').replace(/</g, '&lt;') + '  300  IN  A  104.21.48.12</div>';
+        out.innerHTML += '<div>' + (domain || 'target.com').replace(/</g, '&lt;') + '  300  IN  A  172.67.154.8</div>';
+      } else {
+        out.innerHTML += '<div class="c-err">Command not found: ' + cmd.replace(/</g, '&lt;') + '. Type "help" for available commands.</div>';
+      }
       this.value = '';
       out.scrollTop = out.scrollHeight;
     });
