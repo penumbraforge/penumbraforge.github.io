@@ -40,6 +40,9 @@
   <button class="lab-topbar-reset" onclick="location.reload()">Reset Lab</button>
 </div>
 
+<!-- Lab Engine (must load before lab content scripts) -->
+<script src="/js/lab-engine.js"></script>
+
 <!-- Blue Team Workspace — content injected from child template -->
 {{ content | safe }}
 
@@ -79,8 +82,7 @@
   </div>
 </div>
 
-<!-- Lab Engine + Core Scripts -->
-<script src="/js/lab-engine.js"></script>
+<!-- Core Scripts -->
 <script>
 (function() {
   var ACCEPTED_KEY = 'pf-labs-disclaimer-accepted';
