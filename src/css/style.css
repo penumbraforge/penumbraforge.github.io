@@ -4799,10 +4799,11 @@ a.t-card {
 .sidebar-search-icon {
   position: absolute;
   left: 28px;
-  top: 26px;
+  top: 27px;
   color: var(--text-3);
-  font-size: 13px;
   pointer-events: none;
+  display: flex;
+  align-items: center;
 }
 
 .sidebar-search-kbd {
@@ -5089,7 +5090,7 @@ a.t-card {
   justify-content: flex-start;
   width: 260px;
   min-width: 260px;
-  padding: 20px 20px 20px 20px;
+  padding: 16px 20px;
   border-right: 1px solid var(--border);
 }
 
