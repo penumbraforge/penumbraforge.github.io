@@ -1,0 +1,112 @@
+---
+layout: base.njk
+title: "Security Labs — Learn by Breaking Things | Penumbra Forge"
+description: "Free browser-based security labs. Attack real vulnerabilities (red team) and investigate the same incidents (blue team). No setup, no accounts, no risk."
+permalink: /labs/
+---
+
+<link rel="stylesheet" href="/css/labs.css">
+
+<header class="site-header" style="padding: 16px 40px;">
+  <a href="/" class="site-header-brand">
+    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+    <span class="site-header-name">Penumbra Forge</span>
+  </a>
+  <nav class="site-header-nav">
+    <a href="/">Home</a>
+    <a href="/tools/">Tools</a>
+    <a href="/labs/" class="active">Labs</a>
+    <a href="/gate/">Gate</a>
+    <a href="/librarian/">Librarian</a>
+    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div style="max-width:1100px;margin:0 auto;padding:48px 40px;">
+
+  <!-- Hero -->
+  <div style="text-align:center;margin-bottom:48px;">
+    <div style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--accent);margin-bottom:16px;">Security Labs</div>
+    <h1 style="font-family:var(--font-display);font-size:42px;font-weight:400;color:var(--text-1);margin-bottom:14px;letter-spacing:-0.5px;">Attack it. <strong style="font-weight:500;">Investigate it.</strong> Fix it.</h1>
+    <p style="font-size:16px;color:var(--text-3);max-width:600px;margin:0 auto 24px;line-height:1.7;">Real vulnerabilities. Real investigations. Browser-based labs with no setup, no accounts, and no risk. Learn offense and defense on the same incident.</p>
+    <div style="display:flex;justify-content:center;gap:40px;margin-bottom:20px;">
+      <div style="text-align:center;"><div style="font-family:var(--font-display);font-size:28px;color:var(--text-1);line-height:1;">1</div><div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);">Labs Live</div></div>
+      <div style="text-align:center;"><div style="font-family:var(--font-display);font-size:28px;color:var(--text-1);line-height:1;">2</div><div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);">Tracks</div></div>
+      <div style="text-align:center;"><div style="font-family:var(--font-display);font-size:28px;color:var(--text-1);line-height:1;">0</div><div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);">Setup Required</div></div>
+    </div>
+    <div style="display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;color:var(--sage);background:rgba(107,207,143,0.05);border:1px solid rgba(107,207,143,0.1);padding:6px 16px;border-radius:20px;">&#x1f512; Real vulnerabilities on isolated origins — your browser and this site are never at risk</div>
+  </div>
+
+  <!-- Red Team Labs -->
+  <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:16px;">&#x1f534; Red Team — Offensive Labs</div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:48px;">
+
+    <!-- RED-01: ShopStack XSS -->
+    <a href="/labs/red/xss-shopstack/" style="text-decoration:none;color:inherit;">
+      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface-1);overflow:hidden;transition:all 400ms cubic-bezier(0.2,0,0,1);cursor:pointer;">
+        <div style="height:120px;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;position:relative;">
+          <span style="font-size:48px;opacity:0.12;position:absolute;">&#x1f6d2;</span>
+          <span style="font-family:var(--font-display);font-size:22px;color:#ff6b6b;font-weight:500;position:relative;">ShopStack</span>
+        </div>
+        <div style="padding:16px 20px 12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">RED-01</span>
+            <span class="lab-topbar-diff diff-beginner" style="font-size:9px;">beginner</span>
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-left:auto;">~10 min</span>
+          </div>
+          <div style="font-family:var(--font-display);font-size:16px;color:var(--text-1);font-weight:500;margin-bottom:6px;">Reflected XSS — Product Search</div>
+          <div style="font-size:12px;color:var(--text-3);line-height:1.5;margin-bottom:12px;">ShopStack's search page reflects user input without sanitization. Find the injection point, achieve JavaScript execution, and steal the admin session cookie.</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;">
+            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">XSS</span>
+            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">CWE-79</span>
+            <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border);">OWASP A03</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border);">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--accent);">Start lab &#x2192;</span>
+          <span style="font-family:var(--font-mono);font-size:10px;color:#e8b84d;">+100 xp</span>
+        </div>
+      </div>
+    </a>
+
+    <!-- Coming soon placeholder -->
+    <div style="border:1px dashed var(--border);border-radius:14px;background:var(--surface-1);overflow:hidden;opacity:0.5;">
+      <div style="height:120px;background:linear-gradient(135deg,#0d1117,#161b22);display:flex;align-items:center;justify-content:center;">
+        <span style="font-family:var(--font-display);font-size:22px;color:#58a6ff;font-weight:500;">VaultBank</span>
+      </div>
+      <div style="padding:16px 20px 12px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">RED-02</span>
+          <span class="lab-topbar-diff diff-intermediate" style="font-size:9px;">intermediate</span>
+        </div>
+        <div style="font-family:var(--font-display);font-size:16px;color:var(--text-1);font-weight:500;margin-bottom:6px;">SQL Injection — Account Lookup</div>
+        <div style="font-size:12px;color:var(--text-3);line-height:1.5;">Coming soon — real SQLite database with UNION-based injection.</div>
+      </div>
+      <div style="padding:12px 20px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:11px;color:var(--muted);">Coming soon</div>
+    </div>
+  </div>
+
+  <!-- Blue Team Labs -->
+  <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:16px;">&#x1f535; Blue Team — Defensive Labs</div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:48px;">
+    <div style="border:1px dashed var(--border);border-radius:14px;background:var(--surface-1);overflow:hidden;opacity:0.5;">
+      <div style="height:120px;background:linear-gradient(135deg,#0a0f1a,#101828);display:flex;align-items:center;justify-content:center;">
+        <span style="font-family:var(--font-display);font-size:22px;color:#82aaff;font-weight:500;">SOC Station</span>
+      </div>
+      <div style="padding:16px 20px 12px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">BLUE-01</span>
+          <span class="lab-topbar-diff diff-beginner" style="font-size:9px;">beginner</span>
+        </div>
+        <div style="font-family:var(--font-display);font-size:16px;color:var(--text-1);font-weight:500;margin-bottom:6px;">Alert Triage — Is This Real?</div>
+        <div style="font-size:12px;color:var(--text-3);line-height:1.5;">Coming soon — classify alerts under pressure, separate signal from noise.</div>
+      </div>
+      <div style="padding:12px 20px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:11px;color:var(--muted);">Coming soon</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/js/lab-engine.js"></script>

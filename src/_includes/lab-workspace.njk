@@ -1,0 +1,179 @@
+{# Lab Workspace — three-panel layout for red team labs #}
+{% extends "base.njk" %}
+
+{% block title %}{{ labTitle }} — Security Labs | Penumbra Forge{% endblock %}
+{% block description %}{{ labDescription }}{% endblock %}
+
+{% block head %}
+<meta property="og:title" content="{{ labTitle }} — Penumbra Forge Security Labs">
+<meta property="og:description" content="{{ labDescription }}">
+<meta property="og:image" content="{{ site.url }}/og-image.png">
+<meta property="og:url" content="{{ site.url }}{{ page.url }}">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="/css/labs.css">
+
+<!-- Topbar -->
+<div class="lab-topbar">
+  <a href="/" class="lab-topbar-brand">
+    <div class="lab-topbar-orb"></div>
+    <span>Penumbra Forge</span>
+  </a>
+  <div class="lab-topbar-sep"></div>
+  <a href="/labs/" class="lab-topbar-back">&#x2190; Labs</a>
+  <div class="lab-topbar-sep"></div>
+  <span class="lab-topbar-title">{{ labCode }} — {{ labTitle }}</span>
+  <span class="lab-topbar-diff diff-{{ labDifficulty }}">{{ labDifficulty }}</span>
+  <span class="lab-topbar-timer" id="lab-timer">00:00</span>
+  <button class="lab-topbar-reset" onclick="location.reload()">Reset Lab</button>
+</div>
+
+<!-- Workspace -->
+<div class="lab-workspace">
+
+  <!-- LEFT: Mission Panel -->
+  <div class="lab-mission-panel">
+    <div class="lab-panel-tabs">
+      <button class="lab-panel-tab active" data-tab="mission">Mission</button>
+      <button class="lab-panel-tab" data-tab="source">Source</button>
+      <button class="lab-panel-tab" data-tab="hints">Hints</button>
+    </div>
+    <div class="lab-panel-content">
+      {% block mission %}{% endblock %}
+    </div>
+  </div>
+
+  <!-- CENTER: Target App -->
+  <div class="lab-center">
+    <div class="lab-target-bar">
+      <div class="lab-target-dots">
+        <div class="lab-dot lab-dot-r"></div>
+        <div class="lab-dot lab-dot-y"></div>
+        <div class="lab-dot lab-dot-g"></div>
+      </div>
+      <div class="lab-target-url">
+        <span class="lab-target-lock">&#x1f512;</span> {{ targetUrl }}
+      </div>
+    </div>
+    <iframe
+      class="lab-target-frame"
+      id="lab-target"
+      sandbox="allow-scripts allow-forms allow-popups"
+      src="{{ workerUrl }}/{{ targetPath or '' }}"
+    ></iframe>
+  </div>
+
+  <!-- RIGHT: Inspector -->
+  <div class="lab-inspector">
+    <div class="lab-panel-tabs">
+      <button class="lab-panel-tab active" data-tab="http">HTTP</button>
+      <button class="lab-panel-tab" data-tab="logs">Server Logs</button>
+      <button class="lab-panel-tab" data-tab="console">Console</button>
+    </div>
+    <div class="lab-panel-content" style="padding:0;">
+      <div class="lab-tab-content active" data-tab-content="http">
+        <div class="lab-http" id="lab-http">
+          <div class="lab-http-section">
+            <div class="lab-http-label">Request</div>
+            <pre class="lab-http-pre" id="http-req"><span class="lab-http-method">GET</span> / HTTP/1.1
+<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">{{ targetHost }}</span>
+<span class="lab-http-hname">Cookie:</span> <span class="lab-http-hval">session=eyJhZG1pbiI6ZmFsc2V9</span></pre>
+          </div>
+          <div class="lab-http-section">
+            <div class="lab-http-label">Response</div>
+            <pre class="lab-http-pre" id="http-resp">HTTP/1.1 <span class="lab-http-status">200 OK</span>
+<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">text/html; charset=UTF-8</span>
+<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span></pre>
+          </div>
+        </div>
+      </div>
+      <div class="lab-tab-content" data-tab-content="logs">
+        <div class="lab-logs" id="server-logs"></div>
+      </div>
+      <div class="lab-tab-content" data-tab-content="console">
+        <div class="lab-console">
+          <div class="lab-console-output" id="console-output">
+            <div class="c-info">Penumbra Forge Security Lab v1.0</div>
+            <div class="c-info">Target: {{ targetHost }}</div>
+            <div class="c-info">Type 'help' for available commands.</div>
+          </div>
+          <div class="lab-console-input-row">
+            <span class="lab-console-prefix">$</span>
+            <input type="text" class="lab-console-input" id="console-input" placeholder="Enter command..." autocomplete="off">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Completion Overlay -->
+<div class="lab-complete-overlay" id="lab-complete-overlay">
+  <div class="lab-complete-card">
+    <div class="lab-complete-icon">&#x1f3c6;</div>
+    <div class="lab-complete-title">Lab Complete</div>
+    <div class="lab-complete-sub">{{ labCompletionText or 'You successfully completed the lab objectives.' }}</div>
+    <div class="lab-complete-stats">
+      <div class="lab-complete-stat"><div class="lab-complete-stat-num" id="complete-time">0:00</div><div class="lab-complete-stat-label">Time</div></div>
+      <div class="lab-complete-stat"><div class="lab-complete-stat-num" id="complete-score">0</div><div class="lab-complete-stat-label">Score</div></div>
+      <div class="lab-complete-stat"><div class="lab-complete-stat-num" id="complete-xp">+0</div><div class="lab-complete-stat-label">XP</div></div>
+      <div class="lab-complete-stat"><div class="lab-complete-stat-num" id="complete-hints">0</div><div class="lab-complete-stat-label">Hints</div></div>
+    </div>
+    <div class="lab-complete-level" id="complete-level"></div>
+    <div class="lab-complete-actions">
+      <button class="lab-complete-btn lab-complete-btn-primary" onclick="document.getElementById('lab-complete-overlay').classList.remove('visible')">View Debrief</button>
+      <a class="lab-complete-btn lab-complete-btn-secondary" id="complete-unlock" href="/labs/" style="display:none;text-decoration:none;">Next Lab &#x2192;</a>
+    </div>
+  </div>
+</div>
+
+<!-- Lab Engine -->
+<script src="/js/lab-engine.js"></script>
+
+<!-- Tab switching -->
+<script>
+document.querySelectorAll('.lab-panel-tabs').forEach(function(tabs) {
+  var panel = tabs.closest('.lab-mission-panel, .lab-inspector');
+  tabs.querySelectorAll('.lab-panel-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var tabName = this.getAttribute('data-tab');
+      tabs.querySelectorAll('.lab-panel-tab').forEach(function(t) { t.classList.remove('active'); });
+      this.classList.add('active');
+      panel.querySelectorAll('.lab-tab-content').forEach(function(c) {
+        c.classList.toggle('active', c.getAttribute('data-tab-content') === tabName);
+      });
+    });
+  });
+});
+
+// Console input
+document.getElementById('console-input').addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  var cmd = this.value.trim();
+  if (!cmd) return;
+  var out = document.getElementById('console-output');
+  out.innerHTML += '<div><span class="c-prompt">$ </span>' + cmd.replace(/</g, '&lt;') + '</div>';
+  if (cmd === 'help') {
+    out.innerHTML += '<div class="c-info">Commands: help, curl [url], cookie, clear, whoami</div>';
+  } else if (cmd === 'cookie') {
+    out.innerHTML += '<div class="c-ok">session=eyJhZG1pbiI6ZmFsc2UsInVzZXIiOiJndWVzdCJ9</div>';
+  } else if (cmd === 'whoami') {
+    out.innerHTML += '<div class="c-info">guest (unauthenticated)</div>';
+  } else if (cmd === 'clear') {
+    out.innerHTML = '';
+  } else if (cmd.startsWith('curl')) {
+    out.innerHTML += '<div class="c-info">Fetching...</div>';
+  } else {
+    out.innerHTML += '<div class="c-err">Unknown command: ' + cmd.replace(/</g, '&lt;') + '</div>';
+  }
+  this.value = '';
+  out.scrollTop = out.scrollHeight;
+});
+</script>
+
+<!-- Lab-specific logic -->
+{% block labScript %}{% endblock %}
+{% endblock %}

