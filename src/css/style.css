@@ -5104,27 +5104,48 @@ a.t-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 40px;
-  border-top: 1px solid rgba(184, 165, 214, 0.04);
+  padding: 28px 48px;
+  border-top: 1px solid var(--border);
   font-size: 11px;
-  color: #444;
+  color: var(--muted);
   background: var(--surface-0);
   max-width: none;
   margin: 0;
+  flex-shrink: 0;
 }
 
-.tool-footer-unified .footer-left { flex-shrink: 0; }
-.tool-footer-unified .footer-center { display: flex; gap: 20px; }
-.tool-footer-unified .footer-right { display: flex; gap: 20px; flex-shrink: 0; }
-.tool-footer-unified a { color: #444; text-decoration: none; transition: color 200ms; }
+.tool-footer-unified .footer-left {
+  flex-shrink: 0;
+  color: var(--text-3);
+}
+
+.tool-footer-unified .footer-center {
+  display: flex;
+  gap: 28px;
+}
+
+.tool-footer-unified .footer-right {
+  display: flex;
+  gap: 24px;
+  flex-shrink: 0;
+}
+
+.tool-footer-unified .footer-links { display: none; }
+
+.tool-footer-unified a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 200ms;
+}
+
 .tool-footer-unified a:hover { color: var(--accent); }
 
 @media (max-width: 768px) {
   .tool-footer-unified {
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     text-align: center;
-    padding: 24px;
+    padding: 28px 24px;
   }
 }
 
