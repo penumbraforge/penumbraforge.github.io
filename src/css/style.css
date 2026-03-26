@@ -452,6 +452,7 @@ a:hover {
     justify-content: center;
     gap: 4px;
     padding: 60px 24px 40px;
+    animation: menuFadeIn 200ms ease;
   }
 
   .home-nav.open a {
@@ -467,10 +468,28 @@ a:hover {
     width: 100%;
     max-width: 300px;
     border-radius: 10px;
+    animation: menuItemFadeIn 300ms ease both;
   }
+
+  .home-nav.open a:nth-child(2) { animation-delay: 30ms; }
+  .home-nav.open a:nth-child(3) { animation-delay: 60ms; }
+  .home-nav.open a:nth-child(4) { animation-delay: 90ms; }
+  .home-nav.open a:nth-child(5) { animation-delay: 120ms; }
+  .home-nav.open a:nth-child(6) { animation-delay: 150ms; }
+  .home-nav.open a:nth-child(7) { animation-delay: 180ms; }
 
   .home-nav.open a:active {
     background: rgba(184, 165, 214, 0.1);
+  }
+
+  @keyframes menuFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes menuItemFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .home-nav.open .home-nav-toggle svg .hamburger-top {
@@ -1238,6 +1257,20 @@ html {
   font-weight: 400;
   color: var(--text-1);
   letter-spacing: 0.3px;
+}
+
+/* Hamburger toggle for inner pages — hidden on desktop */
+.site-header-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 8px;
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
 }
 
 .site-header-nav {
@@ -4567,29 +4600,75 @@ a.t-card {
   }
 
   .site-header {
-    flex-wrap: wrap;
     gap: 12px;
   }
 
-  .site-header-brand {
-    flex: 0 0 auto;
+  .site-header-toggle {
+    display: flex;
+    margin-left: auto;
   }
 
   .site-header-nav {
-    flex-basis: 100%;
-    flex-wrap: wrap;
-    gap: 6px 16px;
-    order: 2;
-    padding-top: 8px;
-    border-top: 1px solid rgba(184, 165, 214, 0.06);
+    display: none;
   }
 
-  .site-header-nav a {
-    font-size: 12px;
-    padding: 8px 4px;
-    min-height: 44px;
-    display: inline-flex;
+  .site-header.open {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 200;
+    background: rgba(5, 5, 9, 0.98);
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .site-header.open .site-header-brand {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+  }
+
+  .site-header.open .site-header-toggle {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+  }
+
+  .site-header.open .site-header-sidebar {
+    display: none;
+  }
+
+  .site-header.open .site-header-main {
+    display: contents;
+  }
+
+  .site-header.open .site-header-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .site-header.open .site-header-nav a {
+    font-size: 18px;
+    font-family: var(--font-display);
+    color: var(--text-1);
+    padding: 14px 32px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 280px;
+    border-radius: 10px;
+  }
+
+  .site-header.open .site-header-nav a:active {
+    background: rgba(184, 165, 214, 0.1);
   }
 
   /* == 2. HERO SECTION == */
