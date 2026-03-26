@@ -3,207 +3,239 @@ toolSlug: view-lock
 permalink: /tools/view-lock/
 ---
 
-<div class="vl-hero">
-  <div class="vl-hero-icon" aria-hidden="true">
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-      <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
-      <line x1="12" y1="16" x2="12" y2="16.01"/>
-    </svg>
-  </div>
-  <div class="vl-hero-text">
-    <p class="vl-hero-desc">Decrypt ciphertext produced by <a href="/tools/secret-lock/">Secret Lock</a> using your passphrase. Decryption runs entirely in your browser via the Web Crypto API — the plaintext is never transmitted to any server.</p>
-  </div>
+<p style="margin:0 0 1.5rem; font-size:0.9375rem; line-height:1.65; color:var(--text-2,#94a3b8);">
+  Decrypt ciphertext produced by <a href="/tools/secret-lock/" style="color:#818cf8;">Secret Lock</a> using your passphrase. All decryption runs entirely in your browser via the Web Crypto API — the plaintext is never transmitted to any server.
+</p>
+
+<div class="tool-group">
+  <label for="vl-ciphertext">Encrypted ciphertext</label>
+  <textarea id="vl-ciphertext" rows="5" placeholder="Paste the base64 ciphertext from Secret Lock..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
 </div>
 
-<div class="vl-launch">
-  <a href="https://tools.penumbraforge.com/view-lock" target="_blank" rel="noopener" class="btn btn--primary vl-launch-btn">
-    Open View Lock &rarr;
-  </a>
-  <p class="vl-launch-note">Opens on <strong>tools.penumbraforge.com</strong> — powered by Cloudflare Workers</p>
+<div class="tool-group">
+  <label for="vl-passphrase">Passphrase</label>
+  <input type="password" id="vl-passphrase" placeholder="Enter the passphrase used to encrypt this secret" autocomplete="off">
 </div>
 
-<hr class="vl-divider">
-
-<div class="vl-how">
-  <h2 class="vl-section-title">How decryption works</h2>
-  <ol class="vl-steps">
-    <li class="vl-step">
-      <span class="vl-step-num">1</span>
-      <div class="vl-step-body">
-        <strong>Paste the ciphertext</strong>
-        <p>Your colleague or sender gives you a base64-encoded ciphertext string created by Secret Lock. Paste it into the input field.</p>
-      </div>
-    </li>
-    <li class="vl-step">
-      <span class="vl-step-num">2</span>
-      <div class="vl-step-body">
-        <strong>Enter the shared passphrase</strong>
-        <p>Type the passphrase that was used to encrypt the secret. This should have been communicated to you through a separate, trusted channel (not the same place you received the ciphertext).</p>
-      </div>
-    </li>
-    <li class="vl-step">
-      <span class="vl-step-num">3</span>
-      <div class="vl-step-body">
-        <strong>Client-side key derivation and decryption</strong>
-        <p>Your passphrase is run through PBKDF2 (100,000 iterations, SHA-256) to derive the same 256-bit AES key used during encryption. The IV is extracted from the ciphertext header. AES-GCM authentication is verified — if the passphrase is wrong or the data is tampered, decryption fails with an explicit error.</p>
-      </div>
-    </li>
-    <li class="vl-step">
-      <span class="vl-step-num">4</span>
-      <div class="vl-step-body">
-        <strong>Plaintext appears locally</strong>
-        <p>The decrypted secret appears on your screen. Nothing was sent to any server — all cryptographic operations ran in your browser via the Web Crypto API.</p>
-      </div>
-    </li>
-  </ol>
+<div class="tool-row">
+  <button class="btn btn--primary" id="vl-decrypt-btn">Decrypt</button>
 </div>
 
-<hr class="vl-divider">
+<div id="vl-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
 
-<div class="vl-security">
-  <h2 class="vl-section-title">Security properties</h2>
-  <div class="vl-prop-grid">
-    <div class="vl-prop">
-      <span class="vl-prop-label">Encryption algorithm</span>
-      <span class="vl-prop-value">AES-GCM 256-bit</span>
+<div class="output-area" id="vl-output-area" style="display:none;">
+  <button class="btn btn--copy" id="vl-copy-btn" aria-label="Copy plaintext">Copy</button>
+  <pre id="vl-output" aria-label="Decrypted plaintext" style="white-space:pre-wrap; word-break:break-word;"></pre>
+</div>
+
+<p style="margin:1.25rem 0 0; font-size:0.8125rem; color:var(--text-3,#888);">
+  Need to encrypt a secret first? Use <a href="/tools/secret-lock/" style="color:#818cf8;">Secret Lock</a>.
+</p>
+
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border,#2a2a3a);">
+
+<div>
+  <h2 style="font-size:1.1rem; font-weight:700; margin:0 0 1.25rem; color:var(--text-1,#e2e8f0);">Security properties</h2>
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:0.6rem;">
+    <div style="display:flex; flex-direction:column; gap:0.2rem; padding:0.875rem 1rem; background:var(--surface-1,#1a1a2e); border:1px solid var(--border,#2a2a3a); border-radius:8px;">
+      <span style="font-size:0.75rem; color:var(--text-3,#888); text-transform:uppercase; letter-spacing:0.04em;">Encryption algorithm</span>
+      <span style="font-size:0.875rem; font-family:var(--font-mono,monospace); color:#4ade80;">AES-GCM 256-bit</span>
     </div>
-    <div class="vl-prop">
-      <span class="vl-prop-label">Key derivation</span>
-      <span class="vl-prop-value">PBKDF2 / SHA-256 / 100k rounds</span>
+    <div style="display:flex; flex-direction:column; gap:0.2rem; padding:0.875rem 1rem; background:var(--surface-1,#1a1a2e); border:1px solid var(--border,#2a2a3a); border-radius:8px;">
+      <span style="font-size:0.75rem; color:var(--text-3,#888); text-transform:uppercase; letter-spacing:0.04em;">Key derivation</span>
+      <span style="font-size:0.875rem; font-family:var(--font-mono,monospace); color:#4ade80;">PBKDF2 / SHA-256 / 100k rounds</span>
     </div>
-    <div class="vl-prop">
-      <span class="vl-prop-label">Authentication</span>
-      <span class="vl-prop-value">GCM tag (tamper-evident)</span>
+    <div style="display:flex; flex-direction:column; gap:0.2rem; padding:0.875rem 1rem; background:var(--surface-1,#1a1a2e); border:1px solid var(--border,#2a2a3a); border-radius:8px;">
+      <span style="font-size:0.75rem; color:var(--text-3,#888); text-transform:uppercase; letter-spacing:0.04em;">Authentication</span>
+      <span style="font-size:0.875rem; font-family:var(--font-mono,monospace); color:#4ade80;">GCM tag (tamper-evident)</span>
     </div>
-    <div class="vl-prop">
-      <span class="vl-prop-label">IV</span>
-      <span class="vl-prop-value">Random 96-bit, prepended to ciphertext</span>
+    <div style="display:flex; flex-direction:column; gap:0.2rem; padding:0.875rem 1rem; background:var(--surface-1,#1a1a2e); border:1px solid var(--border,#2a2a3a); border-radius:8px;">
+      <span style="font-size:0.75rem; color:var(--text-3,#888); text-transform:uppercase; letter-spacing:0.04em;">IV</span>
+      <span style="font-size:0.875rem; font-family:var(--font-mono,monospace); color:#4ade80;">Random 96-bit, prepended to ciphertext</span>
     </div>
-    <div class="vl-prop">
-      <span class="vl-prop-label">Data transmission</span>
-      <span class="vl-prop-value">None — local Web Crypto API only</span>
+    <div style="display:flex; flex-direction:column; gap:0.2rem; padding:0.875rem 1rem; background:var(--surface-1,#1a1a2e); border:1px solid var(--border,#2a2a3a); border-radius:8px;">
+      <span style="font-size:0.75rem; color:var(--text-3,#888); text-transform:uppercase; letter-spacing:0.04em;">Data transmission</span>
+      <span style="font-size:0.875rem; font-family:var(--font-mono,monospace); color:#4ade80;">None — local Web Crypto API only</span>
     </div>
-    <div class="vl-prop">
-      <span class="vl-prop-label">Implementation</span>
-      <span class="vl-prop-value">Web Crypto API (browser native)</span>
+    <div style="display:flex; flex-direction:column; gap:0.2rem; padding:0.875rem 1rem; background:var(--surface-1,#1a1a2e); border:1px solid var(--border,#2a2a3a); border-radius:8px;">
+      <span style="font-size:0.75rem; color:var(--text-3,#888); text-transform:uppercase; letter-spacing:0.04em;">Implementation</span>
+      <span style="font-size:0.875rem; font-family:var(--font-mono,monospace); color:#4ade80;">Web Crypto API (browser native)</span>
     </div>
   </div>
 </div>
 
-<hr class="vl-divider">
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border,#2a2a3a);">
 
-<div class="vl-related-tools">
-  <h2 class="vl-section-title">Related tools</h2>
-  <div class="vl-related-grid">
-    <a href="/tools/secret-lock/" class="vl-related-card">
-      <strong>Secret Lock</strong>
-      <span>Create encrypted secrets to share</span>
+<div>
+  <h2 style="font-size:1.1rem; font-weight:700; margin:0 0 1.25rem; color:var(--text-1,#e2e8f0);">Related tools</h2>
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:0.75rem;">
+    <a href="/tools/secret-lock/" style="display:flex; flex-direction:column; gap:0.3rem; padding:1rem; background:var(--surface-1,#1a1a2e); border:1px solid var(--border,#2a2a3a); border-radius:8px; text-decoration:none; transition:border-color 0.2s;" onmouseover="this.style.borderColor='rgba(34,197,94,0.35)'" onmouseout="this.style.borderColor=''">
+      <strong style="font-size:0.9rem; color:var(--text-1,#e2e8f0);">Secret Lock</strong>
+      <span style="font-size:0.8rem; color:var(--text-3,#888);">Create encrypted secrets to share</span>
     </a>
-    <a href="/tools/one-time-secret/" class="vl-related-card">
-      <strong>One-Time Secret</strong>
-      <span>Burn-after-reading secret links</span>
+    <a href="/tools/one-time-secret/" style="display:flex; flex-direction:column; gap:0.3rem; padding:1rem; background:var(--surface-1,#1a1a2e); border:1px solid var(--border,#2a2a3a); border-radius:8px; text-decoration:none; transition:border-color 0.2s;" onmouseover="this.style.borderColor='rgba(34,197,94,0.35)'" onmouseout="this.style.borderColor=''">
+      <strong style="font-size:0.9rem; color:var(--text-1,#e2e8f0);">One-Time Secret</strong>
+      <span style="font-size:0.8rem; color:var(--text-3,#888);">Burn-after-reading secret links</span>
     </a>
-    <a href="/tools/hash-generator/" class="vl-related-card">
-      <strong>Hash Generator</strong>
-      <span>Verify file integrity with SHA-256</span>
+    <a href="/tools/hash-generator/" style="display:flex; flex-direction:column; gap:0.3rem; padding:1rem; background:var(--surface-1,#1a1a2e); border:1px solid var(--border,#2a2a3a); border-radius:8px; text-decoration:none; transition:border-color 0.2s;" onmouseover="this.style.borderColor='rgba(34,197,94,0.35)'" onmouseout="this.style.borderColor=''">
+      <strong style="font-size:0.9rem; color:var(--text-1,#e2e8f0);">Hash Generator</strong>
+      <span style="font-size:0.8rem; color:var(--text-3,#888);">Verify file integrity with SHA-256</span>
     </a>
   </div>
 </div>
 
-<style>
-  .vl-hero {
-    display: flex;
-    gap: 1.25rem;
-    align-items: flex-start;
-    margin-bottom: 1.75rem;
+<script>
+(function () {
+  var ciphertextEl = document.getElementById('vl-ciphertext');
+  var passphraseEl = document.getElementById('vl-passphrase');
+  var decryptBtn   = document.getElementById('vl-decrypt-btn');
+  var errorEl      = document.getElementById('vl-error');
+  var outputArea   = document.getElementById('vl-output-area');
+  var outputEl     = document.getElementById('vl-output');
+  var copyBtn      = document.getElementById('vl-copy-btn');
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+    outputArea.style.display = 'none';
+    outputEl.textContent = '';
   }
-  .vl-hero-icon {
-    flex-shrink: 0;
-    width: 56px;
-    height: 56px;
-    background: rgba(34,197,94,0.08);
-    border: 1px solid rgba(34,197,94,0.2);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #4ade80;
+
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
   }
-  .vl-hero-desc {
-    margin: 0;
-    font-size: 1rem;
-    line-height: 1.65;
-    color: var(--text-1, #e2e8f0);
+
+  function showOutput(text) {
+    hideError();
+    outputEl.textContent = text;
+    outputArea.style.display = '';
   }
-  .vl-hero-desc a { color: #818cf8; text-decoration: underline; }
-  .vl-launch {
-    text-align: center;
-    padding: 2rem;
-    background: rgba(34,197,94,0.05);
-    border: 1px solid rgba(34,197,94,0.18);
-    border-radius: 12px;
-    margin-bottom: 2rem;
+
+  function base64ToBytes(b64) {
+    try {
+      var binary = atob(b64.trim());
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    } catch (e) {
+      return null;
+    }
   }
-  .vl-launch-btn {
-    display: inline-block;
-    font-size: 1.1rem;
-    padding: 0.875rem 2rem;
-    text-decoration: none;
+
+  function decrypt() {
+    var rawInput  = ciphertextEl.value.trim();
+    var passphrase = passphraseEl.value;
+
+    if (!rawInput) {
+      showError('Please paste a ciphertext to decrypt.');
+      return;
+    }
+    if (!passphrase) {
+      showError('Please enter the passphrase.');
+      return;
+    }
+
+    var combined = base64ToBytes(rawInput);
+    if (!combined) {
+      showError('Invalid base64 — make sure you pasted the full ciphertext without modifications.');
+      return;
+    }
+
+    // Layout: [16 bytes salt][12 bytes IV][remaining: ciphertext + GCM tag]
+    if (combined.length < 29) {
+      showError('Corrupted data — ciphertext is too short to be a valid Secret Lock payload.');
+      return;
+    }
+
+    var salt       = combined.slice(0, 16);
+    var iv         = combined.slice(16, 28);
+    var ciphertext = combined.slice(28);
+
+    var enc = new TextEncoder();
+    var keyMaterial;
+
+    window.crypto.subtle.importKey(
+      'raw',
+      enc.encode(passphrase),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    ).then(function (km) {
+      keyMaterial = km;
+      return window.crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt: salt,
+          iterations: 100000,
+          hash: 'SHA-256'
+        },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['decrypt']
+      );
+    }).then(function (key) {
+      return window.crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv },
+        key,
+        ciphertext
+      );
+    }).then(function (plainBuffer) {
+      var plaintext = new TextDecoder().decode(plainBuffer);
+      showOutput(plaintext);
+      decryptBtn.textContent = 'Decrypt';
+      decryptBtn.disabled = false;
+    }).catch(function (err) {
+      decryptBtn.textContent = 'Decrypt';
+      decryptBtn.disabled = false;
+      if (err instanceof DOMException) {
+        showError('Wrong passphrase or corrupted data.');
+      } else {
+        showError('Decryption failed: ' + err.message);
+      }
+    });
+
+    decryptBtn.textContent = 'Decrypting\u2026';
+    decryptBtn.disabled = true;
   }
-  .vl-launch-note {
-    margin: 0.75rem 0 0;
-    font-size: 0.8125rem;
-    color: var(--text-3, #888);
-  }
-  .vl-divider { border: none; border-top: 1px solid var(--border, #2a2a3a); margin: 2rem 0; }
-  .vl-section-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 1.25rem; color: var(--text-1, #e2e8f0); }
-  .vl-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1rem; }
-  .vl-step { display: flex; gap: 1rem; align-items: flex-start; }
-  .vl-step-num {
-    flex-shrink: 0;
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: rgba(34,197,94,0.1);
-    border: 1px solid rgba(34,197,94,0.3);
-    color: #4ade80;
-    font-size: 0.8125rem; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    margin-top: 2px;
-  }
-  .vl-step-body strong { display: block; font-size: 0.9375rem; color: var(--text-1, #e2e8f0); margin-bottom: 0.3rem; }
-  .vl-step-body p { margin: 0; font-size: 0.875rem; line-height: 1.6; color: var(--text-2, #94a3b8); }
-  .vl-prop-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 0.6rem;
-  }
-  .vl-prop {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    padding: 0.875rem 1rem;
-    background: var(--surface-1, #1a1a2e);
-    border: 1px solid var(--border, #2a2a3a);
-    border-radius: 8px;
-  }
-  .vl-prop-label { font-size: 0.75rem; color: var(--text-3, #888); text-transform: uppercase; letter-spacing: 0.04em; }
-  .vl-prop-value { font-size: 0.875rem; font-family: var(--font-mono, monospace); color: #4ade80; }
-  .vl-related-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 0.75rem;
-  }
-  .vl-related-card {
-    display: flex; flex-direction: column; gap: 0.3rem;
-    padding: 1rem;
-    background: var(--surface-1, #1a1a2e);
-    border: 1px solid var(--border, #2a2a3a);
-    border-radius: 8px;
-    text-decoration: none;
-    transition: border-color 0.2s;
-  }
-  .vl-related-card:hover { border-color: rgba(34,197,94,0.35); }
-  .vl-related-card strong { font-size: 0.9rem; color: var(--text-1, #e2e8f0); }
-  .vl-related-card span { font-size: 0.8rem; color: var(--text-3, #888); }
-</style>
+
+  decryptBtn.addEventListener('click', decrypt);
+
+  passphraseEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); decrypt(); }
+  });
+
+  copyBtn.addEventListener('click', function () {
+    var text = outputEl.textContent;
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      }).catch(function () {
+        copyBtn.textContent = 'Failed';
+        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        copyBtn.textContent = 'Copied!';
+      } catch (e) {
+        copyBtn.textContent = 'Failed';
+      }
+      document.body.removeChild(ta);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+  });
+})();
+</script>
