@@ -5,31 +5,31 @@ permalink: /tools/api-request-builder/
 
 <style>
   .arb-section { margin-bottom:1rem; }
-  .arb-label { font-size:0.8rem; font-weight:600; color:var(--color-muted,#94a3b8); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block; }
-  .arb-input { width:100%; padding:0.55rem 0.75rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:6px; color:var(--color-text,#e2e8f0); font-size:0.9rem; box-sizing:border-box; }
-  .arb-input:focus { outline:none; border-color:var(--color-accent,#6366f1); }
+  .arb-label { font-size:0.8rem; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem; display:block; }
+  .arb-input { width:100%; padding:0.55rem 0.75rem; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; color:var(--text-1); font-size:0.9rem; box-sizing:border-box; }
+  .arb-input:focus { outline:none; border-color:var(--accent); }
   .arb-headers-table { width:100%; border-collapse:collapse; }
   .arb-headers-table td { padding:0.25rem 0.3rem; }
-  .arb-headers-table input { width:100%; padding:0.35rem 0.5rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:4px; color:var(--color-text,#e2e8f0); font-size:0.85rem; box-sizing:border-box; font-family:var(--font-mono,monospace); }
-  .arb-headers-table .del-btn { background:none; border:none; cursor:pointer; color:var(--color-muted,#94a3b8); font-size:1.1rem; padding:0.2rem 0.4rem; }
+  .arb-headers-table input { width:100%; padding:0.35rem 0.5rem; background:var(--surface-2); border:1px solid var(--border); border-radius:4px; color:var(--text-1); font-size:0.85rem; box-sizing:border-box; font-family:var(--font-mono); }
+  .arb-headers-table .del-btn { background:none; border:none; cursor:pointer; color:var(--text-3); font-size:1.1rem; padding:0.2rem 0.4rem; }
   .arb-headers-table .del-btn:hover { color:#f87171; }
-  .arb-status { display:inline-block; padding:0.15rem 0.5rem; border-radius:4px; font-family:var(--font-mono,monospace); font-size:0.82rem; font-weight:700; }
+  .arb-status { display:inline-block; padding:0.15rem 0.5rem; border-radius:4px; font-family:var(--font-mono); font-size:0.82rem; font-weight:700; }
   .arb-status.ok { background:rgba(34,197,94,0.15); color:#4ade80; }
   .arb-status.err { background:rgba(248,113,113,0.15); color:#f87171; }
   .arb-status.warn { background:rgba(251,191,36,0.15); color:#fbbf24; }
-  .arb-resp-headers { font-family:var(--font-mono,monospace); font-size:0.78rem; line-height:1.8; color:var(--color-muted,#94a3b8); max-height:8rem; overflow:auto; }
-  .arb-timing { font-size:0.78rem; color:var(--color-muted,#94a3b8); }
+  .arb-resp-headers { font-family:var(--font-mono); font-size:0.78rem; line-height:1.8; color:var(--text-3); max-height:8rem; overflow:auto; }
+  .arb-timing { font-size:0.78rem; color:var(--text-3); }
   .arb-tab-bar { display:flex; gap:0; margin-bottom:-1px; }
-  .arb-tab { padding:0.35rem 0.9rem; background:none; border:1px solid transparent; border-bottom:none; cursor:pointer; font-size:0.82rem; color:var(--color-muted,#94a3b8); border-radius:4px 4px 0 0; }
-  .arb-tab.active { background:var(--color-surface-2,#1e293b); border-color:var(--color-border,#334155); color:var(--color-text,#e2e8f0); }
-  .arb-tab-content { background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:0 6px 6px 6px; padding:0.75rem; display:none; }
+  .arb-tab { padding:0.35rem 0.9rem; background:none; border:1px solid transparent; border-bottom:none; cursor:pointer; font-size:0.82rem; color:var(--text-3); border-radius:4px 4px 0 0; }
+  .arb-tab.active { background:var(--surface-2); border-color:var(--border); color:var(--text-1); }
+  .arb-tab-content { background:var(--surface-2); border:1px solid var(--border); border-radius:0 6px 6px 6px; padding:0.75rem; display:none; }
   .arb-tab-content.active { display:block; }
-  .cors-note { font-size:0.75rem; color:var(--color-muted,#94a3b8); margin-top:0.5rem; padding:0.5rem 0.75rem; background:rgba(251,191,36,0.08); border-left:3px solid #fbbf24; border-radius:0 4px 4px 0; }
+  .cors-note { font-size:0.75rem; color:var(--text-3); margin-top:0.5rem; padding:0.5rem 0.75rem; background:rgba(251,191,36,0.08); border-left:3px solid #fbbf24; border-radius:0 4px 4px 0; }
 </style>
 
 <div class="arb-section">
   <div style="display:flex; gap:0.5rem; align-items:stretch; flex-wrap:wrap;">
-    <select id="arb-method" style="padding:0.55rem 0.6rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:6px; color:var(--color-text,#e2e8f0); font-size:0.9rem; font-weight:700; cursor:pointer; flex-shrink:0;">
+    <select id="arb-method" style="font-weight:700; cursor:pointer; flex-shrink:0;">
       <option>GET</option>
       <option>POST</option>
       <option>PUT</option>
@@ -52,8 +52,8 @@ permalink: /tools/api-request-builder/
   <div class="arb-tab-content active" id="arb-tab-headers">
     <table class="arb-headers-table" id="arb-headers-tbl">
       <thead><tr>
-        <td style="width:42%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--color-muted,#94a3b8);">Key</td>
-        <td style="width:50%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--color-muted,#94a3b8);">Value</td>
+        <td style="width:42%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--text-3);">Key</td>
+        <td style="width:50%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--text-3);">Value</td>
         <td style="width:8%;"></td>
       </tr></thead>
       <tbody id="arb-headers-body"></tbody>
@@ -62,21 +62,21 @@ permalink: /tools/api-request-builder/
   </div>
   <div class="arb-tab-content" id="arb-tab-body">
     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
-      <label style="font-size:0.8rem; color:var(--color-muted,#94a3b8);">Content-Type:</label>
-      <select id="arb-content-type" style="padding:0.3rem 0.5rem; background:var(--color-surface,#0f172a); border:1px solid var(--color-border,#334155); border-radius:4px; color:var(--color-text,#e2e8f0); font-size:0.82rem; cursor:pointer;">
+      <label style="font-size:0.8rem; color:var(--text-3);">Content-Type:</label>
+      <select id="arb-content-type" style="cursor:pointer;">
         <option value="application/json">application/json</option>
         <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
         <option value="text/plain">text/plain</option>
         <option value="text/xml">text/xml</option>
       </select>
     </div>
-    <textarea id="arb-body" rows="6" class="arb-input" style="resize:vertical; font-family:var(--font-mono,monospace);" placeholder='{"key": "value"}'></textarea>
+    <textarea id="arb-body" rows="6" class="arb-input" style="resize:vertical; font-family:var(--font-mono);" placeholder='{"key": "value"}'></textarea>
   </div>
   <div class="arb-tab-content" id="arb-tab-params">
     <table class="arb-headers-table" id="arb-params-tbl">
       <thead><tr>
-        <td style="width:42%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--color-muted,#94a3b8);">Key</td>
-        <td style="width:50%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--color-muted,#94a3b8);">Value</td>
+        <td style="width:42%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--text-3);">Key</td>
+        <td style="width:50%; padding:0.2rem 0.3rem; font-size:0.75rem; color:var(--text-3);">Value</td>
         <td style="width:8%;"></td>
       </tr></thead>
       <tbody id="arb-params-body"></tbody>
@@ -288,7 +288,7 @@ permalink: /tools/api-request-builder/
       var div = document.createElement('div');
       var keySpan = document.createElement('span');
       keySpan.textContent = h.key + ': ';
-      keySpan.style.color = 'var(--color-accent,#6366f1)';
+      keySpan.style.color = 'var(--accent)';
       var valSpan = document.createElement('span');
       valSpan.textContent = h.value;
       div.appendChild(keySpan); div.appendChild(valSpan);
