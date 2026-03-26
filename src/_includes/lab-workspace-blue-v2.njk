@@ -1,0 +1,284 @@
+{# Blue Team SOC Workstation v2 — Eleventy layout (not Nunjucks extends) #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>{{ labTitle }} — Security Labs | Penumbra Forge</title>
+  <meta name="description" content="{{ labDescription }}">
+  <link rel="canonical" href="{{ site.url }}{{ page.url }}">
+  <meta property="og:title" content="{{ labTitle }} — Penumbra Forge Security Labs">
+  <meta property="og:description" content="{{ labDescription }}">
+  <meta property="og:image" content="{{ site.url }}/og-image.png">
+  <meta property="og:url" content="{{ site.url }}{{ page.url }}">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200;12..96,300;12..96,400;12..96,500;12..96,600&family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=4">
+  <link rel="stylesheet" href="/css/soc-workstation.css?v=1">
+</head>
+<body style="overflow:hidden;height:100vh;">
+
+<!-- Topbar (40px height) -->
+<div class="soc-topbar">
+  <a href="/" class="soc-topbar-brand" title="Penumbra Forge">
+    <div class="site-header-orb" aria-hidden="true" style="width:22px;height:22px;">
+      <div class="site-header-orb-backlight"></div>
+      <div class="site-header-orb-corona"></div>
+      <div class="site-header-orb-glow"></div>
+      <div class="site-header-orb-edge"></div>
+      <div class="site-header-orb-shadow"></div>
+    </div>
+  </a>
+  <div class="soc-topbar-sep"></div>
+  <a href="/labs/" class="soc-topbar-back">&#x2190; Labs</a>
+  <div class="soc-topbar-sep"></div>
+  <span class="soc-topbar-title">{{ labCode }} · {{ labTitle }}</span>
+  <span class="soc-topbar-diff diff-{{ labDifficulty }}">{{ labDifficulty }}</span>
+  <div class="soc-sev-indicator">
+    <span class="soc-sev-dot"></span>
+    <span class="soc-sev-text">SEV-1 ACTIVE</span>
+  </div>
+  <span class="soc-topbar-status" id="soc-mission-status">&#x25CF; Mission Active</span>
+  <span class="soc-topbar-timer" id="lab-timer">00:00</span>
+</div>
+
+<!-- Mobile gate — shown below 900px, workspace hidden -->
+<div class="lab-mobile-gate">
+  <div class="lab-mobile-gate-inner">
+    <svg class="lab-mobile-gate-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+      <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+    <h2 class="lab-mobile-gate-title">{{ labTitle }}</h2>
+    <span class="lab-mobile-gate-diff diff-{{ labDifficulty }}">{{ labDifficulty }}</span>
+    <p class="lab-mobile-gate-desc">{{ labDescription }}</p>
+    <p class="lab-mobile-gate-msg">This lab requires a desktop browser for the full interactive experience.</p>
+    <div class="lab-mobile-gate-actions">
+      <button class="lab-mobile-gate-copy" onclick="navigator.clipboard.writeText(window.location.href).then(function(){this.textContent='Copied!'}.bind(this))">Copy link</button>
+      <a href="/labs/" class="lab-mobile-gate-back">View all labs</a>
+    </div>
+  </div>
+</div>
+
+<!-- Lab Engine + SOC workstation scripts -->
+<script src="/js/lab-engine.js"></script>
+<script src="/js/panel-system.js"></script>
+<script src="/js/simulation-engine.js"></script>
+<script src="/js/soc-siem.js"></script>
+<script src="/js/soc-timeline.js"></script>
+<script src="/js/soc-ioc-lookup.js"></script>
+<script src="/js/soc-actions.js"></script>
+<script src="/js/soc-evidence-corpus.js"></script>
+
+<!-- Three-panel workspace -->
+<div class="soc-workspace" id="workspace" data-lab-id="{{ labCode | lower | replace(' ', '-') }}">
+
+  <!-- LEFT: Case File (280px) -->
+  <div class="soc-panel" id="panel-casefile" data-panel="panel-casefile" style="width:280px;min-width:220px;">
+    <div class="soc-panel-tabs" id="casefile-tabs">
+      <button class="soc-tab active" data-tab="case">Case</button>
+      <button class="soc-tab" data-tab="evidence">Evidence</button>
+      <button class="soc-tab" data-tab="report">Report</button>
+    </div>
+    <div class="soc-panel-region">
+      <div class="soc-tab-content active" data-tab-content="case">
+        {{ content | safe }}
+      </div>
+      <div class="soc-tab-content" data-tab-content="evidence" id="evidence-panel">
+        <div class="soc-evidence-tracker">
+          <div class="soc-evidence-empty">Evidence populates as you discover indicators during your investigation.</div>
+        </div>
+      </div>
+      <div class="soc-tab-content" data-tab-content="report" id="report-panel" style="display:none;">
+        <!-- Populated by lab-specific script on completion -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Drag handle -->
+  <div class="soc-drag-handle" data-resize="panel-casefile"></div>
+
+  <!-- CENTER: SIEM & Data Sources (flex) -->
+  <div class="soc-panel soc-panel-flex" id="panel-siem" data-panel="panel-siem">
+    <div class="soc-tool-tabs" id="siem-tabs">
+      <button class="soc-tool-tab active" data-tool="siem">SIEM</button>
+      <button class="soc-tool-tab" data-tool="firewall">Firewall</button>
+      <button class="soc-tool-tab" data-tool="auth">Auth Logs</button>
+      <button class="soc-tool-tab" data-tool="dns">DNS</button>
+      <button class="soc-tool-tab" data-tool="pcap">Packet Capture</button>
+      <button class="soc-tool-tab" data-tool="threatintel">Threat Intel</button>
+    </div>
+    <div class="soc-tool-content">
+      <div class="soc-tool-pane active" id="tool-siem"></div>
+      <div class="soc-tool-pane" id="tool-firewall"></div>
+      <div class="soc-tool-pane" id="tool-auth"></div>
+      <div class="soc-tool-pane" id="tool-dns"></div>
+      <div class="soc-tool-pane" id="tool-pcap"></div>
+      <div class="soc-tool-pane" id="tool-threatintel"></div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="soc-status-bar">
+      <span class="soc-status-item"><span class="soc-status-dot red"></span> Active Incident</span>
+      <span class="soc-status-item">Sources: 6</span>
+      <span class="soc-status-item" id="soc-event-count">Events: 0</span>
+      <span class="soc-status-item" id="soc-evidence-count">Evidence: 0/8</span>
+      <span class="soc-status-item soc-status-right" id="soc-level"></span>
+    </div>
+  </div>
+
+  <!-- Drag handle -->
+  <div class="soc-drag-handle" data-resize="panel-investigate"></div>
+
+  <!-- RIGHT: Investigation Tools (340px) -->
+  <div class="soc-panel" id="panel-investigate" data-panel="panel-investigate" style="width:340px;min-width:260px;">
+    <div class="soc-tool-tabs" id="investigate-tabs">
+      <button class="soc-tool-tab active" data-tool="timeline">Timeline</button>
+      <button class="soc-tool-tab" data-tool="ioc">IOC Lookup</button>
+      <button class="soc-tool-tab" data-tool="network">Network</button>
+      <button class="soc-tool-tab" data-tool="actions">Actions</button>
+    </div>
+    <div class="soc-tool-content">
+      <div class="soc-tool-pane active" id="tool-timeline"></div>
+      <div class="soc-tool-pane" id="tool-ioc"></div>
+      <div class="soc-tool-pane" id="tool-network">
+        <div class="soc-network-placeholder">Network visualization — coming soon</div>
+      </div>
+      <div class="soc-tool-pane" id="tool-actions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Nudge container (positioned absolutely) -->
+<div id="nudge-container"></div>
+
+<!-- Completion overlay (hidden by default) -->
+<div class="soc-complete-overlay" id="lab-complete-overlay">
+  <div class="soc-complete-card">
+    <div class="soc-complete-icon">&#x1F6E1;</div>
+    <div class="soc-complete-title">Incident Resolved</div>
+    <div class="soc-complete-stats">
+      <div class="soc-complete-stat">
+        <span class="soc-complete-stat-label">Time</span>
+        <span class="soc-complete-stat-value" id="complete-time">00:00</span>
+      </div>
+      <div class="soc-complete-stat">
+        <span class="soc-complete-stat-label">Score</span>
+        <span class="soc-complete-stat-value" id="complete-score">0</span>
+      </div>
+      <div class="soc-complete-stat">
+        <span class="soc-complete-stat-label">XP</span>
+        <span class="soc-complete-stat-value" id="complete-xp">+0</span>
+      </div>
+    </div>
+    <div class="soc-complete-level" id="complete-level">Level 1 — Junior Analyst</div>
+    <div class="soc-complete-actions">
+      <button class="soc-complete-btn" onclick="document.getElementById('lab-complete-overlay').classList.remove('visible');">View Report</button>
+      <a class="soc-complete-btn soc-complete-btn-secondary" id="complete-unlock" href="/labs/" style="display:none;">Next Lab &#x2192;</a>
+    </div>
+  </div>
+</div>
+
+<!-- Disclaimer gate -->
+<div class="soc-disclaimer" id="lab-disclaimer">
+  <div class="soc-disclaimer-card">
+    <div class="soc-disclaimer-title">Before You Begin</div>
+    <p class="soc-disclaimer-text">This lab simulates a <strong>real security incident</strong> with authentic log data and attack patterns for educational purposes.</p>
+    <p class="soc-disclaimer-text">Analyze the evidence, build your timeline, and submit your incident report to resolve the case.</p>
+    <button class="soc-disclaimer-btn" id="disclaimer-accept">I Understand — Begin Investigation</button>
+  </div>
+</div>
+
+<!-- Tab switching logic -->
+<script>
+(function() {
+  'use strict';
+
+  // Case file panel tabs
+  var casefileTabs = document.getElementById('casefile-tabs');
+  if (casefileTabs) {
+    casefileTabs.addEventListener('click', function(e) {
+      var btn = e.target.closest('.soc-tab');
+      if (!btn) return;
+      var tab = btn.getAttribute('data-tab');
+      // Deactivate all
+      casefileTabs.querySelectorAll('.soc-tab').forEach(function(t) { t.classList.remove('active'); });
+      btn.closest('.soc-panel').querySelectorAll('.soc-tab-content').forEach(function(c) { c.classList.remove('active'); });
+      // Activate selected
+      btn.classList.add('active');
+      var content = btn.closest('.soc-panel').querySelector('[data-tab-content="' + tab + '"]');
+      if (content) content.classList.add('active');
+    });
+  }
+
+  // Center SIEM tool tabs
+  var siemTabs = document.getElementById('siem-tabs');
+  if (siemTabs) {
+    siemTabs.addEventListener('click', function(e) {
+      var btn = e.target.closest('.soc-tool-tab');
+      if (!btn || btn.disabled) return;
+      var tool = btn.getAttribute('data-tool');
+      var panel = btn.closest('.soc-panel');
+      // Deactivate all within this panel
+      siemTabs.querySelectorAll('.soc-tool-tab').forEach(function(t) { t.classList.remove('active'); });
+      panel.querySelectorAll('.soc-tool-pane').forEach(function(p) { p.classList.remove('active'); });
+      // Activate selected
+      btn.classList.add('active');
+      var pane = panel.querySelector('#tool-' + tool);
+      if (pane) pane.classList.add('active');
+    });
+  }
+
+  // Right investigation tool tabs
+  var investigateTabs = document.getElementById('investigate-tabs');
+  if (investigateTabs) {
+    investigateTabs.addEventListener('click', function(e) {
+      var btn = e.target.closest('.soc-tool-tab');
+      if (!btn || btn.disabled) return;
+      var tool = btn.getAttribute('data-tool');
+      var panel = btn.closest('.soc-panel');
+      // Deactivate all within this panel
+      investigateTabs.querySelectorAll('.soc-tool-tab').forEach(function(t) { t.classList.remove('active'); });
+      panel.querySelectorAll('.soc-tool-pane').forEach(function(p) { p.classList.remove('active'); });
+      // Activate selected
+      btn.classList.add('active');
+      var pane = panel.querySelector('#tool-' + tool);
+      if (pane) pane.classList.add('active');
+    });
+  }
+
+  // Disclaimer gate
+  var DISCLAIMER_KEY = 'pf-labs-disclaimer-accepted';
+  var disclaimer = document.getElementById('lab-disclaimer');
+  if (disclaimer && localStorage.getItem(DISCLAIMER_KEY)) {
+    disclaimer.style.display = 'none';
+  }
+  var acceptBtn = document.getElementById('disclaimer-accept');
+  if (acceptBtn) {
+    acceptBtn.addEventListener('click', function() {
+      localStorage.setItem(DISCLAIMER_KEY, '1');
+      disclaimer.style.display = 'none';
+    });
+  }
+
+  // Update level display in status bar
+  var Labs = window.PenumbraLabs;
+  if (Labs && Labs.Progress) {
+    var profile = Labs.Progress.getProfile();
+    var levelEl = document.getElementById('soc-level');
+    if (levelEl && Labs.Xp) {
+      levelEl.textContent = 'Level ' + profile.level + ' \u00B7 ' + Labs.Xp.titleForLevel(profile.level);
+    }
+  }
+})();
+</script>
+
+<!-- Cloudflare Web Analytics -->
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6579e863544d4aaea2538c83110ac7e2"}'></script>
+</body>
+</html>
