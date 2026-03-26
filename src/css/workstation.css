@@ -1,0 +1,106 @@
+/* ============================================================
+   Workstation — Panel System Styles
+   ============================================================ */
+
+/* ── Panel Workspace Container ── */
+.ws-workspace {
+  display: flex;
+  height: calc(100vh - 48px);
+  overflow: hidden;
+  background: #0a0a0f;
+}
+
+/* ── Panel Base ── */
+.ws-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  min-width: 0;
+}
+
+/* ── Panel Scroll Region ── */
+.ws-panel-region {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+/* Subtle scrollbar styling consistent with dark theme */
+.ws-panel-region::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ws-panel-region::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ws-panel-region::-webkit-scrollbar-thumb {
+  background: #1e1e2e;
+  border-radius: 3px;
+}
+
+.ws-panel-region::-webkit-scrollbar-thumb:hover {
+  background: #2e2e45;
+}
+
+/* ── Flex Panel (center, fills remaining space) ── */
+.ws-panel-flex {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Collapsed Panel ── */
+.ws-panel-collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ── Drag Handles ── */
+.ws-drag-handle {
+  width: 4px;
+  background: #1e1e2e;
+  cursor: col-resize;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  transition: background 0.15s;
+}
+
+.ws-drag-handle:hover,
+.ws-drag-handle.dragging {
+  background: #3b82f6;
+}
+
+/* Wider invisible hit area for easier grabbing */
+.ws-drag-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+}
+
+/* ── Prevent text selection and pointer flicker during drag ── */
+body.ws-dragging {
+  cursor: col-resize !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+body.ws-dragging * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+body.ws-dragging iframe {
+  pointer-events: none;
+}
+
+/* ── Collapse/expand transition ── */
+.ws-panel-collapsed {
+  transition: width 0.15s ease;
+}
