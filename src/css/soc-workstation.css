@@ -60,3 +60,29 @@
 .soc-log-actions { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
 .soc-action-btn { background:#1a1a2e; border:1px solid #2a2a3e; color:#8b8fa3; padding:4px 10px; border-radius:3px; font-size:10px; cursor:pointer; font-family:inherit; }
 .soc-action-btn:hover { border-color:#3b82f6; color:#60a5fa; }
+
+/* ═══ Timeline ═══ */
+.soc-timeline { position:relative; padding-left:20px; }
+.soc-timeline::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:#1e1e2e; }
+.soc-tl-entry { position:relative; margin-bottom:16px; }
+.soc-tl-entry::before { content:''; position:absolute; left:-17px; top:4px; width:10px; height:10px; border-radius:50%; border:2px solid; }
+.soc-tl-entry.sev-critical::before { border-color:#ef4444; background:rgba(239,68,68,0.3); }
+.soc-tl-entry.sev-high::before { border-color:#f97316; background:rgba(249,115,22,0.3); }
+.soc-tl-entry.sev-medium::before { border-color:#f59e0b; background:rgba(245,158,11,0.3); }
+.soc-tl-entry.sev-low::before { border-color:#3b82f6; background:rgba(59,130,246,0.3); }
+.soc-tl-entry.sev-info::before { border-color:#3b82f6; background:rgba(59,130,246,0.3); }
+.soc-tl-time { font-size:10px; color:#555; margin-bottom:2px; font-family:'JetBrains Mono',monospace; }
+.soc-tl-title { font-size:11px; color:#e2e4ea; font-weight:500; }
+.soc-tl-desc { font-size:10px; color:#8b8fa3; line-height:1.5; margin-top:2px; }
+.soc-tl-tags { display:flex; gap:4px; margin-top:4px; flex-wrap:wrap; }
+.soc-tl-tag { font-size:8px; padding:1px 5px; border-radius:2px; text-transform:uppercase; letter-spacing:0.5px; }
+.soc-tl-tag.src-waf { background:rgba(239,68,68,0.15); color:#ef4444; }
+.soc-tl-tag.src-web { background:rgba(59,130,246,0.15); color:#3b82f6; }
+.soc-tl-tag.src-fw { background:rgba(245,158,11,0.15); color:#f59e0b; }
+.soc-tl-tag.src-ids { background:rgba(74,222,128,0.15); color:#4ade80; }
+.soc-tl-tag.src-auth { background:rgba(139,92,246,0.15); color:#8b5cf6; }
+.soc-tl-tag.src-dns { background:rgba(6,182,212,0.15); color:#06b6d4; }
+.soc-tl-tag.user-action { background:rgba(139,92,246,0.15); color:#8b5cf6; }
+.soc-tl-remove { position:absolute; top:2px; right:0; background:none; border:none; color:#333; cursor:pointer; font-size:12px; padding:2px 4px; }
+.soc-tl-remove:hover { color:#ef4444; }
+.soc-tl-empty { color:#555; font-size:12px; font-style:italic; padding:16px 0; }
