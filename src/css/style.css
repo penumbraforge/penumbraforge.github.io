@@ -176,6 +176,25 @@ a:hover {
   z-index: 0;
 }
 
+@media (max-width: 768px) {
+  .orb-3, .orb-4, .orb-5, .orb-6 {
+    display: none;
+  }
+
+  .orb-1, .orb-2 {
+    filter: blur(40px);
+  }
+
+  .star--bright {
+    animation: none;
+  }
+
+  #eclipse-particles {
+    width: 300px;
+    height: 300px;
+  }
+}
+
 /* ============================================================
    Content Layer — sits ABOVE background
    Sections get solid backgrounds to mask particles

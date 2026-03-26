@@ -87,7 +87,8 @@
     const ctx = canvas.getContext('2d');
     let w, h;
     const particles = [];
-    const PARTICLE_COUNT = 50;
+    const isMobile = window.innerWidth < 768;
+    const PARTICLE_COUNT = isMobile ? 18 : 50;
 
     function resize() {
       w = canvas.width = window.innerWidth;
@@ -116,7 +117,15 @@
     let scrollY = 0;
     window.addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
 
+    let frame = 0;
     function animate(time) {
+      frame++;
+      // On mobile, skip every other frame (~30fps)
+      if (isMobile && frame % 2 !== 0) {
+        requestAnimationFrame(animate);
+        return;
+      }
+
       ctx.clearRect(0, 0, w, h);
 
       for (const p of particles) {
@@ -136,7 +145,8 @@
         ctx.fillStyle = `hsla(${p.hue}, ${p.saturation}%, 70%, ${p.opacity})`;
         ctx.fill();
 
-        if (p.size > 1.2) {
+        // Glow effect — skip on mobile
+        if (!isMobile && p.size > 1.2) {
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
           ctx.fillStyle = `hsla(${p.hue}, ${p.saturation}%, 70%, ${p.opacity * 0.15})`;
@@ -156,7 +166,9 @@
   (function() {
     const container = document.getElementById('stars');
     if (!container) return;
-    for (let i = 0; i < 70; i++) {
+    const isMobile = window.innerWidth < 768;
+    const STAR_COUNT = isMobile ? 25 : 70;
+    for (let i = 0; i < STAR_COUNT; i++) {
       const star = document.createElement('div');
       star.className = Math.random() > 0.87 ? 'star star--bright' : 'star';
       star.style.left = Math.random() * 100 + '%';
