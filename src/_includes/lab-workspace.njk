@@ -41,6 +41,23 @@
 <!-- Lab Engine (must load before lab content scripts) -->
 <script src="/js/lab-engine.js"></script>
 
+<!-- Mobile gate — shown below 900px, workspace hidden -->
+<div class="lab-mobile-gate">
+  <div class="lab-mobile-gate-inner">
+    <svg class="lab-mobile-gate-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+      <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+    <h2 class="lab-mobile-gate-title">{{ labTitle }}</h2>
+    <span class="lab-mobile-gate-diff diff-{{ labDifficulty }}">{{ labDifficulty }}</span>
+    <p class="lab-mobile-gate-desc">{{ labDescription }}</p>
+    <p class="lab-mobile-gate-msg">This lab requires a desktop browser for the full interactive experience.</p>
+    <div class="lab-mobile-gate-actions">
+      <button class="lab-mobile-gate-copy" onclick="navigator.clipboard.writeText(window.location.href).then(function(){this.textContent='Copied!'}.bind(this))">Copy link</button>
+      <a href="/labs/" class="lab-mobile-gate-back">View all labs</a>
+    </div>
+  </div>
+</div>
+
 <!-- Workspace -->
 <div class="lab-workspace">
   {{ content | safe }}
