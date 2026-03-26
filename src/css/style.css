@@ -5174,9 +5174,47 @@ a.t-card {
 /* ============================================================
    Tools Sidebar Layout
    ============================================================ */
+
+/* Lock the entire page into a viewport-height shell so only
+   .tools-content scrolls — sidebar never moves. */
+html:has(.tool-page),
+html:has(.tools-hub-page) {
+  overflow: hidden;
+  height: 100%;
+}
+
+body:has(.tool-page),
+body:has(.tools-hub-page) {
+  overflow: hidden;
+  height: 100%;
+}
+
+.content:has(.tools-hub-page) {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.content:has(.tools-hub-page) > .footer {
+  display: none;
+}
+
+.tool-page,
+.tools-hub-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
 .tools-layout {
   display: flex;
-  min-height: calc(100vh - 57px);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* --- Sidebar --- */
@@ -5186,9 +5224,6 @@ a.t-card {
   background: var(--surface-1);
   border-right: 1px solid var(--border);
   overflow-y: auto;
-  position: sticky;
-  top: 57px;
-  height: calc(100vh - 57px);
   transition: transform 300ms cubic-bezier(0.2, 0, 0, 1);
   z-index: 40;
 }
@@ -5343,11 +5378,12 @@ a.t-card {
   margin: 8px 16px;
 }
 
-/* --- Main Content (beside sidebar) --- */
+/* --- Main Content (beside sidebar) — sole scroll container --- */
 .tools-content {
   flex: 1;
   min-width: 0;
   padding: 32px 40px;
+  overflow-y: auto;
 }
 
 /* --- Featured Section --- */
@@ -5499,11 +5535,10 @@ a.t-card {
 .tool-page .site-header,
 .tools-hub-page .site-header {
   padding: 0;
-  position: sticky;
-  top: 0;
   z-index: 50;
   background: var(--surface-0);
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .site-header-sidebar {
@@ -5624,6 +5659,7 @@ a.t-card {
     position: fixed;
     left: 0;
     top: 57px;
+    height: calc(100vh - 57px);
     z-index: 40;
     transform: translateX(-100%);
   }
