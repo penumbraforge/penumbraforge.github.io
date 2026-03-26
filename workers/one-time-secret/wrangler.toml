@@ -1,0 +1,11 @@
+name = "one-time-secret"
+main = "worker.js"
+compatibility_date = "2026-03-22"
+account_id = "e32f51ad99dc43fb5249086282786c6f"
+
+[vars]
+ALLOWED_ORIGIN = "https://penumbraforge.com"
+
+[[kv_namespaces]]
+binding = "OTS_KV"
+id = ""  # Run: npx wrangler kv namespace create OTS_KV
