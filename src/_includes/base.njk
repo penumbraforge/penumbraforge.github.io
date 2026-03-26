@@ -87,7 +87,7 @@
     const ctx = canvas.getContext('2d');
     let w, h;
     const particles = [];
-    const isMobile = window.innerWidth < 768;
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
     const PARTICLE_COUNT = isMobile ? 18 : 50;
 
     function resize() {
@@ -166,7 +166,7 @@
   (function() {
     const container = document.getElementById('stars');
     if (!container) return;
-    const isMobile = window.innerWidth < 768;
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
     const STAR_COUNT = isMobile ? 25 : 70;
     for (let i = 0; i < STAR_COUNT; i++) {
       const star = document.createElement('div');
