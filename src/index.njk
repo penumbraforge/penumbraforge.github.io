@@ -1,29 +1,21 @@
 ---
 layout: base.njk
 ---
-<nav class="home-nav reveal">
-  <button class="home-nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+<nav class="home-nav reveal" id="home-nav">
+  <button class="home-nav-toggle" id="home-nav-toggle" aria-label="Toggle menu" aria-expanded="false">
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
       <line x1="3" y1="5" x2="17" y2="5" class="hamburger-top"/>
       <line x1="3" y1="10" x2="17" y2="10" class="hamburger-mid"/>
       <line x1="3" y1="15" x2="17" y2="15" class="hamburger-bot"/>
     </svg>
   </button>
-  <a href="/tools/" class="home-nav-link">Tools</a>
-  <a href="/labs/" class="home-nav-link">Labs</a>
-  <a href="/blog/" class="home-nav-link">Blog</a>
-  <a href="/gate/" class="home-nav-link">Gate</a>
-  <a href="/librarian/" class="home-nav-link">Librarian</a>
-  <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="home-nav-link">GitHub</a>
-</nav>
-<div class="home-nav-overlay" id="home-nav-overlay">
   <a href="/tools/">Tools</a>
   <a href="/labs/">Labs</a>
   <a href="/blog/">Blog</a>
   <a href="/gate/">Gate</a>
   <a href="/librarian/">Librarian</a>
   <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
-</div>
+</nav>
 
 <section class="hero">
   <div class="eclipse-row reveal">
@@ -433,27 +425,25 @@ layout: base.njk
 
 // Hamburger menu toggle
 (function() {
-  const toggle = document.querySelector('.home-nav-toggle');
-  const overlay = document.getElementById('home-nav-overlay');
-  if (!toggle || !overlay) return;
+  var nav = document.getElementById('home-nav');
+  var toggle = document.getElementById('home-nav-toggle');
+  if (!nav || !toggle) return;
 
   toggle.addEventListener('click', function() {
-    const open = document.body.classList.toggle('nav-open');
-    toggle.setAttribute('aria-expanded', open);
+    nav.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', nav.classList.contains('open'));
   });
 
-  // Close on link click
-  overlay.querySelectorAll('a').forEach(function(link) {
+  nav.querySelectorAll('a').forEach(function(link) {
     link.addEventListener('click', function() {
-      document.body.classList.remove('nav-open');
+      nav.classList.remove('open');
       toggle.setAttribute('aria-expanded', 'false');
     });
   });
 
-  // Close on Escape key
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && document.body.classList.contains('nav-open')) {
-      document.body.classList.remove('nav-open');
+    if (e.key === 'Escape' && nav.classList.contains('open')) {
+      nav.classList.remove('open');
       toggle.setAttribute('aria-expanded', 'false');
     }
   });

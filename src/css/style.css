@@ -410,92 +410,26 @@ a:hover {
   color: var(--accent);
   cursor: pointer;
   padding: 8px;
-  z-index: 101;
-}
-
-/* Desktop: inline links */
-.home-nav-link {
-  color: rgba(232, 228, 239, 0.25);
-  text-decoration: none;
-  transition: color 300ms;
-}
-
-.home-nav-link:hover {
-  color: var(--text-1);
-}
-
-/* Mobile overlay — sits OUTSIDE .home-nav to avoid stacking context issues */
-.home-nav-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 200;
-  background: rgba(5, 5, 9, 0.98);
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: env(safe-area-inset-top, 40px) 24px env(safe-area-inset-bottom, 40px);
-}
-
-.home-nav-overlay a {
-  color: var(--text-1);
-  text-decoration: none;
-  font-size: 20px;
-  font-family: var(--font-display);
-  font-weight: 300;
-  padding: 16px 32px;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 300px;
-  border-radius: 10px;
-  transition: background 200ms;
-}
-
-.home-nav-overlay a:active {
-  background: rgba(184, 165, 214, 0.1);
-}
-
-body.nav-open .home-nav-overlay {
-  display: flex;
-}
-
-body.nav-open .home-nav-toggle {
-  position: fixed;
-  top: 18px;
-  right: 16px;
-  z-index: 201;
-}
-
-body.nav-open .home-nav-toggle svg .hamburger-top {
-  transform: rotate(45deg) translate(3.5px, -3.5px);
-  transform-origin: center;
-}
-body.nav-open .home-nav-toggle svg .hamburger-mid {
-  opacity: 0;
-}
-body.nav-open .home-nav-toggle svg .hamburger-bot {
-  transform: rotate(-45deg) translate(3.5px, 3.5px);
-  transform-origin: center;
 }
 
 .home-nav-toggle svg line {
   transition: transform 200ms ease, opacity 200ms ease;
 }
 
-@media (max-width: 640px) {
-  .home-nav-link {
-    display: none;
-  }
+.home-nav a {
+  color: rgba(232, 228, 239, 0.25);
+  text-decoration: none;
+  transition: color 300ms;
+}
 
-  .home-nav {
-    justify-content: flex-end;
+.home-nav a:hover {
+  color: var(--text-1);
+}
+
+@media (max-width: 640px) {
+  /* Hide desktop links, show hamburger */
+  .home-nav a {
+    display: none;
   }
 
   .home-nav-toggle {
@@ -504,21 +438,59 @@ body.nav-open .home-nav-toggle svg .hamburger-bot {
     justify-content: center;
     min-height: 44px;
     min-width: 44px;
+  }
+
+  /* When open: nav becomes full-screen overlay */
+  .home-nav.open {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(5, 5, 9, 0.98);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 60px 24px 40px;
+  }
+
+  .home-nav.open a {
+    display: flex;
+    color: var(--text-1);
+    font-size: 20px;
+    font-family: var(--font-display);
+    font-weight: 300;
+    padding: 16px 32px;
+    min-height: 52px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 300px;
+    border-radius: 10px;
+  }
+
+  .home-nav.open a:active {
+    background: rgba(184, 165, 214, 0.1);
+  }
+
+  .home-nav.open .home-nav-toggle svg .hamburger-top {
+    transform: rotate(45deg) translate(3.5px, -3.5px);
+    transform-origin: center;
+  }
+  .home-nav.open .home-nav-toggle svg .hamburger-mid {
+    opacity: 0;
+  }
+  .home-nav.open .home-nav-toggle svg .hamburger-bot {
+    transform: rotate(-45deg) translate(3.5px, 3.5px);
+    transform-origin: center;
   }
 }
 
 @media (max-width: 768px) and (orientation: landscape) {
-  .home-nav-link {
-    display: none;
-  }
-
-  .home-nav-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    min-width: 44px;
-  }
+  .home-nav a { display: none; }
+  .home-nav-toggle { display: flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; }
+  .home-nav.open { top: 0; left: 0; right: 0; bottom: 0; background: rgba(5, 5, 9, 0.98); flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 60px 24px 40px; }
+  .home-nav.open a { display: flex; color: var(--text-1); font-size: 18px; font-family: var(--font-display); padding: 12px 24px; min-height: 48px; align-items: center; justify-content: center; }
 }
 
 .hero-label {
@@ -2215,9 +2187,8 @@ a.t-card {
   }
 
   .section-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .eclipse-row {
