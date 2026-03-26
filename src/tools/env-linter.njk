@@ -22,10 +22,10 @@ permalink: /tools/env-linter/
 
 <div id="env-issues" style="display:none;"></div>
 
-<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border, #e5e7eb);">
+<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border);">
 
 <div class="tool-group">
-  <label>.env.example output <span style="font-weight:400; color:var(--text-3, #9ca3af);">(values replaced with placeholders)</span></label>
+  <label>.env.example output <span style="font-weight:400; color:var(--text-3);">(values replaced with placeholders)</span></label>
   <div class="output-area" style="margin-top:8px;">
     <button class="btn btn--copy" id="btn-copy-example" aria-label="Copy .env.example">Copy</button>
     <pre id="env-example-output" aria-label=".env.example output"></pre>
@@ -49,9 +49,9 @@ permalink: /tools/env-linter/
     border-radius: 3px;
     padding: 3px 10px;
     font-weight: 600;
-    border: 1px solid var(--border, #e5e7eb);
-    background: var(--surface-0, #f9fafb);
-    color: var(--text-1, #111827);
+    border: 1px solid var(--border);
+    background: var(--surface-0);
+    color: var(--text-1);
   }
 
   .env-badge--error   { border-left: 3px solid #ef4444; }
@@ -74,8 +74,8 @@ permalink: /tools/env-linter/
     gap: 10px;
     padding: 8px 12px;
     border-radius: 4px;
-    background: var(--surface-0, #f9fafb);
-    border: 1px solid var(--border, #e5e7eb);
+    background: var(--surface-0);
+    border: 1px solid var(--border);
     font-family: var(--font-sans, sans-serif);
     font-size: 13px;
   }
@@ -87,7 +87,7 @@ permalink: /tools/env-linter/
   .env-issue-line {
     font-family: var(--font-mono, monospace);
     font-size: 11px;
-    color: var(--text-3, #9ca3af);
+    color: var(--text-3);
     padding-top: 1px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -107,14 +107,14 @@ permalink: /tools/env-linter/
   .env-severity--info    { color: #3b82f6; }
 
   .env-issue-msg {
-    color: var(--text-1, #111827);
+    color: var(--text-1);
     flex: 1;
   }
 
   .env-issue-key {
     font-family: var(--font-mono, monospace);
     font-weight: 600;
-    color: var(--text-1, #111827);
+    color: var(--text-1);
   }
 
   .env-section-title {
@@ -123,7 +123,7 @@ permalink: /tools/env-linter/
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--text-3, #9ca3af);
+    color: var(--text-3);
     margin: 0 0 8px;
   }
 </style>

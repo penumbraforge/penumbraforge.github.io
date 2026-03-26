@@ -27,7 +27,7 @@ permalink: /tools/url-encoder/
 </div>
 
 <div id="url-diff-section" style="display:none; margin-top:1rem;">
-  <div style="font-size:0.8rem; color:var(--color-muted,#666); margin-bottom:0.4rem;" id="url-diff-label">Changed characters:</div>
+  <div style="font-size:0.8rem; color:var(--text-3); margin-bottom:0.4rem;" id="url-diff-label">Changed characters:</div>
   <div id="url-diff" style="font-family:var(--font-mono,monospace); font-size:0.85rem; line-height:1.8; word-break:break-all;"></div>
 </div>
 
@@ -70,7 +70,7 @@ permalink: /tools/url-encoder/
       while (i < output.length) {
         if (output[i] === '%' && i + 2 < output.length) {
           var span = document.createElement('span');
-          span.style.cssText = 'background:var(--color-accent-muted,rgba(99,102,241,0.15)); color:var(--color-accent,#6366f1); border-radius:2px; padding:0 2px;';
+          span.style.cssText = 'background:rgba(184, 165, 214, 0.15); color:var(--accent); border-radius:2px; padding:0 2px;';
           span.textContent = output.slice(i, i + 3);
           diffEl.appendChild(span);
           i += 3;
@@ -88,7 +88,7 @@ permalink: /tools/url-encoder/
           var decoded = '';
           try { decoded = decodeURIComponent(input.slice(j, j + 3)); } catch (e) { decoded = input.slice(j, j + 3); }
           var sp = document.createElement('span');
-          sp.style.cssText = 'background:var(--color-accent-muted,rgba(99,102,241,0.15)); color:var(--color-accent,#6366f1); border-radius:2px; padding:0 2px;';
+          sp.style.cssText = 'background:rgba(184, 165, 214, 0.15); color:var(--accent); border-radius:2px; padding:0 2px;';
           sp.textContent = decoded;
           sp.title = input.slice(j, j + 3);
           diffEl.appendChild(sp);

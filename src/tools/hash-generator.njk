@@ -19,11 +19,11 @@ permalink: /tools/hash-generator/
 
 <div class="tool-group">
   <label>File input</label>
-  <div id="drop-zone" style="border:2px dashed var(--border, #e5e7eb); border-radius:8px; padding:1.5rem; text-align:center; cursor:pointer; transition:border-color 0.2s; user-select:none;" role="button" tabindex="0" aria-label="Drop file or click to upload">
+  <div id="drop-zone" style="border:2px dashed var(--border); border-radius:8px; padding:1.5rem; text-align:center; cursor:pointer; transition:border-color 0.2s; user-select:none;" role="button" tabindex="0" aria-label="Drop file or click to upload">
     <span id="drop-label">Drop a file here or <u>click to browse</u></span>
     <input type="file" id="file-input" style="display:none;" aria-hidden="true">
   </div>
-  <div id="file-info" style="margin-top:0.4rem; font-size:0.875rem; color:var(--text-secondary, #6b7280);"></div>
+  <div id="file-info" style="margin-top:0.4rem; font-size:0.875rem; color:var(--text-3);"></div>
 </div>
 
 <div id="hash-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
@@ -33,18 +33,18 @@ permalink: /tools/hash-generator/
   <pre id="hash-output" aria-label="Hash output" style="word-break:break-all; white-space:pre-wrap;"></pre>
 </div>
 
-<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border, #e5e7eb);">
+<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border);">
 
 <details>
   <summary style="cursor:pointer; font-weight:600; margin-bottom:0.75rem;">Compare hashes</summary>
   <div style="margin-top:0.75rem;">
     <div class="tool-group">
       <label for="hash-compare-a">Hash A</label>
-      <input type="text" id="hash-compare-a" placeholder="Paste first hash..." spellcheck="false" autocomplete="off" style="font-family:monospace;">
+      <input type="text" id="hash-compare-a" placeholder="Paste first hash..." spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
     </div>
     <div class="tool-group">
       <label for="hash-compare-b">Hash B</label>
-      <input type="text" id="hash-compare-b" placeholder="Paste second hash..." spellcheck="false" autocomplete="off" style="font-family:monospace;">
+      <input type="text" id="hash-compare-b" placeholder="Paste second hash..." spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
     </div>
     <div class="tool-row">
       <button class="btn" id="btn-compare">Compare</button>

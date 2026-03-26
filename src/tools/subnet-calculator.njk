@@ -22,13 +22,13 @@ permalink: /tools/subnet-calculator/
   </table>
 </div>
 
-<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border, #e5e7eb);">
+<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border);">
 
 <div class="tool-group">
   <label>Common subnets reference</label>
   <table style="width:100%; border-collapse:collapse; font-size:0.875rem; margin-top:0.5rem;">
     <thead>
-      <tr style="border-bottom:2px solid var(--border, #e5e7eb);">
+      <tr style="border-bottom:2px solid var(--border);">
         <th style="text-align:left; padding:0.4rem 0.75rem;">CIDR</th>
         <th style="text-align:left; padding:0.4rem 0.75rem;">Subnet mask</th>
         <th style="text-align:right; padding:0.4rem 0.75rem;">Usable hosts</th>
@@ -49,8 +49,8 @@ permalink: /tools/subnet-calculator/
   var tableBody   = document.getElementById('subnet-table');
   var refBody     = document.getElementById('ref-table');
 
-  var TR_STYLE = 'border-bottom:1px solid var(--border, #e5e7eb);';
-  var TD_LABEL = 'padding:0.4rem 0.75rem; color:var(--text-secondary, #6b7280); white-space:nowrap;';
+  var TR_STYLE = 'border-bottom:1px solid var(--border);';
+  var TD_LABEL = 'padding:0.4rem 0.75rem; color:var(--text-3); white-space:nowrap;';
   var TD_VALUE = 'padding:0.4rem 0.75rem; font-family:monospace; word-break:break-all;';
 
   function showError(msg) {
