@@ -2341,6 +2341,19 @@ a.t-card {
   .container {
     padding: 0 12px;
   }
+
+  .tool-content {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .tool-header h1 {
+    font-size: 20px;
+  }
+
+  .tools-content {
+    padding: 16px 12px;
+  }
 }
 
 /* ============================================================
@@ -4856,6 +4869,17 @@ a.t-card {
   /* == 6. TOOL PAGES == */
   .tool-content {
     overflow-x: hidden;
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  .tool-header h1 {
+    font-size: 22px;
+  }
+
+  .tool-about {
+    font-size: 13px;
+    margin-bottom: 20px;
   }
 
   .tool-content textarea,
@@ -4864,12 +4888,14 @@ a.t-card {
   .tool-content select {
     width: 100%;
     font-size: 16px; /* prevent iOS zoom on focus */
+    padding: 12px 14px;
   }
 
   .tool-content .output-area {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     font-size: 10.5px;
+    padding: 14px;
   }
 
   .tool-content .output-area pre {
@@ -4880,21 +4906,32 @@ a.t-card {
   .tool-content .btn {
     min-height: 44px;
     padding: 10px 18px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tool-content .btn--primary {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
   }
 
   .tool-content .btn--copy {
     min-width: 44px;
     min-height: 44px;
     padding: 8px 14px;
+    width: auto;
   }
 
   .tool-content .tool-options {
     gap: 6px;
+    flex-wrap: wrap;
   }
 
   .tool-content .tool-option {
     min-height: 44px;
     padding: 10px 14px;
+    font-size: 12px;
   }
 
   .tool-content .tool-row {
@@ -4906,11 +4943,36 @@ a.t-card {
     width: 100%;
   }
 
+  .tool-content label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  /* Tool breadcrumbs: tighter */
+  .tools-content .tool-nav {
+    font-size: 11px;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  /* Tool related cards */
+  .tool-related-grid {
+    grid-template-columns: 1fr;
+  }
+
   /* Tool tables: scrollable */
   .tool-content table {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Details/summary in tools */
+  .tool-content details summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
 
   /* == 7. TOOLS HUB == */
