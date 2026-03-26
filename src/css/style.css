@@ -1001,6 +1001,24 @@ a:hover {
   font-weight: 300;
 }
 
+.tools-more-link {
+  display: none;
+  text-align: center;
+  margin-top: 16px;
+}
+
+.tools-more-link a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  padding: 12px 24px;
+  border: 1px solid rgba(184, 165, 214, 0.1);
+  border-radius: 8px;
+  display: inline-block;
+  min-height: 44px;
+  line-height: 20px;
+}
+
 /* ============================================================
    About Section (Homepage)
    ============================================================ */
@@ -4602,6 +4620,12 @@ a.t-card {
     justify-content: center;
   }
 
+  /* Hide station decorative terminals on mobile */
+  .station-terminal,
+  .station-visual {
+    display: none;
+  }
+
   /* == 3. STATION TERMINALS == */
   .station-terminal {
     border-radius: 10px;
@@ -4645,6 +4669,43 @@ a.t-card {
     text-align: center;
     padding: 14px 20px;
     min-height: 44px;
+  }
+
+  /* Compact horizontal card layout */
+  .tools-grid .t-card {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 16px;
+  }
+
+  .tools-grid .t-card .t-icon {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .tools-grid .t-card h4 {
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+
+  .tools-grid .t-card p {
+    font-size: 11px;
+  }
+
+  .tools-grid .t-card .local-badge {
+    margin-top: 4px;
+    font-size: 8px;
+  }
+
+  /* Homepage tools section: limit to 4 cards */
+  .tools-grid--home .t-card:nth-child(n+5) {
+    display: none;
+  }
+
+  /* Show "View all" link on mobile */
+  .tools-more-link {
+    display: block;
   }
 
   /* == 5. ABOUT SECTION == */
