@@ -726,6 +726,21 @@
     },
   };
 
+  /* ════════════════════════════════════════════════════
+     Simulation Bridge
+     ════════════════════════════════════════════════════ */
+
+  var SimulationBridge = {
+    onStateTransition: function (labId, fromState, toState, action) {
+      ProgressStore.completeObjective(labId, toState);
+    },
+    onLabComplete: function (labId, config, elapsed) {
+      var score = 100; // Basic score — Plan 3 adds multi-axis scoring
+      var result = ProgressStore.completeLab(labId, score, elapsed, config);
+      return result;
+    }
+  };
+
   window.PenumbraLabs = {
     Engine: LabEngine,
     Progress: ProgressStore,
@@ -736,5 +751,6 @@
     ForgeKey: ForgeKey,
     Sync: SyncSystem,
     ForgeKeyUI: ForgeKeyUI,
+    SimulationBridge: SimulationBridge,
   };
 })();
