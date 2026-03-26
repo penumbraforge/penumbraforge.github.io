@@ -2274,6 +2274,19 @@ a.t-card {
   .about-layout {
     gap: 20px;
   }
+
+  .tool-btn {
+    padding: 10px 20px;
+  }
+
+  .tech-chip {
+    padding: 8px 16px;
+  }
+
+  .hero-stats > div {
+    border-left: 2px solid rgba(184, 165, 214, 0.15);
+    padding-left: 12px;
+  }
 }
 
 @media (max-width: 480px) {
