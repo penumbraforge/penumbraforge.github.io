@@ -1,0 +1,211 @@
+---
+layout: base.njk
+title: "Reading logs like an attacker — Penumbra Forge"
+description: "How to read access logs the way an attacker would — spotting recon signatures, timing patterns, pivot points, and the gaps where deleted evidence should be."
+permalink: /blog/reading-logs-like-an-attacker/
+---
+
+<link rel="stylesheet" href="/css/blog.css">
+
+<header class="site-header" id="site-header">
+  <a href="/" class="site-header-brand" title="Penumbra Forge">
+    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+  </a>
+  <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
+  <nav class="site-header-nav">
+    <a href="/">Home</a>
+    <a href="/tools/">Tools</a>
+    <a href="/labs/">Labs</a>
+    <a href="/blog/" class="active">Blog</a>
+    <a href="/gate/">Gate</a>
+    <a href="/librarian/">Librarian</a>
+    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div class="blog-page">
+  <article class="blog-article">
+    <div class="blog-article-header">
+      <h1>Reading logs like an attacker</h1>
+      <div class="blog-post-meta">
+        <span class="blog-post-date">March 26, 2026</span>
+        <span class="blog-post-tag">incident response</span>
+        <span class="blog-post-tag">log analysis</span>
+        <span class="blog-post-read">9 min read</span>
+      </div>
+    </div>
+
+    <p class="blog-article-lede">Most log analysis advice starts with the SIEM. Set up your dashboards, tune your correlation rules, build your detection logic. That's fine for steady-state monitoring. But when you're staring at an alert at 2 AM and trying to figure out whether someone is already inside your network, dashboards aren't going to save you. You need to read raw logs the way the person on the other end wrote them — one request at a time, with intent.</p>
+
+    <div class="blog-body">
+      <h2>The recon signature</h2>
+      <p>Attackers don't start with exploits. They start with questions. What's running? What version? Are there admin panels? Forgotten endpoints? The answers show up in your access logs as a specific pattern: sequential requests to paths that don't exist.</p>
+
+      <pre><code>198.51.100.23 - - [14/Mar/2026:03:12:41 +0000] "GET /admin HTTP/1.1" 404 162 "-" "Mozilla/5.0 (compatible; Go-http-client/2.0)"
+198.51.100.23 - - [14/Mar/2026:03:12:41 +0000] "GET /wp-admin HTTP/1.1" 404 162 "-" "Mozilla/5.0 (compatible; Go-http-client/2.0)"
+198.51.100.23 - - [14/Mar/2026:03:12:42 +0000] "GET /administrator HTTP/1.1" 404 162 "-" "Mozilla/5.0 (compatible; Go-http-client/2.0)"
+198.51.100.23 - - [14/Mar/2026:03:12:42 +0000] "GET /.env HTTP/1.1" 404 162 "-" "Mozilla/5.0 (compatible; Go-http-client/2.0)"
+198.51.100.23 - - [14/Mar/2026:03:12:42 +0000] "GET /api/v1/users HTTP/1.1" 401 38 "-" "Mozilla/5.0 (compatible; Go-http-client/2.0)"
+198.51.100.23 - - [14/Mar/2026:03:12:43 +0000] "GET /graphql HTTP/1.1" 400 47 "-" "Mozilla/5.0 (compatible; Go-http-client/2.0)"
+198.51.100.23 - - [14/Mar/2026:03:12:43 +0000] "GET /server-status HTTP/1.1" 403 199 "-" "Mozilla/5.0 (compatible; Go-http-client/2.0)"</code></pre>
+
+      <p>Three things to notice here. First, the timestamps — seven requests in two seconds. No human browses like that. Second, the User-Agent says <code>Go-http-client/2.0</code> wrapped in a Mozilla compatibility string. That's a scanner trying to look like a browser and doing a bad job of it. Third, the response codes — a wall of 404s, one 401, one 400, and a 403.</p>
+
+      <p>That 401 on <code>/api/v1/users</code> and that 403 on <code>/server-status</code> are the interesting ones. A 404 means "nothing here." A 401 or 403 means "something is here, but you can't have it." The attacker just learned two things about your application that they didn't know before.</p>
+
+      <div class="blog-callout blog-callout-insight">
+        <strong>The User-Agent tells a story.</strong> Legitimate scanners identify themselves: <code>Googlebot</code>, <code>bingbot</code>, <code>Slackbot-LinkExpanding</code>. Malicious scanners either use generic library defaults (<code>python-requests/2.28.0</code>, <code>Go-http-client/2.0</code>, <code>curl/7.88.1</code>) or copy a real browser string. If you see a Chrome 120 User-Agent making requests at machine speed to paths no user would visit, that's a script wearing a mask.
+      </div>
+
+      <h2>Timing tells you everything</h2>
+      <p>The log entries above represent a noisy, fast scan. Automated tools ripping through a wordlist. These are easy to detect and honestly not that interesting — most of this traffic is untargeted spray hitting every IP on the internet.</p>
+      <p>The scans that matter look different:</p>
+
+      <pre><code>203.0.113.47 - - [14/Mar/2026:08:22:15 +0000] "GET / HTTP/1.1" 200 4891 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+203.0.113.47 - - [14/Mar/2026:08:24:03 +0000] "GET /about HTTP/1.1" 200 2104 "https://app.targetcorp.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+203.0.113.47 - - [14/Mar/2026:08:27:44 +0000] "GET /careers HTTP/1.1" 200 3299 "https://app.targetcorp.com/about" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+203.0.113.47 - - [14/Mar/2026:08:31:12 +0000] "GET /api/docs HTTP/1.1" 200 8710 "https://app.targetcorp.com/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+203.0.113.47 - - [14/Mar/2026:08:33:58 +0000] "GET /api/v2/health HTTP/1.1" 200 42 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"</code></pre>
+
+      <p>Two to four minutes between requests. Referrer headers that look like natural browsing. A real browser User-Agent. If you're looking for the fast-scan pattern, you'll never flag this. But the path progression tells the story: homepage, about page, careers (looking for tech stack mentions in job postings), API documentation, then a direct hit on a health endpoint they found in those docs.</p>
+      <p>This is a human, or a very well-tuned script, doing targeted reconnaissance. The spacing is designed to stay under rate limits and blend into normal traffic.</p>
+
+      <h2>The pivot point</h2>
+      <p>This is the moment I look for first in any triage. The pattern change. Every attack has a phase transition — the point where the attacker stops asking questions and starts exploiting answers.</p>
+      <p>Here's what a pivot looks like in structured JSON logs from a web application:</p>
+
+      <pre><code>{"ts":"2026-03-14T09:41:22Z","ip":"203.0.113.47","method":"GET","path":"/api/v2/users/me","status":401,"ua":"Mozilla/5.0 ..."}
+{"ts":"2026-03-14T09:41:58Z","ip":"203.0.113.47","method":"GET","path":"/api/v2/users/1","status":401,"ua":"Mozilla/5.0 ..."}
+{"ts":"2026-03-14T09:42:34Z","ip":"203.0.113.47","method":"GET","path":"/api/v1/users/1","status":200,"ua":"Mozilla/5.0 ...","bytes":847}
+{"ts":"2026-03-14T09:42:35Z","ip":"203.0.113.47","method":"GET","path":"/api/v1/users/2","status":200,"ua":"Mozilla/5.0 ...","bytes":691}
+{"ts":"2026-03-14T09:42:35Z","ip":"203.0.113.47","method":"GET","path":"/api/v1/users/3","status":200,"ua":"Mozilla/5.0 ...","bytes":724}
+{"ts":"2026-03-14T09:42:36Z","ip":"203.0.113.47","method":"GET","path":"/api/v1/users/4","status":200,"ua":"Mozilla/5.0 ...","bytes":715}
+{"ts":"2026-03-14T09:42:36Z","ip":"203.0.113.47","method":"GET","path":"/api/v1/users/5","status":200,"ua":"Mozilla/5.0 ...","bytes":702}</code></pre>
+
+      <p>See it? The attacker tries the v2 API. Gets 401s. Falls back to v1. Gets a 200. And then the timing collapses — from 30-second intervals to sub-second. That's the pivot. They found an unauthenticated endpoint on a deprecated API version, and now they're enumerating every user in the system as fast as they can.</p>
+      <p>The response size is your confirmation. Those <code>bytes</code> values in the 700-850 range mean the server is returning real data. If the endpoint were returning error pages, you'd see consistent sizes across all requests.</p>
+
+      <h2>Authentication logs: the pattern behind the password</h2>
+      <p>Failed login attempts are the most common alert in any SOC, and most of them are noise. The difference between noise and a real attack is the pattern.</p>
+
+      <h3>Credential stuffing</h3>
+      <pre><code>{"ts":"2026-03-14T11:05:01Z","event":"login_failed","user":"j.martinez@targetcorp.com","ip":"45.33.32.156","reason":"invalid_password"}
+{"ts":"2026-03-14T11:05:01Z","event":"login_failed","user":"sarah.chen@targetcorp.com","ip":"45.33.32.156","reason":"invalid_password"}
+{"ts":"2026-03-14T11:05:02Z","event":"login_failed","user":"mike.johnson@targetcorp.com","ip":"45.33.32.156","reason":"invalid_password"}
+{"ts":"2026-03-14T11:05:02Z","event":"login_failed","user":"a.patel@targetcorp.com","ip":"45.33.32.156","reason":"invalid_password"}
+{"ts":"2026-03-14T11:05:03Z","event":"login_success","user":"d.kowalski@targetcorp.com","ip":"45.33.32.156"}</code></pre>
+
+      <p>Many usernames, one password attempt each, same source IP, machine-speed timing. This is credential stuffing — the attacker has a list of email/password combos from a breach dump and is testing them against your login endpoint. That successful login for <code>d.kowalski</code> means Daniel reused his LinkedIn password. He's compromised.</p>
+
+      <h3>Targeted attack</h3>
+      <pre><code>{"ts":"2026-03-14T06:14:22Z","event":"login_failed","user":"admin@targetcorp.com","ip":"192.0.2.88","reason":"invalid_password"}
+{"ts":"2026-03-14T06:14:55Z","event":"login_failed","user":"admin@targetcorp.com","ip":"198.51.100.12","reason":"invalid_password"}
+{"ts":"2026-03-14T06:15:31Z","event":"login_failed","user":"admin@targetcorp.com","ip":"203.0.113.204","reason":"invalid_password"}
+{"ts":"2026-03-14T06:16:08Z","event":"login_failed","user":"admin@targetcorp.com","ip":"192.0.2.91","reason":"invalid_password"}
+{"ts":"2026-03-14T06:16:44Z","event":"login_failed","user":"admin@targetcorp.com","ip":"198.51.100.77","reason":"invalid_password"}</code></pre>
+
+      <p>One username, many passwords, rotating source IPs, 30-40 seconds between attempts. This is a targeted brute force through a proxy chain. Someone wants into this specific account badly enough to distribute the attack across IPs to avoid lockout thresholds. The deliberate pacing means they know your lockout policy — probably from testing it during the recon phase.</p>
+
+      <div class="blog-callout blog-callout-warning">
+        <strong>The success that hides in the noise.</strong> A single <code>login_success</code> buried in a credential stuffing run is easy to miss if your alerting only triggers on failure count thresholds. If you set your alert at "10 failed logins in 5 minutes," the attacker who gets a hit on attempt 4 flies under the radar. Alert on the pattern, not just the count.
+      </div>
+
+      <h2>Know what normal looks like</h2>
+      <p>You cannot identify anomalous behavior in logs if you don't know what normal behavior looks like. This sounds obvious. Almost nobody does it.</p>
+      <p>Before an incident happens, you should be able to answer these questions about your application:</p>
+      <p>What's the normal request rate per minute? What paths get the most traffic? What User-Agents do your actual users send? What time zones do your users live in — and what does 3 AM traffic look like versus 3 PM traffic? What's the typical response size for your API endpoints? How often do your legitimate users hit 404s?</p>
+      <p>When you know that your API typically handles 200 requests per minute and 95% of traffic comes from three browser User-Agents, then a spike to 800 requests per minute from <code>python-requests/2.31.0</code> is immediately visible. Without that baseline, it's just another number.</p>
+      <p>I keep a one-page baseline document for every application I'm responsible for. Updated quarterly. It's the single most useful artifact I have during incident response.</p>
+
+      <h2>The logs that aren't there</h2>
+      <p>This is the part that separates experienced responders from everyone else. The absence of evidence is not evidence of absence — but sometimes the absence of evidence <em>is</em> evidence of tampering.</p>
+
+      <h3>What attackers delete</h3>
+      <p>A competent attacker with shell access will clean up after themselves. The classic move:</p>
+
+      <pre><code># Attacker clears their tracks
+echo "" > /var/log/auth.log
+# Or more surgically:
+sed -i '/203.0.113.47/d' /var/log/nginx/access.log
+# Or they modify timestamps:
+touch -t 202603140000.00 /var/log/auth.log</code></pre>
+
+      <p>If your <code>auth.log</code> has a gap — entries at 09:41, then nothing until 10:15, then entries resume — that gap is the incident. Something happened in those 34 minutes that someone didn't want you to see. Cross-reference with other log sources: syslog, kernel audit logs, network flow data. The attacker would need to scrub all of them, and they rarely get everything.</p>
+
+      <h3>What your system never logged</h3>
+      <p>This is worse. You can't delete logs that were never created. Common blind spots I see repeatedly:</p>
+      <p>DNS query logs — your application makes outbound DNS requests during an SSRF exploit, and you have no record of what domains it resolved. Outbound connection logs — the attacker uses your server to call their C2, and your firewall logs only track inbound traffic. Process execution logs — someone runs <code>whoami</code>, <code>id</code>, and <code>cat /etc/passwd</code> on your server, and without <code>auditd</code> or an EDR agent, those commands are ghosts. Request body logging — the POST request that delivered the SQL injection payload is logged as a 200 to <code>/api/search</code>, but the actual query string that extracted your user table is gone because you only log headers.</p>
+
+      <div class="blog-callout blog-callout-insight">
+        <strong>Check your logging gaps before an incident.</strong> Right now, try to answer: if someone ran a reverse shell from your web server, which log source would show it? If you can't answer that in under 30 seconds, you have a gap to close.
+      </div>
+
+      <h2>Walkthrough: reading a breach timeline</h2>
+      <p>Let me put this all together. Here's a condensed timeline from a simulated breach. Read it the way I would during a real triage — start at the end (the alert that woke you up) and work backward.</p>
+
+      <h3>The alert (what you see first)</h3>
+      <pre><code>{"ts":"2026-03-14T10:47:33Z","event":"alert","rule":"data_exfil_volume","detail":"5.2GB transferred to external IP in 12 minutes","src_ip":"10.20.5.44","dst_ip":"203.0.113.47","dst_port":443}</code></pre>
+
+      <p>5.2 gigs outbound from an internal server to an external IP. That's the fire alarm. Now rewind.</p>
+
+      <h3>Working backward</h3>
+      <pre><code># 10:35 — Attacker begins exfiltration via HTTPS
+{"ts":"2026-03-14T10:35:18Z","src":"10.20.5.44","dst":"203.0.113.47","port":443,"bytes_out":5368709120}
+
+# 10:22 — Attacker accesses database server from compromised web server
+{"ts":"2026-03-14T10:22:04Z","event":"db_query","user":"webapp_svc","src_ip":"10.20.5.44","query":"SELECT * FROM customers","rows_returned":284019}
+
+# 10:18 — Attacker escalates to webapp service account
+{"ts":"2026-03-14T10:18:41Z","event":"sudo","user":"www-data","command":"/bin/bash","result":"success","note":"webapp_svc has NOPASSWD sudo"}
+
+# 10:14 — Attacker gets shell via file upload
+{"ts":"2026-03-14T10:14:09Z","ip":"203.0.113.47","method":"POST","path":"/api/upload","status":200,"filename":"profile.php.jpg","bytes":2847}
+{"ts":"2026-03-14T10:14:22Z","ip":"203.0.113.47","method":"GET","path":"/uploads/profile.php.jpg","status":200,"bytes":89}
+
+# 10:12 — Attacker discovers the upload endpoint accepts .php.jpg
+{"ts":"2026-03-14T10:12:55Z","ip":"203.0.113.47","method":"POST","path":"/api/upload","status":200,"filename":"test.jpg","bytes":1024}
+
+# 09:42 — Attacker finds unauthenticated API v1 (the pivot point)
+{"ts":"2026-03-14T09:42:34Z","ip":"203.0.113.47","method":"GET","path":"/api/v1/users/1","status":200,"bytes":847}
+
+# 09:33 — Attacker reads API docs
+{"ts":"2026-03-14T09:33:58Z","ip":"203.0.113.47","method":"GET","path":"/api/docs","status":200,"bytes":8710}
+
+# 08:22 — First visit from this IP (beginning of recon)
+{"ts":"2026-03-14T08:22:15Z","ip":"203.0.113.47","method":"GET","path":"/","status":200,"bytes":4891}</code></pre>
+
+      <h3>Reading the story</h3>
+      <p>08:22 — Attacker lands on the site. Begins slow, deliberate reconnaissance over the next hour. Reads public pages, finds the API documentation.</p>
+      <p>09:42 — The pivot. Discovers that API v1 is still live and doesn't require authentication. Enumerates users.</p>
+      <p>10:12 — Tests the upload endpoint with a legitimate image. Confirms it works.</p>
+      <p>10:14 — Uploads a PHP webshell disguised as a JPEG. The upload handler validates the file extension by checking if it contains <code>.jpg</code> instead of checking what it ends with. The attacker names it <code>profile.php.jpg</code>. The server executes it as PHP because Apache processes the first recognized extension. The 89-byte response on the GET confirms the shell executed (a directory listing or <code>whoami</code> output).</p>
+      <p>10:18 — The web server process (<code>www-data</code>) has passwordless sudo to the <code>webapp_svc</code> account. Four seconds to escalate.</p>
+      <p>10:22 — With service account credentials (probably in a config file readable by <code>webapp_svc</code>), the attacker runs a full dump of the customers table. 284,019 rows.</p>
+      <p>10:35 — Data leaves your network over HTTPS to the same IP that started the recon two hours ago.</p>
+      <p>Total time from first visit to exfiltration: 2 hours 13 minutes. Total time from initial access (shell) to exfiltration: 21 minutes.</p>
+
+      <h3>What you learn from this</h3>
+      <p>The root cause isn't the PHP upload — that's just the entry point. The root causes are: a deprecated API version left running without authentication, an upload handler with broken extension validation, passwordless sudo from the web process to a service account, a service account with direct database access and no query restrictions, and no outbound traffic alerting until 5 gigs had already left.</p>
+      <p>Every one of those findings is visible in the logs after the fact. The question is whether your logging captured enough to reconstruct the chain — and whether you practiced reading it before it mattered.</p>
+
+      <h2>Practice reading attack logs</h2>
+      <p>Reading logs under pressure is a skill, and skills require practice. You don't want the first time you reconstruct an attack timeline to be during an actual incident with your CISO standing behind you.</p>
+      <p>I built the blue team labs on Penumbra Forge specifically for this. The <a href="/labs/">breach investigation and log analysis labs</a> give you realistic incident timelines with the same kinds of log entries I've walked through here. You triage alerts, trace lateral movement, and identify the root cause — in your browser, with no setup, against scenarios modeled on real-world attack chains.</p>
+      <p>Start reading your own access logs today. Not through a dashboard. Open the raw file. Scroll through it. Learn what your normal looks like. The next time an alert fires, you'll know exactly what you're looking at.</p>
+    </div>
+
+    <div class="blog-post-footer">
+      <div class="blog-author">
+        <div class="blog-author-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div>
+          <div class="blog-author-name">Shadoe Myers</div>
+          <div class="blog-author-role">Senior InfoSec Engineer — Penumbra Forge</div>
+        </div>
+      </div>
+      <div class="blog-nav-links">
+        <a href="/blog/" class="blog-nav-link">&larr; All posts</a>
+        <a href="/labs/" class="blog-nav-link">Try the labs &rarr;</a>
+      </div>
+    </div>
+  </article>
+</div>
