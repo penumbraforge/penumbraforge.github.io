@@ -1,0 +1,11 @@
+name = "csp-nonce"
+main = "worker.js"
+compatibility_date = "2026-03-22"
+account_id = "e32f51ad99dc43fb5249086282786c6f"
+
+# Route: runs on every request to penumbraforge.com
+[[routes]]
+pattern = "penumbraforge.com/*"
+zone_name = "penumbraforge.com"
+
+# Rollback: remove route in Cloudflare dashboard or comment out [[routes]] and redeploy
