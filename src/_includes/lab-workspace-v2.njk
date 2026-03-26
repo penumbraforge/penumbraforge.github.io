@@ -1,0 +1,260 @@
+{# Red Team Workstation v2 — Eleventy layout (not Nunjucks extends) #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>{{ labTitle }} — Security Labs | Penumbra Forge</title>
+  <meta name="description" content="{{ labDescription }}">
+  <link rel="canonical" href="{{ site.url }}{{ page.url }}">
+  <meta property="og:title" content="{{ labTitle }} — Penumbra Forge Security Labs">
+  <meta property="og:description" content="{{ labDescription }}">
+  <meta property="og:image" content="{{ site.url }}/og-image.png">
+  <meta property="og:url" content="{{ site.url }}{{ page.url }}">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200;12..96,300;12..96,400;12..96,500;12..96,600&family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=4">
+  <link rel="stylesheet" href="/css/workstation.css?v=1">
+</head>
+<body style="overflow:hidden;height:100vh;">
+
+<!-- Topbar (40px height) -->
+<div class="ws-topbar">
+  <a href="/" class="ws-topbar-brand" title="Penumbra Forge">
+    <div class="site-header-orb" aria-hidden="true" style="width:22px;height:22px;">
+      <div class="site-header-orb-backlight"></div>
+      <div class="site-header-orb-corona"></div>
+      <div class="site-header-orb-glow"></div>
+      <div class="site-header-orb-edge"></div>
+      <div class="site-header-orb-shadow"></div>
+    </div>
+  </a>
+  <div class="ws-topbar-sep"></div>
+  <a href="/labs/" class="ws-topbar-back">&#x2190; Labs</a>
+  <div class="ws-topbar-sep"></div>
+  <span class="ws-topbar-title">{{ labCode }} · {{ labTitle }}</span>
+  <span class="ws-topbar-diff diff-{{ labDifficulty }}">{{ labDifficulty }}</span>
+  <span class="ws-topbar-status" id="ws-mission-status">&#x25CF; Mission Active</span>
+  <span class="ws-topbar-timer" id="lab-timer">00:00</span>
+</div>
+
+<!-- Mobile gate — shown below 900px, workspace hidden -->
+<div class="lab-mobile-gate">
+  <div class="lab-mobile-gate-inner">
+    <svg class="lab-mobile-gate-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+      <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+    <h2 class="lab-mobile-gate-title">{{ labTitle }}</h2>
+    <span class="lab-mobile-gate-diff diff-{{ labDifficulty }}">{{ labDifficulty }}</span>
+    <p class="lab-mobile-gate-desc">{{ labDescription }}</p>
+    <p class="lab-mobile-gate-msg">This lab requires a desktop browser for the full interactive experience.</p>
+    <div class="lab-mobile-gate-actions">
+      <button class="lab-mobile-gate-copy" onclick="navigator.clipboard.writeText(window.location.href).then(function(){this.textContent='Copied!'}.bind(this))">Copy link</button>
+      <a href="/labs/" class="lab-mobile-gate-back">View all labs</a>
+    </div>
+  </div>
+</div>
+
+<!-- Lab Engine + all workstation scripts -->
+<script src="/js/lab-engine.js"></script>
+<script src="/js/panel-system.js"></script>
+<script src="/js/simulation-engine.js"></script>
+<script src="/js/workstation-terminal.js"></script>
+<script src="/js/workstation-repeater.js"></script>
+<script src="/js/workstation-decoder.js"></script>
+<script src="/js/workstation-notes.js"></script>
+
+<!-- Three-panel workspace -->
+<div class="ws-workspace" id="workspace" data-lab-id="{{ labCode | lower | replace(' ', '-') }}">
+
+  <!-- LEFT: Mission Brief -->
+  <div class="ws-panel" id="panel-mission" data-panel="panel-mission" style="width:280px;min-width:220px;">
+    <div class="ws-panel-tabs" id="mission-tabs">
+      <button class="ws-tab active" data-tab="mission">Mission</button>
+      <button class="ws-tab" data-tab="intel">Intel</button>
+      <button class="ws-tab" data-tab="debrief">Debrief</button>
+    </div>
+    <div class="ws-panel-region">
+      <div class="ws-tab-content active" data-tab-content="mission">
+        {{ content | safe }}
+      </div>
+      <div class="ws-tab-content" data-tab-content="intel" id="intel-panel">
+        <div class="ws-mission-empty">Intel populates as you discover information during your engagement.</div>
+      </div>
+      <div class="ws-tab-content" data-tab-content="debrief" id="debrief-panel" style="display:none;">
+        <!-- Populated by lab-specific script on completion -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Drag handle -->
+  <div class="ws-drag-handle" data-resize="panel-mission"></div>
+
+  <!-- CENTER: Workstation Tools -->
+  <div class="ws-panel ws-panel-flex" id="panel-tools" data-panel="panel-tools">
+    <div class="ws-tool-tabs" id="tool-tabs">
+      <button class="ws-tool-tab active" data-tool="terminal">Terminal</button>
+      <button class="ws-tool-tab" data-tool="repeater">Repeater</button>
+      <button class="ws-tool-tab" data-tool="intercept" disabled title="Coming in next update">Intercept</button>
+      <button class="ws-tool-tab" data-tool="decoder">Decoder</button>
+      <button class="ws-tool-tab" data-tool="notes">Notes</button>
+    </div>
+    <div class="ws-tool-content">
+      <div class="ws-tool-pane active" id="tool-terminal"></div>
+      <div class="ws-tool-pane" id="tool-repeater"></div>
+      <div class="ws-tool-pane" id="tool-decoder"></div>
+      <div class="ws-tool-pane" id="tool-notes"></div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="ws-status-bar">
+      <span class="ws-status-item"><span class="ws-status-dot green"></span> Connected</span>
+      <span class="ws-status-item">Target: {{ targetHost }}</span>
+      <span class="ws-status-item" id="ws-request-count">Requests: 0</span>
+      <span class="ws-status-item" id="ws-detection"></span>
+      <span class="ws-status-item ws-status-right" id="ws-level"></span>
+    </div>
+  </div>
+
+  <!-- Drag handle -->
+  <div class="ws-drag-handle" data-resize="panel-browser"></div>
+
+  <!-- RIGHT: Browser View -->
+  <div class="ws-panel" id="panel-browser" data-panel="panel-browser" style="width:480px;min-width:320px;">
+    <div class="ws-browser-chrome">
+      <div class="ws-browser-dots"><span class="rd"></span><span class="yl"></span><span class="gn"></span></div>
+      <div class="ws-browser-tab-bar">
+        <div class="ws-browser-tab-item active">
+          <div class="ws-browser-tab-favicon">S</div>
+          <span>{{ targetHost }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="ws-browser-url-bar">
+      <span class="ws-lock" id="ws-lock">&#x1f512;</span>
+      <input class="ws-url-display" id="ws-url-display" value="{{ targetHost }}" readonly>
+    </div>
+    <div class="ws-browser-viewport">
+      <iframe id="target-iframe"
+              sandbox="allow-scripts allow-forms allow-same-origin"
+              src="{{ workerUrl }}"
+              class="ws-target-iframe"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- Nudge container (positioned absolutely) -->
+<div id="nudge-container"></div>
+
+<!-- Completion overlay (hidden by default) -->
+<div class="ws-complete-overlay" id="lab-complete-overlay">
+  <div class="ws-complete-card">
+    <div class="ws-complete-icon">&#x26A1;</div>
+    <div class="ws-complete-title">Mission Complete</div>
+    <div class="ws-complete-stats">
+      <div class="ws-complete-stat">
+        <span class="ws-complete-stat-label">Time</span>
+        <span class="ws-complete-stat-value" id="complete-time">00:00</span>
+      </div>
+      <div class="ws-complete-stat">
+        <span class="ws-complete-stat-label">Score</span>
+        <span class="ws-complete-stat-value" id="complete-score">0</span>
+      </div>
+      <div class="ws-complete-stat">
+        <span class="ws-complete-stat-label">XP</span>
+        <span class="ws-complete-stat-value" id="complete-xp">+0</span>
+      </div>
+    </div>
+    <div class="ws-complete-level" id="complete-level">Level 1 — Script Kiddie</div>
+    <div class="ws-complete-actions">
+      <button class="ws-complete-btn" onclick="document.getElementById('lab-complete-overlay').classList.remove('visible');">View Debrief</button>
+      <a class="ws-complete-btn ws-complete-btn-secondary" id="complete-unlock" href="/labs/" style="display:none;">Next Lab &#x2192;</a>
+    </div>
+  </div>
+</div>
+
+<!-- Disclaimer gate -->
+<div class="ws-disclaimer" id="lab-disclaimer">
+  <div class="ws-disclaimer-card">
+    <div class="ws-disclaimer-title">Before You Begin</div>
+    <p class="ws-disclaimer-text">This lab contains <strong>intentionally vulnerable</strong> applications for educational purposes. The vulnerabilities are real but isolated in sandboxed environments.</p>
+    <p class="ws-disclaimer-text"><strong>Do not</strong> use techniques learned here against systems without explicit authorization.</p>
+    <button class="ws-disclaimer-btn" id="disclaimer-accept">I Understand — Begin Lab</button>
+  </div>
+</div>
+
+<!-- Tab switching logic -->
+<script>
+(function() {
+  'use strict';
+
+  // Mission panel tabs
+  var missionTabs = document.getElementById('mission-tabs');
+  if (missionTabs) {
+    missionTabs.addEventListener('click', function(e) {
+      var btn = e.target.closest('.ws-tab');
+      if (!btn) return;
+      var tab = btn.getAttribute('data-tab');
+      // Deactivate all
+      missionTabs.querySelectorAll('.ws-tab').forEach(function(t) { t.classList.remove('active'); });
+      btn.closest('.ws-panel').querySelectorAll('.ws-tab-content').forEach(function(c) { c.classList.remove('active'); });
+      // Activate selected
+      btn.classList.add('active');
+      var content = btn.closest('.ws-panel').querySelector('[data-tab-content="' + tab + '"]');
+      if (content) content.classList.add('active');
+    });
+  }
+
+  // Tool tabs
+  var toolTabs = document.getElementById('tool-tabs');
+  if (toolTabs) {
+    toolTabs.addEventListener('click', function(e) {
+      var btn = e.target.closest('.ws-tool-tab');
+      if (!btn || btn.disabled) return;
+      var tool = btn.getAttribute('data-tool');
+      // Deactivate all
+      toolTabs.querySelectorAll('.ws-tool-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.ws-tool-pane').forEach(function(p) { p.classList.remove('active'); });
+      // Activate selected
+      btn.classList.add('active');
+      var pane = document.getElementById('tool-' + tool);
+      if (pane) pane.classList.add('active');
+    });
+  }
+
+  // Disclaimer gate
+  var DISCLAIMER_KEY = 'pf-labs-disclaimer-accepted';
+  var disclaimer = document.getElementById('lab-disclaimer');
+  if (disclaimer && localStorage.getItem(DISCLAIMER_KEY)) {
+    disclaimer.style.display = 'none';
+  }
+  var acceptBtn = document.getElementById('disclaimer-accept');
+  if (acceptBtn) {
+    acceptBtn.addEventListener('click', function() {
+      localStorage.setItem(DISCLAIMER_KEY, '1');
+      disclaimer.style.display = 'none';
+    });
+  }
+
+  // Update level display in status bar
+  var Labs = window.PenumbraLabs;
+  if (Labs && Labs.Progress) {
+    var profile = Labs.Progress.getProfile();
+    var levelEl = document.getElementById('ws-level');
+    if (levelEl && Labs.Xp) {
+      levelEl.textContent = 'Level ' + profile.level + ' \u00B7 ' + Labs.Xp.titleForLevel(profile.level);
+    }
+  }
+})();
+</script>
+
+<!-- Cloudflare Web Analytics -->
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6579e863544d4aaea2538c83110ac7e2"}'></script>
+</body>
+</html>
