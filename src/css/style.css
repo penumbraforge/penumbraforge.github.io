@@ -57,6 +57,18 @@ a:hover {
   color: var(--accent-strong);
 }
 
+/* Touch feedback */
+.t-card:active,
+.station:active,
+.station-terminal:active,
+.wiki-card:active,
+.featured-card:active,
+.lab-card:active,
+.blog-post-card:active {
+  opacity: 0.85;
+  transition: opacity 100ms;
+}
+
 /* ============================================================
    Layout
    ============================================================ */
@@ -837,9 +849,11 @@ a:hover {
   transition: border-color 400ms ease, box-shadow 400ms ease;
 }
 
-.station-terminal:hover {
-  border-color: rgba(184, 165, 214, 0.12);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 32px rgba(140, 110, 200, 0.03);
+@media (hover: hover) {
+  .station-terminal:hover {
+    border-color: rgba(184, 165, 214, 0.12);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 32px rgba(140, 110, 200, 0.03);
+  }
 }
 
 .terminal-bar {
@@ -976,10 +990,12 @@ a:hover {
   transition: all 400ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-.t-card:hover {
-  border-color: rgba(184, 165, 214, 0.1);
-  transform: translateY(-3px);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+@media (hover: hover) {
+  .t-card:hover {
+    border-color: rgba(184, 165, 214, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  }
 }
 
 .t-icon {
