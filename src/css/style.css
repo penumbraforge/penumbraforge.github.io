@@ -4694,9 +4694,9 @@ a.t-card {
     padding-top: 20px;
   }
 
-  /* Live tool demo: full width, smaller mono */
-  .live-tool {
-    margin: 0 auto;
+  /* Hide live tool demo carousel on mobile */
+  .hero-split > div:last-child {
+    display: none;
   }
 
   .tool-body pre,
