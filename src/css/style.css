@@ -4694,6 +4694,12 @@ a.t-card {
     padding-top: 20px;
   }
 
+  /* Hide labs section on mobile */
+  .labs-home-section,
+  .labs-home-gap {
+    display: none !important;
+  }
+
   /* Hide live tool demo carousel on mobile */
   .hero-split > div:last-child {
     display: none !important;
