@@ -244,6 +244,19 @@ body.ws-dragging iframe {
 .ws-nudge-dismiss:hover { color:#8b8fa3; }
 @keyframes nudgeFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
+/* ═══ Mission Content ═══ */
+.ws-mission-header { color:#e2e4ea; font-size:14px; font-weight:600; margin-bottom:12px; }
+.ws-mission-narrative { color:#8b8fa3; font-size:12px; line-height:1.7; margin-bottom:16px; }
+.ws-mission-goal { background:#1a1a2e; border:1px solid #2a2a3e; border-left:3px solid #ff6b35; padding:12px; border-radius:4px; margin-bottom:12px; }
+.ws-mission-goal-bonus { border-left-color:#6366f1; }
+.ws-mission-goal-label { color:#ff6b35; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+.ws-mission-goal-bonus .ws-mission-goal-label { color:#6366f1; }
+.ws-mission-goal-text { color:#e2e4ea; font-size:12px; line-height:1.5; }
+.ws-mission-intel-section { margin-top:16px; }
+.ws-intel-item { background:#111119; border:1px solid #1e1e2e; padding:10px; border-radius:4px; margin-bottom:8px; }
+.ws-intel-label { color:#6366f1; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+.ws-intel-value { color:#c8ccd4; font-size:12px; }
+
 /* ═══ Mobile Gate (workstation override) ═══ */
 .lab-mobile-gate { display:none; }
 @media (max-width:900px) {
