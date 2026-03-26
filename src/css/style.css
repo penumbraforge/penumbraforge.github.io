@@ -32,6 +32,10 @@
    ============================================================ */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background: var(--surface-0);
   color: var(--text-2);
@@ -40,6 +44,8 @@ body {
   overflow-x: hidden;
   font-size: 14px;
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -959,6 +965,12 @@ a:hover {
   .penumbra-light, .penumbra-edge, .penumbra-corona, .penumbra-backlight,
   .status-dot, .star--bright { animation: none; }
   #particle-canvas, #eclipse-particles { display: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 /* ============================================================
