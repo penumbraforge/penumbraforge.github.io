@@ -4696,7 +4696,11 @@ a.t-card {
 
   /* Hide live tool demo carousel on mobile */
   .hero-split > div:last-child {
-    display: none;
+    display: none !important;
+  }
+
+  .hero-split {
+    display: block;
   }
 
   .tool-body pre,
