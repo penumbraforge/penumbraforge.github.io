@@ -37,7 +37,10 @@
           el = this._container.querySelector('[data-panel="' + cfg.id + '"]');
         }
 
-        if (!el) continue;
+        if (!el) {
+          console.warn('PanelSystem: panel "' + cfg.id + '" not found');
+          continue;
+        }
 
         // Ensure the panel has the base class
         if (!el.classList.contains('ws-panel')) {
@@ -223,7 +226,7 @@
       var ids = Object.keys(this._panels);
       for (var i = 0; i < ids.length; i++) {
         var entry = this._panels[ids[i]];
-        if (!entry.config.flex) {
+        if (!entry.config.flex && !entry.collapsed) {
           widths[ids[i]] = entry.el.offsetWidth;
         }
       }

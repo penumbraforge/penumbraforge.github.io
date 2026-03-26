@@ -56,6 +56,7 @@
   width: 0 !important;
   min-width: 0 !important;
   overflow: hidden !important;
+  transition: width 0.15s ease;
 }
 
 /* ── Drag Handles ── */
@@ -100,7 +101,3 @@ body.ws-dragging iframe {
   pointer-events: none;
 }
 
-/* ── Collapse/expand transition ── */
-.ws-panel-collapsed {
-  transition: width 0.15s ease;
-}
