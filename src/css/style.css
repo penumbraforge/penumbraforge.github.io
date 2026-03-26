@@ -2247,6 +2247,42 @@ a.t-card {
   .container {
     padding: 0 16px;
   }
+
+  .hero-split {
+    gap: 24px;
+    padding-bottom: 40px;
+  }
+
+  .about-layout {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 20px 12px 0;
+  }
+
+  .section {
+    padding: 32px 12px;
+  }
+
+  .hero h1 {
+    font-size: 22px;
+  }
+
+  .station h2.station-title,
+  .station h3 {
+    font-size: 19px;
+  }
+
+  .station {
+    padding: 16px;
+  }
+
+  .container {
+    padding: 0 12px;
+  }
 }
 
 /* ============================================================
