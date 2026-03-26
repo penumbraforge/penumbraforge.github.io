@@ -8,4 +8,4 @@ ALLOWED_ORIGIN = "https://penumbraforge.com"
 
 [[kv_namespaces]]
 binding = "OTS_KV"
-id = ""  # Run: npx wrangler kv namespace create OTS_KV
+id = "9b27234f07744fbb8193b8b003c81d51"
