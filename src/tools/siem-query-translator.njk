@@ -1,0 +1,1661 @@
+---
+toolSlug: siem-query-translator
+permalink: /tools/siem-query-translator/
+---
+
+<div class="tool-group">
+  <div class="sq-lang-row">
+    <div class="sq-lang-col">
+      <label for="sq-source-lang">Source Language</label>
+      <select id="sq-source-lang">
+        <option value="spl">Splunk SPL</option>
+        <option value="kql">KQL (Sentinel)</option>
+        <option value="esql">ES|QL (Elastic)</option>
+        <option value="sigma">Sigma YAML</option>
+        <option value="sumo">Sumo Logic</option>
+      </select>
+    </div>
+    <button class="btn sq-swap-btn" id="sq-swap-btn" title="Swap languages">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      Swap
+    </button>
+    <div class="sq-lang-col">
+      <label for="sq-target-lang">Target Language</label>
+      <select id="sq-target-lang">
+        <option value="kql">KQL (Sentinel)</option>
+        <option value="spl">Splunk SPL</option>
+        <option value="esql">ES|QL (Elastic)</option>
+        <option value="sigma">Sigma YAML</option>
+        <option value="sumo">Sumo Logic</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="tool-group">
+  <label for="sq-input">Paste your query</label>
+  <textarea id="sq-input" rows="10" placeholder="Paste a detection query in the selected source language..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <button class="btn btn--primary" id="sq-translate-btn">Translate</button>
+  <button class="btn" id="sq-example-btn">Try Example</button>
+  <button class="btn" id="sq-clear-btn">Clear</button>
+</div>
+
+<div id="sq-output-section" style="display:none;">
+  <div class="tool-group">
+    <div class="sq-output-header">
+      <label id="sq-output-label">Translated Query</label>
+      <button class="btn sq-copy-btn" id="sq-copy-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre id="sq-output" class="sq-code-block"></pre>
+  </div>
+
+  <div id="sq-caveats-section" style="display:none;">
+    <div class="sq-caveats">
+      <div class="sq-caveats-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Conversion Notes
+      </div>
+      <ul id="sq-caveats-list"></ul>
+    </div>
+  </div>
+
+  <div id="sq-field-map-section">
+    <div class="sq-field-map-title">Field Mapping Reference</div>
+    <div class="sq-table-wrap">
+      <table class="sq-field-table" id="sq-field-table">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Splunk SPL</th>
+            <th>KQL (Sentinel)</th>
+            <th>ES|QL</th>
+            <th>Sigma</th>
+            <th>Sumo Logic</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Source IP</td><td>src_ip</td><td>SourceIP</td><td>source.ip</td><td>src_ip</td><td>source_ip</td></tr>
+          <tr><td>Dest IP</td><td>dest_ip</td><td>DestinationIP</td><td>destination.ip</td><td>dst_ip</td><td>dest_ip</td></tr>
+          <tr><td>Username</td><td>user</td><td>Account</td><td>user.name</td><td>user</td><td>user</td></tr>
+          <tr><td>Hostname</td><td>host</td><td>Computer</td><td>host.name</td><td>ComputerName</td><td>_sourceHost</td></tr>
+          <tr><td>Action</td><td>action</td><td>EventAction</td><td>event.action</td><td>action</td><td>event_action</td></tr>
+          <tr><td>Event ID</td><td>EventCode</td><td>EventID</td><td>event.code</td><td>EventID</td><td>event_id</td></tr>
+          <tr><td>Process Name</td><td>process_name</td><td>NewProcessName</td><td>process.name</td><td>Image</td><td>process_name</td></tr>
+          <tr><td>Command Line</td><td>process</td><td>CommandLine</td><td>process.command_line</td><td>CommandLine</td><td>command_line</td></tr>
+          <tr><td>Severity</td><td>severity</td><td>EventSeverity</td><td>event.severity</td><td>level</td><td>severity</td></tr>
+          <tr><td>Count</td><td>count</td><td>count_</td><td>count</td><td>&mdash;</td><td>_count</td></tr>
+          <tr><td>Wildcard</td><td>field=*val*</td><td>field contains</td><td>field LIKE</td><td>field|contains</td><td>field contains</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="sq-empty" class="sq-empty-msg">Select your source and target languages, paste a query, and click "Translate".</div>
+
+<style>
+  .sq-lang-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .sq-lang-col {
+    flex: 1;
+    min-width: 160px;
+  }
+  .sq-lang-col label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-2, #94a3b8);
+    margin-bottom: 0.35rem;
+  }
+  .sq-lang-col select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    background: var(--surface-0, #0f0f1a);
+    color: var(--text-1, #e2e8f0);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 6px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2rem;
+  }
+  .sq-lang-col select:focus {
+    outline: none;
+    border-color: #818cf8;
+    box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
+  }
+  .sq-swap-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+    margin-bottom: 1px;
+  }
+  .sq-output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+  }
+  .sq-output-header label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-2, #94a3b8);
+  }
+  .sq-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.65rem;
+  }
+  .sq-code-block {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    background: var(--surface-0, #0f0f1a);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-1, #e2e8f0);
+    overflow-x: auto;
+    tab-size: 2;
+  }
+  /* Syntax highlights */
+  .sq-kw { color: #c084fc; font-weight: 600; }
+  .sq-op { color: #f97316; }
+  .sq-str { color: #4ade80; }
+  .sq-num { color: #38bdf8; }
+  .sq-field { color: #e2e8f0; }
+  .sq-comment { color: #6b7280; font-style: italic; }
+  .sq-pipe { color: #818cf8; font-weight: 600; }
+  .sq-unsupported { background: rgba(239, 68, 68, 0.15); border-radius: 3px; padding: 0 3px; text-decoration: wavy underline; text-decoration-color: #ef4444; }
+
+  .sq-caveats {
+    border: 1px solid rgba(234, 179, 8, 0.25);
+    background: rgba(234, 179, 8, 0.05);
+    border-radius: 8px;
+    padding: 0.875rem 1.125rem;
+    margin-bottom: 1.25rem;
+  }
+  .sq-caveats-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #fbbf24;
+    margin-bottom: 0.5rem;
+  }
+  .sq-caveats ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    list-style: disc;
+  }
+  .sq-caveats li {
+    font-size: 0.8125rem;
+    color: var(--text-2, #94a3b8);
+    line-height: 1.6;
+    margin-bottom: 0.25rem;
+  }
+  .sq-caveats li:last-child { margin-bottom: 0; }
+  .sq-caveats code {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    background: var(--surface-0, #0f0f1a);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--border, #2a2a3a);
+  }
+
+  .sq-field-map-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-1, #e2e8f0);
+    margin-bottom: 0.5rem;
+  }
+  .sq-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+  }
+  .sq-field-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    font-family: var(--font-mono, monospace);
+    white-space: nowrap;
+  }
+  .sq-field-table th {
+    background: var(--surface-1, #1a1a2e);
+    color: var(--text-2, #94a3b8);
+    font-weight: 700;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border, #2a2a3a);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .sq-field-table td {
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid var(--border, #2a2a3a);
+    color: var(--text-1, #e2e8f0);
+  }
+  .sq-field-table tr:last-child td { border-bottom: none; }
+  .sq-field-table tr:hover td { background: rgba(129, 140, 248, 0.04); }
+  .sq-field-table td:first-child {
+    font-family: inherit;
+    font-weight: 600;
+    color: var(--text-2, #94a3b8);
+  }
+
+  .sq-empty-msg {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--text-3, #888);
+    font-size: 0.9rem;
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ─── DOM refs ──────────────────────────────────────────────── */
+  var srcLang    = document.getElementById('sq-source-lang');
+  var tgtLang    = document.getElementById('sq-target-lang');
+  var swapBtn    = document.getElementById('sq-swap-btn');
+  var inputEl    = document.getElementById('sq-input');
+  var translateBtn = document.getElementById('sq-translate-btn');
+  var exampleBtn = document.getElementById('sq-example-btn');
+  var clearBtn   = document.getElementById('sq-clear-btn');
+  var outputSec  = document.getElementById('sq-output-section');
+  var outputEl   = document.getElementById('sq-output');
+  var outputLabel= document.getElementById('sq-output-label');
+  var copyBtn    = document.getElementById('sq-copy-btn');
+  var caveatsSec = document.getElementById('sq-caveats-section');
+  var caveatsList= document.getElementById('sq-caveats-list');
+  var emptyEl    = document.getElementById('sq-empty');
+
+  /* ─── Field mapping ─────────────────────────────────────────── */
+  var FIELD_MAP = {
+    // concept: { spl, kql, esql, sigma, sumo }
+    'source_ip':    { spl: 'src_ip',       kql: 'SourceIP',        esql: 'source.ip',            sigma: 'src_ip',       sumo: 'source_ip' },
+    'dest_ip':      { spl: 'dest_ip',      kql: 'DestinationIP',   esql: 'destination.ip',       sigma: 'dst_ip',       sumo: 'dest_ip' },
+    'username':     { spl: 'user',         kql: 'Account',         esql: 'user.name',            sigma: 'user',         sumo: 'user' },
+    'hostname':     { spl: 'host',         kql: 'Computer',        esql: 'host.name',            sigma: 'ComputerName', sumo: '_sourceHost' },
+    'action':       { spl: 'action',       kql: 'EventAction',     esql: 'event.action',         sigma: 'action',       sumo: 'event_action' },
+    'event_id':     { spl: 'EventCode',    kql: 'EventID',         esql: 'event.code',           sigma: 'EventID',      sumo: 'event_id' },
+    'process_name': { spl: 'process_name', kql: 'NewProcessName',  esql: 'process.name',         sigma: 'Image',        sumo: 'process_name' },
+    'command_line': { spl: 'process',      kql: 'CommandLine',     esql: 'process.command_line',  sigma: 'CommandLine',  sumo: 'command_line' },
+    'severity':     { spl: 'severity',     kql: 'EventSeverity',   esql: 'event.severity',       sigma: 'level',        sumo: 'severity' },
+    'source_category': { spl: 'sourcetype', kql: 'Category',      esql: 'event.category',       sigma: 'category',     sumo: '_sourceCategory' }
+  };
+
+  /* Build reverse maps: from a given language's field name -> concept key */
+  var REVERSE_MAP = {};
+  ['spl','kql','esql','sigma','sumo'].forEach(function(lang) {
+    REVERSE_MAP[lang] = {};
+    Object.keys(FIELD_MAP).forEach(function(concept) {
+      var fieldName = FIELD_MAP[concept][lang];
+      if (fieldName) REVERSE_MAP[lang][fieldName.toLowerCase()] = concept;
+    });
+  });
+
+  function mapField(fieldName, fromLang, toLang) {
+    var lower = fieldName.toLowerCase();
+    var concept = REVERSE_MAP[fromLang] && REVERSE_MAP[fromLang][lower];
+    if (concept && FIELD_MAP[concept][toLang]) {
+      return FIELD_MAP[concept][toLang];
+    }
+    return fieldName; // pass through unmapped
+  }
+
+  /* ─── Intermediate Representation ──────────────────────────── */
+  function createIR() {
+    return {
+      source: '',
+      table: '',
+      index: '',
+      sourceCategory: '',
+      conditions: [],     // { field, op, value, negate }
+      aggregations: [],   // { func, field, by }
+      evals: [],          // { newField, expr }
+      renames: [],        // { oldField, newField }
+      tableFields: [],    // fields to display
+      sort: null,         // { field, order }
+      limit: null,
+      logic: 'AND',
+      rawUnsupported: [], // lines that couldn't be parsed
+      caveats: []
+    };
+  }
+
+  /* ─── SPL Parser ───────────────────────────────────────────── */
+  function parseSPL(text) {
+    var ir = createIR();
+    ir.source = text.trim();
+
+    // Split by pipe, but respect quoted strings
+    var segments = splitByPipe(text);
+
+    segments.forEach(function(seg, idx) {
+      seg = seg.trim();
+      if (!seg) return;
+
+      if (idx === 0) {
+        // First segment: index/sourcetype + field=value conditions
+        parseSPLSearch(seg, ir);
+        return;
+      }
+
+      var lower = seg.toLowerCase();
+
+      // stats
+      var statsMatch = seg.match(/^stats\s+(count|sum|avg|min|max|dc|values|list)(?:\(([^)]*)\))?\s+(?:by|BY)\s+(.+)/i);
+      if (statsMatch) {
+        var func = statsMatch[1].toLowerCase();
+        var aggField = statsMatch[2] || '*';
+        var byFields = statsMatch[3].split(/\s*,\s*/);
+        ir.aggregations.push({ func: func, field: aggField.trim(), by: byFields.map(function(b){return b.trim();}) });
+        return;
+      }
+
+      // stats count without by
+      var statsNoBy = seg.match(/^stats\s+(count|sum|avg|min|max|dc)(?:\(([^)]*)\))?$/i);
+      if (statsNoBy) {
+        ir.aggregations.push({ func: statsNoBy[1].toLowerCase(), field: statsNoBy[2] ? statsNoBy[2].trim() : '*', by: [] });
+        return;
+      }
+
+      // where
+      var whereMatch = seg.match(/^where\s+(.+)/i);
+      if (whereMatch) {
+        parseSPLWhere(whereMatch[1].trim(), ir);
+        return;
+      }
+
+      // search
+      var searchMatch = seg.match(/^search\s+(.+)/i);
+      if (searchMatch) {
+        parseSPLSearch(searchMatch[1].trim(), ir);
+        return;
+      }
+
+      // sort
+      var sortMatch = seg.match(/^sort\s+(-|\+)?(.+)/i);
+      if (sortMatch) {
+        var sortOrder = sortMatch[1] === '-' ? 'desc' : 'asc';
+        var sortField = sortMatch[2].trim().split(/\s*,\s*/)[0].replace(/^[+-]/, '');
+        ir.sort = { field: sortField, order: sortOrder };
+        return;
+      }
+
+      // head / limit
+      var headMatch = seg.match(/^head\s+(\d+)/i);
+      if (headMatch) {
+        ir.limit = parseInt(headMatch[1], 10);
+        return;
+      }
+
+      // table
+      var tableMatch = seg.match(/^table\s+(.+)/i);
+      if (tableMatch) {
+        ir.tableFields = tableMatch[1].split(/\s*,\s*/).map(function(f){return f.trim();});
+        return;
+      }
+
+      // eval
+      var evalMatch = seg.match(/^eval\s+(\w+)\s*=\s*(.+)/i);
+      if (evalMatch) {
+        ir.evals.push({ newField: evalMatch[1], expr: evalMatch[2].trim() });
+        ir.caveats.push('SPL <code>eval</code> expression <code>' + escapeHTML(evalMatch[1] + '=' + evalMatch[2].trim()) + '</code> may need manual translation — computed fields vary across SIEM platforms.');
+        return;
+      }
+
+      // rename
+      var renameMatch = seg.match(/^rename\s+(\S+)\s+(?:as|AS)\s+(\S+)/i);
+      if (renameMatch) {
+        ir.renames.push({ oldField: renameMatch[1], newField: renameMatch[2] });
+        return;
+      }
+
+      // Unrecognized
+      ir.rawUnsupported.push(seg);
+      ir.caveats.push('Unsupported SPL command: <code>' + escapeHTML(seg.split(/\s/)[0]) + '</code> — manual review needed.');
+    });
+
+    return ir;
+  }
+
+  function parseSPLSearch(text, ir) {
+    // Extract index=X and sourcetype=Y
+    var indexMatch = text.match(/index\s*=\s*("([^"]+)"|(\S+))/i);
+    if (indexMatch) ir.index = indexMatch[2] || indexMatch[3];
+
+    var stMatch = text.match(/sourcetype\s*=\s*("([^"]+)"|(\S+))/i);
+    if (stMatch) ir.sourceCategory = stMatch[2] || stMatch[3];
+
+    // Extract field=value pairs (handling quoted values)
+    var remaining = text
+      .replace(/index\s*=\s*("([^"]+)"|\S+)/gi, '')
+      .replace(/sourcetype\s*=\s*("([^"]+)"|\S+)/gi, '')
+      .trim();
+
+    // Parse remaining key=value or key!=value or key="value" with wildcards
+    var kvRegex = /(\w[\w.]*)\s*(!=|=)\s*("([^"]+)"|(\S+))/g;
+    var m;
+    while ((m = kvRegex.exec(remaining)) !== null) {
+      var field = m[1];
+      var operator = m[2];
+      var value = m[4] !== undefined ? m[4] : m[5];
+      var negate = operator === '!=';
+
+      var op = 'eq';
+      // Check for wildcard patterns
+      if (value.indexOf('*') !== -1) {
+        if (value.charAt(0) === '*' && value.charAt(value.length - 1) === '*') {
+          op = 'contains';
+          value = value.replace(/^\*|\*$/g, '');
+        } else if (value.charAt(0) === '*') {
+          op = 'endswith';
+          value = value.replace(/^\*/, '');
+        } else if (value.charAt(value.length - 1) === '*') {
+          op = 'startswith';
+          value = value.replace(/\*$/, '');
+        } else {
+          op = 'wildcard';
+          // keep value as-is
+        }
+      }
+
+      ir.conditions.push({ field: field, op: op, value: value, negate: negate });
+    }
+  }
+
+  function parseSPLWhere(text, ir) {
+    // Handle: field > N, field < N, field >= N, field <= N, field = "val", field != "val"
+    // Also handle: field LIKE "%val%", NOT prefix
+    var negate = false;
+    var cleaned = text.trim();
+    if (/^NOT\s+/i.test(cleaned)) {
+      negate = true;
+      cleaned = cleaned.replace(/^NOT\s+/i, '');
+    }
+
+    var compMatch = cleaned.match(/^(\w[\w.]*)\s*(>=|<=|!=|>|<|=|==)\s*("([^"]+)"|'([^']+)'|(\S+))/);
+    if (compMatch) {
+      var field = compMatch[1];
+      var rawOp = compMatch[2];
+      var value = compMatch[4] !== undefined ? compMatch[4] : (compMatch[5] !== undefined ? compMatch[5] : compMatch[6]);
+
+      var opMap = { '=': 'eq', '==': 'eq', '!=': 'neq', '>': 'gt', '<': 'lt', '>=': 'gte', '<=': 'lte' };
+      var op = opMap[rawOp] || 'eq';
+      if (negate && op === 'eq') op = 'neq';
+      else if (negate && op === 'neq') op = 'eq';
+
+      ir.conditions.push({ field: field, op: op, value: value, negate: false });
+      return;
+    }
+
+    // Handle: field LIKE "%val%"
+    var likeMatch = cleaned.match(/^(\w[\w.]*)\s+LIKE\s+"([^"]+)"/i);
+    if (likeMatch) {
+      var lv = likeMatch[2];
+      var lop = 'contains';
+      if (lv.charAt(0) === '%' && lv.charAt(lv.length - 1) === '%') {
+        lv = lv.replace(/^%|%$/g, '');
+        lop = 'contains';
+      }
+      ir.conditions.push({ field: likeMatch[1], op: lop, value: lv, negate: negate });
+      return;
+    }
+
+    // Fallback — treat as unsupported
+    ir.rawUnsupported.push('where ' + text);
+    ir.caveats.push('Complex <code>where</code> clause may need manual review: <code>' + escapeHTML(text) + '</code>');
+  }
+
+  /* ─── KQL Parser ───────────────────────────────────────────── */
+  function parseKQL(text) {
+    var ir = createIR();
+    ir.source = text.trim();
+
+    var lines = text.trim().split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    if (!lines.length) return ir;
+
+    // First line that doesn't start with | is the table name
+    var firstLine = lines[0];
+    if (firstLine.charAt(0) !== '|') {
+      ir.table = firstLine.replace(/\s*$/, '');
+      lines = lines.slice(1);
+    }
+
+    lines.forEach(function(line) {
+      var seg = line.replace(/^\|\s*/, '').trim();
+      if (!seg) return;
+      var lower = seg.toLowerCase();
+
+      // where
+      var whereMatch = seg.match(/^where\s+(.+)/i);
+      if (whereMatch) {
+        parseKQLWhere(whereMatch[1].trim(), ir);
+        return;
+      }
+
+      // summarize ... by ...
+      var sumMatch = seg.match(/^summarize\s+(.+?)\s+by\s+(.+)/i);
+      if (sumMatch) {
+        var funcPart = sumMatch[1].trim();
+        var byPart = sumMatch[2].trim();
+        var aggFunc = 'count';
+        var aggField = '*';
+
+        var funcDetail = funcPart.match(/(count|sum|avg|min|max|dcount)\s*\(([^)]*)\)/i);
+        if (funcDetail) {
+          aggFunc = funcDetail[1].toLowerCase();
+          if (aggFunc === 'dcount') aggFunc = 'dc';
+          aggField = funcDetail[2] || '*';
+        }
+        var byFields = byPart.split(/\s*,\s*/).map(function(f){return f.trim();});
+        ir.aggregations.push({ func: aggFunc, field: aggField, by: byFields });
+        return;
+      }
+
+      // sort by
+      var sortMatch = seg.match(/^sort\s+by\s+(\S+)\s*(asc|desc)?/i);
+      if (sortMatch) {
+        ir.sort = { field: sortMatch[1], order: (sortMatch[2] || 'asc').toLowerCase() };
+        return;
+      }
+      // order by (alias)
+      var orderMatch = seg.match(/^order\s+by\s+(\S+)\s*(asc|desc)?/i);
+      if (orderMatch) {
+        ir.sort = { field: orderMatch[1], order: (orderMatch[2] || 'asc').toLowerCase() };
+        return;
+      }
+
+      // take / limit
+      var takeMatch = seg.match(/^take\s+(\d+)/i);
+      if (takeMatch) {
+        ir.limit = parseInt(takeMatch[1], 10);
+        return;
+      }
+      var limitMatch = seg.match(/^limit\s+(\d+)/i);
+      if (limitMatch) {
+        ir.limit = parseInt(limitMatch[1], 10);
+        return;
+      }
+
+      // project (like table)
+      var projMatch = seg.match(/^project\s+(.+)/i);
+      if (projMatch) {
+        ir.tableFields = projMatch[1].split(/\s*,\s*/).map(function(f){return f.trim();});
+        return;
+      }
+
+      // extend (like eval)
+      var extendMatch = seg.match(/^extend\s+(\w+)\s*=\s*(.+)/i);
+      if (extendMatch) {
+        ir.evals.push({ newField: extendMatch[1], expr: extendMatch[2].trim() });
+        ir.caveats.push('KQL <code>extend</code> expression <code>' + escapeHTML(extendMatch[1] + '=' + extendMatch[2].trim()) + '</code> may need manual translation.');
+        return;
+      }
+
+      ir.rawUnsupported.push(seg);
+      ir.caveats.push('Unsupported KQL operator: <code>' + escapeHTML(seg.split(/\s/)[0]) + '</code> — manual review needed.');
+    });
+
+    return ir;
+  }
+
+  function parseKQLWhere(text, ir) {
+    // Handle: field == "val", field != "val", field > N, field contains "val", field endswith "val", field startswith "val"
+    var negate = false;
+    var cleaned = text.trim();
+    if (/^not\s+/i.test(cleaned)) {
+      negate = true;
+      cleaned = cleaned.replace(/^not\s+/i, '');
+    }
+
+    // field contains "val"
+    var containsMatch = cleaned.match(/^(\w[\w._]*)\s+contains\s+("([^"]+)"|'([^']+)'|(\S+))/i);
+    if (containsMatch) {
+      var val = containsMatch[3] || containsMatch[4] || containsMatch[5];
+      ir.conditions.push({ field: containsMatch[1], op: 'contains', value: val, negate: negate });
+      return;
+    }
+
+    // field endswith "val"
+    var endsMatch = cleaned.match(/^(\w[\w._]*)\s+endswith\s+("([^"]+)"|'([^']+)'|(\S+))/i);
+    if (endsMatch) {
+      var val2 = endsMatch[3] || endsMatch[4] || endsMatch[5];
+      ir.conditions.push({ field: endsMatch[1], op: 'endswith', value: val2, negate: negate });
+      return;
+    }
+
+    // field startswith "val"
+    var startsMatch = cleaned.match(/^(\w[\w._]*)\s+startswith\s+("([^"]+)"|'([^']+)'|(\S+))/i);
+    if (startsMatch) {
+      var val3 = startsMatch[3] || startsMatch[4] || startsMatch[5];
+      ir.conditions.push({ field: startsMatch[1], op: 'startswith', value: val3, negate: negate });
+      return;
+    }
+
+    // field == / != / > / < / >= / <= value
+    var compMatch = cleaned.match(/^(\w[\w._]*)\s*(==|!=|>=|<=|>|<)\s*("([^"]+)"|'([^']+)'|(\S+))/);
+    if (compMatch) {
+      var field = compMatch[1];
+      var rawOp = compMatch[2];
+      var value = compMatch[4] !== undefined ? compMatch[4] : (compMatch[5] !== undefined ? compMatch[5] : compMatch[6]);
+      var opMap = { '==': 'eq', '!=': 'neq', '>': 'gt', '<': 'lt', '>=': 'gte', '<=': 'lte' };
+      var op = opMap[rawOp] || 'eq';
+      if (negate && op === 'eq') op = 'neq';
+      ir.conditions.push({ field: field, op: op, value: value, negate: false });
+      return;
+    }
+
+    // AND-separated conditions: split and recurse
+    if (/\s+and\s+/i.test(cleaned)) {
+      cleaned.split(/\s+and\s+/i).forEach(function(part) {
+        parseKQLWhere(part.trim(), ir);
+      });
+      return;
+    }
+
+    ir.rawUnsupported.push('where ' + text);
+    ir.caveats.push('Complex KQL <code>where</code> clause may need manual review: <code>' + escapeHTML(text) + '</code>');
+  }
+
+  /* ─── ES|QL Parser ─────────────────────────────────────────── */
+  function parseESQL(text) {
+    var ir = createIR();
+    ir.source = text.trim();
+
+    var lines = text.trim().split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    if (!lines.length) return ir;
+
+    // First line: FROM ...
+    var firstLine = lines[0];
+    var fromMatch = firstLine.match(/^FROM\s+(.+)/i);
+    if (fromMatch) {
+      ir.index = fromMatch[1].trim();
+      lines = lines.slice(1);
+    }
+
+    lines.forEach(function(line) {
+      var seg = line.replace(/^\|\s*/, '').trim();
+      if (!seg) return;
+
+      // WHERE
+      var whereMatch = seg.match(/^WHERE\s+(.+)/i);
+      if (whereMatch) {
+        parseESQLWhere(whereMatch[1].trim(), ir);
+        return;
+      }
+
+      // STATS ... BY ...
+      var statsMatch = seg.match(/^STATS\s+(.+?)\s+BY\s+(.+)/i);
+      if (statsMatch) {
+        var funcPart = statsMatch[1].trim();
+        var byPart = statsMatch[2].trim();
+        var aggFunc = 'count';
+        var aggField = '*';
+        var alias = null;
+
+        // alias = FUNC(field)
+        var funcDetail = funcPart.match(/(?:(\w+)\s*=\s*)?(COUNT|SUM|AVG|MIN|MAX)\s*\(([^)]*)\)/i);
+        if (funcDetail) {
+          alias = funcDetail[1] || null;
+          aggFunc = funcDetail[2].toLowerCase();
+          aggField = funcDetail[3] || '*';
+        }
+        var byFields = byPart.split(/\s*,\s*/).map(function(f){return f.trim();});
+        ir.aggregations.push({ func: aggFunc, field: aggField, by: byFields, alias: alias });
+        return;
+      }
+
+      // SORT
+      var sortMatch = seg.match(/^SORT\s+(\S+)\s*(ASC|DESC)?/i);
+      if (sortMatch) {
+        ir.sort = { field: sortMatch[1], order: (sortMatch[2] || 'ASC').toLowerCase() };
+        return;
+      }
+
+      // LIMIT
+      var limitMatch = seg.match(/^LIMIT\s+(\d+)/i);
+      if (limitMatch) {
+        ir.limit = parseInt(limitMatch[1], 10);
+        return;
+      }
+
+      // KEEP (like table/project)
+      var keepMatch = seg.match(/^KEEP\s+(.+)/i);
+      if (keepMatch) {
+        ir.tableFields = keepMatch[1].split(/\s*,\s*/).map(function(f){return f.trim();});
+        return;
+      }
+
+      // EVAL
+      var evalMatch = seg.match(/^EVAL\s+(\w+)\s*=\s*(.+)/i);
+      if (evalMatch) {
+        ir.evals.push({ newField: evalMatch[1], expr: evalMatch[2].trim() });
+        ir.caveats.push('ES|QL <code>EVAL</code> expression may need manual translation.');
+        return;
+      }
+
+      // RENAME
+      var renameMatch = seg.match(/^RENAME\s+(\S+)\s+AS\s+(\S+)/i);
+      if (renameMatch) {
+        ir.renames.push({ oldField: renameMatch[1], newField: renameMatch[2] });
+        return;
+      }
+
+      ir.rawUnsupported.push(seg);
+      ir.caveats.push('Unsupported ES|QL command: <code>' + escapeHTML(seg.split(/\s/)[0]) + '</code> — manual review needed.');
+    });
+
+    return ir;
+  }
+
+  function parseESQLWhere(text, ir) {
+    var cleaned = text.trim();
+    var negate = false;
+    if (/^NOT\s+/i.test(cleaned)) {
+      negate = true;
+      cleaned = cleaned.replace(/^NOT\s+/i, '');
+    }
+
+    // field LIKE "*val*"
+    var likeMatch = cleaned.match(/^(\w[\w._]*)\s+LIKE\s+"([^"]+)"/i);
+    if (likeMatch) {
+      var lv = likeMatch[2];
+      var op = 'contains';
+      if (lv.charAt(0) === '*' && lv.charAt(lv.length - 1) === '*') {
+        lv = lv.replace(/^\*|\*$/g, '');
+      } else if (lv.charAt(lv.length - 1) === '*') {
+        op = 'startswith';
+        lv = lv.replace(/\*$/, '');
+      } else if (lv.charAt(0) === '*') {
+        op = 'endswith';
+        lv = lv.replace(/^\*/, '');
+      }
+      ir.conditions.push({ field: likeMatch[1], op: op, value: lv, negate: negate });
+      return;
+    }
+
+    // field == / != / > / < / >= / <= value
+    var compMatch = cleaned.match(/^(\w[\w._]*)\s*(==|!=|>=|<=|>|<)\s*("([^"]+)"|'([^']+)'|(\S+))/);
+    if (compMatch) {
+      var field = compMatch[1];
+      var rawOp = compMatch[2];
+      var value = compMatch[4] !== undefined ? compMatch[4] : (compMatch[5] !== undefined ? compMatch[5] : compMatch[6]);
+      var opMap = { '==': 'eq', '!=': 'neq', '>': 'gt', '<': 'lt', '>=': 'gte', '<=': 'lte' };
+      var mappedOp = opMap[rawOp] || 'eq';
+      if (negate && mappedOp === 'eq') mappedOp = 'neq';
+      ir.conditions.push({ field: field, op: mappedOp, value: value, negate: false });
+      return;
+    }
+
+    // AND-split
+    if (/\s+AND\s+/i.test(cleaned)) {
+      cleaned.split(/\s+AND\s+/i).forEach(function(part) {
+        parseESQLWhere(part.trim(), ir);
+      });
+      return;
+    }
+
+    ir.rawUnsupported.push('WHERE ' + text);
+    ir.caveats.push('Complex ES|QL <code>WHERE</code> clause may need manual review: <code>' + escapeHTML(text) + '</code>');
+  }
+
+  /* ─── Sigma Parser ─────────────────────────────────────────── */
+  function parseSigma(text) {
+    var ir = createIR();
+    ir.source = text.trim();
+
+    var lines = text.split('\n');
+    var inDetection = false;
+    var inSelection = false;
+    var inLogsource = false;
+    var selectionKey = '';
+
+    lines.forEach(function(line) {
+      var trimmed = line.trimEnd();
+      var indent = line.length - line.replace(/^\s+/, '').length;
+
+      // Top-level keys
+      if (indent === 0 && trimmed.indexOf(':') !== -1) {
+        inDetection = /^detection\s*:/i.test(trimmed);
+        inLogsource = /^logsource\s*:/i.test(trimmed);
+        inSelection = false;
+        if (/^title\s*:\s*(.+)/i.test(trimmed)) {
+          ir.table = trimmed.match(/^title\s*:\s*(.+)/i)[1].trim().replace(/^['"]|['"]$/g, '');
+        }
+        return;
+      }
+
+      if (inLogsource && indent > 0) {
+        var lsMatch = trimmed.trim().match(/^(category|product|service)\s*:\s*(.+)/i);
+        if (lsMatch) {
+          if (lsMatch[1].toLowerCase() === 'category') ir.sourceCategory = lsMatch[2].trim();
+        }
+        return;
+      }
+
+      if (inDetection) {
+        // selection block
+        if (/^\s{2,4}(selection\w*)\s*:/i.test(trimmed)) {
+          inSelection = true;
+          selectionKey = trimmed.trim().replace(/:.*/, '');
+          return;
+        }
+        if (/^\s{2,4}condition\s*:/i.test(trimmed)) {
+          inSelection = false;
+          return;
+        }
+
+        if (inSelection && indent >= 4) {
+          var kvMatch = trimmed.trim().match(/^([\w._|]+)\s*:\s*(.+)/);
+          if (kvMatch) {
+            var rawField = kvMatch[1];
+            var rawValue = kvMatch[2].trim().replace(/^['"]|['"]$/g, '');
+            var op = 'eq';
+
+            // Handle Sigma modifiers: field|contains, field|endswith, field|startswith, field|re
+            if (rawField.indexOf('|') !== -1) {
+              var parts = rawField.split('|');
+              rawField = parts[0];
+              var mod = parts[1].toLowerCase();
+              if (mod === 'contains') op = 'contains';
+              else if (mod === 'endswith') op = 'endswith';
+              else if (mod === 'startswith') op = 'startswith';
+              else if (mod === 're') {
+                op = 'regex';
+                ir.caveats.push('Sigma regex modifier on <code>' + escapeHTML(rawField) + '</code> translated as-is — verify regex compatibility in target platform.');
+              }
+            }
+
+            ir.conditions.push({ field: rawField, op: op, value: rawValue, negate: false });
+          }
+        }
+      }
+    });
+
+    return ir;
+  }
+
+  /* ─── Sumo Logic Parser ────────────────────────────────────── */
+  function parseSumo(text) {
+    var ir = createIR();
+    ir.source = text.trim();
+
+    var segments = splitByPipe(text);
+
+    segments.forEach(function(seg, idx) {
+      seg = seg.trim();
+      if (!seg) return;
+
+      if (idx === 0) {
+        // First segment: _sourceCategory=X, field conditions
+        var scMatch = seg.match(/_sourceCategory\s*=\s*("([^"]+)"|(\S+))/i);
+        if (scMatch) ir.sourceCategory = scMatch[2] || scMatch[3];
+
+        // Also parse any additional key=value on first line
+        var remaining = seg.replace(/_sourceCategory\s*=\s*("([^"]+)"|\S+)/gi, '').trim();
+        if (remaining) {
+          var kvRegex = /(\w[\w._]*)\s*(!=|=)\s*("([^"]+)"|(\S+))/g;
+          var m;
+          while ((m = kvRegex.exec(remaining)) !== null) {
+            var value = m[4] !== undefined ? m[4] : m[5];
+            var op = m[2] === '!=' ? 'neq' : 'eq';
+            if (value.indexOf('*') !== -1) {
+              if (value.charAt(0) === '*' && value.charAt(value.length - 1) === '*') {
+                op = 'contains';
+                value = value.replace(/^\*|\*$/g, '');
+              }
+            }
+            ir.conditions.push({ field: m[1], op: op, value: value, negate: false });
+          }
+        }
+        return;
+      }
+
+      var lower = seg.toLowerCase();
+
+      // where
+      var whereMatch = seg.match(/^where\s+(.+)/i);
+      if (whereMatch) {
+        parseSumoWhere(whereMatch[1].trim(), ir);
+        return;
+      }
+
+      // count by
+      var countByMatch = seg.match(/^count\s+by\s+(.+)/i);
+      if (countByMatch) {
+        var byFields = countByMatch[1].split(/\s*,\s*/).map(function(f){return f.trim();});
+        ir.aggregations.push({ func: 'count', field: '*', by: byFields });
+        return;
+      }
+
+      // count (no by)
+      if (/^count$/i.test(seg)) {
+        ir.aggregations.push({ func: 'count', field: '*', by: [] });
+        return;
+      }
+
+      // sum/avg/min/max by
+      var aggByMatch = seg.match(/^(sum|avg|min|max)\s*\(([^)]+)\)\s+by\s+(.+)/i);
+      if (aggByMatch) {
+        var byF = aggByMatch[3].split(/\s*,\s*/).map(function(f){return f.trim();});
+        ir.aggregations.push({ func: aggByMatch[1].toLowerCase(), field: aggByMatch[2].trim(), by: byF });
+        return;
+      }
+
+      // sort by
+      var sortMatch = seg.match(/^sort\s+(?:by\s+)?(\S+)\s*(asc|desc)?/i);
+      if (sortMatch) {
+        ir.sort = { field: sortMatch[1], order: (sortMatch[2] || 'asc').toLowerCase() };
+        return;
+      }
+
+      // limit
+      var limitMatch = seg.match(/^limit\s+(\d+)/i);
+      if (limitMatch) {
+        ir.limit = parseInt(limitMatch[1], 10);
+        return;
+      }
+
+      // fields (like table)
+      var fieldsMatch = seg.match(/^fields\s+(.+)/i);
+      if (fieldsMatch) {
+        ir.tableFields = fieldsMatch[1].split(/\s*,\s*/).map(function(f){return f.trim();});
+        return;
+      }
+
+      ir.rawUnsupported.push(seg);
+      ir.caveats.push('Unsupported Sumo Logic operator: <code>' + escapeHTML(seg.split(/\s/)[0]) + '</code> — manual review needed.');
+    });
+
+    return ir;
+  }
+
+  function parseSumoWhere(text, ir) {
+    var cleaned = text.trim();
+
+    // field contains "val"
+    var containsMatch = cleaned.match(/^(\w[\w._]*)\s+contains\s+("([^"]+)"|'([^']+)'|(\S+))/i);
+    if (containsMatch) {
+      var val = containsMatch[3] || containsMatch[4] || containsMatch[5];
+      ir.conditions.push({ field: containsMatch[1], op: 'contains', value: val, negate: false });
+      return;
+    }
+
+    // field = / != / > / < / >= / <= value
+    var compMatch = cleaned.match(/^(\w[\w._]*)\s*(>=|<=|!=|>|<|=)\s*("([^"]+)"|'([^']+)'|(\S+))/);
+    if (compMatch) {
+      var field = compMatch[1];
+      var rawOp = compMatch[2];
+      var value = compMatch[4] !== undefined ? compMatch[4] : (compMatch[5] !== undefined ? compMatch[5] : compMatch[6]);
+      var opMap = { '=': 'eq', '!=': 'neq', '>': 'gt', '<': 'lt', '>=': 'gte', '<=': 'lte' };
+      ir.conditions.push({ field: field, op: opMap[rawOp] || 'eq', value: value, negate: false });
+      return;
+    }
+
+    // AND-split
+    if (/\s+and\s+/i.test(cleaned)) {
+      cleaned.split(/\s+and\s+/i).forEach(function(part) {
+        parseSumoWhere(part.trim(), ir);
+      });
+      return;
+    }
+
+    ir.rawUnsupported.push('where ' + text);
+    ir.caveats.push('Complex Sumo Logic <code>where</code> clause may need manual review.');
+  }
+
+  /* ─── Emitters ─────────────────────────────────────────────── */
+
+  function emitSPL(ir, fromLang) {
+    var parts = [];
+    var search = [];
+
+    if (ir.index) search.push('index=' + ir.index);
+    if (ir.sourceCategory) search.push('sourcetype=' + ir.sourceCategory);
+
+    // Conditions that can be simple key=value
+    var whereConditions = [];
+    ir.conditions.forEach(function(c) {
+      var f = mapField(c.field, fromLang, 'spl');
+      if (c.op === 'eq' && !c.negate) {
+        search.push(f + '=' + quoteIfNeeded(c.value));
+      } else if (c.op === 'neq' || (c.op === 'eq' && c.negate)) {
+        search.push(f + '!=' + quoteIfNeeded(c.value));
+      } else if (c.op === 'contains') {
+        search.push(f + '=*' + c.value + '*');
+      } else if (c.op === 'startswith') {
+        search.push(f + '=' + c.value + '*');
+      } else if (c.op === 'endswith') {
+        search.push(f + '=*' + c.value);
+      } else {
+        // gt, lt, gte, lte -> where clause
+        var opStr = { gt: '>', lt: '<', gte: '>=', lte: '<=' }[c.op] || '=';
+        whereConditions.push(f + ' ' + opStr + ' ' + c.value);
+      }
+    });
+
+    parts.push(search.join(' '));
+
+    whereConditions.forEach(function(w) {
+      parts.push('where ' + w);
+    });
+
+    ir.evals.forEach(function(e) {
+      parts.push('eval ' + e.newField + '=' + e.expr);
+    });
+
+    ir.renames.forEach(function(r) {
+      parts.push('rename ' + r.oldField + ' AS ' + r.newField);
+    });
+
+    ir.aggregations.forEach(function(a) {
+      var funcStr = a.func === 'dc' ? 'dc(' + a.field + ')' : (a.func + (a.field && a.field !== '*' ? '(' + a.field + ')' : ''));
+      if (a.by && a.by.length) {
+        var byFields = a.by.map(function(b) { return mapField(b, fromLang, 'spl'); });
+        parts.push('stats ' + funcStr + ' by ' + byFields.join(', '));
+      } else {
+        parts.push('stats ' + funcStr);
+      }
+    });
+
+    if (ir.sort) {
+      var sf = mapField(ir.sort.field, fromLang, 'spl');
+      parts.push('sort ' + (ir.sort.order === 'desc' ? '-' : '+') + sf);
+    }
+
+    if (ir.limit) {
+      parts.push('head ' + ir.limit);
+    }
+
+    if (ir.tableFields.length) {
+      var tf = ir.tableFields.map(function(f) { return mapField(f, fromLang, 'spl'); });
+      parts.push('table ' + tf.join(', '));
+    }
+
+    ir.rawUnsupported.forEach(function(u) {
+      parts.push('/* UNSUPPORTED: ' + u + ' */');
+    });
+
+    return parts.join('\n| ');
+  }
+
+  function emitKQL(ir, fromLang) {
+    var lines = [];
+
+    // Table name
+    var table = ir.table || 'SecurityEvent';
+    if (!ir.table && ir.sourceCategory) {
+      // Try to infer a sensible KQL table from sourcetype/category
+      var catMap = { 'syslog': 'Syslog', 'auth': 'SecurityEvent', 'wineventlog': 'SecurityEvent', 'firewall': 'CommonSecurityLog', 'authentication': 'SigninLogs' };
+      var lower = ir.sourceCategory.toLowerCase();
+      table = catMap[lower] || ir.sourceCategory;
+    }
+    lines.push(table);
+
+    ir.conditions.forEach(function(c) {
+      var f = mapField(c.field, fromLang, 'kql');
+      var v = c.value;
+      var isNum = /^\d+$/.test(v);
+
+      if (c.op === 'eq') lines.push('| where ' + f + ' == ' + (isNum ? v : '"' + v + '"'));
+      else if (c.op === 'neq') lines.push('| where ' + f + ' != ' + (isNum ? v : '"' + v + '"'));
+      else if (c.op === 'gt') lines.push('| where ' + f + ' > ' + v);
+      else if (c.op === 'lt') lines.push('| where ' + f + ' < ' + v);
+      else if (c.op === 'gte') lines.push('| where ' + f + ' >= ' + v);
+      else if (c.op === 'lte') lines.push('| where ' + f + ' <= ' + v);
+      else if (c.op === 'contains') lines.push('| where ' + f + ' contains "' + v + '"');
+      else if (c.op === 'startswith') lines.push('| where ' + f + ' startswith "' + v + '"');
+      else if (c.op === 'endswith') lines.push('| where ' + f + ' endswith "' + v + '"');
+      else if (c.op === 'wildcard') lines.push('| where ' + f + ' matches regex "' + v.replace(/\*/g, '.*') + '"');
+      else if (c.op === 'regex') lines.push('| where ' + f + ' matches regex "' + v + '"');
+    });
+
+    ir.evals.forEach(function(e) {
+      lines.push('| extend ' + e.newField + ' = ' + e.expr);
+    });
+
+    ir.aggregations.forEach(function(a) {
+      var funcStr;
+      if (a.func === 'count') funcStr = 'count()';
+      else if (a.func === 'dc') funcStr = 'dcount(' + mapField(a.field, fromLang, 'kql') + ')';
+      else funcStr = a.func + '(' + mapField(a.field, fromLang, 'kql') + ')';
+
+      if (a.by && a.by.length) {
+        var byFields = a.by.map(function(b) { return mapField(b, fromLang, 'kql'); });
+        lines.push('| summarize ' + funcStr + ' by ' + byFields.join(', '));
+      } else {
+        lines.push('| summarize ' + funcStr);
+      }
+    });
+
+    if (ir.sort) {
+      var sf = mapField(ir.sort.field, fromLang, 'kql');
+      lines.push('| sort by ' + sf + ' ' + ir.sort.order);
+    }
+
+    if (ir.limit) {
+      lines.push('| take ' + ir.limit);
+    }
+
+    if (ir.tableFields.length) {
+      var tf = ir.tableFields.map(function(f) { return mapField(f, fromLang, 'kql'); });
+      lines.push('| project ' + tf.join(', '));
+    }
+
+    ir.renames.forEach(function(r) {
+      lines.push('| project-rename ' + r.newField + ' = ' + r.oldField);
+    });
+
+    ir.rawUnsupported.forEach(function(u) {
+      lines.push('// UNSUPPORTED: ' + u);
+    });
+
+    return lines.join('\n');
+  }
+
+  function emitESQL(ir, fromLang) {
+    var lines = [];
+
+    var source = ir.index || 'logs-*';
+    lines.push('FROM ' + source);
+
+    ir.conditions.forEach(function(c) {
+      var f = mapField(c.field, fromLang, 'esql');
+      var v = c.value;
+      var isNum = /^\d+$/.test(v);
+
+      if (c.op === 'eq') lines.push('| WHERE ' + f + ' == ' + (isNum ? v : '"' + v + '"'));
+      else if (c.op === 'neq') lines.push('| WHERE ' + f + ' != ' + (isNum ? v : '"' + v + '"'));
+      else if (c.op === 'gt') lines.push('| WHERE ' + f + ' > ' + v);
+      else if (c.op === 'lt') lines.push('| WHERE ' + f + ' < ' + v);
+      else if (c.op === 'gte') lines.push('| WHERE ' + f + ' >= ' + v);
+      else if (c.op === 'lte') lines.push('| WHERE ' + f + ' <= ' + v);
+      else if (c.op === 'contains') lines.push('| WHERE ' + f + ' LIKE "*' + v + '*"');
+      else if (c.op === 'startswith') lines.push('| WHERE ' + f + ' LIKE "' + v + '*"');
+      else if (c.op === 'endswith') lines.push('| WHERE ' + f + ' LIKE "*' + v + '"');
+      else if (c.op === 'wildcard') lines.push('| WHERE ' + f + ' LIKE "' + v + '"');
+      else if (c.op === 'regex') lines.push('| WHERE ' + f + ' RLIKE "' + v + '"');
+    });
+
+    ir.evals.forEach(function(e) {
+      lines.push('| EVAL ' + e.newField + ' = ' + e.expr);
+    });
+
+    ir.aggregations.forEach(function(a) {
+      var funcStr;
+      var alias = a.alias || a.func;
+      if (a.func === 'count') funcStr = alias + ' = COUNT(*)';
+      else if (a.func === 'dc') funcStr = alias + ' = COUNT_DISTINCT(' + mapField(a.field, fromLang, 'esql') + ')';
+      else funcStr = alias + ' = ' + a.func.toUpperCase() + '(' + mapField(a.field, fromLang, 'esql') + ')';
+
+      if (a.by && a.by.length) {
+        var byFields = a.by.map(function(b) { return mapField(b, fromLang, 'esql'); });
+        lines.push('| STATS ' + funcStr + ' BY ' + byFields.join(', '));
+      } else {
+        lines.push('| STATS ' + funcStr);
+      }
+    });
+
+    if (ir.sort) {
+      var sf = mapField(ir.sort.field, fromLang, 'esql');
+      lines.push('| SORT ' + sf + ' ' + ir.sort.order.toUpperCase());
+    }
+
+    if (ir.limit) {
+      lines.push('| LIMIT ' + ir.limit);
+    }
+
+    if (ir.tableFields.length) {
+      var tf = ir.tableFields.map(function(f) { return mapField(f, fromLang, 'esql'); });
+      lines.push('| KEEP ' + tf.join(', '));
+    }
+
+    ir.renames.forEach(function(r) {
+      lines.push('| RENAME ' + r.oldField + ' AS ' + r.newField);
+    });
+
+    ir.rawUnsupported.forEach(function(u) {
+      lines.push('// UNSUPPORTED: ' + u);
+    });
+
+    return lines.join('\n');
+  }
+
+  function emitSigma(ir, fromLang) {
+    var lines = [];
+    lines.push('title: Translated Detection Rule');
+    lines.push('status: test');
+    lines.push('description: Auto-translated from ' + getLangLabel(fromLang));
+    lines.push('logsource:');
+
+    var category = ir.sourceCategory || 'process_creation';
+    lines.push('    category: ' + category);
+    lines.push('    product: windows');
+
+    lines.push('detection:');
+    lines.push('    selection:');
+
+    if (ir.conditions.length === 0) {
+      lines.push('        # No conditions extracted');
+    }
+
+    ir.conditions.forEach(function(c) {
+      var f = mapField(c.field, fromLang, 'sigma');
+      var v = c.value;
+
+      if (c.op === 'eq' && !c.negate) {
+        lines.push('        ' + f + ': \'' + v + '\'');
+      } else if (c.op === 'contains') {
+        lines.push('        ' + f + '|contains: \'' + v + '\'');
+      } else if (c.op === 'endswith') {
+        lines.push('        ' + f + '|endswith: \'' + v + '\'');
+      } else if (c.op === 'startswith') {
+        lines.push('        ' + f + '|startswith: \'' + v + '\'');
+      } else if (c.op === 'regex') {
+        lines.push('        ' + f + '|re: \'' + v + '\'');
+      } else if (c.op === 'neq') {
+        // Sigma uses filter for negation
+        lines.push('        # Negation: ' + f + ' != ' + v + ' (see filter block below)');
+        if (!ir._hasFilter) {
+          ir._hasFilter = true;
+          ir._filterConditions = ir._filterConditions || [];
+        }
+        ir._filterConditions = ir._filterConditions || [];
+        ir._filterConditions.push({ field: f, value: v });
+      } else {
+        // gt, lt, gte, lte — Sigma doesn't natively support comparison operators
+        lines.push('        # ' + f + ' ' + c.op + ' ' + v + ' — Sigma does not support comparison operators natively');
+        ir.caveats.push('Sigma does not support numeric comparisons (<code>' + c.op + '</code>) — field <code>' + escapeHTML(f) + '</code> requires post-processing or a custom backend modifier.');
+      }
+    });
+
+    if (ir._hasFilter && ir._filterConditions && ir._filterConditions.length) {
+      lines.push('    filter:');
+      ir._filterConditions.forEach(function(fc) {
+        lines.push('        ' + fc.field + ': \'' + fc.value + '\'');
+      });
+      lines.push('    condition: selection and not filter');
+    } else {
+      lines.push('    condition: selection');
+    }
+
+    // Sigma doesn't support aggregations, sort, limit natively — add as comments
+    if (ir.aggregations.length) {
+      lines.push('# NOTE: Aggregations cannot be expressed in Sigma YAML.');
+      lines.push('# Original aggregation:');
+      ir.aggregations.forEach(function(a) {
+        var byStr = a.by && a.by.length ? ' by ' + a.by.join(', ') : '';
+        lines.push('#   ' + a.func + '(' + a.field + ')' + byStr);
+      });
+      ir.caveats.push('Sigma YAML does not support aggregations, sorting, or limits. These must be handled by the Sigma backend or in a separate correlation rule.');
+    }
+
+    if (ir.sort) {
+      lines.push('# Original sort: ' + ir.sort.field + ' ' + ir.sort.order);
+    }
+    if (ir.limit) {
+      lines.push('# Original limit: ' + ir.limit);
+    }
+
+    lines.push('level: medium');
+
+    ir.rawUnsupported.forEach(function(u) {
+      lines.push('# UNSUPPORTED: ' + u);
+    });
+
+    return lines.join('\n');
+  }
+
+  function emitSumo(ir, fromLang) {
+    var parts = [];
+    var search = [];
+
+    if (ir.sourceCategory) {
+      search.push('_sourceCategory=' + ir.sourceCategory);
+    } else if (ir.index) {
+      search.push('_sourceCategory=' + ir.index);
+    }
+
+    var whereConditions = [];
+    ir.conditions.forEach(function(c) {
+      var f = mapField(c.field, fromLang, 'sumo');
+      var v = c.value;
+
+      if (c.op === 'eq' && !c.negate) {
+        // Simple conditions can go in the search expression
+        search.push(f + '=' + quoteIfNeeded(v));
+      } else if (c.op === 'neq') {
+        whereConditions.push(f + ' != "' + v + '"');
+      } else if (c.op === 'contains') {
+        whereConditions.push(f + ' contains "' + v + '"');
+      } else if (c.op === 'startswith') {
+        whereConditions.push(f + ' matches "' + v + '*"');
+      } else if (c.op === 'endswith') {
+        whereConditions.push(f + ' matches "*' + v + '"');
+      } else {
+        var opStr = { gt: '>', lt: '<', gte: '>=', lte: '<=' }[c.op] || '=';
+        whereConditions.push(f + ' ' + opStr + ' ' + v);
+      }
+    });
+
+    parts.push(search.join(' ') || '*');
+
+    whereConditions.forEach(function(w) {
+      parts.push('where ' + w);
+    });
+
+    ir.evals.forEach(function(e) {
+      ir.caveats.push('Sumo Logic eval/calculated fields may need manual adjustment: <code>' + escapeHTML(e.newField + '=' + e.expr) + '</code>');
+    });
+
+    ir.aggregations.forEach(function(a) {
+      if (a.func === 'count') {
+        if (a.by && a.by.length) {
+          var byFields = a.by.map(function(b) { return mapField(b, fromLang, 'sumo'); });
+          parts.push('count by ' + byFields.join(', '));
+        } else {
+          parts.push('count');
+        }
+      } else if (a.func === 'dc') {
+        var dcBy = a.by && a.by.length ? ' by ' + a.by.map(function(b) { return mapField(b, fromLang, 'sumo'); }).join(', ') : '';
+        parts.push('count_distinct(' + mapField(a.field, fromLang, 'sumo') + ')' + dcBy);
+      } else {
+        var aggBy = a.by && a.by.length ? ' by ' + a.by.map(function(b) { return mapField(b, fromLang, 'sumo'); }).join(', ') : '';
+        parts.push(a.func + '(' + mapField(a.field, fromLang, 'sumo') + ')' + aggBy);
+      }
+    });
+
+    if (ir.sort) {
+      var sf = mapField(ir.sort.field, fromLang, 'sumo');
+      parts.push('sort by ' + sf + ' ' + ir.sort.order);
+    }
+
+    if (ir.limit) {
+      parts.push('limit ' + ir.limit);
+    }
+
+    if (ir.tableFields.length) {
+      var tf = ir.tableFields.map(function(f) { return mapField(f, fromLang, 'sumo'); });
+      parts.push('fields ' + tf.join(', '));
+    }
+
+    ir.rawUnsupported.forEach(function(u) {
+      parts.push('/* UNSUPPORTED: ' + u + ' */');
+    });
+
+    return parts.join('\n| ');
+  }
+
+  /* ─── Helpers ──────────────────────────────────────────────── */
+
+  function splitByPipe(text) {
+    // Split by | that is not inside quotes
+    var segments = [];
+    var current = '';
+    var inDouble = false;
+    var inSingle = false;
+
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (ch === '"' && !inSingle) inDouble = !inDouble;
+      else if (ch === "'" && !inDouble) inSingle = !inSingle;
+
+      if (ch === '|' && !inDouble && !inSingle) {
+        segments.push(current);
+        current = '';
+      } else if (ch === '\n' && !inDouble && !inSingle) {
+        // Newlines outside quotes act as whitespace
+        current += ' ';
+      } else {
+        current += ch;
+      }
+    }
+    if (current.trim()) segments.push(current);
+    return segments;
+  }
+
+  function quoteIfNeeded(val) {
+    if (/\s/.test(val) || /[,|;]/.test(val)) return '"' + val + '"';
+    return val;
+  }
+
+  function escapeHTML(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function getLangLabel(lang) {
+    var labels = { spl: 'Splunk SPL', kql: 'KQL (Sentinel)', esql: 'ES|QL (Elastic)', sigma: 'Sigma YAML', sumo: 'Sumo Logic' };
+    return labels[lang] || lang;
+  }
+
+  /* ─── Syntax Highlighting ──────────────────────────────────── */
+  function highlightOutput(text, lang) {
+    var escaped = escapeHTML(text);
+
+    if (lang === 'spl') {
+      // Keywords
+      escaped = escaped.replace(/\b(index|sourcetype|stats|where|search|sort|head|table|eval|rename|AS|by|count|sum|avg|min|max|dc|values|list|NOT)\b/g, '<span class="sq-kw">$1</span>');
+      // Pipe
+      escaped = escaped.replace(/\| /g, '<span class="sq-pipe">| </span>');
+      // Strings
+      escaped = escaped.replace(/(&quot;[^&]*?&quot;)/g, '<span class="sq-str">$1</span>');
+      // Numbers
+      escaped = escaped.replace(/\b(\d+)\b/g, '<span class="sq-num">$1</span>');
+      // Operators
+      escaped = escaped.replace(/(!=|&gt;=|&lt;=|&gt;|&lt;|=)/g, '<span class="sq-op">$1</span>');
+    } else if (lang === 'kql') {
+      escaped = escaped.replace(/\b(where|summarize|sort|take|project|extend|order|limit|count|dcount|sum|avg|min|max|by|contains|endswith|startswith|matches|regex|not|and|or)\b/gi, '<span class="sq-kw">$1</span>');
+      escaped = escaped.replace(/\| /g, '<span class="sq-pipe">| </span>');
+      escaped = escaped.replace(/(&quot;[^&]*?&quot;)/g, '<span class="sq-str">$1</span>');
+      escaped = escaped.replace(/\b(\d+)\b/g, '<span class="sq-num">$1</span>');
+      escaped = escaped.replace(/(==|!=|&gt;=|&lt;=|&gt;|&lt;)/g, '<span class="sq-op">$1</span>');
+    } else if (lang === 'esql') {
+      escaped = escaped.replace(/\b(FROM|WHERE|STATS|SORT|LIMIT|KEEP|EVAL|RENAME|AS|BY|COUNT|COUNT_DISTINCT|SUM|AVG|MIN|MAX|LIKE|RLIKE|NOT|AND|OR|ASC|DESC)\b/g, '<span class="sq-kw">$1</span>');
+      escaped = escaped.replace(/\| /g, '<span class="sq-pipe">| </span>');
+      escaped = escaped.replace(/(&quot;[^&]*?&quot;)/g, '<span class="sq-str">$1</span>');
+      escaped = escaped.replace(/\b(\d+)\b/g, '<span class="sq-num">$1</span>');
+      escaped = escaped.replace(/(==|!=|&gt;=|&lt;=|&gt;|&lt;)/g, '<span class="sq-op">$1</span>');
+    } else if (lang === 'sigma') {
+      // YAML highlighting
+      escaped = escaped.replace(/^(title|status|description|logsource|detection|selection\w*|filter|condition|level|category|product|service):/gm, '<span class="sq-kw">$1</span>:');
+      escaped = escaped.replace(/(\|contains|\|endswith|\|startswith|\|re):/g, '<span class="sq-op">$1</span>:');
+      escaped = escaped.replace(/(&#39;[^&]*?&#39;|&quot;[^&]*?&quot;)/g, '<span class="sq-str">$1</span>');
+      // Use sq-str for single quotes too since we may have &apos;
+      escaped = escaped.replace(/'([^']*?)'/g, '<span class="sq-str">\'$1\'</span>');
+      escaped = escaped.replace(/^(#.*)$/gm, '<span class="sq-comment">$1</span>');
+    } else if (lang === 'sumo') {
+      escaped = escaped.replace(/\b(_sourceCategory|where|count|count_distinct|sum|avg|min|max|sort|limit|fields|by|contains|matches|and|or|not)\b/gi, '<span class="sq-kw">$1</span>');
+      escaped = escaped.replace(/\| /g, '<span class="sq-pipe">| </span>');
+      escaped = escaped.replace(/(&quot;[^&]*?&quot;)/g, '<span class="sq-str">$1</span>');
+      escaped = escaped.replace(/\b(\d+)\b/g, '<span class="sq-num">$1</span>');
+      escaped = escaped.replace(/(!=|&gt;=|&lt;=|&gt;|&lt;|=)/g, '<span class="sq-op">$1</span>');
+    }
+
+    // Highlight unsupported markers
+    escaped = escaped.replace(/(\/\*\s*UNSUPPORTED:.*?\*\/|\/\/\s*UNSUPPORTED:.*)/g, '<span class="sq-unsupported">$1</span>');
+
+    return escaped;
+  }
+
+  /* ─── Main translate function ──────────────────────────────── */
+  function translate() {
+    var src = srcLang.value;
+    var tgt = tgtLang.value;
+    var input = inputEl.value.trim();
+
+    if (!input) {
+      outputSec.style.display = 'none';
+      emptyEl.style.display = '';
+      return;
+    }
+
+    if (src === tgt) {
+      outputSec.style.display = 'none';
+      emptyEl.style.display = '';
+      emptyEl.textContent = 'Source and target languages must be different.';
+      return;
+    }
+
+    // Parse
+    var ir;
+    switch (src) {
+      case 'spl':   ir = parseSPL(input);   break;
+      case 'kql':   ir = parseKQL(input);   break;
+      case 'esql':  ir = parseESQL(input);  break;
+      case 'sigma': ir = parseSigma(input); break;
+      case 'sumo':  ir = parseSumo(input);  break;
+      default:      ir = createIR();
+    }
+
+    // Add structural caveats
+    if (tgt === 'sigma') {
+      if (ir.aggregations.length || ir.sort || ir.limit) {
+        // already added by emitSigma
+      }
+    }
+    if (src === 'sigma' && (tgt === 'spl' || tgt === 'kql' || tgt === 'esql' || tgt === 'sumo')) {
+      if (!ir.conditions.length) {
+        ir.caveats.push('Sigma rule had no extractable field conditions — the translated query may be incomplete. Check the original YAML structure.');
+      }
+    }
+
+    // Emit
+    var output;
+    switch (tgt) {
+      case 'spl':   output = emitSPL(ir, src);   break;
+      case 'kql':   output = emitKQL(ir, src);   break;
+      case 'esql':  output = emitESQL(ir, src);  break;
+      case 'sigma': output = emitSigma(ir, src); break;
+      case 'sumo':  output = emitSumo(ir, src);  break;
+      default:      output = '// Unknown target language';
+    }
+
+    // Display
+    emptyEl.style.display = 'none';
+    outputSec.style.display = '';
+    outputLabel.textContent = 'Translated to ' + getLangLabel(tgt);
+
+    // Syntax highlight the output
+    outputEl.innerHTML = highlightOutput(output, tgt);
+
+    // Store raw text for copy
+    outputEl.setAttribute('data-raw', output);
+
+    // Caveats
+    if (ir.caveats.length) {
+      caveatsSec.style.display = '';
+      while (caveatsList.firstChild) caveatsList.removeChild(caveatsList.firstChild);
+      // Deduplicate
+      var seen = {};
+      ir.caveats.forEach(function(c) {
+        if (seen[c]) return;
+        seen[c] = true;
+        var li = document.createElement('li');
+        li.innerHTML = c;
+        caveatsList.appendChild(li);
+      });
+    } else {
+      caveatsSec.style.display = 'none';
+    }
+  }
+
+  /* ─── Example queries ──────────────────────────────────────── */
+  var EXAMPLES = {
+    spl: 'index=auth sourcetype=syslog action=login_failed\n| stats count by src_ip, user\n| where count > 5\n| sort -count\n| head 20',
+    kql: 'SecurityEvent\n| where EventID == 4688\n| where NewProcessName endswith "powershell.exe"\n| where CommandLine contains "-enc"\n| summarize count() by Computer, Account\n| sort by count_ desc',
+    esql: 'FROM logs-*\n| WHERE event.code == 4688\n| WHERE process.name LIKE "*powershell.exe"\n| WHERE process.command_line LIKE "*-enc*"\n| STATS count = COUNT(*) BY host.name, user.name\n| SORT count DESC\n| LIMIT 50',
+    sigma: 'title: Encoded PowerShell Execution\nstatus: test\nlogsource:\n    category: process_creation\n    product: windows\ndetection:\n    selection:\n        EventID: \'4688\'\n        Image|endswith: \'powershell.exe\'\n        CommandLine|contains: \'-enc\'\n    condition: selection\nlevel: high',
+    sumo: '_sourceCategory=syslog\n| where event_action = "login_failed"\n| count by source_ip, user\n| sort by _count desc\n| limit 20'
+  };
+
+  /* ─── Event handlers ───────────────────────────────────────── */
+  translateBtn.addEventListener('click', translate);
+
+  swapBtn.addEventListener('click', function() {
+    var tmp = srcLang.value;
+    srcLang.value = tgtLang.value;
+    tgtLang.value = tmp;
+    // If there's output, re-translate
+    if (inputEl.value.trim()) translate();
+  });
+
+  exampleBtn.addEventListener('click', function() {
+    inputEl.value = EXAMPLES[srcLang.value] || EXAMPLES.spl;
+    translate();
+  });
+
+  clearBtn.addEventListener('click', function() {
+    inputEl.value = '';
+    outputSec.style.display = 'none';
+    caveatsSec.style.display = 'none';
+    emptyEl.style.display = '';
+    emptyEl.textContent = 'Select your source and target languages, paste a query, and click "Translate".';
+  });
+
+  copyBtn.addEventListener('click', function() {
+    var raw = outputEl.getAttribute('data-raw') || outputEl.textContent;
+    navigator.clipboard.writeText(raw).then(function() {
+      var origText = copyBtn.innerHTML;
+      copyBtn.textContent = 'Copied!';
+      setTimeout(function() { copyBtn.innerHTML = origText; }, 1500);
+    });
+  });
+
+  // Keyboard shortcut: Ctrl/Cmd + Enter to translate
+  inputEl.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      translate();
+    }
+  });
+
+  // Ensure source != target
+  srcLang.addEventListener('change', function() {
+    if (srcLang.value === tgtLang.value) {
+      // Pick next available
+      var opts = ['spl','kql','esql','sigma','sumo'];
+      for (var i = 0; i < opts.length; i++) {
+        if (opts[i] !== srcLang.value) { tgtLang.value = opts[i]; break; }
+      }
+    }
+  });
+  tgtLang.addEventListener('change', function() {
+    if (tgtLang.value === srcLang.value) {
+      var opts = ['spl','kql','esql','sigma','sumo'];
+      for (var i = 0; i < opts.length; i++) {
+        if (opts[i] !== tgtLang.value) { srcLang.value = opts[i]; break; }
+      }
+    }
+  });
+
+})();
+</script>

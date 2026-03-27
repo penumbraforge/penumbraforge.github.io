@@ -718,5 +718,18 @@
     "isNew": true,
     "relatedTools": ["secrets-scanner", "jwt-attack", "redos-tester"],
     "status": "live"
+  },
+  {
+    "name": "SIEM Query Translator",
+    "slug": "siem-query-translator",
+    "description": "Translate detection queries between Splunk SPL, KQL, ES|QL, Sigma, and Sumo Logic.",
+    "longDescription": "Free SIEM query translator — paste a detection query in Splunk SPL, Microsoft Sentinel KQL, Elastic ES|QL, Sigma YAML, or Sumo Logic and get the equivalent in any other format. Includes field mapping, conversion caveats, and syntax highlighting. No signup, no paywall, 100% client-side.",
+    "category": "security",
+    "keywords": ["siem", "splunk", "kql", "sentinel", "elastic", "sigma", "sumo logic", "spl", "detection", "query translator", "uncoder", "siem converter"],
+    "badge": "local",
+    "featured": true,
+    "isNew": true,
+    "relatedTools": ["log-parser", "regex-tester", "ioc-workbench"],
+    "status": "live"
   }
 ]
