@@ -317,3 +317,56 @@ body.ws-dragging iframe {
 .debrief-evidence-item.missed { background:rgba(239,68,68,0.1); color:var(--ws-error); }
 .ws-scaffolding-toggle, .soc-scaffolding-toggle { cursor:pointer; color:var(--text-3); font-size:10px; user-select:none; }
 .ws-scaffolding-toggle:hover, .soc-scaffolding-toggle:hover { color:var(--text-2); }
+
+/* ═══ Polish — Focus Rings ═══ */
+.ws-tab:focus-visible,
+.ws-tool-tab:focus-visible {
+  outline: 2px solid var(--ws-accent);
+  outline-offset: -2px;
+}
+
+.rep-url:focus,
+.dec-textarea:focus,
+.rep-textarea:focus,
+.notes-textarea:focus,
+.term-input-line input:focus {
+  border-color: var(--ws-accent);
+  box-shadow: 0 0 0 3px var(--ws-accent-dim);
+}
+
+/* ═══ Polish — Smooth Transitions ═══ */
+.ws-tab,
+.ws-tool-tab,
+.dec-btn,
+.rep-send,
+.ws-complete-btn,
+.ws-disclaimer-btn,
+.ws-nudge-dismiss {
+  transition: all 0.15s ease;
+}
+
+/* ═══ Polish — Backdrop Blur on Disclaimer ═══ */
+.ws-disclaimer { backdrop-filter: blur(4px); }
+
+/* ═══ Polish — Completion Overlay Fade-In ═══ */
+.ws-complete-overlay.visible {
+  animation: wsOverlayFadeIn 0.3s ease;
+}
+@keyframes wsOverlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ═══ Polish — Custom Selection Color ═══ */
+.ws-workspace ::selection {
+  background: var(--accent);
+  color: var(--text-1);
+}
+
+/* ═══ Polish — Modal Card Shadows ═══ */
+.ws-complete-card,
+.ws-disclaimer-card {
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+/* ═══ Polish — Debrief Code Scrollbar ═══ */
+.debrief-code::-webkit-scrollbar { height: 6px; }
+.debrief-code::-webkit-scrollbar-track { background: transparent; }
+.debrief-code::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
