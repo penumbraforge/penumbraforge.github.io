@@ -61,14 +61,14 @@ permalink: /blog/16-new-tools/
       <p>The simplest tool in the AI category and probably the one that'll get the most traffic. Enter your token counts, select models across Claude, GPT, Gemini, Mistral, and Llama, and see a cost comparison table sorted by cheapest first. Every existing calculator I found was either outdated or required signup.</p>
 
       <h2>The Uncoder replacement</h2>
-      <p>When SOC Prime put Uncoder.IO behind a paywall, the detection engineering community lost its only free SIEM query translator. I heard about it in every security Slack I'm in.</p>
+      <p>When SOC Prime put Uncoder.IO behind a paywall, the detection engineering community lost its only free SIEM query translator. I kept seeing people complain about it online — Reddit threads, GitHub issues, forum posts asking for alternatives. There weren't any.</p>
       <p>The <a href="/tools/siem-query-translator/">SIEM Query Translator</a> supports Splunk SPL, Microsoft Sentinel KQL, Elastic ES|QL, Sigma YAML, and Sumo Logic. Paste a query in any format, get the equivalent in any other. It parses into an intermediate representation and emits idiomatic syntax for each target platform, including field mapping between the different naming conventions (Splunk's <code>src_ip</code> vs Sentinel's <code>SourceIP</code> vs Elastic's <code>source.ip</code>).</p>
       <p>It's not going to handle every edge case in SPL — that language is enormous. But it covers the common patterns that make up 90% of detection rules: field matches, wildcards, aggregations, sorts, limits, evals. And it clearly marks what couldn't be translated so you know where to manually review.</p>
 
       <h2>Tools for the SOC</h2>
 
       <h3>IOC Workbench</h3>
-      <p>This is the one I use myself. Paste a threat report, an email, a Slack message from your threat intel feed — anything. The tool extracts every IOC it can find: IPs, domains, URLs, file hashes (MD5, SHA1, SHA256), email addresses, CVE IDs, MITRE ATT&CK technique IDs. Deduplicates them. Groups by type. One click to defang everything for safe sharing, one click to export as CSV, JSON, or markdown table.</p>
+      <p>This is the one I use myself. Paste a threat report, an email, a message from your threat intel feed, raw log output — anything. The tool extracts every IOC it can find: IPs, domains, URLs, file hashes (MD5, SHA1, SHA256), email addresses, CVE IDs, MITRE ATT&CK technique IDs. Deduplicates them. Groups by type. One click to defang everything for safe sharing, one click to export as CSV, JSON, or markdown table.</p>
       <p>Every SOC analyst I know has a janky Python script or a bookmark to five different sites for this workflow. Now it's one tool, zero tabs.</p>
 
       <h3>Email Header Forensics</h3>
@@ -89,7 +89,7 @@ permalink: /blog/16-new-tools/
       <p>Paste a Kubernetes manifest, Dockerfile, or docker-compose.yml. The tool runs 40+ security checks: running as root, privileged containers, missing resource limits, hostPath mounts, secrets in env vars, capabilities not dropped, latest tags. Shows each finding with the problematic line highlighted and a fix snippet. Click "Generate Fixed Version" and get the corrected config.</p>
 
       <h3>PII & Secrets Redactor</h3>
-      <p>Paste logs you need to share in Slack. The tool detects 200+ patterns of PII and secrets — AWS keys, GitHub tokens, SSNs, credit cards, JWTs, connection strings — and replaces them with consistent pseudonyms. Same email always becomes the same <code>[EMAIL-1]</code>, so you can still follow the log correlation without leaking the actual data. Copy the redacted version, share safely.</p>
+      <p>Paste logs you need to share with your team or paste into a ticket. The tool detects 200+ patterns of PII and secrets — AWS keys, GitHub tokens, SSNs, credit cards, JWTs, connection strings — and replaces them with consistent pseudonyms. Same email always becomes the same <code>[EMAIL-1]</code>, so you can still follow the log correlation without leaking the actual data. Copy the redacted version, share safely.</p>
 
       <h3>SSL Chain Debugger</h3>
       <p>Paste PEM certificates and get a visual chain diagram from leaf to root. The tool validates issuer/subject matching, checks for missing intermediates, flags expired certs and weak cryptography (SHA-1, short RSA keys), and can reorder a broken chain automatically. Also generates the <code>openssl s_client</code> commands you need for live debugging.</p>
