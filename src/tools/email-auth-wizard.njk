@@ -1,0 +1,904 @@
+---
+toolSlug: email-auth-wizard
+permalink: /tools/email-auth-wizard/
+---
+
+<div class="ew-tabs" role="tablist" aria-label="Email authentication record type">
+  <button class="ew-tab active" data-tab="spf" role="tab" aria-selected="true" aria-controls="ew-panel-spf">SPF Builder</button>
+  <button class="ew-tab" data-tab="dkim" role="tab" aria-selected="false" aria-controls="ew-panel-dkim">DKIM Guide</button>
+  <button class="ew-tab" data-tab="dmarc" role="tab" aria-selected="false" aria-controls="ew-panel-dmarc">DMARC Policy</button>
+  <button class="ew-tab" data-tab="deploy" role="tab" aria-selected="false" aria-controls="ew-panel-deploy">Deploy</button>
+</div>
+
+<!-- ═══════════════ SPF BUILDER ═══════════════ -->
+<div id="ew-panel-spf" role="tabpanel">
+  <p class="ew-intro">SPF (Sender Policy Framework) tells receiving servers which IP addresses and services are allowed to send email from your domain. Select your email providers below and the record builds automatically.</p>
+
+  <div class="tool-group">
+    <label for="ew-spf-domain">Your domain</label>
+    <input type="text" id="ew-spf-domain" placeholder="example.com" spellcheck="false" autocomplete="off">
+  </div>
+
+  <div class="ew-section-label">Email providers</div>
+  <div class="ew-provider-grid">
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-google" data-include="_spf.google.com" data-lookups="2">
+      <span class="ew-provider-name">Google Workspace</span>
+      <span class="ew-provider-hint">include:_spf.google.com</span>
+    </label>
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-microsoft" data-include="spf.protection.outlook.com" data-lookups="1">
+      <span class="ew-provider-name">Microsoft 365</span>
+      <span class="ew-provider-hint">include:spf.protection.outlook.com</span>
+    </label>
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-mailchimp" data-include="servers.mcsv.net" data-lookups="1">
+      <span class="ew-provider-name">Mailchimp</span>
+      <span class="ew-provider-hint">include:servers.mcsv.net</span>
+    </label>
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-sendgrid" data-include="sendgrid.net" data-lookups="1">
+      <span class="ew-provider-name">SendGrid</span>
+      <span class="ew-provider-hint">include:sendgrid.net</span>
+    </label>
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-ses" data-include="amazonses.com" data-lookups="1">
+      <span class="ew-provider-name">Amazon SES</span>
+      <span class="ew-provider-hint">include:amazonses.com</span>
+    </label>
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-mailgun" data-include="mailgun.org" data-lookups="1">
+      <span class="ew-provider-name">Mailgun</span>
+      <span class="ew-provider-hint">include:mailgun.org</span>
+    </label>
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-postmark" data-include="spf.mtasv.net" data-lookups="1">
+      <span class="ew-provider-name">Postmark</span>
+      <span class="ew-provider-hint">include:spf.mtasv.net</span>
+    </label>
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-zoho" data-include="zoho.com" data-lookups="1">
+      <span class="ew-provider-name">Zoho Mail</span>
+      <span class="ew-provider-hint">include:zoho.com</span>
+    </label>
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-proton" data-include="mail.protonmail.ch" data-lookups="1">
+      <span class="ew-provider-name">Proton Mail</span>
+      <span class="ew-provider-hint">include:mail.protonmail.ch</span>
+    </label>
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-mx" data-mech="mx" data-lookups="1">
+      <span class="ew-provider-name">My MX servers</span>
+      <span class="ew-provider-hint">mx (authorize your MX records)</span>
+    </label>
+    <label class="ew-provider-check">
+      <input type="checkbox" id="ew-spf-a" data-mech="a" data-lookups="1">
+      <span class="ew-provider-name">My server (A record)</span>
+      <span class="ew-provider-hint">a (authorize the domain's A record IP)</span>
+    </label>
+  </div>
+
+  <div class="ew-section-label">Custom IPs <span class="ew-section-hint">(optional)</span></div>
+  <div class="ew-custom-ips">
+    <div class="tool-group" style="margin-bottom:0;">
+      <input type="text" id="ew-spf-ips" placeholder="203.0.113.10, 198.51.100.0/24" spellcheck="false" autocomplete="off">
+      <span class="ew-field-hint">Comma-separated IPv4/IPv6 addresses or CIDR ranges. Each ip4:/ip6: does not count toward the 10-lookup limit.</span>
+    </div>
+  </div>
+
+  <div class="ew-custom-includes" style="margin-top:0.75rem;">
+    <div class="tool-group" style="margin-bottom:0;">
+      <label for="ew-spf-custom-includes">Custom includes <span class="ew-section-hint">(optional)</span></label>
+      <input type="text" id="ew-spf-custom-includes" placeholder="_spf.example.net, mail.otherdomain.com" spellcheck="false" autocomplete="off">
+      <span class="ew-field-hint">Comma-separated domains for additional include: mechanisms. Each counts as 1 lookup.</span>
+    </div>
+  </div>
+
+  <div class="ew-form-grid" style="margin-top:0.75rem;">
+    <div class="tool-group">
+      <label for="ew-spf-all">Catch-all policy</label>
+      <select id="ew-spf-all">
+        <option value="-all">-all (Fail) -- Reject unauthorized senders (recommended)</option>
+        <option value="~all">~all (SoftFail) -- Mark as suspicious but deliver</option>
+        <option value="?all">?all (Neutral) -- No policy statement</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="ew-spf-lookup-warning" class="ew-lookup-warning" style="display:none;"></div>
+
+  <div class="ew-result-block" style="margin-top:1rem;">
+    <div class="ew-result-label">DNS TXT Record</div>
+    <div class="ew-record-name" id="ew-spf-record-name">example.com</div>
+    <div class="output-area" style="margin-top:0.5rem;">
+      <button class="btn btn--copy" id="ew-spf-copy">Copy</button>
+      <pre id="ew-spf-output" style="white-space:pre-wrap;word-break:break-all;"></pre>
+    </div>
+  </div>
+
+  <div id="ew-spf-explain" class="ew-explain"></div>
+</div>
+
+<!-- ═══════════════ DKIM GUIDE ═══════════════ -->
+<div id="ew-panel-dkim" role="tabpanel" style="display:none;">
+  <p class="ew-intro">DKIM (DomainKeys Identified Mail) adds a cryptographic signature to outgoing emails. Receiving servers verify the signature using a public key in your DNS. Most providers generate the keys for you -- you just publish the DNS record they give you.</p>
+
+  <div class="ew-info-cards">
+    <div class="ew-info-card">
+      <strong>How DKIM works</strong>
+      <ol class="ew-info-list">
+        <li>Your mail server signs each outgoing message with a private key.</li>
+        <li>The signature is added to the <code>DKIM-Signature</code> email header.</li>
+        <li>The public key is published as a DNS TXT record at <code>selector._domainkey.yourdomain.com</code>.</li>
+        <li>Receiving servers fetch the public key and verify the signature.</li>
+      </ol>
+    </div>
+    <div class="ew-info-card">
+      <strong>Key recommendations</strong>
+      <ul class="ew-info-list" style="list-style:disc;">
+        <li><strong>Minimum 2048-bit RSA keys</strong> -- 1024-bit is considered weak and some receivers reject it.</li>
+        <li>Rotate keys at least annually.</li>
+        <li>Use a unique selector per service (e.g., <code>google</code>, <code>sendgrid</code>).</li>
+        <li>Consider Ed25519 keys for modern deployments (smaller, faster, quantum-resistant-adjacent).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="ew-section-label">Provider-specific DKIM setup</div>
+  <div class="ew-dkim-providers">
+    <details class="ew-dkim-detail">
+      <summary>Google Workspace</summary>
+      <ol class="ew-steps">
+        <li>Go to <strong>Google Admin Console</strong> &rarr; Apps &rarr; Google Workspace &rarr; Gmail &rarr; Authenticate email.</li>
+        <li>Select your domain and click <strong>Generate New Record</strong>.</li>
+        <li>Choose 2048-bit key length and a prefix (default: <code>google</code>).</li>
+        <li>Copy the generated TXT record value.</li>
+        <li>Add a TXT record at <code>google._domainkey.yourdomain.com</code> with the value.</li>
+        <li>Return to Admin Console and click <strong>Start Authentication</strong>.</li>
+      </ol>
+    </details>
+    <details class="ew-dkim-detail">
+      <summary>Microsoft 365</summary>
+      <ol class="ew-steps">
+        <li>Go to <strong>Microsoft 365 Defender</strong> &rarr; Email &amp; collaboration &rarr; Policies &rarr; Threat policies &rarr; Email authentication settings.</li>
+        <li>Select your domain under DKIM.</li>
+        <li>Microsoft provides two CNAME records (selector1 and selector2).</li>
+        <li>Add both CNAME records in your DNS:
+          <br><code>selector1._domainkey.yourdomain.com</code> &rarr; <code>selector1-yourdomain-com._domainkey.yourtenant.onmicrosoft.com</code>
+          <br><code>selector2._domainkey.yourdomain.com</code> &rarr; <code>selector2-yourdomain-com._domainkey.yourtenant.onmicrosoft.com</code>
+        </li>
+        <li>Toggle DKIM signing to <strong>Enabled</strong> after DNS propagation.</li>
+      </ol>
+    </details>
+    <details class="ew-dkim-detail">
+      <summary>SendGrid</summary>
+      <ol class="ew-steps">
+        <li>Go to <strong>SendGrid Dashboard</strong> &rarr; Settings &rarr; Sender Authentication &rarr; Authenticate Your Domain.</li>
+        <li>Enter your domain and select your DNS host.</li>
+        <li>SendGrid generates three CNAME records for you.</li>
+        <li>Add all three CNAME records to your DNS.</li>
+        <li>Return to SendGrid and click <strong>Verify</strong>.</li>
+      </ol>
+    </details>
+    <details class="ew-dkim-detail">
+      <summary>Amazon SES</summary>
+      <ol class="ew-steps">
+        <li>In <strong>AWS SES Console</strong> &rarr; Verified identities &rarr; Your domain &rarr; Authentication tab.</li>
+        <li>Under DKIM, click <strong>Generate DKIM tokens</strong> (Easy DKIM with 2048-bit keys).</li>
+        <li>SES generates three CNAME records. Add them to your DNS.</li>
+        <li>SES automatically verifies once DNS propagates (may take up to 72 hours).</li>
+      </ol>
+    </details>
+    <details class="ew-dkim-detail">
+      <summary>Self-hosted (OpenDKIM)</summary>
+      <ol class="ew-steps">
+        <li>Install OpenDKIM: <code>apt install opendkim opendkim-tools</code></li>
+        <li>Generate a key pair:
+          <br><code>opendkim-genkey -s default -d yourdomain.com -b 2048</code></li>
+        <li>This creates <code>default.private</code> (private key) and <code>default.txt</code> (DNS record).</li>
+        <li>Add the contents of <code>default.txt</code> as a TXT record at <code>default._domainkey.yourdomain.com</code>.</li>
+        <li>Configure OpenDKIM in <code>/etc/opendkim.conf</code> and integrate with your MTA (Postfix, Exim, etc.).</li>
+      </ol>
+    </details>
+  </div>
+
+  <div class="ew-section-label" style="margin-top:1.25rem;">DKIM record template</div>
+  <div class="ew-form-grid">
+    <div class="tool-group">
+      <label for="ew-dkim-domain">Your domain</label>
+      <input type="text" id="ew-dkim-domain" placeholder="example.com" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="tool-group">
+      <label for="ew-dkim-selector">Selector</label>
+      <input type="text" id="ew-dkim-selector" placeholder="default" spellcheck="false" autocomplete="off">
+      <span class="ew-field-hint">Usually "default", "google", "s1", "selector1", or whatever your provider assigns</span>
+    </div>
+    <div class="tool-group" style="grid-column:1/-1;">
+      <label for="ew-dkim-pubkey">Public key (base64, without BEGIN/END headers)</label>
+      <textarea id="ew-dkim-pubkey" rows="3" placeholder="MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQ..." spellcheck="false" autocomplete="off" style="font-family:var(--font-mono,monospace);font-size:0.8rem;"></textarea>
+    </div>
+  </div>
+
+  <div class="ew-result-block">
+    <div class="ew-result-label">DNS TXT Record</div>
+    <div class="ew-record-name" id="ew-dkim-record-name">default._domainkey.example.com</div>
+    <div class="output-area" style="margin-top:0.5rem;">
+      <button class="btn btn--copy" id="ew-dkim-copy">Copy</button>
+      <pre id="ew-dkim-output" style="white-space:pre-wrap;word-break:break-all;"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ DMARC POLICY ═══════════════ -->
+<div id="ew-panel-dmarc" role="tabpanel" style="display:none;">
+  <p class="ew-intro">DMARC (Domain-based Message Authentication, Reporting, and Conformance) tells receiving servers how to handle emails that fail SPF or DKIM checks. It also enables reporting so you can monitor who is sending email from your domain.</p>
+
+  <div class="ew-form-grid">
+    <div class="tool-group">
+      <label for="ew-dmarc-domain">Your domain</label>
+      <input type="text" id="ew-dmarc-domain" placeholder="example.com" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="tool-group">
+      <label for="ew-dmarc-policy">Policy (p=)</label>
+      <select id="ew-dmarc-policy">
+        <option value="none">none -- Monitor only, no action</option>
+        <option value="quarantine">quarantine -- Send failures to spam</option>
+        <option value="reject" selected>reject -- Block failing emails (recommended)</option>
+      </select>
+      <span class="ew-field-hint">Start with "none" to collect data, then ramp to quarantine and eventually reject.</span>
+    </div>
+    <div class="tool-group">
+      <label for="ew-dmarc-sp">Subdomain policy (sp=)</label>
+      <select id="ew-dmarc-sp">
+        <option value="">Inherit from main policy</option>
+        <option value="none">none</option>
+        <option value="quarantine">quarantine</option>
+        <option value="reject">reject</option>
+      </select>
+      <span class="ew-field-hint">Override the policy for subdomains. Useful if you don't send email from subdomains.</span>
+    </div>
+    <div class="tool-group">
+      <label for="ew-dmarc-pct">Percentage (pct=)</label>
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <input type="range" id="ew-dmarc-pct" min="1" max="100" value="100" style="flex:1;">
+        <span id="ew-dmarc-pct-val" style="font-weight:700;font-family:var(--font-mono,monospace);min-width:40px;text-align:right;color:var(--text-1,#e2e8f0);">100%</span>
+      </div>
+      <span class="ew-field-hint">Start at 10% during rollout. Ramp to 100% once you've verified legitimate mail passes.</span>
+    </div>
+    <div class="tool-group">
+      <label for="ew-dmarc-rua">Aggregate report email (rua=)</label>
+      <input type="email" id="ew-dmarc-rua" placeholder="dmarc-reports@example.com" spellcheck="false" autocomplete="off">
+      <span class="ew-field-hint">Daily XML reports showing who sends email from your domain. Highly recommended.</span>
+    </div>
+    <div class="tool-group">
+      <label for="ew-dmarc-ruf">Forensic report email (ruf=)</label>
+      <input type="email" id="ew-dmarc-ruf" placeholder="dmarc-forensic@example.com" spellcheck="false" autocomplete="off">
+      <span class="ew-field-hint">Individual failure reports. Many ISPs no longer send these due to privacy concerns.</span>
+    </div>
+    <div class="tool-group">
+      <label for="ew-dmarc-adkim">DKIM alignment (adkim=)</label>
+      <select id="ew-dmarc-adkim">
+        <option value="r">r -- Relaxed (subdomains pass)</option>
+        <option value="s">s -- Strict (exact domain match required)</option>
+      </select>
+    </div>
+    <div class="tool-group">
+      <label for="ew-dmarc-aspf">SPF alignment (aspf=)</label>
+      <select id="ew-dmarc-aspf">
+        <option value="r">r -- Relaxed (subdomains pass)</option>
+        <option value="s">s -- Strict (exact domain match required)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="ew-result-block" style="margin-top:1rem;">
+    <div class="ew-result-label">DNS TXT Record</div>
+    <div class="ew-record-name" id="ew-dmarc-record-name">_dmarc.example.com</div>
+    <div class="output-area" style="margin-top:0.5rem;">
+      <button class="btn btn--copy" id="ew-dmarc-copy">Copy</button>
+      <pre id="ew-dmarc-output" style="white-space:pre-wrap;word-break:break-all;"></pre>
+    </div>
+  </div>
+
+  <div id="ew-dmarc-explain" class="ew-explain"></div>
+
+  <div class="ew-rollout-guide">
+    <div class="ew-rollout-title">Recommended rollout sequence</div>
+    <div class="ew-rollout-steps">
+      <div class="ew-rollout-step">
+        <div class="ew-rollout-step-badge">Step 1</div>
+        <div class="ew-rollout-step-body">
+          <strong>p=none, pct=100</strong>
+          <span>Monitor-only mode. No emails are blocked or filtered. Publish this record and collect aggregate reports for 2–4 weeks. Identify all legitimate sending sources in your rua= reports before enforcing anything.</span>
+        </div>
+      </div>
+      <div class="ew-rollout-arrow">&#8595;</div>
+      <div class="ew-rollout-step">
+        <div class="ew-rollout-step-badge">Step 2</div>
+        <div class="ew-rollout-step-body">
+          <strong>p=quarantine, pct=10</strong>
+          <span>Start enforcement at 10% of failing messages — these go to spam. Monitor reports for legitimate mail getting caught. If clean after a week, increase pct to 50, then 100.</span>
+        </div>
+      </div>
+      <div class="ew-rollout-arrow">&#8595;</div>
+      <div class="ew-rollout-step">
+        <div class="ew-rollout-step-badge">Step 3</div>
+        <div class="ew-rollout-step-body">
+          <strong>p=quarantine, pct=100</strong>
+          <span>All failing messages go to spam. Hold this position for 1–2 weeks to confirm no legitimate senders are misconfigured. Review rua= reports carefully.</span>
+        </div>
+      </div>
+      <div class="ew-rollout-arrow">&#8595;</div>
+      <div class="ew-rollout-step ew-rollout-step--final">
+        <div class="ew-rollout-step-badge ew-rollout-step-badge--final">Step 4</div>
+        <div class="ew-rollout-step-body">
+          <strong>p=reject, pct=100</strong>
+          <span>Full enforcement. Failing messages are rejected by receiving servers. This is the goal — it prevents spoofing and phishing from your domain. Keep monitoring rua= reports indefinitely.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ DEPLOY GUIDE ═══════════════ -->
+<div id="ew-panel-deploy" role="tabpanel" style="display:none;">
+  <p class="ew-intro">Once you have your records, add them as TXT records in your DNS provider. Here are step-by-step instructions for popular providers.</p>
+
+  <div class="ew-deploy-providers">
+    <details class="ew-dkim-detail" open>
+      <summary>Cloudflare</summary>
+      <ol class="ew-steps">
+        <li>Log in to the <a href="https://dash.cloudflare.com" target="_blank" rel="noopener" class="ew-link">Cloudflare dashboard</a> and select your domain.</li>
+        <li>Go to <strong>DNS</strong> &rarr; <strong>Records</strong> &rarr; <strong>Add record</strong>.</li>
+        <li>Set Type to <strong>TXT</strong>.</li>
+        <li>For SPF: set Name to <strong>@</strong> (root domain). For DMARC: set Name to <strong>_dmarc</strong>.</li>
+        <li>Paste the generated record value into <strong>Content</strong>.</li>
+        <li>Set TTL to <strong>Auto</strong> and click <strong>Save</strong>.</li>
+        <li>Proxy status does not apply to TXT records.</li>
+      </ol>
+    </details>
+    <details class="ew-dkim-detail">
+      <summary>AWS Route 53</summary>
+      <ol class="ew-steps">
+        <li>Open the <a href="https://console.aws.amazon.com/route53/" target="_blank" rel="noopener" class="ew-link">Route 53 console</a> and select your hosted zone.</li>
+        <li>Click <strong>Create record</strong>.</li>
+        <li>For SPF: leave Record name blank (root). For DMARC: enter <strong>_dmarc</strong>.</li>
+        <li>Set Record type to <strong>TXT</strong>.</li>
+        <li>In Value, paste the record wrapped in <strong>double quotes</strong>: <code>"v=spf1 ..."</code></li>
+        <li>Set TTL to <strong>300</strong> (5 minutes is fine during testing).</li>
+        <li>Click <strong>Create records</strong>.</li>
+      </ol>
+    </details>
+    <details class="ew-dkim-detail">
+      <summary>GoDaddy</summary>
+      <ol class="ew-steps">
+        <li>Log in to <a href="https://dcc.godaddy.com/domains" target="_blank" rel="noopener" class="ew-link">GoDaddy Domain Manager</a>.</li>
+        <li>Select your domain &rarr; <strong>DNS</strong> tab &rarr; <strong>DNS Records</strong>.</li>
+        <li>Click <strong>Add New Record</strong>.</li>
+        <li>Select Type: <strong>TXT</strong>.</li>
+        <li>For SPF: set Host to <strong>@</strong>. For DMARC: set Host to <strong>_dmarc</strong>.</li>
+        <li>Paste the record value into <strong>TXT Value</strong>.</li>
+        <li>Set TTL to <strong>1 Hour</strong> and click <strong>Save</strong>.</li>
+      </ol>
+    </details>
+    <details class="ew-dkim-detail">
+      <summary>Namecheap</summary>
+      <ol class="ew-steps">
+        <li>Log in to <a href="https://ap.www.namecheap.com/" target="_blank" rel="noopener" class="ew-link">Namecheap</a> &rarr; Domain List &rarr; <strong>Manage</strong> your domain.</li>
+        <li>Go to <strong>Advanced DNS</strong> tab.</li>
+        <li>Under Host Records, click <strong>Add New Record</strong>.</li>
+        <li>Select Type: <strong>TXT Record</strong>.</li>
+        <li>For SPF: set Host to <strong>@</strong>. For DMARC: set Host to <strong>_dmarc</strong>.</li>
+        <li>Paste the record value into <strong>Value</strong>.</li>
+        <li>Set TTL to <strong>Automatic</strong> and click the green checkmark to save.</li>
+      </ol>
+    </details>
+    <details class="ew-dkim-detail">
+      <summary>Google Domains / Squarespace</summary>
+      <ol class="ew-steps">
+        <li>Google Domains migrated to Squarespace. Go to <a href="https://domains.squarespace.com" target="_blank" rel="noopener" class="ew-link">Squarespace Domains</a>.</li>
+        <li>Select your domain &rarr; <strong>DNS</strong> &rarr; <strong>DNS Settings</strong>.</li>
+        <li>Click <strong>Add record</strong>.</li>
+        <li>Type: <strong>TXT</strong>. Host: <strong>@</strong> (SPF) or <strong>_dmarc</strong> (DMARC).</li>
+        <li>Paste the record value and save.</li>
+      </ol>
+    </details>
+    <details class="ew-dkim-detail">
+      <summary>DigitalOcean</summary>
+      <ol class="ew-steps">
+        <li>Go to <a href="https://cloud.digitalocean.com/networking/domains" target="_blank" rel="noopener" class="ew-link">DigitalOcean Networking</a> &rarr; Domains.</li>
+        <li>Select your domain.</li>
+        <li>Under <strong>Create new record</strong>, select <strong>TXT</strong>.</li>
+        <li>For SPF: set Hostname to <strong>@</strong>. For DMARC: set Hostname to <strong>_dmarc</strong>.</li>
+        <li>Paste the value and set TTL to <strong>3600</strong>.</li>
+        <li>Click <strong>Create Record</strong>.</li>
+      </ol>
+    </details>
+  </div>
+
+  <div class="ew-deploy-tip" style="margin-top:1.25rem;">
+    <strong>Verification tips</strong>
+    <ul class="ew-deploy-tip-list">
+      <li>DNS propagation can take 5 minutes to 48 hours. Most changes propagate within 15 minutes.</li>
+      <li>Use <code>dig TXT yourdomain.com</code> or <code>nslookup -type=txt yourdomain.com</code> to verify.</li>
+      <li>For DMARC: <code>dig TXT _dmarc.yourdomain.com</code></li>
+      <li>For DKIM: <code>dig TXT selector._domainkey.yourdomain.com</code></li>
+      <li>Send a test email to a Gmail address and check the original message headers for SPF, DKIM, and DMARC pass/fail.</li>
+    </ul>
+  </div>
+</div>
+
+<style>
+  /* Tabs */
+  .ew-tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border,#2a2a3a);
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+  }
+  .ew-tab {
+    padding: 0.55rem 1.1rem; background: none; border: none;
+    border-bottom: 2px solid transparent; cursor: pointer;
+    font-size: 0.85rem; font-weight: 600; color: var(--text-3,#888);
+    transition: color 0.2s, border-color 0.2s; margin-bottom: -1px;
+    white-space: nowrap;
+  }
+  .ew-tab:hover { color: var(--text-1,#e2e8f0); }
+  .ew-tab.active { color: #818cf8; border-bottom-color: #818cf8; }
+
+  .ew-intro { font-size: 0.875rem; line-height: 1.65; color: var(--text-2,#94a3b8); margin: 0 0 1.25rem; }
+
+  .ew-section-label {
+    font-size: 0.8125rem; font-weight: 700; color: var(--text-1,#e2e8f0);
+    margin-bottom: 0.5rem; margin-top: 0.25rem;
+  }
+  .ew-section-hint { font-weight: 400; color: var(--text-3,#888); font-size: 0.8rem; }
+  .ew-field-hint { font-size: 0.75rem; color: var(--text-3,#888); margin-top: 0.3rem; display: block; line-height: 1.45; }
+
+  /* Provider grid */
+  .ew-provider-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;
+  }
+  @media (max-width: 540px) { .ew-provider-grid { grid-template-columns: 1fr; } }
+  .ew-provider-check {
+    display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    padding: 0.5rem 0.75rem; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border,#2a2a3a); background: var(--surface-1,#1a1a2e);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .ew-provider-check:hover { border-color: rgba(99,102,241,0.3); }
+  .ew-provider-check:has(input:checked) {
+    border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.08);
+  }
+  .ew-provider-check input { accent-color: #818cf8; flex-shrink: 0; }
+  .ew-provider-name { font-size: 0.875rem; font-weight: 600; color: var(--text-1,#e2e8f0); }
+  .ew-provider-hint {
+    font-size: 0.7rem; font-family: var(--font-mono,monospace);
+    color: var(--text-3,#888); margin-left: auto;
+  }
+
+  /* Lookup warning */
+  .ew-lookup-warning {
+    padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.8125rem;
+    font-weight: 600; margin-top: 0.75rem; line-height: 1.5;
+  }
+  .ew-lookup-warning--ok {
+    background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.2); color: #4ade80;
+  }
+  .ew-lookup-warning--warn {
+    background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.25); color: #fbbf24;
+  }
+  .ew-lookup-warning--danger {
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: #f87171;
+  }
+
+  /* Result block */
+  .ew-result-block {
+    background: var(--surface-1,#1a1a2e); border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px; padding: 1rem 1.25rem;
+  }
+  .ew-result-label {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-3,#888); margin-bottom: 0.4rem;
+  }
+  .ew-record-name {
+    font-family: var(--font-mono,monospace); font-size: 0.875rem;
+    color: #818cf8; margin-bottom: 0.25rem;
+  }
+
+  /* Explain block */
+  .ew-explain {
+    margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-2,#94a3b8);
+    line-height: 1.65;
+  }
+  .ew-explain-item {
+    padding: 0.4rem 0; border-bottom: 1px solid var(--border,#2a2a3a);
+    display: flex; gap: 0.5rem;
+  }
+  .ew-explain-item:last-child { border-bottom: none; }
+  .ew-explain-tag {
+    font-family: var(--font-mono,monospace); font-weight: 700;
+    color: #a5b4fc; white-space: nowrap; min-width: 120px; flex-shrink: 0;
+  }
+
+  /* Form grid */
+  .ew-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  @media (max-width: 540px) { .ew-form-grid { grid-template-columns: 1fr; } }
+
+  /* DKIM info cards */
+  .ew-info-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem; }
+  @media (max-width: 540px) { .ew-info-cards { grid-template-columns: 1fr; } }
+  .ew-info-card {
+    background: var(--surface-1,#1a1a2e); border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px; padding: 1rem; font-size: 0.8125rem;
+    color: var(--text-2,#94a3b8); line-height: 1.6;
+  }
+  .ew-info-card strong { display: block; color: var(--text-1,#e2e8f0); margin-bottom: 0.5rem; font-size: 0.875rem; }
+  .ew-info-card code { font-family: var(--font-mono,monospace); color: #a5b4fc; font-size: 0.8rem; }
+  .ew-info-list { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+
+  /* DKIM provider details */
+  .ew-dkim-detail {
+    border: 1px solid var(--border,#2a2a3a); border-radius: 8px;
+    margin-bottom: 0.5rem; overflow: hidden;
+  }
+  .ew-dkim-detail summary {
+    padding: 0.6rem 1rem; cursor: pointer; font-weight: 600;
+    font-size: 0.875rem; color: var(--text-1,#e2e8f0);
+    background: var(--surface-1,#1a1a2e);
+    list-style: none;
+  }
+  .ew-dkim-detail summary::-webkit-details-marker { display: none; }
+  .ew-dkim-detail summary::before {
+    content: '\25B6'; font-size: 0.625rem; margin-right: 0.5rem;
+    display: inline-block; transition: transform 0.15s;
+  }
+  .ew-dkim-detail[open] summary::before { transform: rotate(90deg); }
+  .ew-steps {
+    margin: 0; padding: 0.75rem 1rem 0.75rem 2rem;
+    font-size: 0.8125rem; color: var(--text-2,#94a3b8);
+    line-height: 1.65; display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .ew-steps code {
+    font-family: var(--font-mono,monospace); font-size: 0.8rem;
+    color: #a5b4fc; background: var(--surface-0,#0f0f1a);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .ew-steps strong { color: var(--text-1,#e2e8f0); }
+  .ew-link { color: #818cf8; text-decoration: underline; }
+
+  /* DMARC rollout guide */
+  .ew-rollout-guide {
+    margin-top: 1.25rem;
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+  }
+  .ew-rollout-title {
+    font-size: 0.8125rem; font-weight: 700; color: var(--text-1,#e2e8f0);
+    margin-bottom: 0.875rem; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .ew-rollout-steps { display: flex; flex-direction: column; gap: 0; }
+  .ew-rollout-step {
+    display: flex; gap: 0.875rem; align-items: flex-start;
+    background: var(--surface-0,#0f0f1a); border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px; padding: 0.75rem 1rem;
+  }
+  .ew-rollout-step--final { border-color: rgba(99,102,241,0.35); background: rgba(99,102,241,0.06); }
+  .ew-rollout-step-badge {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; padding: 3px 8px; border-radius: 4px;
+    background: rgba(99,102,241,0.12); color: #a5b4fc;
+    border: 1px solid rgba(99,102,241,0.25); white-space: nowrap; flex-shrink: 0; margin-top: 1px;
+  }
+  .ew-rollout-step-badge--final { background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.45); }
+  .ew-rollout-step-body {
+    display: flex; flex-direction: column; gap: 0.2rem;
+    font-size: 0.8125rem; line-height: 1.55; color: var(--text-2,#94a3b8);
+  }
+  .ew-rollout-step-body strong { color: var(--text-1,#e2e8f0); font-family: var(--font-mono,monospace); font-size: 0.8rem; }
+  .ew-rollout-arrow {
+    text-align: center; color: var(--text-3,#888); font-size: 1rem;
+    padding: 0.15rem 0; line-height: 1;
+  }
+
+  /* Deploy tip */
+  .ew-deploy-tip {
+    background: var(--surface-1,#1a1a2e); border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px; padding: 1rem 1.25rem; font-size: 0.8125rem;
+    color: var(--text-2,#94a3b8); line-height: 1.65;
+  }
+  .ew-deploy-tip strong { display: block; color: var(--text-1,#e2e8f0); margin-bottom: 0.5rem; font-size: 0.875rem; }
+  .ew-deploy-tip-list { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .ew-deploy-tip-list code {
+    font-family: var(--font-mono,monospace); font-size: 0.8rem;
+    color: #a5b4fc; background: var(--surface-0,#0f0f1a);
+    padding: 1px 5px; border-radius: 3px;
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Tab switching ── */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.ew-tab'));
+  var panels = {
+    spf:    document.getElementById('ew-panel-spf'),
+    dkim:   document.getElementById('ew-panel-dkim'),
+    dmarc:  document.getElementById('ew-panel-dmarc'),
+    deploy: document.getElementById('ew-panel-deploy')
+  };
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      var which = tab.getAttribute('data-tab');
+      Object.keys(panels).forEach(function (k) {
+        panels[k].style.display = k === which ? '' : 'none';
+      });
+    });
+  });
+
+  /* ── Copy helper ── */
+  function makeCopier(btn, getter) {
+    btn.addEventListener('click', function () {
+      var text = getter();
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          btn.textContent = 'Copied!';
+          setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+        });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); btn.textContent = 'Copied!'; } catch (e) { btn.textContent = 'Failed'; }
+        document.body.removeChild(ta);
+        setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+      }
+    });
+  }
+
+  /* ═══════════════ SPF ═══════════════ */
+  var spfDomainEl       = document.getElementById('ew-spf-domain');
+  var spfAllEl          = document.getElementById('ew-spf-all');
+  var spfIpsEl          = document.getElementById('ew-spf-ips');
+  var spfCustomIncEl    = document.getElementById('ew-spf-custom-includes');
+  var spfRecordNameEl   = document.getElementById('ew-spf-record-name');
+  var spfOutputEl       = document.getElementById('ew-spf-output');
+  var spfCopyBtn        = document.getElementById('ew-spf-copy');
+  var spfLookupWarnEl   = document.getElementById('ew-spf-lookup-warning');
+  var spfExplainEl      = document.getElementById('ew-spf-explain');
+
+  var providerCheckboxes = Array.prototype.slice.call(document.querySelectorAll('.ew-provider-check input[type="checkbox"]'));
+
+  function buildSPF() {
+    var domain = spfDomainEl.value.trim() || 'example.com';
+    spfRecordNameEl.textContent = domain;
+
+    var parts = ['v=spf1'];
+    var totalLookups = 0;
+    var explanations = [];
+
+    // Provider checkboxes
+    providerCheckboxes.forEach(function (cb) {
+      if (!cb.checked) return;
+      var include = cb.getAttribute('data-include');
+      var mech = cb.getAttribute('data-mech');
+      var lookups = parseInt(cb.getAttribute('data-lookups') || '0', 10);
+      if (include) {
+        parts.push('include:' + include);
+        totalLookups += lookups;
+        explanations.push({ tag: 'include:' + include, desc: 'Authorizes ' + cb.parentElement.querySelector('.ew-provider-name').textContent + ' to send email from your domain. Uses ' + lookups + ' DNS lookup(s).' });
+      } else if (mech) {
+        parts.push(mech);
+        totalLookups += lookups;
+        explanations.push({ tag: mech, desc: mech === 'mx' ? 'Authorizes the IP addresses of your MX (mail exchange) records.' : 'Authorizes the IP address of your domain\'s A record.' });
+      }
+    });
+
+    // Custom includes
+    var customIncludes = spfCustomIncEl.value.trim();
+    if (customIncludes) {
+      customIncludes.split(/[,\s]+/).forEach(function (inc) {
+        inc = inc.trim();
+        if (inc) {
+          parts.push('include:' + inc);
+          totalLookups += 1;
+          explanations.push({ tag: 'include:' + inc, desc: 'Custom include mechanism. Uses 1 DNS lookup.' });
+        }
+      });
+    }
+
+    // Custom IPs
+    var ips = spfIpsEl.value.trim();
+    if (ips) {
+      ips.split(/[,\s]+/).forEach(function (ip) {
+        ip = ip.trim();
+        if (!ip) return;
+        if (ip.indexOf(':') >= 0) {
+          parts.push('ip6:' + ip);
+          explanations.push({ tag: 'ip6:' + ip, desc: 'Authorizes this IPv6 address or range. Does not count toward the 10-lookup limit.' });
+        } else {
+          parts.push('ip4:' + ip);
+          explanations.push({ tag: 'ip4:' + ip, desc: 'Authorizes this IPv4 address or CIDR range. Does not count toward the 10-lookup limit.' });
+        }
+      });
+    }
+
+    // All mechanism
+    var allMech = spfAllEl.value;
+    parts.push(allMech);
+    var allDesc = {
+      '-all': 'Hard fail: reject any sender not explicitly authorized above.',
+      '~all': 'Soft fail: accept but mark as suspicious. Good for testing.',
+      '?all': 'Neutral: no policy assertion. Not recommended for production.'
+    };
+    explanations.push({ tag: allMech, desc: allDesc[allMech] || '' });
+
+    spfOutputEl.textContent = parts.join(' ');
+
+    // Lookup warning
+    if (totalLookups > 10) {
+      spfLookupWarnEl.className = 'ew-lookup-warning ew-lookup-warning--danger';
+      spfLookupWarnEl.innerHTML = '<strong>Over limit:</strong> ' + totalLookups + ' DNS lookups used. SPF has a hard limit of 10. Receiving servers will return PermError and your emails may be rejected. Reduce include: mechanisms or consolidate with an SPF flattening service.';
+      spfLookupWarnEl.style.display = '';
+    } else if (totalLookups >= 8) {
+      spfLookupWarnEl.className = 'ew-lookup-warning ew-lookup-warning--warn';
+      spfLookupWarnEl.innerHTML = '<strong>Approaching limit:</strong> ' + totalLookups + '/10 DNS lookups used. Leave headroom for future services. Consider consolidating or using ip4:/ip6: where possible.';
+      spfLookupWarnEl.style.display = '';
+    } else if (totalLookups > 0) {
+      spfLookupWarnEl.className = 'ew-lookup-warning ew-lookup-warning--ok';
+      spfLookupWarnEl.innerHTML = totalLookups + '/10 DNS lookups used. You have room for ' + (10 - totalLookups) + ' more include: mechanisms.';
+      spfLookupWarnEl.style.display = '';
+    } else {
+      spfLookupWarnEl.style.display = 'none';
+    }
+
+    // Explanations
+    var html = '';
+    if (explanations.length > 0) {
+      explanations.forEach(function (e) {
+        html += '<div class="ew-explain-item"><span class="ew-explain-tag">' + escapeHtml(e.tag) + '</span><span>' + escapeHtml(e.desc) + '</span></div>';
+      });
+    }
+    spfExplainEl.innerHTML = html;
+  }
+
+  // Wire up SPF events
+  spfDomainEl.addEventListener('input', buildSPF);
+  spfAllEl.addEventListener('change', buildSPF);
+  spfIpsEl.addEventListener('input', buildSPF);
+  spfCustomIncEl.addEventListener('input', buildSPF);
+  providerCheckboxes.forEach(function (cb) {
+    cb.addEventListener('change', buildSPF);
+  });
+  buildSPF();
+  makeCopier(spfCopyBtn, function () { return spfOutputEl.textContent; });
+
+  /* ═══════════════ DKIM ═══════════════ */
+  var dkimDomainEl   = document.getElementById('ew-dkim-domain');
+  var dkimSelectorEl = document.getElementById('ew-dkim-selector');
+  var dkimPubkeyEl   = document.getElementById('ew-dkim-pubkey');
+  var dkimNameEl     = document.getElementById('ew-dkim-record-name');
+  var dkimOutputEl   = document.getElementById('ew-dkim-output');
+  var dkimCopyBtn    = document.getElementById('ew-dkim-copy');
+
+  function buildDKIM() {
+    var domain = dkimDomainEl.value.trim() || 'example.com';
+    var selector = dkimSelectorEl.value.trim() || 'default';
+    dkimNameEl.textContent = selector + '._domainkey.' + domain;
+    var key = dkimPubkeyEl.value.trim().replace(/\s+/g, '');
+    var parts = ['v=DKIM1', 'k=rsa'];
+    if (key) parts.push('p=' + key);
+    else parts.push('p=YOUR_PUBLIC_KEY_HERE');
+    dkimOutputEl.textContent = parts.join('; ');
+  }
+
+  [dkimDomainEl, dkimSelectorEl, dkimPubkeyEl].forEach(function (el) {
+    el.addEventListener('input', buildDKIM);
+  });
+  buildDKIM();
+  makeCopier(dkimCopyBtn, function () { return dkimOutputEl.textContent; });
+
+  /* ═══════════════ DMARC ═══════════════ */
+  var dmarcDomainEl  = document.getElementById('ew-dmarc-domain');
+  var dmarcPolicyEl  = document.getElementById('ew-dmarc-policy');
+  var dmarcSpEl      = document.getElementById('ew-dmarc-sp');
+  var dmarcPctEl     = document.getElementById('ew-dmarc-pct');
+  var dmarcPctValEl  = document.getElementById('ew-dmarc-pct-val');
+  var dmarcRuaEl     = document.getElementById('ew-dmarc-rua');
+  var dmarcRufEl     = document.getElementById('ew-dmarc-ruf');
+  var dmarcAdkimEl   = document.getElementById('ew-dmarc-adkim');
+  var dmarcAspfEl    = document.getElementById('ew-dmarc-aspf');
+  var dmarcNameEl    = document.getElementById('ew-dmarc-record-name');
+  var dmarcOutputEl  = document.getElementById('ew-dmarc-output');
+  var dmarcCopyBtn   = document.getElementById('ew-dmarc-copy');
+  var dmarcExplainEl = document.getElementById('ew-dmarc-explain');
+
+  function buildDMARC() {
+    var domain = dmarcDomainEl.value.trim() || 'example.com';
+    dmarcNameEl.textContent = '_dmarc.' + domain;
+
+    var parts = ['v=DMARC1'];
+    var explanations = [];
+
+    // Policy
+    parts.push('p=' + dmarcPolicyEl.value);
+    var policyDescs = {
+      none: 'Monitor only. Receiving servers take no action on failing emails. Use this to collect data before enforcing.',
+      quarantine: 'Send failing emails to the spam/junk folder.',
+      reject: 'Reject failing emails outright. The strongest and recommended setting once you have verified all legitimate senders.'
+    };
+    explanations.push({ tag: 'p=' + dmarcPolicyEl.value, desc: policyDescs[dmarcPolicyEl.value] });
+
+    // Subdomain policy
+    if (dmarcSpEl.value) {
+      parts.push('sp=' + dmarcSpEl.value);
+      explanations.push({ tag: 'sp=' + dmarcSpEl.value, desc: 'Override the policy for subdomains. Useful when subdomains have different email requirements.' });
+    }
+
+    // Percentage
+    var pct = parseInt(dmarcPctEl.value, 10);
+    dmarcPctValEl.textContent = pct + '%';
+    if (!isNaN(pct) && pct !== 100) {
+      parts.push('pct=' + pct);
+      explanations.push({ tag: 'pct=' + pct, desc: 'Apply the policy to ' + pct + '% of messages. Useful for gradual rollout.' });
+    }
+
+    // Aggregate reports
+    var rua = dmarcRuaEl.value.trim();
+    if (rua) {
+      var ruaVal = rua.indexOf('mailto:') === 0 ? rua : 'mailto:' + rua;
+      parts.push('rua=' + ruaVal);
+      explanations.push({ tag: 'rua=' + ruaVal, desc: 'Daily aggregate XML reports sent to this address. Essential for monitoring.' });
+    }
+
+    // Forensic reports
+    var ruf = dmarcRufEl.value.trim();
+    if (ruf) {
+      var rufVal = ruf.indexOf('mailto:') === 0 ? ruf : 'mailto:' + ruf;
+      parts.push('ruf=' + rufVal);
+      explanations.push({ tag: 'ruf=' + rufVal, desc: 'Individual failure (forensic) reports. Many ISPs no longer send these.' });
+    }
+
+    // Alignment
+    var adkim = dmarcAdkimEl.value;
+    parts.push('adkim=' + adkim);
+    explanations.push({ tag: 'adkim=' + adkim, desc: adkim === 's' ? 'Strict DKIM alignment: the DKIM signing domain must exactly match the From domain.' : 'Relaxed DKIM alignment: subdomains of the From domain are allowed.' });
+
+    var aspf = dmarcAspfEl.value;
+    parts.push('aspf=' + aspf);
+    explanations.push({ tag: 'aspf=' + aspf, desc: aspf === 's' ? 'Strict SPF alignment: the Return-Path domain must exactly match the From domain.' : 'Relaxed SPF alignment: subdomains of the From domain are allowed.' });
+
+    dmarcOutputEl.textContent = parts.join('; ');
+
+    // Explanations
+    var html = '';
+    explanations.forEach(function (e) {
+      html += '<div class="ew-explain-item"><span class="ew-explain-tag">' + escapeHtml(e.tag) + '</span><span>' + escapeHtml(e.desc) + '</span></div>';
+    });
+    dmarcExplainEl.innerHTML = html;
+  }
+
+  [dmarcDomainEl, dmarcPolicyEl, dmarcSpEl, dmarcPctEl, dmarcRuaEl, dmarcRufEl, dmarcAdkimEl, dmarcAspfEl].forEach(function (el) {
+    el.addEventListener('input', buildDMARC);
+    el.addEventListener('change', buildDMARC);
+  });
+  buildDMARC();
+  makeCopier(dmarcCopyBtn, function () { return dmarcOutputEl.textContent; });
+
+  /* ── HTML escape ── */
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+})();
+</script>

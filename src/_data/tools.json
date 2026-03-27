@@ -845,7 +845,7 @@
     "name": "Email Auth Wizard",
     "slug": "email-auth-wizard",
     "description": "Build correct SPF, DKIM, and DMARC DNS records with a guided wizard.",
-    "longDescription": "Generate production-ready SPF, DKIM, and DMARC records through a guided wizard. Select your email providers, configure policies, set up reporting — get copy-ready DNS TXT records with plain-English explanations. Includes lookup count warnings and deployment guides for popular DNS providers.",
+    "longDescription": "Generate production-ready SPF, DKIM, and DMARC records through a guided wizard. Select your email providers, configure policies, set up reporting — get copy-ready DNS TXT records with plain-English explanations and deployment guides.",
     "category": "security",
     "keywords": ["dmarc", "spf", "dkim", "email authentication", "dns txt record", "email security", "spf generator", "dmarc generator", "email spoofing", "dmarc policy"],
     "badge": "local",
