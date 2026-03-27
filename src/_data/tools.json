@@ -692,5 +692,18 @@
     "relatedTools": ["jwt-decoder", "breach-checker", "header-analyzer"],
     "status": "live",
     "isNew": true
+  },
+  {
+    "name": "IOC Workbench",
+    "slug": "ioc-workbench",
+    "description": "Extract, defang, and export indicators of compromise from any text.",
+    "longDescription": "Paste threat reports, emails, or log data and instantly extract all IOCs — IPs, domains, URLs, hashes, CVEs, MITRE techniques. One-click defang for safe sharing. Export as CSV, JSON, STIX, or markdown. 100% client-side, no data leaves your browser.",
+    "category": "security",
+    "keywords": ["ioc", "indicator of compromise", "defang", "refang", "threat intel", "ip extractor", "hash extractor", "domain extractor", "stix", "soc", "incident response"],
+    "badge": "local",
+    "featured": true,
+    "relatedTools": ["secrets-scanner", "log-parser", "ir-timeline"],
+    "status": "live",
+    "isNew": true
   }
 ]

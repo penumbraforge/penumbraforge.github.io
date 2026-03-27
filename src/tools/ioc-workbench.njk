@@ -1,0 +1,773 @@
+---
+toolSlug: ioc-workbench
+permalink: /tools/ioc-workbench/
+---
+
+<div class="tool-group">
+  <label for="ioc-input">Paste a threat report, email, log dump, or any text containing IOCs</label>
+  <textarea id="ioc-input" rows="14" placeholder="Paste threat intel, incident reports, Slack messages, email headers, OSINT notes, log output..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <button class="btn btn--primary" id="ioc-extract-btn">Extract IOCs</button>
+  <button class="btn" id="ioc-example-btn">Try example</button>
+  <button class="btn" id="ioc-clear-btn">Clear</button>
+</div>
+
+<div id="ioc-summary" style="display:none;"></div>
+
+<div id="ioc-toolbar" style="display:none;">
+  <button class="btn btn--primary ioc-toolbar-btn" id="ioc-copy-defanged">Copy All Defanged</button>
+  <button class="btn ioc-toolbar-btn" id="ioc-copy-csv">Copy as CSV</button>
+  <button class="btn ioc-toolbar-btn" id="ioc-copy-json">Copy as JSON</button>
+  <button class="btn ioc-toolbar-btn" id="ioc-copy-md">Copy as Markdown</button>
+  <button class="btn ioc-toolbar-btn" id="ioc-refang-all">Refang All</button>
+</div>
+
+<div id="ioc-results"></div>
+
+<div id="ioc-empty" class="ioc-empty-msg">Paste content above and click "Extract IOCs".</div>
+
+<style>
+  /* Summary bar */
+  #ioc-summary {
+    padding: 0.75rem 1rem;
+    background: var(--surface-1, #1a1a2e);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-1, #e2e8f0);
+    line-height: 1.5;
+  }
+  #ioc-summary .ioc-summary-count {
+    color: #818cf8;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Bulk actions toolbar */
+  #ioc-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface-1, #1a1a2e);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+  }
+  .ioc-toolbar-btn {
+    font-size: 0.8125rem !important;
+    padding: 0.4rem 0.75rem !important;
+  }
+
+  /* Results container */
+  #ioc-results {
+    margin-top: 0.75rem;
+  }
+
+  /* Type group */
+  .ioc-group {
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+  .ioc-group--ipv4, .ioc-group--ipv6       { border-left: 3px solid #f59e0b; }
+  .ioc-group--domain    { border-left: 3px solid #3b82f6; }
+  .ioc-group--url       { border-left: 3px solid #a855f7; }
+  .ioc-group--md5, .ioc-group--sha1, .ioc-group--sha256 { border-left: 3px solid #22c55e; }
+  .ioc-group--email     { border-left: 3px solid #06b6d4; }
+  .ioc-group--cve       { border-left: 3px solid #ef4444; }
+  .ioc-group--mitre     { border-left: 3px solid #6366f1; }
+
+  /* Group header (collapsible) */
+  .ioc-group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.875rem;
+    background: var(--surface-1, #1a1a2e);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .ioc-group-header:hover {
+    background: var(--surface-2, #1e1e35);
+  }
+  .ioc-group-chevron {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--text-3, #888);
+    transition: transform 0.15s ease;
+  }
+  .ioc-group.collapsed .ioc-group-chevron {
+    transform: rotate(-90deg);
+  }
+  .ioc-group-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-1, #e2e8f0);
+    flex: 1;
+    min-width: 0;
+  }
+  .ioc-group-count {
+    font-size: 0.75rem;
+    font-family: var(--font-mono, monospace);
+    color: var(--text-3, #888);
+    flex-shrink: 0;
+  }
+
+  /* Group body */
+  .ioc-group-body {
+    border-top: 1px solid var(--border, #2a2a3a);
+  }
+  .ioc-group.collapsed .ioc-group-body {
+    display: none;
+  }
+
+  /* Individual IOC row */
+  .ioc-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    border-bottom: 1px solid var(--border, #2a2a3a);
+    flex-wrap: wrap;
+  }
+  .ioc-row:last-child {
+    border-bottom: none;
+  }
+  .ioc-value {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125rem;
+    color: var(--text-1, #e2e8f0);
+    word-break: break-all;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Type badges */
+  .ioc-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .ioc-badge--ipv4, .ioc-badge--ipv6 {
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+  .ioc-badge--domain {
+    background: rgba(59, 130, 246, 0.12);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+  .ioc-badge--url {
+    background: rgba(168, 85, 247, 0.12);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+  }
+  .ioc-badge--md5, .ioc-badge--sha1, .ioc-badge--sha256 {
+    background: rgba(34, 197, 94, 0.12);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+  }
+  .ioc-badge--email {
+    background: rgba(6, 182, 212, 0.12);
+    color: #22d3ee;
+    border: 1px solid rgba(6, 182, 212, 0.3);
+  }
+  .ioc-badge--cve {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  .ioc-badge--mitre {
+    background: rgba(99, 102, 241, 0.12);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+
+  /* Defanged display */
+  .ioc-defanged {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    color: var(--text-3, #888);
+    word-break: break-all;
+    flex-shrink: 0;
+  }
+
+  /* Copy button per row */
+  .ioc-copy-btn {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 4px;
+    color: var(--text-3, #888);
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .ioc-copy-btn:hover {
+    color: var(--text-1, #e2e8f0);
+    border-color: var(--text-2, #94a3b8);
+  }
+  .ioc-copy-btn.copied {
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.4);
+  }
+
+  /* Empty state */
+  .ioc-empty-msg {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--text-3, #888);
+    font-size: 0.9rem;
+  }
+
+  /* Toast notification */
+  .ioc-toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: var(--surface-1, #1a1a2e);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.8125rem;
+    color: #4ade80;
+    font-weight: 600;
+    z-index: 9999;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+  .ioc-toast.visible {
+    opacity: 1;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .ioc-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.35rem;
+    }
+    .ioc-defanged {
+      flex-shrink: initial;
+    }
+    #ioc-toolbar {
+      flex-direction: column;
+    }
+    .ioc-toolbar-btn {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  var inputEl     = document.getElementById('ioc-input');
+  var extractBtn  = document.getElementById('ioc-extract-btn');
+  var exampleBtn  = document.getElementById('ioc-example-btn');
+  var clearBtn    = document.getElementById('ioc-clear-btn');
+  var summaryEl   = document.getElementById('ioc-summary');
+  var toolbarEl   = document.getElementById('ioc-toolbar');
+  var resultsEl   = document.getElementById('ioc-results');
+  var emptyEl     = document.getElementById('ioc-empty');
+
+  // Bulk action buttons
+  var copyDefangedBtn = document.getElementById('ioc-copy-defanged');
+  var copyCsvBtn      = document.getElementById('ioc-copy-csv');
+  var copyJsonBtn     = document.getElementById('ioc-copy-json');
+  var copyMdBtn       = document.getElementById('ioc-copy-md');
+  var refangAllBtn    = document.getElementById('ioc-refang-all');
+
+  // Toast element
+  var toastEl = document.createElement('div');
+  toastEl.className = 'ioc-toast';
+  document.body.appendChild(toastEl);
+
+  var toastTimer = null;
+  function showToast(msg) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.classList.add('visible');
+    toastTimer = setTimeout(function () {
+      toastEl.classList.remove('visible');
+    }, 2000);
+  }
+
+  function copyText(text, label) {
+    navigator.clipboard.writeText(text).then(function () {
+      showToast('Copied' + (label ? ' ' + label : ''));
+    });
+  }
+
+  // ── Example threat report ──
+  var EXAMPLE_TEXT = [
+    'THREAT ADVISORY: APT-FORGE Campaign',
+    '',
+    'Active campaign targeting financial institutions. Initial access via phishing emails from sender@malicious-domain.xyz containing CVE-2024-21412 exploit.',
+    '',
+    'C2 Infrastructure:',
+    '- 185.220.101.34 (primary C2)',
+    '- 91.215.85.17 (backup C2)',
+    '- evil-collector.example.com',
+    '- https://cdn-update.systemcheck.xyz/beacon.js',
+    '',
+    'Payload hashes:',
+    '- SHA256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    '- MD5: d41d8cd98f00b204e9800998ecf8427e',
+    '- SHA1: da39a3ee5e6b4b0d3255bfef95601890afd80709',
+    '',
+    'MITRE ATT&CK: T1566.001 (Spearphishing), T1059.001 (PowerShell), T1071.001 (Web Protocols)',
+    '',
+    'Affected emails: admin@targetcorp.com, jsmith@targetcorp.com'
+  ].join('\n');
+
+  // ── IOC type definitions ──
+  var IOC_TYPES = [
+    {
+      id: 'ipv4',
+      label: 'IPv4',
+      badgeLabel: 'IPv4',
+      regex: /\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b/g,
+      validate: null,
+      defang: function (v) { return v.replace(/\./g, '[.]'); },
+      refang: function (v) { return v.replace(/\[\.\]/g, '.'); }
+    },
+    {
+      id: 'ipv6',
+      label: 'IPv6',
+      badgeLabel: 'IPv6',
+      regex: /\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b/g,
+      validate: null,
+      defang: function (v) { return v; },
+      refang: function (v) { return v; }
+    },
+    {
+      id: 'url',
+      label: 'URL',
+      badgeLabel: 'URL',
+      regex: /https?:\/\/[^\s<>"')\]]+/gi,
+      validate: null,
+      defang: function (v) {
+        return v
+          .replace(/^https:\/\//i, 'hxxps://')
+          .replace(/^http:\/\//i, 'hxxp://')
+          .replace(/\./g, '[.]');
+      },
+      refang: function (v) {
+        return v
+          .replace(/^hxxps:\/\//i, 'https://')
+          .replace(/^hxxp:\/\//i, 'http://')
+          .replace(/\[\.\]/g, '.');
+      }
+    },
+    {
+      id: 'email',
+      label: 'Email',
+      badgeLabel: 'Email',
+      regex: /\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b/g,
+      validate: null,
+      defang: function (v) { return v.replace('@', '[@]').replace(/\./g, '[.]'); },
+      refang: function (v) { return v.replace('[@]', '@').replace(/\[\.\]/g, '.'); }
+    },
+    {
+      id: 'sha256',
+      label: 'SHA-256 Hash',
+      badgeLabel: 'SHA256',
+      regex: /\b[a-fA-F0-9]{64}\b/g,
+      validate: null,
+      defang: function (v) { return v; },
+      refang: function (v) { return v; }
+    },
+    {
+      id: 'sha1',
+      label: 'SHA-1 Hash',
+      badgeLabel: 'SHA1',
+      regex: /\b[a-fA-F0-9]{40}\b/g,
+      validate: null,
+      defang: function (v) { return v; },
+      refang: function (v) { return v; }
+    },
+    {
+      id: 'md5',
+      label: 'MD5 Hash',
+      badgeLabel: 'MD5',
+      regex: /\b[a-fA-F0-9]{32}\b/g,
+      validate: null,
+      defang: function (v) { return v; },
+      refang: function (v) { return v; }
+    },
+    {
+      id: 'cve',
+      label: 'CVE',
+      badgeLabel: 'CVE',
+      regex: /CVE-\d{4}-\d{4,}/gi,
+      validate: null,
+      defang: function (v) { return v; },
+      refang: function (v) { return v; }
+    },
+    {
+      id: 'mitre',
+      label: 'MITRE ATT&CK',
+      badgeLabel: 'MITRE',
+      regex: /\bT\d{4}(?:\.\d{3})?\b/g,
+      validate: null,
+      defang: function (v) { return v; },
+      refang: function (v) { return v; }
+    },
+    {
+      id: 'domain',
+      label: 'Domain',
+      badgeLabel: 'Domain',
+      regex: /\b(?:[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\.)+[a-z]{2,}\b/gi,
+      validate: function (v) {
+        // Exclude things that are clearly not domains
+        var lower = v.toLowerCase();
+        // Filter out version-like strings (e.g., 1.2.3)
+        if (/^\d+\.\d+/.test(lower)) return false;
+        // Filter out hex strings that got picked up (parts of hashes)
+        if (/^[a-f0-9]+\.[a-f0-9]+$/i.test(lower)) return false;
+        // Must have a real TLD
+        var tld = lower.split('.').pop();
+        if (tld.length < 2) return false;
+        return true;
+      },
+      defang: function (v) { return v.replace(/\./g, '[.]'); },
+      refang: function (v) { return v.replace(/\[\.\]/g, '.'); }
+    }
+  ];
+
+  // Track all extracted IOCs for export
+  var allIOCs = [];
+
+  // ── Extraction engine ──
+  function extractIOCs(text) {
+    var results = {};    // id -> Set of values
+    var extracted = {};  // track consumed strings to avoid overlap
+
+    // We process types in a specific order so that more specific types
+    // consume their matches before less specific ones can claim them.
+    // Order: URL > Email > SHA256 > SHA1 > MD5 > CVE > MITRE > IPv4 > IPv6 > Domain
+    // This prevents domains from being extracted from URLs, and shorter hashes
+    // from matching substrings of longer hashes.
+
+    var consumedRanges = [];
+
+    function isConsumed(start, end) {
+      for (var i = 0; i < consumedRanges.length; i++) {
+        var r = consumedRanges[i];
+        // Overlap check
+        if (start < r.end && end > r.start) return true;
+      }
+      return false;
+    }
+
+    function markConsumed(start, end) {
+      consumedRanges.push({ start: start, end: end });
+    }
+
+    // Process in priority order
+    IOC_TYPES.forEach(function (type) {
+      var re = new RegExp(type.regex.source, type.regex.flags);
+      var match;
+      var seen = {};
+
+      while ((match = re.exec(text)) !== null) {
+        var val = match[0];
+        var start = match.index;
+        var end = start + val.length;
+
+        // Skip if this range overlaps with an already-consumed range
+        if (isConsumed(start, end)) continue;
+
+        // Run type-specific validation
+        if (type.validate && !type.validate(val)) continue;
+
+        // Deduplicate
+        var key = val.toLowerCase();
+        if (seen[key]) continue;
+        seen[key] = true;
+
+        if (!results[type.id]) results[type.id] = [];
+        results[type.id].push(val);
+
+        markConsumed(start, end);
+
+        // Prevent infinite loop on zero-length match
+        if (match.index === re.lastIndex) re.lastIndex++;
+      }
+    });
+
+    return results;
+  }
+
+  // ── Render results ──
+  function render(results) {
+    // Clear previous
+    while (resultsEl.firstChild) resultsEl.removeChild(resultsEl.firstChild);
+    allIOCs = [];
+
+    var totalCount = 0;
+    var typeCounts = [];
+
+    // Build flat IOC list and count
+    IOC_TYPES.forEach(function (type) {
+      var items = results[type.id];
+      if (!items || items.length === 0) return;
+      totalCount += items.length;
+      typeCounts.push(items.length + ' ' + type.label + (items.length !== 1 ? 's' : ''));
+
+      items.forEach(function (val) {
+        allIOCs.push({
+          type: type.id,
+          label: type.label,
+          badgeLabel: type.badgeLabel,
+          value: val,
+          defanged: type.defang(val),
+          refanged: type.refang(val)
+        });
+      });
+    });
+
+    if (totalCount === 0) {
+      summaryEl.style.display = 'none';
+      toolbarEl.style.display = 'none';
+      emptyEl.style.display = '';
+      emptyEl.textContent = 'No indicators of compromise found in the provided text.';
+      return;
+    }
+
+    // Summary
+    emptyEl.style.display = 'none';
+    summaryEl.style.display = '';
+    summaryEl.innerHTML = 'Found <span class="ioc-summary-count">' + totalCount +
+      '</span> indicator' + (totalCount !== 1 ? 's' : '') + ': ' + typeCounts.join(', ');
+    toolbarEl.style.display = '';
+
+    // Build grouped cards
+    IOC_TYPES.forEach(function (type) {
+      var items = results[type.id];
+      if (!items || items.length === 0) return;
+
+      var group = document.createElement('div');
+      group.className = 'ioc-group ioc-group--' + type.id;
+
+      // Header
+      var header = document.createElement('div');
+      header.className = 'ioc-group-header';
+      header.setAttribute('role', 'button');
+      header.setAttribute('tabindex', '0');
+      header.setAttribute('aria-expanded', 'true');
+
+      var chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      chevron.setAttribute('class', 'ioc-group-chevron');
+      chevron.setAttribute('width', '16');
+      chevron.setAttribute('height', '16');
+      chevron.setAttribute('viewBox', '0 0 24 24');
+      chevron.setAttribute('fill', 'none');
+      chevron.setAttribute('stroke', 'currentColor');
+      chevron.setAttribute('stroke-width', '2');
+      chevron.setAttribute('stroke-linecap', 'round');
+      chevron.setAttribute('stroke-linejoin', 'round');
+      chevron.setAttribute('aria-hidden', 'true');
+      var polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      polyline.setAttribute('points', '6 9 12 15 18 9');
+      chevron.appendChild(polyline);
+
+      var title = document.createElement('span');
+      title.className = 'ioc-group-title';
+      title.textContent = type.label;
+
+      var count = document.createElement('span');
+      count.className = 'ioc-group-count';
+      count.textContent = items.length + ' found';
+
+      header.appendChild(chevron);
+      header.appendChild(title);
+      header.appendChild(count);
+
+      // Toggle collapse
+      header.addEventListener('click', function () {
+        var isCollapsed = group.classList.toggle('collapsed');
+        header.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+      });
+      header.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          header.click();
+        }
+      });
+
+      // Body
+      var body = document.createElement('div');
+      body.className = 'ioc-group-body';
+
+      items.forEach(function (val) {
+        var row = document.createElement('div');
+        row.className = 'ioc-row';
+
+        var badge = document.createElement('span');
+        badge.className = 'ioc-badge ioc-badge--' + type.id;
+        badge.textContent = type.badgeLabel;
+
+        var valueEl = document.createElement('span');
+        valueEl.className = 'ioc-value';
+        valueEl.textContent = val;
+
+        var defangedVal = type.defang(val);
+        var defangedEl = document.createElement('span');
+        defangedEl.className = 'ioc-defanged';
+        // Only show defanged if it differs from original
+        if (defangedVal !== val) {
+          defangedEl.textContent = defangedVal;
+        }
+
+        var copyBtn = document.createElement('button');
+        copyBtn.className = 'ioc-copy-btn';
+        copyBtn.textContent = 'Copy';
+        copyBtn.type = 'button';
+        copyBtn.addEventListener('click', function () {
+          navigator.clipboard.writeText(defangedVal).then(function () {
+            copyBtn.textContent = 'Copied';
+            copyBtn.classList.add('copied');
+            setTimeout(function () {
+              copyBtn.textContent = 'Copy';
+              copyBtn.classList.remove('copied');
+            }, 1500);
+          });
+        });
+
+        row.appendChild(badge);
+        row.appendChild(valueEl);
+        if (defangedVal !== val) {
+          row.appendChild(defangedEl);
+        }
+        row.appendChild(copyBtn);
+        body.appendChild(row);
+      });
+
+      group.appendChild(header);
+      group.appendChild(body);
+      resultsEl.appendChild(group);
+    });
+  }
+
+  // ── Export formatters ──
+  function getAllDefanged() {
+    return allIOCs.map(function (ioc) { return ioc.defanged; }).join('\n');
+  }
+
+  function getAllRefanged() {
+    return allIOCs.map(function (ioc) { return ioc.value; }).join('\n');
+  }
+
+  function toCSV() {
+    var lines = ['type,indicator,defanged'];
+    allIOCs.forEach(function (ioc) {
+      // Escape values that might contain commas
+      var val = ioc.value.indexOf(',') >= 0 ? '"' + ioc.value + '"' : ioc.value;
+      var def = ioc.defanged.indexOf(',') >= 0 ? '"' + ioc.defanged + '"' : ioc.defanged;
+      lines.push(ioc.label + ',' + val + ',' + def);
+    });
+    return lines.join('\n');
+  }
+
+  function toJSON() {
+    var arr = allIOCs.map(function (ioc) {
+      return {
+        type: ioc.label,
+        indicator: ioc.value,
+        defanged: ioc.defanged
+      };
+    });
+    return JSON.stringify(arr, null, 2);
+  }
+
+  function toMarkdown() {
+    var lines = ['| Type | Indicator | Defanged |', '|------|-----------|----------|'];
+    allIOCs.forEach(function (ioc) {
+      lines.push('| ' + ioc.label + ' | `' + ioc.value + '` | `' + ioc.defanged + '` |');
+    });
+    return lines.join('\n');
+  }
+
+  // ── Main extract action ──
+  function extract() {
+    var text = inputEl.value;
+    if (!text.trim()) {
+      summaryEl.style.display = 'none';
+      toolbarEl.style.display = 'none';
+      while (resultsEl.firstChild) resultsEl.removeChild(resultsEl.firstChild);
+      emptyEl.style.display = '';
+      emptyEl.textContent = 'Paste content above and click "Extract IOCs".';
+      return;
+    }
+    var results = extractIOCs(text);
+    render(results);
+  }
+
+  // ── Event listeners ──
+  extractBtn.addEventListener('click', extract);
+
+  exampleBtn.addEventListener('click', function () {
+    inputEl.value = EXAMPLE_TEXT;
+    extract();
+  });
+
+  clearBtn.addEventListener('click', function () {
+    inputEl.value = '';
+    summaryEl.style.display = 'none';
+    toolbarEl.style.display = 'none';
+    while (resultsEl.firstChild) resultsEl.removeChild(resultsEl.firstChild);
+    emptyEl.style.display = '';
+    emptyEl.textContent = 'Paste content above and click "Extract IOCs".';
+    allIOCs = [];
+  });
+
+  copyDefangedBtn.addEventListener('click', function () {
+    copyText(getAllDefanged(), 'all defanged IOCs');
+  });
+
+  copyCsvBtn.addEventListener('click', function () {
+    copyText(toCSV(), 'as CSV');
+  });
+
+  copyJsonBtn.addEventListener('click', function () {
+    copyText(toJSON(), 'as JSON');
+  });
+
+  copyMdBtn.addEventListener('click', function () {
+    copyText(toMarkdown(), 'as Markdown');
+  });
+
+  refangAllBtn.addEventListener('click', function () {
+    copyText(getAllRefanged(), 'all refanged IOCs');
+  });
+
+  // Keyboard shortcut: Ctrl/Cmd+Enter to extract
+  inputEl.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      extract();
+    }
+  });
+})();
+</script>
