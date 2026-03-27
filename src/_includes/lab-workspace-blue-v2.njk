@@ -73,6 +73,7 @@
 <script src="/js/simulation-engine.js"></script>
 <script src="/js/scoring.js"></script>
 <script src="/js/debrief.js"></script>
+<script src="/js/certificates.js"></script>
 <script src="/js/soc-siem.js"></script>
 <script src="/js/soc-timeline.js"></script>
 <script src="/js/soc-ioc-lookup.js"></script>
@@ -281,6 +282,11 @@
     if (levelEl && Labs.Xp) {
       levelEl.textContent = 'Level ' + profile.level + ' \u00B7 ' + Labs.Xp.titleForLevel(profile.level);
     }
+  }
+
+  // Check for certificates on page load (in case user just earned one)
+  if (Labs && Labs.Certificates) {
+    Labs.Certificates.init();
   }
 })();
 </script>

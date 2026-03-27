@@ -127,6 +127,18 @@
       return Object.keys(data.labs).filter(function (k) { return data.labs[k].status === 'completed'; });
     },
 
+    getCertificates: function () {
+      var data = this.load();
+      return data.certificates || {};
+    },
+
+    saveCertificate: function (certType, earnedAt, hash) {
+      var data = this.load();
+      if (!data.certificates) data.certificates = {};
+      data.certificates[certType] = { earnedAt: earnedAt, hash: hash };
+      this.save();
+    },
+
     getLabCount: function () {
       var data = this.load();
       var completed = 0;

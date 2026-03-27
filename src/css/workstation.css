@@ -373,3 +373,18 @@ body.ws-dragging iframe {
 .debrief-code::-webkit-scrollbar { height: 6px; }
 .debrief-code::-webkit-scrollbar-track { background: transparent; }
 .debrief-code::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ═══ Certificates ═══ */
+.cert-modal { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; z-index:300; backdrop-filter:blur(4px); }
+.cert-modal.visible { display:flex; animation:wsOverlayFadeIn 0.3s ease; }
+.cert-card { background:var(--surface-1); border:1px solid var(--border-active); border-radius:12px; padding:32px 40px; text-align:center; max-width:440px; width:90%; box-shadow:0 0 40px rgba(var(--accent-rgb, 184,165,214), 0.15), 0 24px 48px rgba(0,0,0,0.4); }
+.cert-icon { font-size:48px; margin-bottom:12px; }
+.cert-brand { font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:2px; margin-bottom:16px; }
+.cert-title { font-size:20px; font-weight:700; color:var(--text-1); margin-bottom:8px; }
+.cert-desc { font-size:12px; color:var(--text-2); line-height:1.7; margin-bottom:16px; }
+.cert-meta { font-size:11px; color:var(--text-3); margin-bottom:4px; }
+.cert-hash { font-family:var(--font-mono); font-size:10px; color:var(--text-3); background:var(--surface-0); padding:6px 10px; border-radius:4px; margin:12px 0; word-break:break-all; user-select:all; }
+.cert-actions { display:flex; gap:8px; justify-content:center; margin-top:16px; }
+.cert-btn { padding:8px 20px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; border:none; }
+.cert-btn-primary { background:var(--accent); color:var(--surface-0); }
+.cert-btn-secondary { background:var(--surface-2); border:1px solid var(--border); color:var(--text-2); }
