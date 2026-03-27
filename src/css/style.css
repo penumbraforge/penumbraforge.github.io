@@ -5512,6 +5512,55 @@ body:has(.tools-hub-page) {
   gap: 12px;
 }
 
+/* --- Tools search bar (all screen sizes) --- */
+.tools-mobile-search {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 12px 0 0;
+  background: var(--surface-0);
+  margin-bottom: 20px;
+}
+
+.tools-mobile-search input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.tools-mobile-search input:focus {
+  border-color: var(--accent);
+}
+
+.tools-mobile-search input::placeholder {
+  color: var(--text-3);
+}
+
+/* Category chevron */
+.category-chevron {
+  margin-left: auto;
+  transition: transform 0.2s;
+  display: none;
+  color: var(--text-3);
+}
+
+.collapsed .category-chevron {
+  transform: rotate(-90deg);
+}
+
+/* Category header: pointer on all sizes so the click handler feels intentional */
+.category-header {
+  cursor: pointer;
+  user-select: none;
+}
+
 /* --- Mobile sidebar --- */
 .sidebar-toggle {
   display: none;
@@ -5684,6 +5733,28 @@ body:has(.tools-hub-page) {
   .tools-sidebar-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
+
+  /* Show chevrons and make headers larger tap targets on mobile */
+  .category-chevron {
+    display: flex;
+    align-items: center;
+  }
+
+  .category-header {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+
+  .category-section.collapsed .tools-sidebar-grid {
+    display: none;
+  }
+
+  .category-section .tools-sidebar-grid {
+    padding-top: 12px;
+  }
+
+  /* Desktop search: not sticky, give some breathing room */
 }
 
 /* ============================================================

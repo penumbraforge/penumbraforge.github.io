@@ -33,6 +33,10 @@ permalink: /tools/
     <h1 class="tools-content-title">Tool Kits</h1>
     <p class="tools-content-subtitle">Free developer &amp; security tools. No accounts, no tracking, your data stays in your browser.</p>
 
+    <div class="tools-mobile-search" id="tools-mobile-search">
+      <input type="text" id="tools-search-input" placeholder="Search 79 tools..." autocomplete="off" spellcheck="false">
+    </div>
+
     {# Featured section #}
     {% set featuredTools = [] %}
     {% for tool in tools %}{% if tool.featured %}{% set featuredTools = (featuredTools.push(tool), featuredTools) %}{% endif %}{% endfor %}
@@ -100,6 +104,74 @@ permalink: /tools/
 </div>
 
 {% include "sidebar-js.njk" %}
+
+<script>
+(function() {
+  var isMobile = window.innerWidth <= 768;
+
+  // Collapsible categories on mobile
+  document.querySelectorAll('.category-header').forEach(function(header) {
+    var grid = header.nextElementSibling;
+    var section = header.closest('.category-section');
+
+    // Add chevron indicator
+    var chevron = document.createElement('span');
+    chevron.className = 'category-chevron';
+    chevron.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
+    header.appendChild(chevron);
+
+    // Collapse by default on mobile
+    if (isMobile && grid) {
+      grid.style.display = 'none';
+      section.classList.add('collapsed');
+    }
+
+    header.addEventListener('click', function() {
+      if (!grid) return;
+      var isCollapsed = grid.style.display === 'none';
+      grid.style.display = isCollapsed ? '' : 'none';
+      section.classList.toggle('collapsed', !isCollapsed);
+    });
+  });
+
+  // Search
+  var searchInput = document.getElementById('tools-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      var query = this.value.toLowerCase().trim();
+      var cards = document.querySelectorAll('.t-card');
+      var sections = document.querySelectorAll('.category-section');
+
+      cards.forEach(function(card) {
+        var keywords = (card.getAttribute('data-keywords') || '') + ' ' + card.textContent.toLowerCase();
+        card.style.display = query && keywords.indexOf(query) === -1 ? 'none' : '';
+      });
+
+      // Show/hide sections based on whether they have visible cards
+      sections.forEach(function(section) {
+        var grid = section.querySelector('.tools-sidebar-grid');
+        if (!grid) return;
+        var visibleCards = grid.querySelectorAll('.t-card:not([style*="display: none"])');
+        section.style.display = visibleCards.length === 0 && query ? 'none' : '';
+        // When searching, expand all sections
+        if (query) {
+          grid.style.display = '';
+          section.classList.remove('collapsed');
+        } else if (isMobile) {
+          grid.style.display = 'none';
+          section.classList.add('collapsed');
+        }
+      });
+
+      // Hide featured section when searching
+      var featured = document.querySelector('.featured-grid');
+      var featuredLabel = document.querySelector('.featured-label');
+      if (featured) featured.style.display = query ? 'none' : '';
+      if (featuredLabel) featuredLabel.style.display = query ? 'none' : '';
+    });
+  }
+})();
+</script>
 </div>
 
 <style>
