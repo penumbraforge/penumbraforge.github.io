@@ -1,0 +1,125 @@
+---
+layout: base.njk
+title: "16 new tools, an AI category, and the ones that don't exist anywhere else — Penumbra Forge"
+description: "I added 16 new tools to Penumbra Forge — including the first browser-based prompt injection tester, a SIEM query translator (the free Uncoder replacement), an AI agent security auditor, and more. Here's what I built and why."
+permalink: /blog/16-new-tools/
+---
+
+<link rel="stylesheet" href="/css/blog.css">
+
+<header class="site-header" id="site-header">
+  <a href="/" class="site-header-brand" title="Penumbra Forge">
+    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+  </a>
+  <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
+  <nav class="site-header-nav">
+    <a href="/">Home</a>
+    <a href="/tools/">Tools</a>
+    <a href="/labs/">Labs</a>
+    <a href="/blog/" class="active">Blog</a>
+    <a href="/gate/">Gate</a>
+    <a href="/librarian/">Librarian</a>
+    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div class="blog-page">
+  <article class="blog-article">
+    <div class="blog-article-header">
+      <h1>16 new tools, an AI category, and the ones that don't exist anywhere else</h1>
+      <div class="blog-post-meta">
+        <span class="blog-post-date">March 27, 2026</span>
+        <span class="blog-post-tag">tools</span>
+        <span class="blog-post-tag">AI security</span>
+        <span class="blog-post-tag">detection engineering</span>
+        <span class="blog-post-read">8 min read</span>
+      </div>
+    </div>
+
+    <p class="blog-article-lede">Penumbra Forge went from 63 tools to 79 overnight. I didn't plan a launch. I sat down, looked at what security engineers and developers are actually googling and not finding good free answers to, and built the tools. Sixteen of them. Five are the first of their kind. All client-side, no signup, no tracking.</p>
+
+    <div class="blog-body">
+      <h2>The new AI category</h2>
+      <p>The tools page now has a dedicated AI section. Not because AI tools are trendy — because 2026 has genuine security problems that didn't exist two years ago, and nobody's built browser-based tools to address them.</p>
+
+      <h3>Prompt Injection Tester</h3>
+      <p>Paste your LLM system prompt. The tool tests it against 164 injection techniques across 10 attack categories — direct overrides, delimiter escapes, encoding bypasses, extraction attacks, role play exploits, and the new stuff: MCP server injection, RAG poisoning, inter-agent delegation fraud, memory poisoning.</p>
+      <p>Each category gets a VULNERABLE / PARTIAL / DEFENDED verdict based on what defenses the tool detects in your prompt. Miss something? The tool generates specific hardening clauses you can copy-paste into your system prompt.</p>
+      <p>This doesn't exist anywhere as a free browser tool. I looked. There are paid API services that test prompts, but nothing you can just paste into and get immediate results without signing up or paying.</p>
+
+      <h3>Agent Security Audit</h3>
+      <p>This one came from my own frustration. I was setting up MCP servers and realized nobody had built a tool to audit whether your agent's tool configuration is over-permissioned. Paste your MCP config, function calling schema, or tool definitions. The tool analyzes for: unrestricted filesystem access, shell execution without allowlists, data exfiltration paths (read tool + HTTP tool = your files are going somewhere), credential exposure in environment variables, and cross-tool risk chains.</p>
+      <p>If your config has a filesystem server mounted at <code>/</code> plus an HTTP fetch tool, the audit flags that as a critical exfiltration path. Because it is.</p>
+
+      <h3>LLM Privacy Analyzer</h3>
+      <p>Paste an LLM API request — OpenAI, Anthropic, or Google format — and the tool scans every message for PII that's about to leave your infrastructure. Emails, SSNs, credit cards, API keys, connection strings, JWT tokens. The tagline writes itself: "The irony of sending your PII checker to a server is not lost on us — this runs 100% client-side."</p>
+
+      <h3>AI Model Scanner</h3>
+      <p>Paste a HuggingFace model card, config.json, or requirements.txt. The tool checks for unsafe pickle serialization, <code>trust_remote_code=True</code>, vulnerable dependency versions, missing safety metadata, and supply chain red flags like typosquatting model names. Think <code>npm audit</code> but for AI models.</p>
+
+      <h3>AI Cost Calculator</h3>
+      <p>The simplest tool in the AI category and probably the one that'll get the most traffic. Enter your token counts, select models across Claude, GPT, Gemini, Mistral, and Llama, and see a cost comparison table sorted by cheapest first. Every existing calculator I found was either outdated or required signup.</p>
+
+      <h2>The Uncoder replacement</h2>
+      <p>When SOC Prime put Uncoder.IO behind a paywall, the detection engineering community lost its only free SIEM query translator. I heard about it in every security Slack I'm in.</p>
+      <p>The <a href="/tools/siem-query-translator/">SIEM Query Translator</a> supports Splunk SPL, Microsoft Sentinel KQL, Elastic ES|QL, Sigma YAML, and Sumo Logic. Paste a query in any format, get the equivalent in any other. It parses into an intermediate representation and emits idiomatic syntax for each target platform, including field mapping between the different naming conventions (Splunk's <code>src_ip</code> vs Sentinel's <code>SourceIP</code> vs Elastic's <code>source.ip</code>).</p>
+      <p>It's not going to handle every edge case in SPL — that language is enormous. But it covers the common patterns that make up 90% of detection rules: field matches, wildcards, aggregations, sorts, limits, evals. And it clearly marks what couldn't be translated so you know where to manually review.</p>
+
+      <h2>Tools for the SOC</h2>
+
+      <h3>IOC Workbench</h3>
+      <p>This is the one I use myself. Paste a threat report, an email, a Slack message from your threat intel feed — anything. The tool extracts every IOC it can find: IPs, domains, URLs, file hashes (MD5, SHA1, SHA256), email addresses, CVE IDs, MITRE ATT&CK technique IDs. Deduplicates them. Groups by type. One click to defang everything for safe sharing, one click to export as CSV, JSON, or markdown table.</p>
+      <p>Every SOC analyst I know has a janky Python script or a bookmark to five different sites for this workflow. Now it's one tool, zero tabs.</p>
+
+      <h3>Email Header Forensics</h3>
+      <p>Paste raw email headers and get a visual hop-by-hop timeline showing the email's journey, with delay analysis per relay (green for fast, red for slow — slow hops often mean the email sat in a suspicious queue). SPF, DKIM, and DMARC verdicts with plain-English explanations. A phishing assessment score that checks for display name vs sender mismatches, suspicious TLDs, encoded subjects, and authentication failures.</p>
+
+      <h3>YARA Playground</h3>
+      <p>Write YARA rules in a proper editor with syntax validation, 11 templates (malware, webshells, packers, crypto miners, phishing kits), performance analysis, and approximate pattern matching against sample data. The regex101.com equivalent for threat detection. YARA compiled to WASM would be ideal but the client-side heuristic matching covers the development workflow.</p>
+
+      <h3>Sigma Rule Builder</h3>
+      <p>Visual form-driven editor for Sigma detection rules. Fill in the logsource, add detection fields with modifiers (<code>contains</code>, <code>startswith</code>, <code>re</code>, <code>base64</code>), tag with MITRE techniques, get live YAML preview on the right. Export directly to Splunk, Sentinel, or Elastic. Nobody should have to hand-write Sigma YAML with a text editor in 2026.</p>
+
+      <h2>DevSecOps tools</h2>
+
+      <h3>WAF Rule Builder</h3>
+      <p>Write a regex, test it against 124 attack payloads (XSS, SQLi, path traversal, command injection, SSRF, XXE), check for false positives against 25 benign strings, and export as a deployable rule for Cloudflare WAF, AWS WAF, ModSecurity, nginx, or Apache. The gap between "I know what pattern to block" and "give me the syntax for my platform" is wider than it should be.</p>
+
+      <h3>Container Security Linter</h3>
+      <p>Paste a Kubernetes manifest, Dockerfile, or docker-compose.yml. The tool runs 40+ security checks: running as root, privileged containers, missing resource limits, hostPath mounts, secrets in env vars, capabilities not dropped, latest tags. Shows each finding with the problematic line highlighted and a fix snippet. Click "Generate Fixed Version" and get the corrected config.</p>
+
+      <h3>PII & Secrets Redactor</h3>
+      <p>Paste logs you need to share in Slack. The tool detects 200+ patterns of PII and secrets — AWS keys, GitHub tokens, SSNs, credit cards, JWTs, connection strings — and replaces them with consistent pseudonyms. Same email always becomes the same <code>[EMAIL-1]</code>, so you can still follow the log correlation without leaking the actual data. Copy the redacted version, share safely.</p>
+
+      <h3>SSL Chain Debugger</h3>
+      <p>Paste PEM certificates and get a visual chain diagram from leaf to root. The tool validates issuer/subject matching, checks for missing intermediates, flags expired certs and weak cryptography (SHA-1, short RSA keys), and can reorder a broken chain automatically. Also generates the <code>openssl s_client</code> commands you need for live debugging.</p>
+
+      <h2>Web developer tools</h2>
+
+      <h3>CORS Debugger</h3>
+      <p>Enter your origin, target, method, and headers. The tool tells you — in plain English — whether this is a CORS request, whether a preflight is needed and why, what the server needs to respond with, and what's probably wrong. Then it generates the exact server configuration for Express, nginx, Cloudflare Workers, Flask, API Gateway, or Apache. There are 50,000+ CORS questions on Stack Overflow. Most of the existing tools show pass/fail without explaining anything.</p>
+
+      <h3>Email Auth Wizard</h3>
+      <p>Guided wizard for building SPF, DKIM, and DMARC records. Select your email providers (Google Workspace, Microsoft 365, SendGrid, etc.), configure your DMARC policy with a percentage slider, get copy-ready DNS TXT records with explanations of every tag. Includes a deployment rollout guide: start at <code>p=none</code>, monitor, ramp to <code>p=reject</code>.</p>
+
+      <h2>What's next</h2>
+      <p>79 tools. 12 security labs. Zero signup. Zero tracking. Zero cost. The site is <a href="https://github.com/penumbraforge">open source</a> and the tools are client-side — your data never leaves your browser.</p>
+      <p>I'm not done. There are more gaps to fill. But 16 tools in one push felt like it deserved a post.</p>
+      <p>Browse everything at <a href="/tools/">penumbraforge.com/tools</a>. If something's broken or you want a tool that doesn't exist yet, let me know.</p>
+    </div>
+
+    <div class="blog-post-footer">
+      <div class="blog-author">
+        <div class="blog-author-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div>
+          <div class="blog-author-name">Shadoe Myers</div>
+          <div class="blog-author-role">Senior InfoSec Engineer — Penumbra Forge</div>
+        </div>
+      </div>
+      <div class="blog-nav-links">
+        <a href="/blog/" class="blog-nav-link">&larr; All posts</a>
+        <a href="/tools/" class="blog-nav-link">Browse all tools &rarr;</a>
+      </div>
+    </div>
+  </article>
+</div>
