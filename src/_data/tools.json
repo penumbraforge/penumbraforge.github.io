@@ -767,5 +767,29 @@
     "isNew": true,
     "relatedTools": ["secrets-scanner", "env-analyzer", "ioc-workbench"],
     "status": "live"
+  },
+  {
+    "name": "CORS Debugger",
+    "slug": "cors-debugger",
+    "description": "Debug CORS errors and generate server configurations for Express, nginx, Cloudflare Workers, and more.",
+    "longDescription": "Diagnose CORS issues by entering your origin, target, method, and headers. Get a plain-English explanation of what's happening, see the preflight request, and generate copy-ready server configurations for Express, nginx, Cloudflare Workers, Flask, AWS API Gateway, and Apache.",
+    "category": "web",
+    "keywords": ["cors", "cross-origin", "access-control-allow-origin", "cors error", "cors fix", "preflight", "options request", "cors configuration", "cors generator", "cors tester"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["curl-converter", "api-request-builder", "security-headers"],
+    "status": "live"
+  },
+  {
+    "name": "WAF Rule Builder",
+    "slug": "waf-rule-builder",
+    "description": "Build and test WAF rules — regex to Cloudflare, AWS WAF, ModSecurity, or nginx format.",
+    "longDescription": "Write a regex detection pattern, test it against 100+ attack payloads (XSS, SQLi, path traversal, command injection), check for false positives, and export as a deployable rule for Cloudflare WAF, AWS WAF, ModSecurity, nginx, or Apache. Free, no signup, 100% client-side.",
+    "category": "security",
+    "keywords": ["waf", "web application firewall", "regex", "cloudflare waf", "aws waf", "modsecurity", "nginx security", "xss filter", "sqli filter", "waf rule", "firewall rule"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["regex-tester", "redos-tester", "security-headers"],
+    "status": "live"
   }
 ]
