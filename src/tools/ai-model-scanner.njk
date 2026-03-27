@@ -1,0 +1,1037 @@
+---
+toolSlug: ai-model-scanner
+permalink: /tools/ai-model-scanner/
+---
+
+<div class="tool-group">
+  <label for="ams-input">Paste model card (README.md), config.json, or requirements.txt</label>
+  <textarea id="ams-input" rows="16" placeholder="Paste any of:&#10;  • HuggingFace model card (README.md content)&#10;  • Model config.json&#10;  • requirements.txt or pyproject.toml&#10;&#10;The scanner will auto-detect the format and check for unsafe serialization, vulnerable dependencies, missing safety metadata, supply chain risks, and training data concerns." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <button class="btn btn--primary" id="ams-scan-btn">Scan Model</button>
+  <button class="btn" id="ams-example-btn">Try Example</button>
+  <button class="btn" id="ams-clear-btn">Clear</button>
+  <div id="ams-detected-type" style="margin-left:auto;font-size:0.8125rem;color:var(--text-3,#888);align-self:center;"></div>
+</div>
+
+<div id="ams-results" style="display:none;">
+  <div id="ams-score-section"></div>
+  <div id="ams-findings"></div>
+  <div id="ams-checklist"></div>
+</div>
+
+<div id="ams-empty" class="ams-empty-msg">Paste model content above and click "Scan Model".</div>
+
+<style>
+  .ams-empty-msg {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--text-3, #888);
+    font-size: 0.9rem;
+  }
+
+  /* ── Score card ── */
+  .ams-score-card {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 24px;
+    margin-bottom: 24px;
+    border-radius: 12px;
+    border: 1px solid var(--border, #2a2a3a);
+    background: var(--surface-1, #1a1a2e);
+  }
+  @media (max-width: 580px) {
+    .ams-score-card { flex-direction: column; text-align: center; }
+  }
+
+  .ams-risk-ring {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    flex-shrink: 0;
+  }
+  .ams-risk-ring svg { transform: rotate(-90deg); }
+  .ams-risk-ring .ams-ring-bg {
+    fill: none;
+    stroke: var(--surface-0, #0f0f1a);
+    stroke-width: 8;
+  }
+  .ams-risk-ring .ams-ring-fg {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;
+  }
+  .ams-ring-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 800;
+    font-family: var(--font-mono, monospace);
+  }
+
+  .ams-score-body { flex: 1; min-width: 0; }
+  .ams-score-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .ams-score-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-2, #94a3b8);
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .ams-score-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ams-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .ams-pill--critical { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.35); }
+  .ams-pill--high     { background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .ams-pill--medium   { background: rgba(234,179,8,0.1);   color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+  .ams-pill--low      { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+  .ams-pill--info     { background: rgba(148,163,184,0.08); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2); }
+
+  /* ── Rating banner ── */
+  .ams-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+  }
+  .ams-rating--safe     { background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+  .ams-rating--caution  { background: rgba(234,179,8,0.12); color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+  .ams-rating--warning  { background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .ams-rating--critical { background: rgba(239,68,68,0.13); color: #f87171; border: 1px solid rgba(239,68,68,0.35); }
+
+  /* ── Section headers ── */
+  .ams-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 24px 0 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-3, #888);
+  }
+  .ams-section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border, #2a2a3a);
+  }
+
+  /* ── Finding cards ── */
+  .ams-finding {
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .ams-finding--critical { border-left: 3px solid #ef4444; }
+  .ams-finding--high     { border-left: 3px solid #f97316; }
+  .ams-finding--medium   { border-left: 3px solid #eab308; }
+  .ams-finding--low      { border-left: 3px solid #818cf8; }
+  .ams-finding--info     { border-left: 3px solid #475569; }
+
+  .ams-finding-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.875rem;
+    background: var(--surface-1, #1a1a2e);
+    flex-wrap: wrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  .ams-finding-header:hover { background: var(--surface-0, #0f0f1a); }
+
+  .ams-finding-icon {
+    font-size: 0.875rem;
+    flex-shrink: 0;
+  }
+  .ams-finding-name {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-1, #e2e8f0);
+    flex: 1;
+    min-width: 0;
+  }
+  .ams-finding-cat {
+    font-size: 0.7rem;
+    color: var(--text-3, #888);
+    flex-shrink: 0;
+  }
+  .ams-sev-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  .ams-sev-badge--critical { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+  .ams-sev-badge--high     { background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .ams-sev-badge--medium   { background: rgba(234,179,8,0.1);  color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+  .ams-sev-badge--low      { background: rgba(129,140,248,0.1); color: #a5b4fc; border: 1px solid rgba(129,140,248,0.3); }
+  .ams-sev-badge--info     { background: rgba(148,163,184,0.08); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2); }
+
+  .ams-finding-body {
+    padding: 0.75rem 0.875rem;
+    border-top: 1px solid var(--border, #2a2a3a);
+    display: none;
+  }
+  .ams-finding-body.open { display: block; }
+
+  .ams-detected-value {
+    font-size: 0.8125rem;
+    font-family: var(--font-mono, monospace);
+    background: var(--surface-0, #0f0f1a);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 4px;
+    padding: 0.45rem 0.75rem;
+    margin-bottom: 0.6rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-2, #94a3b8);
+  }
+  .ams-finding-why {
+    font-size: 0.8125rem;
+    color: var(--text-2, #94a3b8);
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+  }
+  .ams-finding-fix {
+    font-size: 0.8125rem;
+    color: var(--text-2, #94a3b8);
+    line-height: 1.5;
+  }
+  .ams-finding-fix strong { color: var(--text-1, #e2e8f0); }
+
+  /* ── Checklist ── */
+  .ams-checklist {
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .ams-checklist-title {
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-3, #888);
+    background: var(--surface-1, #1a1a2e);
+    border-bottom: 1px solid var(--border, #2a2a3a);
+  }
+  .ams-checklist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0;
+  }
+  .ams-check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    font-size: 0.8125rem;
+    border-right: 1px solid var(--border, #2a2a3a);
+    border-bottom: 1px solid var(--border, #2a2a3a);
+  }
+  .ams-check-item:nth-last-child(-n+2) { border-bottom: none; }
+  .ams-check-icon { font-size: 0.875rem; flex-shrink: 0; }
+  .ams-check-item--pass { color: var(--text-2, #94a3b8); }
+  .ams-check-item--fail { color: var(--text-3, #888); }
+  .ams-check-item--pass .ams-check-label { color: var(--text-1, #e2e8f0); }
+</style>
+
+<script>
+(function () {
+  var inputEl     = document.getElementById('ams-input');
+  var scanBtn     = document.getElementById('ams-scan-btn');
+  var exampleBtn  = document.getElementById('ams-example-btn');
+  var clearBtn    = document.getElementById('ams-clear-btn');
+  var resultsEl   = document.getElementById('ams-results');
+  var scoreSec    = document.getElementById('ams-score-section');
+  var findingsEl  = document.getElementById('ams-findings');
+  var checklistEl = document.getElementById('ams-checklist');
+  var emptyEl     = document.getElementById('ams-empty');
+  var typeLabel   = document.getElementById('ams-detected-type');
+
+  // ── Example content ─────────────────────────────────────────────────────────
+  var EXAMPLE = [
+    '---',
+    'language:',
+    '- en',
+    'license: other',
+    'tags:',
+    '- text-generation',
+    '- pytorch',
+    'pipeline_tag: text-generation',
+    '---',
+    '',
+    '# TotallyLegit-LM-7B',
+    '',
+    'A powerful language model fine-tuned on diverse internet data.',
+    '',
+    '## Model Details',
+    '',
+    'This model is based on m3ta-llama/Meta-Llama-3-8B-Instruct with additional fine-tuning.',
+    'The model weights are stored in PyTorch pickle format for maximum compatibility.',
+    '',
+    '## Usage',
+    '',
+    '```python',
+    'import pickle',
+    'import torch',
+    '',
+    '# Load model (requires trust_remote_code=True)',
+    'model = AutoModelForCausalLM.from_pretrained(',
+    '    "TotallyLegit-LM-7B",',
+    '    trust_remote_code=True',
+    ')',
+    '',
+    '# Direct weight loading',
+    'weights = torch.load("model.pkl")',
+    '```',
+    '',
+    '## Training Data',
+    '',
+    'Trained on a large crawl of Common Crawl data scraped from the web.',
+    'Also includes data from various GitHub repositories collected without explicit consent.',
+    '',
+    '## Requirements',
+    '',
+    '```',
+    'torch==1.13.0',
+    'transformers==4.28.0',
+    'joblib',
+    'git+https://github.com/untrusted-user/custom-ops.git',
+    'numpy',
+    '```',
+    '',
+    '## Limitations',
+    '',
+    'This model may generate inaccurate information.',
+  ].join('\n');
+
+  // ── Auto-detect input type ───────────────────────────────────────────────────
+  function detectType(text) {
+    var t = text.trim();
+    // config.json
+    if ((t.startsWith('{') || t.startsWith('[')) && t.includes('"')) {
+      try { JSON.parse(t); return 'config'; } catch(e) {}
+      // Likely JSON-ish even if parse fails
+      if (t.includes('"architectures"') || t.includes('"model_type"') || t.includes('"hidden_size"')) return 'config';
+    }
+    // requirements.txt / pyproject.toml
+    if (/^(torch|transformers|numpy|scipy|sklearn|tensorflow|keras|huggingface|datasets|accelerate|peft|bitsandbytes|safetensors|einops|sentencepiece|tokenizers)/im.test(t)) {
+      if (!t.includes('#') || t.includes('==') || t.includes('>=')) return 'requirements';
+    }
+    if (t.includes('[tool.poetry.dependencies]') || t.includes('[project]') || (t.includes('requires = [') && !t.includes('#'))) return 'requirements';
+    // model card (markdown with frontmatter or headings)
+    return 'modelcard';
+  }
+
+  // ── Severity scoring weights ─────────────────────────────────────────────────
+  var SEV_SCORE = { critical: 25, high: 12, medium: 5, low: 2, info: 0 };
+
+  // ── Check definitions ────────────────────────────────────────────────────────
+  //
+  // Each check: { id, category, name, severity, detect(text, type) -> match|null, why, fix, checklist }
+  // detect returns a string (the detected value snippet) or null
+  //
+  var CHECKS = [
+
+    // ── Serialization Risks ──────────────────────────────────────────────────
+    {
+      id: 'pickle-file-ext',
+      category: 'Serialization',
+      name: 'Pickle file format referenced',
+      severity: 'critical',
+      detect: function(t) {
+        var m = t.match(/\b[\w\-\/\.]*\.p(?:ickle|kl)\b/i);
+        return m ? m[0] : null;
+      },
+      why: 'Pickle (.pkl/.pickle) files execute arbitrary Python code during deserialization. Loading a pickle file from an untrusted source is equivalent to running an untrusted executable on your system.',
+      fix: 'Use safetensors format instead — it only stores tensor data and cannot execute code. Check for model.safetensors or *.safetensors files, or look for a safetensors version on HuggingFace.',
+      checklist: 'No pickle/joblib files'
+    },
+    {
+      id: 'pickle-load',
+      category: 'Serialization',
+      name: 'pickle.load() call detected',
+      severity: 'critical',
+      detect: function(t) {
+        var m = t.match(/pickle\.(?:load|loads|Unpickler)/i);
+        return m ? m[0] : null;
+      },
+      why: 'Calling pickle.load() on a model file from an external source allows arbitrary code execution at load time. This is a well-known attack vector for ML supply chain attacks.',
+      fix: 'Avoid loading pickle files from untrusted sources. Use safetensors.torch.load_file() for safe tensor-only deserialization.',
+      checklist: 'No pickle.load() usage'
+    },
+    {
+      id: 'joblib-load',
+      category: 'Serialization',
+      name: 'joblib.load() call detected',
+      severity: 'critical',
+      detect: function(t) {
+        var m = t.match(/joblib\.(?:load|dump)/i);
+        return m ? m[0] : null;
+      },
+      why: 'joblib uses pickle internally — calling joblib.load() on untrusted model files is equivalent to running arbitrary Python code. Joblib serialized files (.joblib) carry the same risk as .pkl files.',
+      fix: 'Do not use joblib for model distribution. Use safetensors for neural network weights, or ONNX for cross-framework portability.',
+      checklist: 'No joblib serialization'
+    },
+    {
+      id: 'torch-load-unsafe',
+      category: 'Serialization',
+      name: 'torch.load() without weights_only=True',
+      severity: 'high',
+      detect: function(t) {
+        // Matches torch.load( not followed by weights_only=True on the same or next reasonable line
+        var m = t.match(/torch\.load\s*\([^)]{0,200}(?!\bweights_only\s*=\s*True)/);
+        if (!m) return null;
+        // False positive reduction: if weights_only=True appears within 150 chars of match
+        var snippet = t.substring(m.index, m.index + 200);
+        if (/weights_only\s*=\s*True/i.test(snippet)) return null;
+        return snippet.split('\n')[0].trim().substring(0, 80);
+      },
+      why: 'torch.load() without weights_only=True uses Python pickle under the hood and can execute arbitrary code. PyTorch >= 2.0 added weights_only=True to load only tensors safely, but it is not the default.',
+      fix: 'Always use torch.load(path, weights_only=True) when loading weights. Better yet, migrate to safetensors which has no pickle layer at all.',
+      checklist: 'torch.load() with weights_only=True'
+    },
+    {
+      id: 'no-safetensors',
+      category: 'Serialization',
+      name: 'No safetensors format mentioned',
+      severity: 'medium',
+      detect: function(t) {
+        if (/safetensors/i.test(t)) return null;
+        // Only flag if there is serialization-related content
+        if (/\b(?:pytorch_model|model\.bin|\.pkl|\.pt\b|weights\.bin|torch\.save|torch\.load)\b/i.test(t)) return 'safetensors not mentioned';
+        return null;
+      },
+      why: 'Safetensors is a safe, fast serialization format for ML model weights that cannot execute code. Models distributed only as PyTorch .bin or .pt files require pickle deserialization, which carries execution risk.',
+      fix: 'Check whether the model repository also offers *.safetensors files. If not, treat the model with extra caution and only load from highly trusted sources.',
+      checklist: 'Safetensors format available'
+    },
+    {
+      id: 'trust-remote-code',
+      category: 'Serialization',
+      name: 'trust_remote_code=True required',
+      severity: 'critical',
+      detect: function(t) {
+        var m = t.match(/trust_remote_code\s*=\s*True/i);
+        return m ? m[0] : null;
+      },
+      why: 'trust_remote_code=True causes the model loader to download and execute Python code from the model repository. A malicious or compromised repository can use this to run arbitrary code on your machine when you simply load the model.',
+      fix: 'Avoid models requiring trust_remote_code=True unless you have audited the modeling_*.py files yourself. Prefer models compatible with standard transformers architectures that do not require remote code.',
+      checklist: 'No trust_remote_code=True required'
+    },
+
+    // ── Dependency Risks ─────────────────────────────────────────────────────
+    {
+      id: 'torch-old',
+      category: 'Dependencies',
+      name: 'Old PyTorch version with known CVEs',
+      severity: 'high',
+      detect: function(t) {
+        // torch < 2.0 has CVE-2022-45907, CVE-2023-27374 and others
+        var m = t.match(/\btorch\s*(?:==|<=|~=)\s*(0\.\d+|1\.\d+(?:\.\d+)?)\b/i);
+        return m ? m[0] : null;
+      },
+      why: 'PyTorch versions before 2.0 contain multiple CVEs including CVE-2022-45907 (arbitrary code execution via malformed model) and CVE-2023-27374 (unsafe deserialization). These versions also lack the weights_only parameter for safe loading.',
+      fix: 'Upgrade to torch>=2.0. If the model explicitly requires an old torch version, investigate why — it may indicate the model relies on unsafe loading patterns that were fixed in newer versions.',
+      checklist: 'PyTorch >= 2.0'
+    },
+    {
+      id: 'transformers-old',
+      category: 'Dependencies',
+      name: 'Old transformers version with known vulnerabilities',
+      severity: 'high',
+      detect: function(t) {
+        // transformers < 4.36 has code injection in tokenizer (CVE-2023-7018)
+        var m = t.match(/\btransformers\s*(?:==|<=|~=)\s*(0\.\d+|1\.\d+|2\.\d+|3\.\d+|4\.(?:[012]?\d|3[0-5])(?:\.\d+)?)\b/i);
+        return m ? m[0] : null;
+      },
+      why: 'Transformers versions before 4.36.0 contain CVE-2023-7018, a code injection vulnerability in the tokenizer configuration loading. Versions before 4.30.0 also had unsafe pickle loading in several AutoClass methods.',
+      fix: 'Update to transformers>=4.36.0. Check the model card or repository requirements to see if the model was specifically tested with vulnerable versions.',
+      checklist: 'transformers >= 4.36'
+    },
+    {
+      id: 'git-source-dep',
+      category: 'Dependencies',
+      name: 'Dependency from git URL (non-PyPI source)',
+      severity: 'high',
+      detect: function(t) {
+        var m = t.match(/git\+https?:\/\/[^\s\n"']+/i);
+        return m ? m[0] : null;
+      },
+      why: 'Dependencies pulled directly from git repositories bypass PyPI security scanning, version pinning, and release integrity checks. The referenced commit can be force-pushed or deleted, introducing supply chain risk.',
+      fix: 'Verify the referenced repository is legitimate and the commit hash is pinned. Consider whether the dependency can be sourced from PyPI instead. At minimum, audit the full repository before use.',
+      checklist: 'No git+https:// dependencies'
+    },
+    {
+      id: 'unpinned-deps',
+      category: 'Dependencies',
+      name: 'Unpinned dependencies detected',
+      severity: 'low',
+      detect: function(t) {
+        // Only flag for requirements.txt context: package name with no version specifier
+        // Look for lines that are just a package name with no == >= etc.
+        var lines = t.split('\n');
+        var unpinned = [];
+        lines.forEach(function(line) {
+          var l = line.trim();
+          if (!l || l.startsWith('#') || l.startsWith('-') || l.startsWith('http')) return;
+          // A bare package name (with optional extras) but no version
+          if (/^[a-zA-Z0-9_\-\[\]]+$/.test(l)) unpinned.push(l);
+        });
+        return unpinned.length ? unpinned.slice(0, 4).join(', ') + (unpinned.length > 4 ? ' ...' : '') : null;
+      },
+      why: 'Unpinned dependencies can silently upgrade to versions with breaking changes, new CVEs, or malicious code if a package is compromised (supply chain attack via dependency confusion or maintainer account takeover).',
+      fix: 'Pin all dependencies with exact versions (==) or tight ranges (>=x,<y) and use pip-compile or poetry.lock to generate a reproducible lock file.',
+      checklist: 'All dependencies version-pinned'
+    },
+
+    // ── Model Card / Safety Metadata ─────────────────────────────────────────
+    {
+      id: 'no-model-card',
+      category: 'Model Card',
+      name: 'No model card detected',
+      severity: 'medium',
+      detect: function(t, type) {
+        if (type !== 'modelcard') return null;
+        // A real model card should have at least some headings and descriptions
+        var hasHeadings = /^#{1,3}\s+/m.test(t);
+        var hasSubstance = t.trim().length > 200;
+        if (!hasHeadings && !hasSubstance) return 'No model card content detected';
+        return null;
+      },
+      why: 'A model card documents intended use, limitations, training data, evaluation results, and safety considerations. Without it, users cannot make informed decisions about safe deployment.',
+      fix: 'Add a model card following the HuggingFace model card template: huggingface.co/docs/hub/model-cards. Include at minimum: intended use, limitations, training data, and evaluation metrics.',
+      checklist: 'Model card present'
+    },
+    {
+      id: 'no-license',
+      category: 'Model Card',
+      name: 'No license specified',
+      severity: 'medium',
+      detect: function(t) {
+        // Check both YAML frontmatter license field and text mentions
+        var hasFrontmatterLicense = /^license\s*:/im.test(t);
+        var hasTextLicense = /\b(?:MIT|Apache[\s\-]2|GPL|LGPL|BSD|CC[\s\-]BY|Creative Commons|proprietary|restricted|license)/i.test(t);
+        if (!hasFrontmatterLicense && !hasTextLicense) return 'No license field found';
+        return null;
+      },
+      why: 'Without a license, model usage rights are undefined. Commercial use, modification, and redistribution may be prohibited by default. Some models have usage restrictions that prohibit certain applications (military, surveillance, etc.).',
+      fix: 'Add a license field to the model card frontmatter and include a LICENSE file in the repository. Review license restrictions — especially for commercial use.',
+      checklist: 'License specified'
+    },
+    {
+      id: 'no-intended-use',
+      category: 'Model Card',
+      name: 'No intended use or limitations section',
+      severity: 'low',
+      detect: function(t, type) {
+        if (type !== 'modelcard') return null;
+        var hasUse = /\b(?:intended\s+use|use\s+cases?|out[\s\-]of[\s\-]scope|limitations?|not\s+intended|do\s+not\s+use)\b/i.test(t);
+        if (!hasUse) return 'No intended use / limitations section found';
+        return null;
+      },
+      why: 'Intended use and limitations sections help deployers understand what the model is and is not designed for, preventing misuse and dangerous deployments in high-stakes contexts.',
+      fix: 'Add sections for "Intended Use", "Out-of-Scope Use", and "Limitations" to your model card. Be explicit about contexts where the model should not be deployed.',
+      checklist: 'Intended use documented'
+    },
+    {
+      id: 'no-bias-assessment',
+      category: 'Model Card',
+      name: 'No bias or fairness assessment',
+      severity: 'low',
+      detect: function(t, type) {
+        if (type !== 'modelcard') return null;
+        var hasBias = /\b(?:bias|fairness|fair|equity|demographic|disparate|representation|harm|ethical|diversity)\b/i.test(t);
+        if (!hasBias) return 'No bias/fairness discussion found';
+        return null;
+      },
+      why: 'Models can exhibit harmful biases across demographic groups. Without a bias assessment, deployers cannot know if the model will produce discriminatory outputs for certain populations.',
+      fix: 'Conduct and document bias evaluations across relevant demographic groups. Include results of fairness benchmarks (BBQ, WinoBias, etc.) and known failure modes.',
+      checklist: 'Bias/fairness assessed'
+    },
+    {
+      id: 'no-eval-results',
+      category: 'Model Card',
+      name: 'No evaluation results',
+      severity: 'low',
+      detect: function(t, type) {
+        if (type !== 'modelcard') return null;
+        var hasEval = /\b(?:evaluation|benchmark|accuracy|f1|perplexity|bleu|rouge|performance|score|metric|results?|leaderboard)\b/i.test(t);
+        if (!hasEval) return 'No evaluation results found';
+        return null;
+      },
+      why: 'Without evaluation results, it is impossible to verify performance claims or compare the model against alternatives. Models with no evaluation data may be untested or misleadingly described.',
+      fix: 'Include evaluation results on standard benchmarks relevant to the task. At minimum, report accuracy/F1 on a held-out test set.',
+      checklist: 'Evaluation results included'
+    },
+    {
+      id: 'no-ethical-considerations',
+      category: 'Model Card',
+      name: 'No ethical considerations section',
+      severity: 'info',
+      detect: function(t, type) {
+        if (type !== 'modelcard') return null;
+        var hasEthics = /\b(?:ethical|ethics|responsibility|responsible|safety|risk|misuse|dual[\s\-]use|sensitive)\b/i.test(t);
+        if (!hasEthics) return 'No ethical considerations found';
+        return null;
+      },
+      why: 'Ethical considerations sections document potential harms, dual-use risks, and responsible deployment guidelines — critical for high-risk models.',
+      fix: 'Add an "Ethical Considerations" or "Responsible Use" section discussing potential harms, dual-use risks, and any technical safety measures implemented.',
+      checklist: 'Ethical considerations documented'
+    },
+    {
+      id: 'no-training-data',
+      category: 'Training Data',
+      name: 'No training data disclosure',
+      severity: 'medium',
+      detect: function(t, type) {
+        if (type !== 'modelcard') return null;
+        var hasData = /\b(?:training\s+data|dataset|trained\s+on|data\s+card|pretraining|fine[\s\-]tun|corpus|crawl(?:ed)?|web\s+data|curated)\b/i.test(t);
+        if (!hasData) return 'No training data disclosure found';
+        return null;
+      },
+      why: 'Training data provenance is essential for understanding model capabilities, potential biases, copyright exposure, and whether the data collection was ethical and legal.',
+      fix: 'Document the training datasets used, their sources, collection methods, data cards (if available), and any known issues with data quality or consent.',
+      checklist: 'Training data disclosed'
+    },
+
+    // ── Training Data Concerns ────────────────────────────────────────────────
+    {
+      id: 'scraped-data',
+      category: 'Training Data',
+      name: 'Scraped/crawled data without consent mentioned',
+      severity: 'medium',
+      detect: function(t) {
+        var m = t.match(/(?:scraped?|crawled?|web\s+crawl|without\s+(?:explicit\s+)?consent|non[\s\-]consensual|without\s+permission)\b/i);
+        return m ? m[0] : null;
+      },
+      why: 'Training data scraped from the web without consent raises legal concerns (GDPR, copyright), ethical issues around personal data use, and may include toxic content without proper filtering.',
+      fix: 'Document the data collection methodology, any consent mechanisms, opt-out options, and filtering applied. Disclose jurisdiction-specific legal analysis if distributing to regulated regions.',
+      checklist: 'Training data consent addressed'
+    },
+    {
+      id: 'problematic-datasets',
+      category: 'Training Data',
+      name: 'Potentially problematic dataset reference',
+      severity: 'medium',
+      detect: function(t) {
+        // Known datasets with documented issues (without implying they're always bad — context matters)
+        var m = t.match(/\b(?:laion[\s\-]400m|laion[\s\-]5b|pile[\s\-]cc|books3|openwebtext\b|thepile\b|gpt[\s\-]j\b(?![\s\-]6b))/i);
+        return m ? m[0] : null;
+      },
+      why: 'Some datasets have documented issues: LAION-400M/5B contained CSAM (removed in audit), The Pile/Books3 raised copyright concerns, and several large web crawls include toxic and personally identifiable content. Acknowledging these issues demonstrates responsible use.',
+      fix: 'Acknowledge known dataset limitations and mitigations applied. Document filtering steps (NSFW filtering, PII removal, deduplication). Reference the relevant dataset cards.',
+      checklist: 'Problematic datasets acknowledged'
+    },
+
+    // ── Supply Chain Risks ────────────────────────────────────────────────────
+    {
+      id: 'typosquatting',
+      category: 'Supply Chain',
+      name: 'Possible typosquatting / impersonation pattern',
+      severity: 'high',
+      detect: function(t) {
+        // Common typosquatting patterns for known model families
+        var patterns = [
+          /\bm(?:3|e)ta[\s\-]?llama\b/i,         // meta-llama -> m3ta-llama
+          /\bopan?ai\b/i,                          // openai -> opanai
+          /\bgpt[\s\-]?4[o0]\b/i,                  // gpt-4o -> gpt-40 (zero)
+          /\bmistral[\s\-]?ai\b/i,                 // mistralai looks fine but check context
+          /\bgoogle[\s\-]?deepmind\b/i,
+          /\banthrop1c\b/i,                        // anthropic -> anthrop1c
+          /\bhugging[\s\-]?face[\s\-]?inc\b/i,
+          /\bllama[\s\-]?3[\s\-]?(?:8|70)b[\s\-]?instruct[\s\-]?v\d/i, // unofficial versioning
+          /\b(?:official|verified|authorized)[\s\-](?:meta|openai|google|anthropic|mistral)\b/i
+        ];
+        for (var i = 0; i < patterns.length; i++) {
+          var m = t.match(patterns[i]);
+          if (m) return m[0];
+        }
+        return null;
+      },
+      why: 'Typosquatting attacks use model names that resemble popular, trusted models to trick users into loading malicious weights. Common patterns include character substitutions (l/1, o/0, e/3) and unofficial "official" branding.',
+      fix: 'Verify the model repository owner matches the expected organization (e.g., meta-llama, google, mistralai on HuggingFace Hub). Check upload date, follower count, and whether the account is verified.',
+      checklist: 'No typosquatting indicators'
+    },
+    {
+      id: 'suspicious-base-model',
+      category: 'Supply Chain',
+      name: 'Unverifiable or suspicious base model reference',
+      severity: 'medium',
+      detect: function(t) {
+        // Flag base_model references that look like user-uploaded rather than org accounts
+        var m = t.match(/base_model\s*:\s*([^\s\n]+)/i);
+        if (!m) return null;
+        var ref = m[1].trim();
+        // Flag if looks like a personal account (no org prefix) with certain keywords
+        if (/^[a-zA-Z0-9_\-]+\/(?:llama|mistral|gpt|bert|t5|opt|falcon|gemma|qwen|phi)[-_]/i.test(ref)) {
+          // Check it's not a known org
+          var knownOrgs = /^(?:meta-llama|mistralai|google|microsoft|facebook|openai|anthropic|EleutherAI|bigscience|tiiuae|Qwen|deepseek-ai|01-ai|NousResearch|teknium|WizardLM)\//i;
+          if (!knownOrgs.test(ref)) return ref;
+        }
+        return null;
+      },
+      why: 'Fine-tuned models that reference a base model from an unverified personal account (rather than an official organization) may have been trained on poisoned weights or modified architecture code.',
+      fix: 'Trace the base model provenance back to an official organization account. Use the HuggingFace model family graph to verify the full inheritance chain.',
+      checklist: 'Base model provenance verified'
+    },
+    {
+      id: 'custom-code-files',
+      category: 'Supply Chain',
+      name: 'Custom Python code files referenced',
+      severity: 'high',
+      detect: function(t) {
+        var m = t.match(/modeling_\w+\.py|configuration_\w+\.py|tokenization_\w+\.py/i);
+        return m ? m[0] : null;
+      },
+      why: 'Custom Python modules (modeling_*.py, tokenization_*.py) in a model repository are executed when the model is loaded with trust_remote_code=True. These files can contain malicious code disguised as model architecture.',
+      fix: 'Before loading, manually audit all .py files in the model repository. Only load with trust_remote_code=True after reviewing all custom code, or find an equivalent model from an official source.',
+      checklist: 'No unaudited custom Python files'
+    },
+
+    // ── Config-specific checks ────────────────────────────────────────────────
+    {
+      id: 'config-trust-remote',
+      category: 'Serialization',
+      name: 'trust_remote_code in config.json',
+      severity: 'critical',
+      detect: function(t, type) {
+        if (type !== 'config') return null;
+        var m = t.match(/"trust_remote_code"\s*:\s*true/i);
+        return m ? m[0] : null;
+      },
+      why: 'trust_remote_code: true in config.json signals that the model requires execution of custom Python code from the repository. This setting is particularly dangerous as it executes automatically during model initialization.',
+      fix: 'Audit all custom code files (modeling_*.py) in the repository before loading. Never enable trust_remote_code in production without a security review.',
+      checklist: 'No trust_remote_code in config'
+    },
+    {
+      id: 'config-custom-code',
+      category: 'Supply Chain',
+      name: 'auto_map references custom code modules',
+      severity: 'high',
+      detect: function(t, type) {
+        if (type !== 'config') return null;
+        var m = t.match(/"auto_map"\s*:\s*\{[^}]*"AutoModel[^"]*"\s*:\s*"[^"]*--[^"]*"/i);
+        return m ? 'auto_map with custom module reference' : null;
+      },
+      why: 'The auto_map configuration field maps HuggingFace AutoClass names to custom Python module paths using "--" syntax. This means model loading will import and execute custom Python code from the repository.',
+      fix: 'Review the referenced Python file thoroughly before loading. Verify that the auto_map module contains only standard model architecture code and no suspicious runtime behavior.',
+      checklist: 'No auto_map custom module references'
+    }
+  ];
+
+  // ── Safety checklist items ───────────────────────────────────────────────────
+  var CHECKLIST_ITEMS = [
+    { label: 'No pickle/joblib files',          ids: ['pickle-file-ext','pickle-load','joblib-load'] },
+    { label: 'No trust_remote_code',            ids: ['trust-remote-code','config-trust-remote'] },
+    { label: 'Safetensors format available',    ids: ['no-safetensors'] },
+    { label: 'torch.load() safe usage',         ids: ['torch-load-unsafe'] },
+    { label: 'PyTorch >= 2.0',                  ids: ['torch-old'] },
+    { label: 'transformers >= 4.36',            ids: ['transformers-old'] },
+    { label: 'No git+https:// dependencies',    ids: ['git-source-dep'] },
+    { label: 'License specified',               ids: ['no-license'] },
+    { label: 'Training data disclosed',         ids: ['no-training-data'] },
+    { label: 'Bias/fairness assessed',          ids: ['no-bias-assessment'] },
+    { label: 'Evaluation results present',      ids: ['no-eval-results'] },
+    { label: 'No typosquatting indicators',     ids: ['typosquatting'] },
+    { label: 'Base model provenance verified',  ids: ['suspicious-base-model'] },
+    { label: 'No unaudited custom code',        ids: ['custom-code-files','config-custom-code'] }
+  ];
+
+  // ── Risk rating ──────────────────────────────────────────────────────────────
+  function getRating(score) {
+    if (score <= 8)  return { label: 'SAFE',     cls: 'safe',     color: '#4ade80', desc: 'No significant security concerns detected.' };
+    if (score <= 24) return { label: 'CAUTION',  cls: 'caution',  color: '#fbbf24', desc: 'Some concerns found — review before deployment.' };
+    if (score <= 49) return { label: 'WARNING',  cls: 'warning',  color: '#fb923c', desc: 'Significant risks found — do not deploy without review.' };
+    return            { label: 'CRITICAL', cls: 'critical', color: '#f87171', desc: 'Critical security risks — do not load or run this model.' };
+  }
+
+  // ── Ring SVG helper ──────────────────────────────────────────────────────────
+  function buildRing(score, color) {
+    var r = 40; var circ = 2 * Math.PI * r;
+    var frac = Math.min(score, 100) / 100;
+    var offset = circ * (1 - frac);
+    var div = document.createElement('div');
+    div.className = 'ams-risk-ring';
+    div.innerHTML =
+      '<svg width="96" height="96" viewBox="0 0 96 96">' +
+        '<circle class="ams-ring-bg" cx="48" cy="48" r="' + r + '"/>' +
+        '<circle class="ams-ring-fg" cx="48" cy="48" r="' + r + '"' +
+          ' stroke="' + color + '"' +
+          ' stroke-dasharray="' + circ.toFixed(2) + '"' +
+          ' stroke-dashoffset="' + offset.toFixed(2) + '"/>' +
+      '</svg>' +
+      '<div class="ams-ring-label" style="color:' + color + '">' + score + '</div>';
+    return div;
+  }
+
+  // ── Main scan ────────────────────────────────────────────────────────────────
+  function scan() {
+    var text = inputEl.value;
+    if (!text.trim()) {
+      resultsEl.style.display = 'none';
+      emptyEl.style.display = '';
+      typeLabel.textContent = '';
+      return;
+    }
+
+    var type = detectType(text);
+    var typeLabels = { modelcard: 'Model Card (Markdown)', config: 'config.json', requirements: 'requirements.txt' };
+    typeLabel.textContent = 'Detected: ' + typeLabels[type];
+
+    // Run all checks
+    var triggered = {};
+    var findings = [];
+    CHECKS.forEach(function(c) {
+      var match = c.detect(text, type);
+      if (match !== null) {
+        triggered[c.id] = true;
+        findings.push({ check: c, match: match });
+      }
+    });
+
+    // Compute risk score
+    var rawScore = 0;
+    findings.forEach(function(f) { rawScore += SEV_SCORE[f.check.severity] || 0; });
+    var score = Math.min(rawScore, 100);
+    var rating = getRating(score);
+
+    emptyEl.style.display = 'none';
+    resultsEl.style.display = '';
+
+    // ── Score section ────────────────────────────────────────────────────────
+    while (scoreSec.firstChild) scoreSec.removeChild(scoreSec.firstChild);
+
+    var counts = { critical:0, high:0, medium:0, low:0, info:0 };
+    findings.forEach(function(f) { counts[f.check.severity]++; });
+
+    var card = document.createElement('div');
+    card.className = 'ams-score-card';
+    card.appendChild(buildRing(score, rating.color));
+
+    var body = document.createElement('div');
+    body.className = 'ams-score-body';
+
+    var title = document.createElement('div');
+    title.className = 'ams-score-title';
+    title.style.color = rating.color;
+    title.textContent = 'Risk Score: ' + score + ' / 100';
+    body.appendChild(title);
+
+    var sub = document.createElement('div');
+    sub.className = 'ams-score-subtitle';
+    sub.textContent = rating.desc + ' ' + findings.length + ' finding' + (findings.length !== 1 ? 's' : '') + ' across ' + CHECKS.length + ' checks.';
+    body.appendChild(sub);
+
+    var pills = document.createElement('div');
+    pills.className = 'ams-score-pills';
+    ['critical','high','medium','low','info'].forEach(function(s) {
+      if (!counts[s]) return;
+      var p = document.createElement('span');
+      p.className = 'ams-pill ams-pill--' + s;
+      p.textContent = counts[s] + ' ' + s;
+      pills.appendChild(p);
+    });
+    body.appendChild(pills);
+
+    var ratingEl = document.createElement('div');
+    ratingEl.className = 'ams-rating ams-rating--' + rating.cls;
+    ratingEl.textContent = rating.label;
+    body.appendChild(ratingEl);
+
+    card.appendChild(body);
+    scoreSec.appendChild(card);
+
+    // ── Findings ─────────────────────────────────────────────────────────────
+    while (findingsEl.firstChild) findingsEl.removeChild(findingsEl.firstChild);
+
+    if (findings.length === 0) {
+      var clean = document.createElement('div');
+      clean.style.cssText = 'display:flex;align-items:center;gap:8px;padding:16px 20px;background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.2);border-radius:8px;color:#4ade80;font-size:0.875rem;font-weight:600;margin-bottom:16px;';
+      clean.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>No security issues detected. Always review manually — static analysis is not exhaustive.';
+      findingsEl.appendChild(clean);
+    } else {
+      // Group by category
+      var categories = [];
+      var catMap = {};
+      findings.forEach(function(f) {
+        var cat = f.check.category;
+        if (!catMap[cat]) { catMap[cat] = []; categories.push(cat); }
+        catMap[cat].push(f);
+      });
+
+      categories.forEach(function(cat) {
+        var hdr = document.createElement('div');
+        hdr.className = 'ams-section-header';
+        hdr.textContent = cat;
+        findingsEl.appendChild(hdr);
+
+        catMap[cat].forEach(function(f) {
+          var card2 = document.createElement('div');
+          card2.className = 'ams-finding ams-finding--' + f.check.severity;
+
+          var hdrEl = document.createElement('div');
+          hdrEl.className = 'ams-finding-header';
+
+          var nameEl = document.createElement('span');
+          nameEl.className = 'ams-finding-name';
+          nameEl.textContent = f.check.name;
+
+          var catEl = document.createElement('span');
+          catEl.className = 'ams-finding-cat';
+          catEl.textContent = f.check.category;
+
+          var badge = document.createElement('span');
+          badge.className = 'ams-sev-badge ams-sev-badge--' + f.check.severity;
+          badge.textContent = f.check.severity;
+
+          hdrEl.appendChild(nameEl);
+          hdrEl.appendChild(catEl);
+          hdrEl.appendChild(badge);
+
+          var bodyEl = document.createElement('div');
+          bodyEl.className = 'ams-finding-body';
+
+          if (f.match && f.match !== 'No model card content detected' && f.match !== 'No license field found' && f.match !== 'No intended use / limitations section found' && f.match !== 'No bias/fairness discussion found' && f.match !== 'No evaluation results found' && f.match !== 'No ethical considerations found' && f.match !== 'No training data disclosure found' && f.match !== 'safetensors not mentioned') {
+            var pre = document.createElement('div');
+            pre.className = 'ams-detected-value';
+            pre.textContent = 'Detected: ' + f.match;
+            bodyEl.appendChild(pre);
+          }
+
+          var why = document.createElement('div');
+          why.className = 'ams-finding-why';
+          why.textContent = f.check.why;
+          bodyEl.appendChild(why);
+
+          var fix = document.createElement('div');
+          fix.className = 'ams-finding-fix';
+          var fixStrong = document.createElement('strong');
+          fixStrong.textContent = 'Remediation: ';
+          fix.appendChild(fixStrong);
+          fix.appendChild(document.createTextNode(f.check.fix));
+          bodyEl.appendChild(fix);
+
+          card2.appendChild(hdrEl);
+          card2.appendChild(bodyEl);
+
+          // Toggle expand
+          hdrEl.addEventListener('click', function() {
+            bodyEl.classList.toggle('open');
+          });
+          // Start expanded for critical/high
+          if (f.check.severity === 'critical' || f.check.severity === 'high') {
+            bodyEl.classList.add('open');
+          }
+
+          findingsEl.appendChild(card2);
+        });
+      });
+    }
+
+    // ── Safe model checklist ─────────────────────────────────────────────────
+    while (checklistEl.firstChild) checklistEl.removeChild(checklistEl.firstChild);
+
+    var clHdr = document.createElement('div');
+    clHdr.className = 'ams-section-header';
+    clHdr.textContent = 'Safe Model Checklist';
+    checklistEl.appendChild(clHdr);
+
+    var clBox = document.createElement('div');
+    clBox.className = 'ams-checklist';
+
+    var clTitle = document.createElement('div');
+    clTitle.className = 'ams-checklist-title';
+    var passCount = 0;
+    CHECKLIST_ITEMS.forEach(function(item) {
+      var failed = item.ids.some(function(id) { return triggered[id]; });
+      if (!failed) passCount++;
+    });
+    clTitle.textContent = passCount + ' / ' + CHECKLIST_ITEMS.length + ' criteria met';
+    clBox.appendChild(clTitle);
+
+    var grid = document.createElement('div');
+    grid.className = 'ams-checklist-grid';
+
+    CHECKLIST_ITEMS.forEach(function(item) {
+      var failed = item.ids.some(function(id) { return triggered[id]; });
+      var row = document.createElement('div');
+      row.className = 'ams-check-item ams-check-item--' + (failed ? 'fail' : 'pass');
+
+      var icon = document.createElement('span');
+      icon.className = 'ams-check-icon';
+      icon.textContent = failed ? '\u2717' : '\u2713';
+      icon.style.color = failed ? '#f87171' : '#4ade80';
+
+      var lbl = document.createElement('span');
+      lbl.className = 'ams-check-label';
+      lbl.textContent = item.label;
+
+      row.appendChild(icon);
+      row.appendChild(lbl);
+      grid.appendChild(row);
+    });
+
+    clBox.appendChild(grid);
+    checklistEl.appendChild(clBox);
+  }
+
+  scanBtn.addEventListener('click', scan);
+
+  exampleBtn.addEventListener('click', function() {
+    inputEl.value = EXAMPLE;
+    scan();
+  });
+
+  clearBtn.addEventListener('click', function() {
+    inputEl.value = '';
+    resultsEl.style.display = 'none';
+    emptyEl.style.display = '';
+    typeLabel.textContent = '';
+    while (scoreSec.firstChild) scoreSec.removeChild(scoreSec.firstChild);
+    while (findingsEl.firstChild) findingsEl.removeChild(findingsEl.firstChild);
+    while (checklistEl.firstChild) checklistEl.removeChild(checklistEl.firstChild);
+  });
+
+  // Debounced live scan
+  var debounce = null;
+  inputEl.addEventListener('input', function() {
+    clearTimeout(debounce);
+    debounce = setTimeout(scan, 600);
+  });
+})();
+</script>

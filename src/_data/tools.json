@@ -888,5 +888,17 @@
     "isNew": true,
     "relatedTools": ["siem-query-translator", "yara-playground", "ioc-workbench"],
     "status": "live"
+  },
+  {
+    "name": "AI Model Scanner",
+    "slug": "ai-model-scanner",
+    "description": "Scan AI model cards and configs for security risks, unsafe serialization, and supply chain issues.",
+    "longDescription": "Paste a HuggingFace model card, config.json, or requirements.txt and scan for security risks — unsafe pickle serialization, vulnerable dependencies, missing safety metadata, supply chain red flags, and training data concerns. The npm audit for AI models. 100% client-side.",
+    "category": "ai",
+    "keywords": ["ai model", "huggingface", "model security", "pickle", "safetensors", "model card", "ai supply chain", "model scan", "ml security", "trust_remote_code"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["prompt-injection-tester", "agent-security-audit", "llm-privacy-analyzer"],
+    "status": "live"
   }
 ]
