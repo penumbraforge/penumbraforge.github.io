@@ -4783,6 +4783,111 @@
   };
 
   /* ════════════════════════════════════════════════════
+     Procedural Templates
+     ════════════════════════════════════════════════════
+     Default randomization templates for each blue team
+     scenario. Used by Procedural.apply() to swap IPs,
+     domains, usernames, sessions, and inject noise so
+     evidence corpora differ on every run.
+     ════════════════════════════════════════════════════ */
+
+  var templates = {
+
+    'blue-investigate-shopstack': {
+      ips: {
+        '198.51.100.47': { pool: 'vps-ranges', role: 'attacker' },
+        '203.0.113.99':  { pool: 'vps-ranges', role: 'exfil' }
+      },
+      timestamps: { jitter_minutes: [-30, 30] },
+      domains: {
+        'evil-collector.example.com': { generator: 'dga' }
+      },
+      sessions: { pattern: 'sess_{random_hex_4}' },
+      noise: {
+        inject: true,
+        count: [15, 30],
+        sources: ['web', 'fw', 'dns']
+      }
+    },
+
+    'blue-alert-triage': {
+      ips: {
+        '45.33.32.100': { pool: 'vps-ranges', role: 'attacker' }
+      },
+      timestamps: { jitter_minutes: [-20, 20] },
+      sessions: { pattern: 'sess_{random_hex_4}' },
+      noise: {
+        inject: true,
+        count: [15, 25],
+        sources: ['web', 'fw', 'auth']
+      }
+    },
+
+    'blue-phishing-analysis': {
+      ips: {
+        '93.184.216.34':  { pool: 'vps-ranges', role: 'phishing-infra' },
+        '91.240.118.55':  { pool: 'vps-ranges', role: 'attacker-reuse' }
+      },
+      timestamps: { jitter_minutes: [-30, 30] },
+      domains: {
+        'acmecorp-login.xyz': { generator: 'dga' }
+      },
+      sessions: { pattern: 'sess_{random_hex_4}' },
+      noise: {
+        inject: true,
+        count: [15, 30],
+        sources: ['web', 'fw', 'dns', 'auth']
+      }
+    },
+
+    'blue-log-analysis': {
+      ips: {
+        '198.51.100.77': { pool: 'vps-ranges', role: 'c2' }
+      },
+      timestamps: { jitter_minutes: [-30, 30] },
+      domains: {
+        'x9z-analytics.xyz': { generator: 'dga' }
+      },
+      sessions: { pattern: 'sess_{random_hex_4}' },
+      noise: {
+        inject: true,
+        count: [20, 35],
+        sources: ['web', 'fw', 'dns']
+      }
+    },
+
+    'blue-containment': {
+      ips: {
+        '185.141.63.22':  { pool: 'vps-ranges', role: 'attacker' },
+        '91.240.118.200': { pool: 'vps-ranges', role: 'c2' }
+      },
+      timestamps: { jitter_minutes: [-20, 20] },
+      domains: {
+        'cdn-update.systemcheck.xyz': { generator: 'dga' }
+      },
+      sessions: { pattern: 'sess_{random_hex_4}' },
+      noise: {
+        inject: true,
+        count: [15, 30],
+        sources: ['web', 'fw', 'dns', 'auth']
+      }
+    },
+
+    'blue-soar-playbook': {
+      ips: {
+        '23.94.12.88': { pool: 'vps-ranges', role: 'scanner' }
+      },
+      timestamps: { jitter_minutes: [-15, 15] },
+      sessions: { pattern: 'sess_{random_hex_4}' },
+      noise: {
+        inject: true,
+        count: [15, 25],
+        sources: ['web', 'fw', 'dns']
+      }
+    }
+  };
+
+  /* ════════════════════════════════════════════════════
      Public API
      ════════════════════════════════════════════════════ */
 
@@ -4794,6 +4899,15 @@
      */
     get: function (scenarioId) {
       return scenarios[scenarioId] || [];
+    },
+
+    /**
+     * Return the default procedural template for a scenario.
+     * @param {string} scenarioId
+     * @returns {Object|null} procedural template or null
+     */
+    getTemplate: function (scenarioId) {
+      return templates[scenarioId] || null;
     }
   };
 
