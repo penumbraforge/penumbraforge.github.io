@@ -5529,7 +5529,7 @@ body:has(.tools-hub-page) {
   .tools-mobile-search {
     display: block;
     position: fixed;
-    top: 57px;
+    top: 61px;
     left: 0;
     right: 0;
     z-index: 30;
@@ -5539,7 +5539,7 @@ body:has(.tools-hub-page) {
   }
   /* Offset content so it doesn't hide behind fixed search bar */
   .tools-content {
-    padding-top: 56px;
+    padding-top: 60px;
   }
 }
 
