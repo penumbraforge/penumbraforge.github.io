@@ -743,5 +743,17 @@
     "isNew": true,
     "relatedTools": ["ioc-workbench", "header-analyzer", "dmarc-builder"],
     "status": "live"
+  },
+  {
+    "name": "AI Cost Calculator",
+    "slug": "ai-cost-calculator",
+    "description": "Compare LLM API costs across Claude, GPT, Gemini, Mistral, and open-source models.",
+    "longDescription": "Calculate and compare AI API costs across all major providers — Claude, GPT, Gemini, Mistral, Llama. Enter token counts or paste text to estimate. See cost breakdowns, visual comparisons, and optimization suggestions. Pricing current as of March 2026.",
+    "category": "web",
+    "keywords": ["llm cost", "ai cost calculator", "gpt pricing", "claude pricing", "token calculator", "api cost", "openai pricing", "anthropic pricing", "gemini pricing", "ai budget"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["prompt-injection-tester", "json-formatter", "curl-converter"],
+    "status": "live"
   }
 ]

@@ -1,0 +1,1043 @@
+---
+toolSlug: ai-cost-calculator
+permalink: /tools/ai-cost-calculator/
+---
+
+<div class="acc-mode-row">
+  <button class="acc-mode-btn acc-mode-btn--active" data-mode="tokens" id="acc-mode-tokens">By Tokens</button>
+  <button class="acc-mode-btn" data-mode="text" id="acc-mode-text">By Text</button>
+  <button class="acc-mode-btn" data-mode="monthly" id="acc-mode-monthly">Monthly Estimate</button>
+</div>
+
+<!-- By Tokens mode -->
+<div id="acc-panel-tokens" class="acc-panel">
+  <div class="acc-inputs-row">
+    <div class="acc-input-group">
+      <label for="acc-input-tokens">Input tokens</label>
+      <input type="number" id="acc-input-tokens" class="acc-num-input" value="1000" min="0" step="100" placeholder="1000">
+    </div>
+    <div class="acc-input-group">
+      <label for="acc-output-tokens">Output tokens</label>
+      <input type="number" id="acc-output-tokens" class="acc-num-input" value="500" min="0" step="100" placeholder="500">
+    </div>
+    <div class="acc-input-group">
+      <label for="acc-requests">Requests</label>
+      <input type="number" id="acc-requests" class="acc-num-input" value="1" min="1" step="1" placeholder="1">
+    </div>
+  </div>
+</div>
+
+<!-- By Text mode -->
+<div id="acc-panel-text" class="acc-panel" style="display:none;">
+  <div class="tool-group">
+    <label for="acc-text-input">Paste a sample prompt to estimate token count</label>
+    <textarea id="acc-text-input" rows="6" placeholder="Paste your prompt or a representative sample here..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+  <div class="acc-inputs-row">
+    <div class="acc-input-group">
+      <label for="acc-text-output-ratio">Output / input ratio</label>
+      <select id="acc-text-output-ratio" class="acc-select">
+        <option value="0.5">0.5x (shorter responses)</option>
+        <option value="1" selected>1x (similar length)</option>
+        <option value="2">2x (longer responses)</option>
+        <option value="4">4x (much longer)</option>
+      </select>
+    </div>
+    <div class="acc-input-group">
+      <label for="acc-text-requests">Requests</label>
+      <input type="number" id="acc-text-requests" class="acc-num-input" value="1" min="1" step="1">
+    </div>
+    <div class="acc-token-estimate" id="acc-token-estimate" style="display:none;">
+      <span class="acc-token-label">Estimated tokens</span>
+      <span id="acc-token-count">—</span> input &nbsp;/&nbsp; <span id="acc-token-out-count">—</span> output
+    </div>
+  </div>
+</div>
+
+<!-- Monthly Estimate mode -->
+<div id="acc-panel-monthly" class="acc-panel" style="display:none;">
+  <div class="acc-inputs-row">
+    <div class="acc-input-group">
+      <label for="acc-monthly-rpd">Requests / day</label>
+      <input type="number" id="acc-monthly-rpd" class="acc-num-input" value="1000" min="1" step="100">
+    </div>
+    <div class="acc-input-group">
+      <label for="acc-monthly-input">Avg input tokens</label>
+      <input type="number" id="acc-monthly-input" class="acc-num-input" value="500" min="0" step="100">
+    </div>
+    <div class="acc-input-group">
+      <label for="acc-monthly-output">Avg output tokens</label>
+      <input type="number" id="acc-monthly-output" class="acc-num-input" value="200" min="0" step="100">
+    </div>
+  </div>
+  <p class="acc-hint">Calculates cost for 30 days at the given daily volume.</p>
+</div>
+
+<!-- Model selector -->
+<div class="acc-models-section">
+  <div class="acc-models-header">
+    <span class="acc-models-label">Models to compare</span>
+    <div class="acc-models-actions">
+      <button class="acc-link-btn" id="acc-select-all">Select all</button>
+      <button class="acc-link-btn" id="acc-select-none">Clear</button>
+    </div>
+  </div>
+  <div class="acc-models-grid" id="acc-models-grid"></div>
+</div>
+
+<div class="tool-row" style="margin-bottom:0;">
+  <button class="btn btn--primary" id="acc-calc-btn">Calculate costs</button>
+  <button class="btn" id="acc-reset-btn">Reset</button>
+  <div id="acc-calc-summary" style="margin-left:auto;font-size:0.875rem;color:var(--text-3,#888);align-self:center;"></div>
+</div>
+
+<!-- Results -->
+<div id="acc-results" style="display:none;">
+
+  <div class="acc-results-header">
+    <h3 style="margin:0;font-size:1rem;color:var(--text-1,#e2e8f0);">Cost Comparison</h3>
+    <span class="acc-results-sub" id="acc-results-sub"></span>
+  </div>
+
+  <!-- Table -->
+  <div class="acc-table-wrap">
+    <table class="acc-table" id="acc-table">
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Provider</th>
+          <th class="acc-col-num">Input cost</th>
+          <th class="acc-col-num">Output cost</th>
+          <th class="acc-col-num">Total</th>
+          <th class="acc-col-num">vs. most expensive</th>
+        </tr>
+      </thead>
+      <tbody id="acc-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Bar chart -->
+  <div class="acc-chart-section">
+    <div class="acc-chart-label">Relative cost (scaled to most expensive)</div>
+    <div id="acc-chart-bars"></div>
+  </div>
+
+  <!-- Optimization tips -->
+  <div class="acc-tips-section" id="acc-tips-section">
+    <div class="acc-tips-title">Optimization suggestions</div>
+    <div id="acc-tips-list"></div>
+  </div>
+
+  <!-- Monthly projection -->
+  <div class="acc-projection-section" id="acc-projection-section" style="display:none;">
+    <div class="acc-tips-title">Monthly projection</div>
+    <div id="acc-projection-list"></div>
+  </div>
+
+</div>
+
+<div id="acc-empty" class="acc-empty-msg">Select models and click "Calculate costs" to see the comparison.</div>
+
+<hr style="margin:2rem 0;border:none;border-top:1px solid var(--border,#2a2a3a);">
+<p class="acc-pricing-note">Prices as of March 2026 per million tokens. Verify current pricing on provider sites before making budget decisions. Open-source models (Llama) show a $0 self-hosted cost; actual API provider rates will vary.</p>
+
+<style>
+  .acc-mode-row {
+    display: flex;
+    gap: 0.375rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .acc-mode-btn {
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border,#2a2a3a);
+    background: var(--surface-1,#1a1a2e);
+    color: var(--text-2,#94a3b8);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .acc-mode-btn:hover {
+    background: var(--surface-2,#252540);
+    color: var(--text-1,#e2e8f0);
+  }
+  .acc-mode-btn--active {
+    background: rgba(129,140,248,0.12);
+    color: #818cf8;
+    border-color: rgba(129,140,248,0.35);
+  }
+  .acc-panel { margin-bottom: 1.25rem; }
+  .acc-inputs-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .acc-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 130px;
+  }
+  .acc-input-group label {
+    font-size: 0.8125rem;
+    color: var(--text-2,#94a3b8);
+    font-weight: 500;
+  }
+  .acc-num-input, .acc-select {
+    padding: 0.45rem 0.625rem;
+    border-radius: 6px;
+    border: 1px solid var(--border,#2a2a3a);
+    background: var(--surface-0,#0f0f1a);
+    color: var(--text-1,#e2e8f0);
+    font-size: 0.9rem;
+    font-family: var(--font-mono,monospace);
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+  }
+  .acc-num-input:focus, .acc-select:focus {
+    border-color: rgba(129,140,248,0.5);
+    box-shadow: 0 0 0 2px rgba(129,140,248,0.1);
+  }
+  .acc-select {
+    font-family: inherit;
+    padding-right: 1.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    cursor: pointer;
+  }
+  .acc-token-estimate {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-2,#94a3b8);
+    padding: 0.45rem 0.75rem;
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 6px;
+    flex: 1;
+    min-width: 200px;
+  }
+  .acc-token-label { color: var(--text-3,#888); }
+  .acc-hint {
+    font-size: 0.8125rem;
+    color: var(--text-3,#888);
+    margin: 0.5rem 0 0;
+  }
+
+  /* Model selector */
+  .acc-models-section {
+    margin-bottom: 1.25rem;
+  }
+  .acc-models-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.625rem;
+  }
+  .acc-models-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-1,#e2e8f0);
+  }
+  .acc-models-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+  .acc-link-btn {
+    background: none;
+    border: none;
+    font-size: 0.8rem;
+    color: #818cf8;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .acc-link-btn:hover { color: #a5b4fc; }
+  .acc-models-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 0.5rem;
+  }
+  .acc-model-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 6px;
+    background: var(--surface-1,#1a1a2e);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .acc-model-item:hover {
+    border-color: rgba(129,140,248,0.3);
+    background: var(--surface-2,#252540);
+  }
+  .acc-model-item--checked {
+    border-color: rgba(129,140,248,0.4);
+    background: rgba(129,140,248,0.06);
+  }
+  .acc-model-item input[type="checkbox"] {
+    margin-top: 2px;
+    accent-color: #818cf8;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .acc-model-info { min-width: 0; }
+  .acc-model-name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-1,#e2e8f0);
+    font-family: var(--font-mono,monospace);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .acc-model-meta {
+    font-size: 0.75rem;
+    color: var(--text-3,#888);
+    margin-top: 1px;
+  }
+  .acc-model-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-left: 0.25rem;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  .acc-model-badge--anthropic { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+  .acc-model-badge--openai { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.25); }
+  .acc-model-badge--google { background: rgba(250,204,21,0.1); color: #fbbf24; border: 1px solid rgba(250,204,21,0.25); }
+  .acc-model-badge--mistral { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); }
+  .acc-model-badge--meta { background: rgba(14,165,233,0.1); color: #38bdf8; border: 1px solid rgba(14,165,233,0.25); }
+
+  /* Results */
+  .acc-results-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin: 1.5rem 0 0.875rem;
+    flex-wrap: wrap;
+  }
+  .acc-results-sub {
+    font-size: 0.8rem;
+    color: var(--text-3,#888);
+  }
+
+  .acc-table-wrap {
+    overflow-x: auto;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+  }
+  .acc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .acc-table thead tr {
+    background: var(--surface-1,#1a1a2e);
+    border-bottom: 1px solid var(--border,#2a2a3a);
+  }
+  .acc-table th {
+    padding: 0.6rem 0.875rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3,#888);
+    white-space: nowrap;
+  }
+  .acc-col-num { text-align: right !important; }
+  .acc-table td {
+    padding: 0.6rem 0.875rem;
+    border-bottom: 1px solid var(--border,#2a2a3a);
+    color: var(--text-1,#e2e8f0);
+    white-space: nowrap;
+  }
+  .acc-table tbody tr:last-child td { border-bottom: none; }
+  .acc-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+  .acc-table tbody tr:first-child td { background: rgba(74,222,128,0.04); }
+  .acc-td-num { text-align: right; font-family: var(--font-mono,monospace); }
+  .acc-td-model { font-family: var(--font-mono,monospace); font-size: 0.8rem; }
+  .acc-td-provider { font-size: 0.8rem; }
+  .acc-td-savings {
+    text-align: right;
+    font-family: var(--font-mono,monospace);
+    font-size: 0.8rem;
+  }
+  .acc-savings-good { color: #4ade80; }
+  .acc-savings-none { color: var(--text-3,#888); }
+  .acc-rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 0.65rem;
+    font-weight: 800;
+    margin-right: 0.375rem;
+    flex-shrink: 0;
+  }
+  .acc-rank-1 { background: rgba(74,222,128,0.2); color: #4ade80; border: 1px solid rgba(74,222,128,0.35); }
+  .acc-rank-2 { background: rgba(167,243,208,0.1); color: #6ee7b7; border: 1px solid rgba(110,231,183,0.2); }
+  .acc-rank-n { background: rgba(255,255,255,0.06); color: var(--text-3,#888); border: 1px solid var(--border,#2a2a3a); }
+  .acc-free-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(14,165,233,0.1);
+    color: #38bdf8;
+    border: 1px solid rgba(14,165,233,0.2);
+    margin-left: 0.25rem;
+  }
+
+  /* Bar chart */
+  .acc-chart-section {
+    margin-bottom: 1.25rem;
+  }
+  .acc-chart-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3,#888);
+    margin-bottom: 0.625rem;
+  }
+  .acc-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 0.4rem;
+  }
+  .acc-bar-name {
+    font-size: 0.75rem;
+    font-family: var(--font-mono,monospace);
+    color: var(--text-2,#94a3b8);
+    width: 180px;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .acc-bar-track {
+    flex: 1;
+    height: 16px;
+    background: var(--surface-1,#1a1a2e);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .acc-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #4f46e5, #818cf8);
+    transition: width 0.4s ease;
+  }
+  .acc-bar-fill--best {
+    background: linear-gradient(90deg, #059669, #4ade80);
+  }
+  .acc-bar-val {
+    font-size: 0.75rem;
+    font-family: var(--font-mono,monospace);
+    color: var(--text-2,#94a3b8);
+    width: 72px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Tips */
+  .acc-tips-section, .acc-projection-section {
+    padding: 1rem 1.125rem;
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+  }
+  .acc-tips-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-3,#888);
+    margin-bottom: 0.625rem;
+  }
+  .acc-tip {
+    font-size: 0.875rem;
+    color: var(--text-2,#94a3b8);
+    line-height: 1.55;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border,#2a2a3a);
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  .acc-tip:last-child { border-bottom: none; }
+  .acc-tip-icon { color: #fbbf24; flex-shrink: 0; margin-top: 1px; }
+  .acc-tip strong { color: var(--text-1,#e2e8f0); }
+  .acc-proj-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border,#2a2a3a);
+    font-size: 0.875rem;
+    gap: 1rem;
+  }
+  .acc-proj-row:last-child { border-bottom: none; }
+  .acc-proj-name { color: var(--text-2,#94a3b8); font-family: var(--font-mono,monospace); font-size: 0.8rem; }
+  .acc-proj-val { color: var(--text-1,#e2e8f0); font-family: var(--font-mono,monospace); font-weight: 600; }
+
+  /* Misc */
+  .acc-empty-msg {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--text-3,#888);
+    font-size: 0.9rem;
+  }
+  .acc-pricing-note {
+    font-size: 0.8125rem;
+    color: var(--text-3,#888);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  @media (max-width: 600px) {
+    .acc-inputs-row { flex-direction: column; }
+    .acc-bar-name { width: 110px; }
+    .acc-bar-val { width: 58px; }
+    .acc-models-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+(function () {
+  // ── Model data ──────────────────────────────────────────────────────────────
+  // Prices in USD per 1M tokens
+  var MODELS = [
+    { id: 'claude-opus-4-6',       name: 'claude-opus-4-6',       provider: 'Anthropic', providerKey: 'anthropic', inputPer1M: 15,    outputPer1M: 75,    defaultOn: true,  capability: 3, opensource: false },
+    { id: 'claude-sonnet-4-6',     name: 'claude-sonnet-4-6',     provider: 'Anthropic', providerKey: 'anthropic', inputPer1M: 3,     outputPer1M: 15,    defaultOn: true,  capability: 2, opensource: false },
+    { id: 'claude-haiku-4-5',      name: 'claude-haiku-4-5',      provider: 'Anthropic', providerKey: 'anthropic', inputPer1M: 0.80,  outputPer1M: 4,     defaultOn: true,  capability: 1, opensource: false },
+    { id: 'gpt-4.1',               name: 'gpt-4.1',               provider: 'OpenAI',    providerKey: 'openai',    inputPer1M: 2,     outputPer1M: 8,     defaultOn: true,  capability: 2, opensource: false },
+    { id: 'gpt-4.1-mini',          name: 'gpt-4.1-mini',          provider: 'OpenAI',    providerKey: 'openai',    inputPer1M: 0.40,  outputPer1M: 1.60,  defaultOn: true,  capability: 1, opensource: false },
+    { id: 'o3',                    name: 'o3',                    provider: 'OpenAI',    providerKey: 'openai',    inputPer1M: 10,    outputPer1M: 40,    defaultOn: false, capability: 3, opensource: false },
+    { id: 'o4-mini',               name: 'o4-mini',               provider: 'OpenAI',    providerKey: 'openai',    inputPer1M: 1.10,  outputPer1M: 4.40,  defaultOn: true,  capability: 2, opensource: false },
+    { id: 'gemini-2.5-pro',        name: 'gemini-2.5-pro',        provider: 'Google',    providerKey: 'google',    inputPer1M: 1.25,  outputPer1M: 10,    defaultOn: true,  capability: 3, opensource: false },
+    { id: 'gemini-2.5-flash',      name: 'gemini-2.5-flash',      provider: 'Google',    providerKey: 'google',    inputPer1M: 0.15,  outputPer1M: 0.60,  defaultOn: true,  capability: 1, opensource: false },
+    { id: 'mistral-large',         name: 'mistral-large',         provider: 'Mistral',   providerKey: 'mistral',   inputPer1M: 2,     outputPer1M: 6,     defaultOn: false, capability: 2, opensource: false },
+    { id: 'codestral',             name: 'codestral',             provider: 'Mistral',   providerKey: 'mistral',   inputPer1M: 0.30,  outputPer1M: 0.90,  defaultOn: false, capability: 1, opensource: false },
+    { id: 'llama-4-maverick',      name: 'llama-4-maverick',      provider: 'Meta',      providerKey: 'meta',      inputPer1M: 0,     outputPer1M: 0,     defaultOn: false, capability: 2, opensource: true }
+  ];
+
+  var currentMode = 'tokens';
+  var els = {
+    panelTokens:     document.getElementById('acc-panel-tokens'),
+    panelText:       document.getElementById('acc-panel-text'),
+    panelMonthly:    document.getElementById('acc-panel-monthly'),
+    inputTokens:     document.getElementById('acc-input-tokens'),
+    outputTokens:    document.getElementById('acc-output-tokens'),
+    requests:        document.getElementById('acc-requests'),
+    textInput:       document.getElementById('acc-text-input'),
+    textRatio:       document.getElementById('acc-text-output-ratio'),
+    textRequests:    document.getElementById('acc-text-requests'),
+    tokenEstimate:   document.getElementById('acc-token-estimate'),
+    tokenCount:      document.getElementById('acc-token-count'),
+    tokenOutCount:   document.getElementById('acc-token-out-count'),
+    monthlyRpd:      document.getElementById('acc-monthly-rpd'),
+    monthlyInput:    document.getElementById('acc-monthly-input'),
+    monthlyOutput:   document.getElementById('acc-monthly-output'),
+    modelsGrid:      document.getElementById('acc-models-grid'),
+    calcBtn:         document.getElementById('acc-calc-btn'),
+    resetBtn:        document.getElementById('acc-reset-btn'),
+    calcSummary:     document.getElementById('acc-calc-summary'),
+    results:         document.getElementById('acc-results'),
+    resultsSub:      document.getElementById('acc-results-sub'),
+    tbody:           document.getElementById('acc-tbody'),
+    chartBars:       document.getElementById('acc-chart-bars'),
+    tipsSection:     document.getElementById('acc-tips-section'),
+    tipsList:        document.getElementById('acc-tips-list'),
+    projSection:     document.getElementById('acc-projection-section'),
+    projList:        document.getElementById('acc-projection-list'),
+    emptyMsg:        document.getElementById('acc-empty'),
+    selectAll:       document.getElementById('acc-select-all'),
+    selectNone:      document.getElementById('acc-select-none')
+  };
+
+  // ── Build model checkboxes ──────────────────────────────────────────────────
+  MODELS.forEach(function (m) {
+    var item = document.createElement('label');
+    item.className = 'acc-model-item' + (m.defaultOn ? ' acc-model-item--checked' : '');
+    item.setAttribute('for', 'acc-cb-' + m.id);
+
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = 'acc-cb-' + m.id;
+    cb.checked = m.defaultOn;
+    cb.setAttribute('data-model-id', m.id);
+
+    var info = document.createElement('div');
+    info.className = 'acc-model-info';
+
+    var nameRow = document.createElement('div');
+    nameRow.style.display = 'flex';
+    nameRow.style.alignItems = 'center';
+
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'acc-model-name';
+    nameSpan.textContent = m.name;
+
+    var badge = document.createElement('span');
+    badge.className = 'acc-model-badge acc-model-badge--' + m.providerKey;
+    badge.textContent = m.provider;
+
+    nameRow.appendChild(nameSpan);
+    nameRow.appendChild(badge);
+
+    var meta = document.createElement('div');
+    meta.className = 'acc-model-meta';
+    if (m.opensource) {
+      meta.textContent = '$0 self-hosted (open source)';
+    } else {
+      meta.textContent = '$' + fmt(m.inputPer1M) + ' / $' + fmt(m.outputPer1M) + ' per 1M tokens';
+    }
+
+    info.appendChild(nameRow);
+    info.appendChild(meta);
+    item.appendChild(cb);
+    item.appendChild(info);
+    els.modelsGrid.appendChild(item);
+
+    cb.addEventListener('change', function () {
+      item.classList.toggle('acc-model-item--checked', cb.checked);
+    });
+  });
+
+  // ── Mode switching ──────────────────────────────────────────────────────────
+  document.querySelectorAll('.acc-mode-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.acc-mode-btn').forEach(function (b) {
+        b.classList.remove('acc-mode-btn--active');
+      });
+      btn.classList.add('acc-mode-btn--active');
+      currentMode = btn.getAttribute('data-mode');
+      els.panelTokens.style.display  = currentMode === 'tokens'  ? '' : 'none';
+      els.panelText.style.display    = currentMode === 'text'    ? '' : 'none';
+      els.panelMonthly.style.display = currentMode === 'monthly' ? '' : 'none';
+    });
+  });
+
+  // ── Token estimation from text ─────────────────────────────────────────────
+  function estimateTokens(text) {
+    // ~4 chars per token for English; count words as rough approximation
+    return Math.max(1, Math.round(text.length / 4));
+  }
+
+  var textDebounce = null;
+  els.textInput.addEventListener('input', function () {
+    clearTimeout(textDebounce);
+    textDebounce = setTimeout(function () {
+      var text = els.textInput.value;
+      if (!text.trim()) {
+        els.tokenEstimate.style.display = 'none';
+        return;
+      }
+      var inTok = estimateTokens(text);
+      var ratio = parseFloat(els.textRatio.value) || 1;
+      var outTok = Math.round(inTok * ratio);
+      els.tokenCount.textContent = inTok.toLocaleString();
+      els.tokenOutCount.textContent = outTok.toLocaleString();
+      els.tokenEstimate.style.display = '';
+    }, 200);
+  });
+  els.textRatio.addEventListener('change', function () {
+    if (els.textInput.value.trim()) {
+      els.textInput.dispatchEvent(new Event('input'));
+    }
+  });
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  function fmt(n) {
+    if (n === 0) return '0';
+    if (n < 0.01) return n.toFixed(4);
+    if (n < 1) return n.toFixed(2);
+    if (n < 100) return n.toFixed(4);
+    return n.toFixed(2);
+  }
+
+  function fmtCost(n) {
+    if (n === 0) return '$0.00';
+    if (n < 0.0001) return '<$0.0001';
+    if (n < 0.01) return '$' + n.toFixed(6);
+    if (n < 1) return '$' + n.toFixed(4);
+    if (n < 100) return '$' + n.toFixed(4);
+    return '$' + n.toFixed(2);
+  }
+
+  function getCheckedModels() {
+    var result = [];
+    document.querySelectorAll('#acc-models-grid input[type="checkbox"]').forEach(function (cb) {
+      if (cb.checked) {
+        var id = cb.getAttribute('data-model-id');
+        for (var i = 0; i < MODELS.length; i++) {
+          if (MODELS[i].id === id) { result.push(MODELS[i]); break; }
+        }
+      }
+    });
+    return result;
+  }
+
+  function getUsage() {
+    var inTok, outTok, requests, isMonthly = false;
+    if (currentMode === 'tokens') {
+      inTok    = parseFloat(els.inputTokens.value)  || 0;
+      outTok   = parseFloat(els.outputTokens.value) || 0;
+      requests = parseFloat(els.requests.value)     || 1;
+    } else if (currentMode === 'text') {
+      var text = els.textInput.value;
+      inTok    = text.trim() ? estimateTokens(text) : 0;
+      var ratio = parseFloat(els.textRatio.value) || 1;
+      outTok   = Math.round(inTok * ratio);
+      requests = parseFloat(els.textRequests.value) || 1;
+    } else {
+      var rpd    = parseFloat(els.monthlyRpd.value)    || 0;
+      inTok      = parseFloat(els.monthlyInput.value)  || 0;
+      outTok     = parseFloat(els.monthlyOutput.value) || 0;
+      requests   = rpd * 30;
+      isMonthly  = true;
+    }
+    return { inTok: inTok, outTok: outTok, requests: requests, isMonthly: isMonthly };
+  }
+
+  function calcCost(model, usage) {
+    var inCost  = (model.inputPer1M  / 1e6) * usage.inTok  * usage.requests;
+    var outCost = (model.outputPer1M / 1e6) * usage.outTok * usage.requests;
+    return { inCost: inCost, outCost: outCost, total: inCost + outCost };
+  }
+
+  // ── Select all / none ───────────────────────────────────────────────────────
+  els.selectAll.addEventListener('click', function () {
+    document.querySelectorAll('#acc-models-grid input[type="checkbox"]').forEach(function (cb) {
+      cb.checked = true;
+      cb.closest('.acc-model-item').classList.add('acc-model-item--checked');
+    });
+  });
+  els.selectNone.addEventListener('click', function () {
+    document.querySelectorAll('#acc-models-grid input[type="checkbox"]').forEach(function (cb) {
+      cb.checked = false;
+      cb.closest('.acc-model-item').classList.remove('acc-model-item--checked');
+    });
+  });
+
+  // ── Calculate ───────────────────────────────────────────────────────────────
+  els.calcBtn.addEventListener('click', calculate);
+
+  // Recalculate on any input change (debounced)
+  var calcDebounce = null;
+  function scheduleCalc() {
+    clearTimeout(calcDebounce);
+    calcDebounce = setTimeout(calculate, 400);
+  }
+  [els.inputTokens, els.outputTokens, els.requests,
+   els.textInput, els.textRatio, els.textRequests,
+   els.monthlyRpd, els.monthlyInput, els.monthlyOutput].forEach(function (el) {
+    el.addEventListener('input', scheduleCalc);
+    el.addEventListener('change', scheduleCalc);
+  });
+  document.querySelectorAll('#acc-models-grid input[type="checkbox"]').forEach(function (cb) {
+    cb.addEventListener('change', scheduleCalc);
+  });
+
+  function calculate() {
+    var models = getCheckedModels();
+    if (!models.length) {
+      els.calcSummary.textContent = 'Select at least one model.';
+      els.results.style.display = 'none';
+      els.emptyMsg.style.display = '';
+      return;
+    }
+
+    var usage = getUsage();
+    if (usage.inTok === 0 && usage.outTok === 0) {
+      els.calcSummary.textContent = 'Enter token counts above.';
+      els.results.style.display = 'none';
+      els.emptyMsg.style.display = '';
+      return;
+    }
+
+    var rows = models.map(function (m) {
+      var costs = calcCost(m, usage);
+      return { model: m, inCost: costs.inCost, outCost: costs.outCost, total: costs.total };
+    });
+
+    // Sort cheapest first; open-source ($0) sorts by capability tier then name
+    rows.sort(function (a, b) {
+      if (a.total !== b.total) return a.total - b.total;
+      return a.model.name.localeCompare(b.model.name);
+    });
+
+    var maxTotal = rows[rows.length - 1].total;
+    var minTotal = rows[0].total;
+
+    // ── Summary text ───────────────────────────────────────────────────────────
+    var totalInputTokens  = usage.inTok  * usage.requests;
+    var totalOutputTokens = usage.outTok * usage.requests;
+    els.calcSummary.textContent =
+      totalInputTokens.toLocaleString() + ' input + ' +
+      totalOutputTokens.toLocaleString() + ' output tokens' +
+      (usage.requests > 1 ? ' (' + Math.round(usage.requests).toLocaleString() + ' requests)' : '');
+
+    // ── Table ─────────────────────────────────────────────────────────────────
+    while (els.tbody.firstChild) els.tbody.removeChild(els.tbody.firstChild);
+
+    rows.forEach(function (row, i) {
+      var tr = document.createElement('tr');
+
+      // Rank cell
+      var tdModel = document.createElement('td');
+      tdModel.className = 'acc-td-model';
+      var rankSpan = document.createElement('span');
+      rankSpan.className = 'acc-rank-badge ' + (i === 0 ? 'acc-rank-1' : i === 1 ? 'acc-rank-2' : 'acc-rank-n');
+      rankSpan.textContent = i + 1;
+      tdModel.appendChild(rankSpan);
+      tdModel.appendChild(document.createTextNode(row.model.name));
+      if (row.model.opensource) {
+        var freeBadge = document.createElement('span');
+        freeBadge.className = 'acc-free-badge';
+        freeBadge.textContent = 'open source';
+        tdModel.appendChild(freeBadge);
+      }
+
+      var tdProvider = document.createElement('td');
+      tdProvider.className = 'acc-td-provider';
+      var provBadge = document.createElement('span');
+      provBadge.className = 'acc-model-badge acc-model-badge--' + row.model.providerKey;
+      provBadge.textContent = row.model.provider;
+      tdProvider.appendChild(provBadge);
+
+      var tdIn = document.createElement('td');
+      tdIn.className = 'acc-td-num';
+      tdIn.textContent = row.model.opensource ? '—' : fmtCost(row.inCost);
+
+      var tdOut = document.createElement('td');
+      tdOut.className = 'acc-td-num';
+      tdOut.textContent = row.model.opensource ? '—' : fmtCost(row.outCost);
+
+      var tdTotal = document.createElement('td');
+      tdTotal.className = 'acc-td-num';
+      tdTotal.style.fontWeight = '700';
+      tdTotal.textContent = row.model.opensource ? '$0 (self-hosted)' : fmtCost(row.total);
+
+      var tdSavings = document.createElement('td');
+      tdSavings.className = 'acc-td-savings';
+      if (maxTotal === 0 || row.model.opensource) {
+        tdSavings.innerHTML = '<span class="acc-savings-none">—</span>';
+      } else if (i === rows.length - 1) {
+        tdSavings.innerHTML = '<span class="acc-savings-none">baseline</span>';
+      } else {
+        var pct = maxTotal > 0 ? Math.round(((maxTotal - row.total) / maxTotal) * 100) : 0;
+        tdSavings.innerHTML = '<span class="acc-savings-good">-' + pct + '%</span>';
+      }
+
+      tr.appendChild(tdModel);
+      tr.appendChild(tdProvider);
+      tr.appendChild(tdIn);
+      tr.appendChild(tdOut);
+      tr.appendChild(tdTotal);
+      tr.appendChild(tdSavings);
+      els.tbody.appendChild(tr);
+    });
+
+    // ── Bar chart ─────────────────────────────────────────────────────────────
+    while (els.chartBars.firstChild) els.chartBars.removeChild(els.chartBars.firstChild);
+
+    var nonZeroMax = 0;
+    rows.forEach(function (r) { if (r.total > nonZeroMax) nonZeroMax = r.total; });
+
+    rows.forEach(function (row, i) {
+      var div = document.createElement('div');
+      div.className = 'acc-bar-row';
+
+      var name = document.createElement('div');
+      name.className = 'acc-bar-name';
+      name.textContent = row.model.name;
+      name.title = row.model.name;
+
+      var track = document.createElement('div');
+      track.className = 'acc-bar-track';
+
+      var fill = document.createElement('div');
+      fill.className = 'acc-bar-fill' + (i === 0 ? ' acc-bar-fill--best' : '');
+      var pct = nonZeroMax > 0 ? Math.max(2, (row.total / nonZeroMax) * 100) : 2;
+      if (row.model.opensource && nonZeroMax > 0) pct = 2;
+      fill.style.width = pct + '%';
+
+      var val = document.createElement('div');
+      val.className = 'acc-bar-val';
+      val.textContent = row.model.opensource ? '$0*' : fmtCost(row.total);
+
+      track.appendChild(fill);
+      div.appendChild(name);
+      div.appendChild(track);
+      div.appendChild(val);
+      els.chartBars.appendChild(div);
+    });
+
+    // ── Optimization tips ─────────────────────────────────────────────────────
+    while (els.tipsList.firstChild) els.tipsList.removeChild(els.tipsList.firstChild);
+
+    var tips = [];
+
+    // Cheapest vs most expensive
+    var paidRows = rows.filter(function (r) { return !r.model.opensource && r.total > 0; });
+    if (paidRows.length >= 2) {
+      var cheapest  = paidRows[0];
+      var priciest  = paidRows[paidRows.length - 1];
+      var savingsPct = Math.round(((priciest.total - cheapest.total) / priciest.total) * 100);
+      if (savingsPct > 10) {
+        tips.push('Switching from <strong>' + priciest.model.name + '</strong> to <strong>' + cheapest.model.name + '</strong> saves <strong>' + savingsPct + '%</strong> on this workload.');
+      }
+    }
+
+    // Flag if a premium model's output cost is dominating
+    rows.forEach(function (row) {
+      if (!row.model.opensource && row.outCost > row.inCost * 3 && row.total > 0.001) {
+        tips.push('For <strong>' + row.model.name + '</strong>, output tokens drive ' + Math.round((row.outCost / row.total) * 100) + '% of cost. Reduce response length with tighter prompts or <code>max_tokens</code> to cut spend.');
+      }
+    });
+
+    // Flash/mini alternatives for premium models
+    var premiumMap = {
+      'claude-opus-4-6':  'claude-haiku-4-5',
+      'claude-sonnet-4-6':'claude-haiku-4-5',
+      'o3':               'o4-mini',
+      'gpt-4.1':          'gpt-4.1-mini',
+      'gemini-2.5-pro':   'gemini-2.5-flash'
+    };
+    var checkedIds = rows.map(function (r) { return r.model.id; });
+    rows.forEach(function (row) {
+      var alt = premiumMap[row.model.id];
+      if (alt && checkedIds.indexOf(alt) === -1) {
+        tips.push('<strong>' + alt + '</strong> is a cheaper alternative to <strong>' + row.model.name + '</strong> worth comparing — add it to the model list above.');
+      }
+    });
+
+    // Open source hint
+    var hasOpenSource = rows.some(function (r) { return r.model.opensource; });
+    if (!hasOpenSource) {
+      tips.push('Self-hosted open-source models like <strong>Llama 4 Maverick</strong> have $0 API cost at scale, though inference infrastructure adds operational overhead. Enable it above to include in the comparison.');
+    }
+
+    if (!tips.length) {
+      tips.push('Your current model selection looks well-optimized for this workload.');
+    }
+
+    tips.forEach(function (t) {
+      var div = document.createElement('div');
+      div.className = 'acc-tip';
+      var icon = document.createElement('span');
+      icon.className = 'acc-tip-icon';
+      icon.textContent = '›';
+      div.appendChild(icon);
+      var text = document.createElement('span');
+      text.innerHTML = t;
+      div.appendChild(text);
+      els.tipsList.appendChild(div);
+    });
+
+    // ── Monthly projection (for tokens / text modes) ───────────────────────────
+    if (!usage.isMonthly && rows.length > 0) {
+      while (els.projList.firstChild) els.projList.removeChild(els.projList.firstChild);
+
+      var dailyReqs   = usage.requests;
+      var monthlyReqs = dailyReqs * 30;
+
+      var projRows = rows.slice(0, Math.min(4, rows.length));
+      projRows.forEach(function (row) {
+        var monthlyCost = (row.model.inputPer1M  / 1e6) * usage.inTok  * monthlyReqs
+                        + (row.model.outputPer1M / 1e6) * usage.outTok * monthlyReqs;
+
+        var div = document.createElement('div');
+        div.className = 'acc-proj-row';
+
+        var nm = document.createElement('span');
+        nm.className = 'acc-proj-name';
+        nm.textContent = row.model.name;
+
+        var vl = document.createElement('span');
+        vl.className = 'acc-proj-val';
+        vl.textContent = row.model.opensource ? '$0 / mo (self-hosted)' : fmtCost(monthlyCost) + ' / mo';
+
+        div.appendChild(nm);
+        div.appendChild(vl);
+        els.projList.appendChild(div);
+      });
+
+      var note = document.createElement('p');
+      note.style.cssText = 'font-size:0.75rem;color:var(--text-3,#888);margin:0.625rem 0 0;';
+      note.textContent = 'Projection assumes ' + Math.round(dailyReqs).toLocaleString() + ' requests/day × 30 days with the same token counts.';
+      els.projList.appendChild(note);
+
+      els.projSection.style.display = '';
+    } else {
+      els.projSection.style.display = 'none';
+    }
+
+    // ── Results sub-label ─────────────────────────────────────────────────────
+    var labelParts = [];
+    if (usage.inTok)  labelParts.push(usage.inTok.toLocaleString()  + ' input tokens');
+    if (usage.outTok) labelParts.push(usage.outTok.toLocaleString() + ' output tokens');
+    if (usage.requests !== 1) labelParts.push(Math.round(usage.requests).toLocaleString() + ' requests');
+    els.resultsSub.textContent = labelParts.join(' · ');
+
+    // ── Show/hide ─────────────────────────────────────────────────────────────
+    els.results.style.display  = '';
+    els.emptyMsg.style.display = 'none';
+  }
+
+  // ── Reset ──────────────────────────────────────────────────────────────────
+  els.resetBtn.addEventListener('click', function () {
+    els.inputTokens.value  = '1000';
+    els.outputTokens.value = '500';
+    els.requests.value     = '1';
+    els.textInput.value    = '';
+    els.textRatio.value    = '1';
+    els.textRequests.value = '1';
+    els.monthlyRpd.value   = '1000';
+    els.monthlyInput.value = '500';
+    els.monthlyOutput.value= '200';
+    els.tokenEstimate.style.display = 'none';
+    els.results.style.display       = 'none';
+    els.emptyMsg.style.display      = '';
+    els.calcSummary.textContent     = '';
+    document.querySelectorAll('#acc-models-grid input[type="checkbox"]').forEach(function (cb) {
+      var id = cb.getAttribute('data-model-id');
+      for (var i = 0; i < MODELS.length; i++) {
+        if (MODELS[i].id === id) {
+          cb.checked = MODELS[i].defaultOn;
+          cb.closest('.acc-model-item').classList.toggle('acc-model-item--checked', MODELS[i].defaultOn);
+          break;
+        }
+      }
+    });
+  });
+
+  // Initial calculation on load
+  calculate();
+})();
+</script>
