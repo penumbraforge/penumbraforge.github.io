@@ -1461,6 +1461,10 @@ html {
 .tool-content textarea,
 .tool-content input[type="text"],
 .tool-content input[type="number"],
+.tool-content input[type="url"],
+.tool-content input[type="email"],
+.tool-content input[type="search"],
+.tool-content input:not([type]),
 .tool-content select {
   width: 100%;
   background: #06060c;
@@ -1479,6 +1483,10 @@ html {
 .tool-content textarea:focus,
 .tool-content input[type="text"]:focus,
 .tool-content input[type="number"]:focus,
+.tool-content input[type="url"]:focus,
+.tool-content input[type="email"]:focus,
+.tool-content input[type="search"]:focus,
+.tool-content input:not([type]):focus,
 .tool-content select:focus {
   border-color: rgba(184, 165, 214, 0.15);
   box-shadow: 0 0 0 3px rgba(184, 165, 214, 0.04);
@@ -5513,27 +5521,25 @@ body:has(.tools-hub-page) {
   gap: 12px;
 }
 
-/* --- Tools search bar — mobile only, sticky --- */
+/* --- Tools search bar — mobile only, fixed to top --- */
 .tools-mobile-search {
   display: none;
 }
 @media (max-width: 900px) {
-  /* Remove top padding from scroll container so sticky works flush */
-  .tools-content {
-    padding-top: 0;
-  }
-  /* Push the title down instead */
-  .tools-content-title {
-    padding-top: 20px;
-  }
   .tools-mobile-search {
     display: block;
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    margin: 0 -16px;
-    padding: 10px 16px;
+    position: fixed;
+    top: 57px;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    padding: 8px 16px;
     background: var(--surface-0);
+    border-bottom: 1px solid var(--border);
+  }
+  /* Offset content so it doesn't hide behind fixed search bar */
+  .tools-content {
+    padding-top: 56px;
   }
 }
 
