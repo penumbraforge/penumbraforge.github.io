@@ -2254,6 +2254,7 @@ a.t-card {
   .hero-stats {
     gap: 20px;
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .stat-num {
@@ -5515,10 +5516,9 @@ body:has(.tools-hub-page) {
 /* --- Tools search bar (all screen sizes) --- */
 .tools-mobile-search {
   position: sticky;
-  top: -1px;
+  top: 0;
   z-index: 20;
-  padding: 8px 0;
-  margin: -8px 0 12px;
+  padding: 8px 0 12px;
   background: var(--surface-0);
 }
 
@@ -5741,7 +5741,7 @@ body:has(.tools-hub-page) {
   }
 
   .category-header {
-    padding: 14px 0;
+    padding: 18px 0;
     border-bottom: 1px solid var(--border);
     margin-bottom: 0;
   }
@@ -5755,6 +5755,15 @@ body:has(.tools-hub-page) {
   }
 
   /* Desktop search: not sticky, give some breathing room */
+}
+
+@media (max-width: 768px) {
+  .tools-content { padding: 20px 16px; }
+  .tool-related-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .featured-grid { grid-template-columns: 1fr; }
 }
 
 /* ============================================================
