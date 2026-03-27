@@ -60,6 +60,13 @@ workerUrl: "https://lab-xss.penumbraforge.workers.dev"
     xpReward: 100,
     skills: ['injection-reflected-xss'],
     unlocks: ['blue-investigate-shopstack'],
+    optimalActions: 6,
+    techniqueChecks: [
+      { id: 'recon-curl', check: function(log) { return log.some(function(a) { return a.type === 'terminal' && a.command === 'curl' && a.url && a.url.indexOf('/search') !== -1; }); }, points: 25 },
+      { id: 'used-repeater', check: function(log) { return log.some(function(a) { return a.type === 'repeater'; }); }, points: 25 },
+      { id: 'js-executed', check: function(log) { return log.some(function(a) { return a.type === 'iframe_message' && a.message && a.message.type === 'xss-fired'; }); }, points: 25 },
+      { id: 'cookie-accessed', check: function(log) { return log.some(function(a) { return a.type === 'iframe_message' && a.message && a.message.type === 'cookie-accessed'; }); }, points: 25 }
+    ],
 
     stateGraph: {
       states: {
@@ -162,7 +169,14 @@ workerUrl: "https://lab-xss.penumbraforge.workers.dev"
     },
     onComplete: function() {
       var elapsed = Labs.Timer.stop();
-      var result = Labs.SimulationBridge.onLabComplete(scenario.id, scenario, elapsed);
+      var scoringData = {
+        actionsLog: sim.getActionsLog(),
+        nudgesShown: sim._nudgeRef ? sim._nudgeRef._shownCount || 0 : 0,
+        nudgesDismissed: sim._nudgeRef ? sim._nudgeRef._dismissCount || 0 : 0,
+        evidenceFound: 4,  // all 4 states reached
+        totalEvidence: 4
+      };
+      var result = Labs.SimulationBridge.onLabComplete(scenario.id, scenario, elapsed, scoringData);
       showCompletion(result, elapsed);
     }
   });
@@ -265,12 +279,13 @@ workerUrl: "https://lab-xss.penumbraforge.workers.dev"
   }
 
   function showCompletion(result, elapsed) {
+    // Update completion overlay with scoring data
     document.getElementById('complete-time').textContent = Labs.Timer.format(elapsed);
-    document.getElementById('complete-score').textContent = '100';
-    document.getElementById('complete-xp').textContent = '+' + result.xp;
+    document.getElementById('complete-score').textContent = result.scoring ? result.scoring.composite : 100;
+    document.getElementById('complete-xp').textContent = '+' + (result.scoring ? result.scoring.xp : result.xp);
     document.getElementById('complete-level').textContent = 'Level ' + result.level + ' — ' + Labs.Xp.titleForLevel(result.level);
 
-    // Show unlock link if applicable
+    // Show unlock
     if (scenario.unlocks && scenario.unlocks.length > 0) {
       var unlockEl = document.getElementById('complete-unlock');
       if (unlockEl) {
@@ -281,6 +296,32 @@ workerUrl: "https://lab-xss.penumbraforge.workers.dev"
     }
 
     document.getElementById('lab-complete-overlay').classList.add('visible');
+
+    // Render debrief in the debrief tab
+    var debriefPanel = document.getElementById('debrief-panel');
+    if (debriefPanel && Labs.Debrief) {
+      debriefPanel.style.display = '';
+      Labs.Debrief.render({
+        container: debriefPanel,
+        scoring: result.scoring,
+        elapsed: elapsed,
+        scenario: scenario,
+        debriefContent: {
+          analysis: '<div class="debrief-card"><h3>Vulnerability: CWE-79 — Reflected Cross-Site Scripting</h3><p>ShopStack\'s search endpoint reflects user input via <code>innerHTML</code> without encoding. The query parameter <code>q</code> is inserted directly into the HTML response, allowing injected JavaScript to execute in the victim\'s browser context.</p><p>This vulnerability allows an attacker to steal session cookies, modify page content, redirect users, or perform actions on behalf of authenticated users.</p></div>',
+
+          framework: '<div class="debrief-card"><h3>MITRE ATT&CK Mapping</h3><p><strong>T1189</strong> — Drive-by Compromise: Initial access via malicious link to XSS payload</p><p><strong>T1539</strong> — Steal Web Session Cookie: Exfiltration of session tokens via JavaScript</p><p><strong>T1078</strong> — Valid Accounts: Attacker uses stolen sessions to access victim accounts</p></div><div class="debrief-card"><h3>OWASP Top 10</h3><p><strong>A03:2021</strong> — Injection: User input reflected without sanitization</p></div>',
+
+          code: '<div class="debrief-section-title">Vulnerable Code</div><div class="debrief-code"><span class="vuln">res.send(`&lt;h2&gt;Results for: ${query}&lt;/h2&gt;`);</span>\n// User input interpolated directly into HTML\n// No encoding, no sanitization, no CSP</div><div class="debrief-section-title" style="margin-top:16px;">The Fix</div><div class="debrief-code"><span class="fix">const safe = query\n  .replace(/&amp;/g, \'&amp;amp;\')\n  .replace(/&lt;/g, \'&amp;lt;\')\n  .replace(/&gt;/g, \'&amp;gt;\')\n  .replace(/"/g, \'&amp;quot;\');\nres.send(`&lt;h2&gt;Results for: ${safe}&lt;/h2&gt;`);</span></div>',
+
+          crossPerspective: {
+            title: 'What a Defender Sees',
+            description: 'From the SOC\'s perspective, this attack shows up as WAF alerts for XSS signatures, followed by suspicious outbound connections to an unknown domain, then session tokens appearing from geographically impossible locations. The WAF was in monitor-only mode — it detected the attack but didn\'t block it.',
+            linkText: 'Try the Blue Team Investigation →',
+            linkHref: '/labs/blue/investigate-shopstack/'
+          }
+        }
+      });
+    }
 
     // Update mission status
     var statusEl = document.getElementById('ws-mission-status');
