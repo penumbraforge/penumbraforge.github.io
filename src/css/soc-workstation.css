@@ -346,3 +346,5 @@
 .debrief-evidence-item { font-size:10px; padding:4px 8px; border-radius:3px; }
 .debrief-evidence-item.found { background:rgba(74,222,128,0.1); color:#4ade80; }
 .debrief-evidence-item.missed { background:rgba(239,68,68,0.1); color:#ef4444; }
+.ws-scaffolding-toggle, .soc-scaffolding-toggle { cursor:pointer; color:#555; font-size:10px; user-select:none; }
+.ws-scaffolding-toggle:hover, .soc-scaffolding-toggle:hover { color:#8b8fa3; }

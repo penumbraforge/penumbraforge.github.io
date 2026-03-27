@@ -255,6 +255,31 @@
       this._removeOverlay();
     },
 
+    toggle: function () {
+      if (this._disabled) {
+        this._disabled = false;
+        // Restart interval if not running
+        if (!this._interval) {
+          var self = this;
+          this._interval = setInterval(function () {
+            var elapsed = (Date.now() - self._lastActionTime) / 1000;
+            self.tick(elapsed);
+          }, 5000);
+        }
+      } else {
+        this._disabled = true;
+        if (this._interval) {
+          clearInterval(this._interval);
+          this._interval = null;
+        }
+        this._removeOverlay();
+      }
+    },
+
+    isEnabled: function () {
+      return !this._disabled;
+    },
+
     disable: function () {
       this._disabled = true;
       if (this._interval) {
@@ -348,8 +373,12 @@
         }
       });
 
+      // Expose nudge engine reference for scaffolding toggle
+      this._nudgeRef = nudgeEngine;
+
       // Return the controller
       return {
+        _nudgeRef: nudgeEngine,
         dispatch: function (action) {
           nudgeEngine.resetTimer();
           actionRouter.dispatch(action);

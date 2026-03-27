@@ -69,6 +69,8 @@
 <script src="/js/lab-engine.js"></script>
 <script src="/js/panel-system.js"></script>
 <script src="/js/simulation-engine.js"></script>
+<script src="/js/scoring.js"></script>
+<script src="/js/debrief.js"></script>
 <script src="/js/soc-siem.js"></script>
 <script src="/js/soc-timeline.js"></script>
 <script src="/js/soc-ioc-lookup.js"></script>
@@ -128,6 +130,9 @@
       <span class="soc-status-item">Sources: 6</span>
       <span class="soc-status-item" id="soc-event-count">Events: 0</span>
       <span class="soc-status-item" id="soc-evidence-count">Evidence: 0/8</span>
+      <span class="soc-scaffolding-toggle" id="scaffolding-toggle" onclick="(function(){var n=window.PenumbraLabs.Simulation&&window.PenumbraLabs.Simulation._nudgeRef;if(n){n.toggle();document.getElementById('scaffolding-status').textContent=n.isEnabled()?'ON':'OFF';}})()">
+        Scaffolding: <span id="scaffolding-status">ON</span>
+      </span>
       <span class="soc-status-item soc-status-right" id="soc-level"></span>
     </div>
   </div>

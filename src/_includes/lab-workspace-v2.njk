@@ -65,6 +65,8 @@
 <script src="/js/lab-engine.js"></script>
 <script src="/js/panel-system.js"></script>
 <script src="/js/simulation-engine.js"></script>
+<script src="/js/scoring.js"></script>
+<script src="/js/debrief.js"></script>
 <script src="/js/workstation-terminal.js"></script>
 <script src="/js/workstation-repeater.js"></script>
 <script src="/js/workstation-decoder.js"></script>
@@ -118,6 +120,9 @@
       <span class="ws-status-item">Target: {{ targetHost }}</span>
       <span class="ws-status-item" id="ws-request-count">Requests: 0</span>
       <span class="ws-status-item" id="ws-detection"></span>
+      <span class="ws-scaffolding-toggle" id="scaffolding-toggle" onclick="(function(){var n=window.PenumbraLabs.Simulation&&window.PenumbraLabs.Simulation._nudgeRef;if(n){n.toggle();document.getElementById('scaffolding-status').textContent=n.isEnabled()?'ON':'OFF';}})()">
+        Scaffolding: <span id="scaffolding-status">ON</span>
+      </span>
       <span class="ws-status-item ws-status-right" id="ws-level"></span>
     </div>
   </div>
