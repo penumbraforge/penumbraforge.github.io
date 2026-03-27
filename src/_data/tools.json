@@ -705,5 +705,18 @@
     "relatedTools": ["secrets-scanner", "log-parser", "ir-timeline"],
     "status": "live",
     "isNew": true
+  },
+  {
+    "name": "Prompt Injection Tester",
+    "slug": "prompt-injection-tester",
+    "description": "Test your LLM system prompts against 150+ known injection techniques.",
+    "longDescription": "Paste your AI system prompt and test it against 150+ prompt injection techniques — direct overrides, delimiter escapes, encoding bypasses, extraction attacks, and 2026-era agentic hijacking patterns. Get a vulnerability score with specific hardening recommendations. 100% client-side.",
+    "category": "security",
+    "keywords": ["prompt injection", "llm security", "ai security", "jailbreak", "system prompt", "red team ai", "prompt hardening", "dan", "injection attack", "ai safety"],
+    "badge": "local",
+    "featured": true,
+    "isNew": true,
+    "relatedTools": ["secrets-scanner", "jwt-attack", "redos-tester"],
+    "status": "live"
   }
 ]
