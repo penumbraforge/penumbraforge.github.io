@@ -1434,7 +1434,7 @@ html {
   border-radius: 16px;
   padding: 32px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .tool-content::before {
@@ -5494,6 +5494,15 @@ body:has(.tools-hub-page) {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-3);
+}
+
+/* AI category — distinct accent to signal 2026 differentiator */
+#cat-ai .category-icon,
+#cat-ai .category-name {
+  color: var(--accent, #7c6aff);
+}
+#cat-ai .category-header {
+  border-bottom-color: color-mix(in srgb, var(--accent, #7c6aff) 30%, transparent);
 }
 
 /* Tools grid within categories */
