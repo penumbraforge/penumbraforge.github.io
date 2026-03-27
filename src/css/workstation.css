@@ -25,6 +25,7 @@
   height: calc(100vh - 48px);
   overflow: hidden;
   background: var(--surface-0);
+  position: relative;
 }
 
 /* ── Panel Base ── */
@@ -188,7 +189,8 @@ body.ws-dragging iframe {
 .ws-topbar-timer { color:var(--ws-label); margin-left:auto; font-size:12px; }
 
 /* ═══ Mission Panel Tabs ═══ */
-.ws-panel-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--surface-1); }
+.ws-panel-tabs { display:flex; border-bottom:1px solid var(--border); background:var(--surface-1); overflow-x:auto; -ms-overflow-style:none; scrollbar-width:none; }
+.ws-panel-tabs::-webkit-scrollbar { display:none; }
 .ws-tab { padding:8px 14px; font-size:11px; color:var(--text-3); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; text-transform:uppercase; letter-spacing:0.5px; font-family:inherit; }
 .ws-tab.active { color:var(--ws-accent); border-bottom-color:var(--ws-accent); }
 .ws-tab:hover:not(.active) { color:var(--text-2); }
@@ -197,7 +199,8 @@ body.ws-dragging iframe {
 .ws-mission-empty { color:var(--text-3); font-size:12px; font-style:italic; padding:16px 0; }
 
 /* ═══ Tool Tabs ═══ */
-.ws-tool-tabs { display:flex; background:var(--surface-1); border-bottom:1px solid var(--border); padding:0 8px; }
+.ws-tool-tabs { display:flex; background:var(--surface-1); border-bottom:1px solid var(--border); padding:0 8px; overflow-x:auto; -ms-overflow-style:none; scrollbar-width:none; }
+.ws-tool-tabs::-webkit-scrollbar { display:none; }
 .ws-tool-tab { padding:8px 16px; font-size:11px; color:var(--text-3); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; display:flex; align-items:center; gap:6px; font-family:inherit; }
 .ws-tool-tab.active { color:var(--ws-tool-active); border-bottom-color:var(--ws-tool-active); }
 .ws-tool-tab:hover:not(.active):not(:disabled) { color:var(--text-2); }
@@ -254,7 +257,7 @@ body.ws-dragging iframe {
 .ws-disclaimer-btn { padding:10px 24px; background:var(--ws-accent); color:white; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; margin-top:8px; font-family:inherit; }
 
 /* ═══ Nudge ═══ */
-.ws-nudge { position:fixed; bottom:40px; left:300px; background:var(--surface-2); border:1px solid var(--border-active); border-left:3px solid var(--ws-label); padding:10px 14px; border-radius:4px; max-width:280px; z-index:10; animation:nudgeFadeIn 0.5s ease; font-size:11px; }
+.ws-nudge { position:absolute; bottom:40px; left:296px; background:var(--surface-2); border:1px solid var(--border-active); border-left:3px solid var(--ws-label); padding:10px 14px; border-radius:4px; max-width:280px; z-index:10; animation:nudgeFadeIn 0.5s ease; font-size:11px; }
 .ws-nudge-label { color:var(--ws-label); font-size:9px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
 .ws-nudge-text { color:var(--text-1); line-height:1.5; }
 .ws-nudge-dismiss { color:var(--text-3); font-size:10px; margin-top:6px; cursor:pointer; }
