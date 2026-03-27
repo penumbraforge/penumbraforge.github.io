@@ -100,17 +100,17 @@ const STYLES = `
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; color: #1f2937; line-height: 1.5; }
 
   /* Promo banner */
-  .promo-banner { background: #1e1b4b; color: #e0e7ff; padding: 10px 24px; text-align: center; font-size: 13px; font-weight: 500; letter-spacing: 0.3px; }
+  .promo-banner { background: #1e1b4b; color: #e0e7ff; padding: 8px 12px; text-align: center; font-size: 11px; font-weight: 500; letter-spacing: 0.3px; }
 
   /* Header / Nav */
-  .header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; }
-  .header-left { display: flex; align-items: center; gap: 32px; }
+  .header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; flex-wrap: nowrap; overflow: hidden; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
   .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-  .logo-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 16px; }
-  .logo-text { font-size: 20px; font-weight: 700; color: #1f2937; letter-spacing: -0.5px; }
+  .logo-icon { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 14px; }
+  .logo-text { font-size: 16px; font-weight: 700; color: #1f2937; letter-spacing: -0.5px; }
   .logo-text span { color: #6366f1; }
   .nav { display: flex; gap: 4px; }
-  .nav a { color: #6b7280; text-decoration: none; font-size: 14px; font-weight: 500; padding: 8px 14px; border-radius: 8px; transition: all 150ms; }
+  .nav a { color: #6b7280; text-decoration: none; font-size: 12px; font-weight: 500; padding: 6px 10px; border-radius: 8px; transition: all 150ms; }
   .nav a:hover { color: #1f2937; background: #f3f4f6; }
   .nav a.active { color: #6366f1; background: #eef2ff; }
 
@@ -121,7 +121,12 @@ const STYLES = `
   .cart-badge { position: absolute; top: -6px; right: -8px; background: #6366f1; color: #fff; font-size: 10px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 
   /* Container */
-  .container { max-width: 1060px; margin: 0 auto; padding: 24px 24px 0; }
+  .container { max-width: 100%; margin: 0 auto; padding: 16px 16px 0; }
+
+  @media (max-width: 500px) {
+    .nav { display: none; }
+    .header-right .avatar { display: none; }
+  }
 
   /* Search section */
   .search-section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
@@ -141,7 +146,7 @@ const STYLES = `
   .sort-select:focus { border-color: #6366f1; }
 
   /* Product grid */
-  .products { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px; }
+  .products { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
   .product { background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; transition: all 200ms; cursor: pointer; }
   .product:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); border-color: #c7d2fe; }
   .product-img { height: 140px; display: flex; align-items: center; justify-content: center; position: relative; }
@@ -166,11 +171,11 @@ const STYLES = `
   .breadcrumb span { margin: 0 6px; }
 
   /* Footer */
-  .footer { text-align: center; padding: 32px 24px; color: #9ca3af; font-size: 12px; border-top: 1px solid #e5e7eb; margin-top: 48px; background: #fff; }
+  .footer { text-align: center; padding: 16px 12px; color: #9ca3af; font-size: 11px; border-top: 1px solid #e5e7eb; margin-top: 48px; background: #fff; }
   .footer a { color: #6b7280; text-decoration: none; }
   .footer a:hover { color: #6366f1; }
-  .footer-links { margin-top: 6px; }
-  .footer-links a { margin: 0 12px; }
+  .footer-links { margin-top: 6px; flex-wrap: wrap; }
+  .footer-links a { margin: 0 6px; }
 
   /* Section title */
   .section-title { font-size: 17px; font-weight: 600; color: #111827; margin-bottom: 16px; }

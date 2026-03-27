@@ -191,24 +191,29 @@ const STYLES = `
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f0f9ff; color:#1f2937; }
 
-  .mc-topbar { background:#0c4a6e; color:#7dd3fc; padding:8px 32px; font-size:11px; display:flex; justify-content:space-between; align-items:center; }
+  .mc-topbar { background:#0c4a6e; color:#7dd3fc; padding:6px 12px; font-size:10px; display:flex; justify-content:space-between; align-items:center; }
   .mc-topbar-hipaa { display:flex; align-items:center; gap:6px; }
 
-  .mc-header { background:#fff; border-bottom:1px solid #e0f2fe; padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-  .mc-header-left { display:flex; align-items:center; gap:32px; }
+  .mc-header { background:#fff; border-bottom:1px solid #e0f2fe; padding:0 16px; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(0,0,0,0.04); flex-wrap:nowrap; overflow:hidden; }
+  .mc-header-left { display:flex; align-items:center; gap:12px; }
   .mc-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
-  .mc-logo-icon { width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,#0ea5e9,#38bdf8); display:flex; align-items:center; justify-content:center; }
-  .mc-logo-icon svg { width:20px; height:20px; }
-  .mc-logo-text { font-size:20px; font-weight:700; color:#0c4a6e; letter-spacing:-0.5px; }
+  .mc-logo-icon { width:26px; height:26px; border-radius:8px; background:linear-gradient(135deg,#0ea5e9,#38bdf8); display:flex; align-items:center; justify-content:center; }
+  .mc-logo-icon svg { width:16px; height:16px; }
+  .mc-logo-text { font-size:16px; font-weight:700; color:#0c4a6e; letter-spacing:-0.5px; }
   .mc-logo-text span { color:#0ea5e9; }
   .mc-nav { display:flex; gap:4px; }
-  .mc-nav a { color:#6b7280; text-decoration:none; font-size:14px; font-weight:500; padding:8px 14px; border-radius:8px; transition:all 150ms; }
+  .mc-nav a { color:#6b7280; text-decoration:none; font-size:12px; font-weight:500; padding:6px 10px; border-radius:8px; transition:all 150ms; }
   .mc-nav a:hover { color:#0c4a6e; background:#e0f2fe; }
   .mc-nav a.active { color:#0ea5e9; background:#e0f2fe; }
-  .mc-user { display:flex; align-items:center; gap:10px; font-size:13px; color:#6b7280; }
-  .mc-user-avatar { width:34px; height:34px; border-radius:50%; background:#e0f2fe; color:#0ea5e9; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .mc-user { display:flex; align-items:center; gap:10px; font-size:12px; color:#6b7280; }
+  .mc-user-avatar { width:28px; height:28px; border-radius:50%; background:#e0f2fe; color:#0ea5e9; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
 
-  .mc-container { max-width:1060px; margin:0 auto; padding:24px 24px 0; }
+  .mc-container { max-width:100%; margin:0 auto; padding:16px 16px 0; }
+
+  @media (max-width:500px) {
+    .mc-nav { display:none; }
+    .mc-user-avatar { display:none; }
+  }
 
   .mc-card { background:#fff; border:1px solid #e0f2fe; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
   .mc-card h2 { font-size:17px; color:#0c4a6e; margin-bottom:4px; font-weight:600; }
@@ -262,7 +267,7 @@ const STYLES = `
 
   .mc-warn { background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:14px 18px; margin-bottom:16px; font-size:13px; color:#ef4444; display:flex; align-items:center; gap:10px; }
 
-  .mc-footer { text-align:center; padding:32px 24px; color:#9ca3af; font-size:12px; border-top:1px solid #e0f2fe; margin-top:48px; background:#fff; }
+  .mc-footer { text-align:center; padding:16px 12px; color:#9ca3af; font-size:11px; border-top:1px solid #e0f2fe; margin-top:48px; background:#fff; flex-wrap:wrap; }
 `;
 
 function shell(title, activePage, content) {

@@ -53,26 +53,31 @@ const STYLES = `
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f0fdf4; color:#1f2937; }
 
-  .vb-topbar { background:#022c22; color:#6ee7b7; padding:8px 32px; font-size:11px; display:flex; justify-content:space-between; align-items:center; }
+  .vb-topbar { background:#022c22; color:#6ee7b7; padding:6px 12px; font-size:10px; display:flex; justify-content:space-between; align-items:center; }
   .vb-topbar-secure { display:flex; align-items:center; gap:6px; }
   .vb-topbar-secure svg { width:12px; height:12px; }
 
-  .vb-header { background:#fff; border-bottom:1px solid #d1fae5; padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-  .vb-header-left { display:flex; align-items:center; gap:32px; }
+  .vb-header { background:#fff; border-bottom:1px solid #d1fae5; padding:0 16px; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(0,0,0,0.04); flex-wrap:nowrap; overflow:hidden; }
+  .vb-header-left { display:flex; align-items:center; gap:12px; }
   .vb-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
-  .vb-logo-icon { width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,#059669,#10b981); display:flex; align-items:center; justify-content:center; }
-  .vb-logo-icon svg { width:20px; height:20px; }
-  .vb-logo-text { font-size:20px; font-weight:700; color:#065f46; letter-spacing:-0.5px; }
+  .vb-logo-icon { width:26px; height:26px; border-radius:8px; background:linear-gradient(135deg,#059669,#10b981); display:flex; align-items:center; justify-content:center; }
+  .vb-logo-icon svg { width:16px; height:16px; }
+  .vb-logo-text { font-size:16px; font-weight:700; color:#065f46; letter-spacing:-0.5px; }
   .vb-logo-text span { color:#059669; }
   .vb-nav { display:flex; gap:4px; }
-  .vb-nav a { color:#6b7280; text-decoration:none; font-size:14px; font-weight:500; padding:8px 14px; border-radius:8px; transition:all 150ms; }
+  .vb-nav a { color:#6b7280; text-decoration:none; font-size:12px; font-weight:500; padding:6px 10px; border-radius:8px; transition:all 150ms; }
   .vb-nav a:hover { color:#065f46; background:#ecfdf5; }
   .vb-nav a.active { color:#059669; background:#ecfdf5; }
-  .vb-user { display:flex; align-items:center; gap:10px; font-size:13px; color:#6b7280; }
-  .vb-user-avatar { width:34px; height:34px; border-radius:50%; background:#d1fae5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .vb-user { display:flex; align-items:center; gap:10px; font-size:12px; color:#6b7280; }
+  .vb-user-avatar { width:28px; height:28px; border-radius:50%; background:#d1fae5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
   .vb-user-dot { width:8px; height:8px; border-radius:50%; background:#10b981; }
 
-  .vb-container { max-width:1060px; margin:0 auto; padding:24px 24px 0; }
+  .vb-container { max-width:100%; margin:0 auto; padding:16px 16px 0; }
+
+  @media (max-width:500px) {
+    .vb-nav { display:none; }
+    .vb-user-avatar { display:none; }
+  }
 
   .vb-card { background:#fff; border:1px solid #d1fae5; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
   .vb-card h2 { font-size:17px; color:#065f46; margin-bottom:4px; font-weight:600; }
@@ -104,7 +109,7 @@ const STYLES = `
   .vb-data-label { color:#6b7280; min-width:120px; }
   .vb-data-value { color:#1f2937; }
 
-  .vb-footer { text-align:center; padding:32px 24px; color:#9ca3af; font-size:12px; border-top:1px solid #d1fae5; margin-top:48px; background:#fff; }
+  .vb-footer { text-align:center; padding:16px 12px; color:#9ca3af; font-size:11px; border-top:1px solid #d1fae5; margin-top:48px; background:#fff; flex-wrap:wrap; }
   .vb-status-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:20px; font-size:11px; color:#059669; font-weight:500; }
   .vb-quick-actions { display:flex; gap:10px; flex-wrap:wrap; }
   .vb-quick-actions a { padding:10px 20px; border-radius:10px; text-decoration:none; font-size:13px; font-weight:500; transition:all 150ms; }

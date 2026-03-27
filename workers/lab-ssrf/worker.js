@@ -52,23 +52,28 @@ const STYLES = `
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#faf5ff; color:#1f2937; }
 
-  .cs-topbar { background:#2e1065; color:#c4b5fd; padding:8px 32px; font-size:11px; display:flex; justify-content:space-between; align-items:center; }
+  .cs-topbar { background:#2e1065; color:#c4b5fd; padding:6px 12px; font-size:10px; display:flex; justify-content:space-between; align-items:center; }
 
-  .cs-header { background:#fff; border-bottom:1px solid #ede9fe; padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-  .cs-header-left { display:flex; align-items:center; gap:32px; }
+  .cs-header { background:#fff; border-bottom:1px solid #ede9fe; padding:0 16px; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(0,0,0,0.04); flex-wrap:nowrap; overflow:hidden; }
+  .cs-header-left { display:flex; align-items:center; gap:12px; }
   .cs-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
-  .cs-logo-icon { width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,#8b5cf6,#a78bfa); display:flex; align-items:center; justify-content:center; }
-  .cs-logo-icon svg { width:20px; height:20px; }
-  .cs-logo-text { font-size:20px; font-weight:700; color:#4c1d95; letter-spacing:-0.5px; }
+  .cs-logo-icon { width:26px; height:26px; border-radius:8px; background:linear-gradient(135deg,#8b5cf6,#a78bfa); display:flex; align-items:center; justify-content:center; }
+  .cs-logo-icon svg { width:16px; height:16px; }
+  .cs-logo-text { font-size:16px; font-weight:700; color:#4c1d95; letter-spacing:-0.5px; }
   .cs-logo-text span { color:#8b5cf6; }
   .cs-nav { display:flex; gap:4px; }
-  .cs-nav a { color:#6b7280; text-decoration:none; font-size:14px; font-weight:500; padding:8px 14px; border-radius:8px; transition:all 150ms; }
+  .cs-nav a { color:#6b7280; text-decoration:none; font-size:12px; font-weight:500; padding:6px 10px; border-radius:8px; transition:all 150ms; }
   .cs-nav a:hover { color:#4c1d95; background:#f5f3ff; }
   .cs-nav a.active { color:#8b5cf6; background:#f5f3ff; }
-  .cs-user { display:flex; align-items:center; gap:10px; font-size:13px; color:#6b7280; }
-  .cs-user-avatar { width:34px; height:34px; border-radius:50%; background:#ede9fe; color:#8b5cf6; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .cs-user { display:flex; align-items:center; gap:10px; font-size:12px; color:#6b7280; }
+  .cs-user-avatar { width:28px; height:28px; border-radius:50%; background:#ede9fe; color:#8b5cf6; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
 
-  .cs-container { max-width:1060px; margin:0 auto; padding:24px 24px 0; }
+  .cs-container { max-width:100%; margin:0 auto; padding:16px 16px 0; }
+
+  @media (max-width:500px) {
+    .cs-nav { display:none; }
+    .cs-user-avatar { display:none; }
+  }
 
   .cs-card { background:#fff; border:1px solid #ede9fe; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
   .cs-card h2 { font-size:17px; color:#4c1d95; margin-bottom:4px; font-weight:600; }
@@ -111,7 +116,7 @@ const STYLES = `
   .cs-thumb-name { font-size:12px; color:#1f2937; font-weight:500; margin-bottom:2px; }
   .cs-thumb-size { font-size:10px; color:#9ca3af; }
 
-  .cs-footer { text-align:center; padding:32px 24px; color:#9ca3af; font-size:12px; border-top:1px solid #ede9fe; margin-top:48px; background:#fff; }
+  .cs-footer { text-align:center; padding:16px 12px; color:#9ca3af; font-size:11px; border-top:1px solid #ede9fe; margin-top:48px; background:#fff; flex-wrap:wrap; }
 `;
 
 const IMAGES = [

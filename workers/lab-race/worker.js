@@ -66,23 +66,28 @@ const STYLES = `
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#fdf2f8; color:#1f2937; }
 
-  .gr-promo { background:linear-gradient(90deg,#ec4899,#f472b6); color:#fff; padding:10px 24px; text-align:center; font-size:13px; font-weight:600; letter-spacing:0.3px; }
+  .gr-promo { background:linear-gradient(90deg,#ec4899,#f472b6); color:#fff; padding:8px 12px; text-align:center; font-size:11px; font-weight:600; letter-spacing:0.3px; }
 
-  .gr-header { background:#fff; border-bottom:1px solid #fce7f3; padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-  .gr-header-left { display:flex; align-items:center; gap:32px; }
+  .gr-header { background:#fff; border-bottom:1px solid #fce7f3; padding:0 16px; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(0,0,0,0.04); flex-wrap:nowrap; overflow:hidden; }
+  .gr-header-left { display:flex; align-items:center; gap:12px; }
   .gr-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
-  .gr-logo-icon { width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,#ec4899,#f472b6); display:flex; align-items:center; justify-content:center; }
-  .gr-logo-icon svg { width:20px; height:20px; }
-  .gr-logo-text { font-size:20px; font-weight:700; color:#831843; letter-spacing:-0.5px; }
+  .gr-logo-icon { width:26px; height:26px; border-radius:8px; background:linear-gradient(135deg,#ec4899,#f472b6); display:flex; align-items:center; justify-content:center; }
+  .gr-logo-icon svg { width:16px; height:16px; }
+  .gr-logo-text { font-size:16px; font-weight:700; color:#831843; letter-spacing:-0.5px; }
   .gr-logo-text span { color:#ec4899; }
   .gr-nav { display:flex; gap:4px; }
-  .gr-nav a { color:#6b7280; text-decoration:none; font-size:14px; font-weight:500; padding:8px 14px; border-radius:8px; transition:all 150ms; }
+  .gr-nav a { color:#6b7280; text-decoration:none; font-size:12px; font-weight:500; padding:6px 10px; border-radius:8px; transition:all 150ms; }
   .gr-nav a:hover { color:#831843; background:#fce7f3; }
   .gr-nav a.active { color:#ec4899; background:#fce7f3; }
-  .gr-user { display:flex; align-items:center; gap:10px; font-size:13px; color:#6b7280; }
-  .gr-user-avatar { width:34px; height:34px; border-radius:50%; background:#fce7f3; color:#ec4899; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .gr-user { display:flex; align-items:center; gap:10px; font-size:12px; color:#6b7280; }
+  .gr-user-avatar { width:28px; height:28px; border-radius:50%; background:#fce7f3; color:#ec4899; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
 
-  .gr-container { max-width:1060px; margin:0 auto; padding:24px 24px 0; }
+  .gr-container { max-width:100%; margin:0 auto; padding:16px 16px 0; }
+
+  @media (max-width:500px) {
+    .gr-nav { display:none; }
+    .gr-user-avatar { display:none; }
+  }
 
   .gr-card { background:#fff; border:1px solid #fce7f3; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
   .gr-card h2 { font-size:17px; color:#831843; margin-bottom:4px; font-weight:600; }
@@ -142,7 +147,7 @@ const STYLES = `
   .gr-browse-card-amount { font-size:22px; font-weight:700; color:#831843; margin-bottom:4px; }
   .gr-browse-card-label { font-size:12px; color:#6b7280; }
 
-  .gr-footer { text-align:center; padding:32px 24px; color:#9ca3af; font-size:12px; border-top:1px solid #fce7f3; margin-top:48px; background:#fff; }
+  .gr-footer { text-align:center; padding:16px 12px; color:#9ca3af; font-size:11px; border-top:1px solid #fce7f3; margin-top:48px; background:#fff; flex-wrap:wrap; }
 `;
 
 function renderApp(url, request) {

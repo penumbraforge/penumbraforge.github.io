@@ -51,23 +51,28 @@ const STYLES = `
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#fffbeb; color:#1f2937; }
 
-  .dp-topbar { background:#451a03; color:#fbbf24; padding:8px 32px; font-size:11px; display:flex; justify-content:space-between; align-items:center; }
+  .dp-topbar { background:#451a03; color:#fbbf24; padding:6px 12px; font-size:10px; display:flex; justify-content:space-between; align-items:center; }
 
-  .dp-header { background:#fff; border-bottom:1px solid #fef3c7; padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-  .dp-header-left { display:flex; align-items:center; gap:32px; }
+  .dp-header { background:#fff; border-bottom:1px solid #fef3c7; padding:0 16px; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:100; box-shadow:0 1px 3px rgba(0,0,0,0.04); flex-wrap:nowrap; overflow:hidden; }
+  .dp-header-left { display:flex; align-items:center; gap:12px; }
   .dp-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
-  .dp-logo-icon { width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,#f59e0b,#fbbf24); display:flex; align-items:center; justify-content:center; }
-  .dp-logo-icon svg { width:20px; height:20px; }
-  .dp-logo-text { font-size:20px; font-weight:700; color:#78350f; letter-spacing:-0.5px; }
+  .dp-logo-icon { width:26px; height:26px; border-radius:8px; background:linear-gradient(135deg,#f59e0b,#fbbf24); display:flex; align-items:center; justify-content:center; }
+  .dp-logo-icon svg { width:16px; height:16px; }
+  .dp-logo-text { font-size:16px; font-weight:700; color:#78350f; letter-spacing:-0.5px; }
   .dp-logo-text span { color:#f59e0b; }
   .dp-nav { display:flex; gap:4px; }
-  .dp-nav a { color:#6b7280; text-decoration:none; font-size:14px; font-weight:500; padding:8px 14px; border-radius:8px; transition:all 150ms; }
+  .dp-nav a { color:#6b7280; text-decoration:none; font-size:12px; font-weight:500; padding:6px 10px; border-radius:8px; transition:all 150ms; }
   .dp-nav a:hover { color:#78350f; background:#fef3c7; }
   .dp-nav a.active { color:#f59e0b; background:#fef3c7; }
-  .dp-user { display:flex; align-items:center; gap:10px; font-size:13px; color:#6b7280; }
-  .dp-user-avatar { width:34px; height:34px; border-radius:50%; background:#fef3c7; color:#f59e0b; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .dp-user { display:flex; align-items:center; gap:10px; font-size:12px; color:#6b7280; }
+  .dp-user-avatar { width:28px; height:28px; border-radius:50%; background:#fef3c7; color:#f59e0b; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
 
-  .dp-container { max-width:1060px; margin:0 auto; padding:24px 24px 0; }
+  .dp-container { max-width:100%; margin:0 auto; padding:16px 16px 0; }
+
+  @media (max-width:500px) {
+    .dp-nav { display:none; }
+    .dp-user-avatar { display:none; }
+  }
 
   .dp-card { background:#fff; border:1px solid #fef3c7; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
   .dp-card h2 { font-size:17px; color:#78350f; margin-bottom:4px; font-weight:600; }
@@ -110,7 +115,7 @@ const STYLES = `
   .dp-usage-bar { height:8px; background:#fef3c7; border-radius:4px; overflow:hidden; margin-top:8px; }
   .dp-usage-fill { height:100%; border-radius:4px; }
 
-  .dp-footer { text-align:center; padding:32px 24px; color:#9ca3af; font-size:12px; border-top:1px solid #fef3c7; margin-top:48px; background:#fff; }
+  .dp-footer { text-align:center; padding:16px 12px; color:#9ca3af; font-size:11px; border-top:1px solid #fef3c7; margin-top:48px; background:#fff; flex-wrap:wrap; }
 `;
 
 // Simulated RSA public key (for algorithm confusion lab)
