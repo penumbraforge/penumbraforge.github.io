@@ -5513,13 +5513,20 @@ body:has(.tools-hub-page) {
   gap: 12px;
 }
 
-/* --- Tools search bar (all screen sizes) --- */
+/* --- Tools search bar — mobile only, sticky --- */
 .tools-mobile-search {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  padding: 8px 0 12px;
-  background: var(--surface-0);
+  display: none;
+}
+@media (max-width: 900px) {
+  .tools-mobile-search {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: 0 -16px;
+    padding: 10px 16px;
+    background: var(--surface-0);
+  }
 }
 
 .tools-mobile-search input {
