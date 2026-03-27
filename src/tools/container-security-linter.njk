@@ -1,0 +1,1309 @@
+---
+toolSlug: container-security-linter
+permalink: /tools/container-security-linter/
+---
+
+<div class="tool-group">
+  <div class="csl-type-bar" id="csl-type-bar">
+    <span class="csl-type-label" id="csl-type-label">Paste a Kubernetes YAML, Dockerfile, or docker-compose.yml</span>
+  </div>
+  <textarea id="csl-input" rows="16" placeholder="apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  ..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <button class="btn btn--primary" id="csl-lint-btn">Lint</button>
+  <button class="btn" id="csl-example-btn">Try Example</button>
+  <button class="btn" id="csl-clear-btn">Clear</button>
+  <div id="csl-summary" style="margin-left:auto;font-size:0.875rem;color:var(--text-3,#888);align-self:center;"></div>
+</div>
+
+<div id="csl-score-area" style="display:none;">
+  <div class="csl-score-card">
+    <div class="csl-score-ring" id="csl-score-ring">
+      <svg viewBox="0 0 120 120" width="100" height="100">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border,#2a2a3a)" stroke-width="8"/>
+        <circle id="csl-score-circle" cx="60" cy="60" r="52" fill="none" stroke="#4ade80" stroke-width="8"
+                stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="327"
+                transform="rotate(-90 60 60)"/>
+        <text x="60" y="60" text-anchor="middle" dominant-baseline="central"
+              font-size="28" font-weight="700" fill="var(--text-1,#e2e8f0)" id="csl-score-text">0</text>
+        <text x="60" y="80" text-anchor="middle" font-size="12" fill="var(--text-3,#888)" id="csl-score-grade"></text>
+      </svg>
+    </div>
+    <div class="csl-score-breakdown">
+      <div class="csl-score-meta" id="csl-score-meta"></div>
+      <button class="btn btn--primary" id="csl-fix-btn" style="display:none;">Generate Fixed Version</button>
+    </div>
+  </div>
+</div>
+
+<div id="csl-results" style="display:none;">
+  <div id="csl-findings"></div>
+</div>
+
+<div id="csl-fixed-area" style="display:none;">
+  <div class="csl-fixed-header">
+    <strong>Fixed Version</strong>
+    <button class="btn btn--copy" id="csl-fixed-copy">Copy</button>
+  </div>
+  <pre id="csl-fixed-output" class="csl-fixed-pre"></pre>
+</div>
+
+<div id="csl-clean" style="display:none;" class="csl-clean-msg">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+  No security issues found. Your configuration looks solid.
+</div>
+
+<div id="csl-empty" class="csl-empty-msg">Paste a Kubernetes manifest, Dockerfile, or docker-compose.yml above and click "Lint".</div>
+
+<style>
+  .csl-type-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-3,#888);
+  }
+  .csl-type-label { font-weight: 600; }
+  .csl-type-detected { color: #818cf8; }
+
+  .csl-score-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.25rem;
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .csl-score-breakdown { flex: 1; min-width: 200px; }
+  .csl-score-meta {
+    font-size: 0.875rem;
+    color: var(--text-2,#94a3b8);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+  }
+  .csl-score-meta strong { color: var(--text-1,#e2e8f0); }
+
+  .csl-finding {
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+  .csl-finding--critical { border-left: 3px solid #dc2626; }
+  .csl-finding--high { border-left: 3px solid #ef4444; }
+  .csl-finding--medium { border-left: 3px solid #f97316; }
+  .csl-finding--low { border-left: 3px solid #eab308; }
+
+  .csl-finding-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.875rem;
+    background: var(--surface-1,#1a1a2e);
+    flex-wrap: wrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  .csl-finding-type { font-size: 0.875rem; font-weight: 700; color: var(--text-1,#e2e8f0); flex: 1; min-width: 0; }
+  .csl-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  .csl-badge--critical { background: rgba(220,38,38,0.18); color: #f87171; border: 1px solid rgba(220,38,38,0.35); }
+  .csl-badge--high { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+  .csl-badge--medium { background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .csl-badge--low { background: rgba(234,179,8,0.1); color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+  .csl-line-num {
+    font-size: 0.75rem;
+    font-family: var(--font-mono,monospace);
+    color: var(--text-3,#888);
+    flex-shrink: 0;
+  }
+
+  .csl-finding-body { padding: 0.75rem 0.875rem; }
+  .csl-match-pre {
+    font-size: 0.8125rem;
+    font-family: var(--font-mono,monospace);
+    background: var(--surface-0,#0f0f1a);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    margin: 0 0 0.6rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-1,#e2e8f0);
+    border: 1px solid var(--border,#2a2a3a);
+  }
+  .csl-explanation {
+    font-size: 0.8125rem;
+    color: var(--text-2,#94a3b8);
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+  }
+  .csl-explanation strong { color: var(--text-1,#e2e8f0); }
+  .csl-fix-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #4ade80;
+    margin-bottom: 0.25rem;
+  }
+  .csl-fix-pre {
+    font-size: 0.8125rem;
+    font-family: var(--font-mono,monospace);
+    background: rgba(34,197,94,0.06);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #86efac;
+  }
+
+  .csl-fixed-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    color: var(--text-1,#e2e8f0);
+  }
+  .csl-fixed-pre {
+    font-size: 0.8125rem;
+    font-family: var(--font-mono,monospace);
+    background: var(--surface-0,#0f0f1a);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    padding: 1rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-1,#e2e8f0);
+    max-height: 600px;
+    overflow: auto;
+  }
+  .csl-clean-msg {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: rgba(34,197,94,0.07);
+    border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 8px;
+    color: #4ade80;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .csl-empty-msg { text-align: center; padding: 2.5rem; color: var(--text-3,#888); font-size: 0.9rem; }
+</style>
+
+<script>
+(function () {
+  /* ── DOM refs ── */
+  var inputEl    = document.getElementById('csl-input');
+  var lintBtn    = document.getElementById('csl-lint-btn');
+  var exampleBtn = document.getElementById('csl-example-btn');
+  var clearBtn   = document.getElementById('csl-clear-btn');
+  var summaryEl  = document.getElementById('csl-summary');
+  var typeLabel  = document.getElementById('csl-type-label');
+  var scoreArea  = document.getElementById('csl-score-area');
+  var scoreCircle= document.getElementById('csl-score-circle');
+  var scoreText  = document.getElementById('csl-score-text');
+  var scoreGrade = document.getElementById('csl-score-grade');
+  var scoreMeta  = document.getElementById('csl-score-meta');
+  var fixBtn     = document.getElementById('csl-fix-btn');
+  var resultsEl  = document.getElementById('csl-results');
+  var findingsEl = document.getElementById('csl-findings');
+  var cleanEl    = document.getElementById('csl-clean');
+  var emptyEl    = document.getElementById('csl-empty');
+  var fixedArea  = document.getElementById('csl-fixed-area');
+  var fixedOut   = document.getElementById('csl-fixed-output');
+  var fixedCopy  = document.getElementById('csl-fixed-copy');
+
+  /* ── Type detection ── */
+  function detectType(text) {
+    var t = text.trim();
+    if (/^(FROM|ARG)\s/m.test(t)) return 'dockerfile';
+    if (/^(version\s*:|services\s*:)/m.test(t) && /services\s*:/m.test(t)) return 'compose';
+    if (/apiVersion\s*:/m.test(t) || /kind\s*:/m.test(t)) return 'kubernetes';
+    if (/^(FROM|COPY|RUN|CMD|ENTRYPOINT|EXPOSE|ENV|WORKDIR|ADD|LABEL|HEALTHCHECK|USER|ONBUILD|SHELL|STOPSIGNAL)\s/m.test(t)) return 'dockerfile';
+    return 'unknown';
+  }
+
+  /* ── Minimal YAML parser (line-based, handles indentation) ── */
+  function getIndent(line) { var m = line.match(/^(\s*)/); return m ? m[1].length : 0; }
+
+  /* ── Example insecure K8s deployment ── */
+  var EXAMPLE = [
+    'apiVersion: apps/v1',
+    'kind: Deployment',
+    'metadata:',
+    '  name: insecure-app',
+    '  namespace: default',
+    'spec:',
+    '  replicas: 3',
+    '  selector:',
+    '    matchLabels:',
+    '      app: insecure-app',
+    '  template:',
+    '    metadata:',
+    '      labels:',
+    '        app: insecure-app',
+    '    spec:',
+    '      hostNetwork: true',
+    '      hostPID: true',
+    '      automountServiceAccountToken: true',
+    '      containers:',
+    '        - name: web',
+    '          image: nginx',
+    '          ports:',
+    '            - containerPort: 80',
+    '          env:',
+    '            - name: DB_PASSWORD',
+    '              value: "supersecret123"',
+    '            - name: API_KEY',
+    '              value: "sk-prod-abc123xyz"',
+    '          securityContext:',
+    '            privileged: true',
+    '            capabilities:',
+    '              add:',
+    '                - SYS_ADMIN',
+    '                - NET_ADMIN',
+    '          volumeMounts:',
+    '            - name: host-fs',
+    '              mountPath: /host',
+    '        - name: sidecar',
+    '          image: redis:latest',
+    '      volumes:',
+    '        - name: host-fs',
+    '          hostPath:',
+    '            path: /'
+  ].join('\n');
+
+  /* ═══════════════════════════════════════════════════════════════
+     KUBERNETES RULES
+     ═══════════════════════════════════════════════════════════════ */
+  var K8S_RULES = [
+    /* ── CRITICAL ── */
+    {
+      id: 'k8s-privileged',
+      name: 'Privileged container',
+      severity: 'critical',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*privileged\s*:\s*true/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'A privileged container has full access to the host kernel. An attacker inside can escape to the host trivially.', fix: '            privileged: false' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'k8s-hostpid',
+      name: 'Host PID namespace enabled',
+      severity: 'critical',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*hostPID\s*:\s*true/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'Sharing the host PID namespace lets the container see and signal all host processes, enabling container escape.', fix: '      hostPID: false' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'k8s-hostnetwork',
+      name: 'Host network enabled',
+      severity: 'critical',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*hostNetwork\s*:\s*true/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'Host networking bypasses network isolation. The container can sniff traffic and bind to any host port.', fix: '      hostNetwork: false' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'k8s-dangerous-caps',
+      name: 'Dangerous capability added',
+      severity: 'critical',
+      test: function (lines) {
+        var dangerous = ['SYS_ADMIN', 'NET_ADMIN', 'SYS_PTRACE', 'DAC_OVERRIDE', 'NET_RAW', 'SYS_MODULE', 'SYS_RAWIO', 'MKNOD', 'AUDIT_WRITE'];
+        var inAdd = false;
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*add\s*:/i.test(l)) { inAdd = true; return; }
+          if (inAdd && /^\s*-\s/.test(l)) {
+            var cap = l.replace(/^\s*-\s*["']?/, '').replace(/["']?\s*$/, '').trim();
+            if (dangerous.indexOf(cap) !== -1)
+              r.push({ line: i + 1, text: l, explanation: cap + ' grants near-root capabilities and is frequently abused for container escape.', fix: '                # Remove ' + cap + ' — drop ALL instead' });
+          } else if (inAdd && !/^\s*#/.test(l) && l.trim() !== '') {
+            inAdd = false;
+          }
+        });
+        return r;
+      }
+    },
+
+    /* ── HIGH ── */
+    {
+      id: 'k8s-run-as-root',
+      name: 'Container may run as root',
+      severity: 'high',
+      test: function (lines) {
+        var text = lines.join('\n');
+        var hasRunAsNonRoot = /runAsNonRoot\s*:\s*true/i.test(text);
+        var hasRunAsUser = /runAsUser\s*:\s*[1-9]/i.test(text);
+        if (!hasRunAsNonRoot && !hasRunAsUser) {
+          var containerLine = -1;
+          lines.forEach(function (l, i) { if (/^\s*containers\s*:/.test(l) && containerLine === -1) containerLine = i; });
+          if (containerLine !== -1)
+            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'No runAsNonRoot or runAsUser is set. Containers will default to running as root (UID 0), which vastly increases the impact of any exploit.', fix: '          securityContext:\n            runAsNonRoot: true\n            runAsUser: 1000' }];
+        }
+        return [];
+      }
+    },
+    {
+      id: 'k8s-no-resource-limits',
+      name: 'No resource limits set',
+      severity: 'high',
+      test: function (lines) {
+        var text = lines.join('\n');
+        if (!/resources\s*:/i.test(text) || !/limits\s*:/i.test(text)) {
+          var containerLine = -1;
+          lines.forEach(function (l, i) { if (/^\s*-\s*name\s*:/.test(l) && containerLine === -1) containerLine = i; });
+          if (containerLine !== -1)
+            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'Without resource limits, a compromised container can consume all host CPU/memory, causing denial of service across the node.', fix: '          resources:\n            limits:\n              cpu: "500m"\n              memory: "256Mi"\n            requests:\n              cpu: "100m"\n              memory: "128Mi"' }];
+        }
+        return [];
+      }
+    },
+    {
+      id: 'k8s-no-resource-requests',
+      name: 'No resource requests set',
+      severity: 'high',
+      test: function (lines) {
+        var text = lines.join('\n');
+        if (/resources\s*:/i.test(text) && /limits\s*:/i.test(text) && !/requests\s*:/i.test(text)) {
+          var resourceLine = -1;
+          lines.forEach(function (l, i) { if (/^\s*resources\s*:/.test(l) && resourceLine === -1) resourceLine = i; });
+          if (resourceLine !== -1)
+            return [{ line: resourceLine + 1, text: lines[resourceLine], explanation: 'Resource requests ensure the scheduler places the pod appropriately. Without them, pods may be scheduled on over-committed nodes.', fix: '            requests:\n              cpu: "100m"\n              memory: "128Mi"' }];
+        }
+        return [];
+      }
+    },
+    {
+      id: 'k8s-hostpath',
+      name: 'HostPath volume mount',
+      severity: 'high',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*hostPath\s*:/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'HostPath mounts expose the host filesystem to the container. A compromised container can read/write host files, steal credentials, or tamper with binaries.', fix: '          # Replace hostPath with emptyDir, PVC, or configMap\n          emptyDir: {}' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'k8s-secrets-in-env',
+      name: 'Secret as plain env value',
+      severity: 'high',
+      test: function (lines) {
+        var secretPatterns = /(?:password|secret|key|token|api_key|db_pass|credentials|auth)/i;
+        var r = [];
+        for (var i = 0; i < lines.length; i++) {
+          if (/^\s*-\s*name\s*:/.test(lines[i])) {
+            var envName = lines[i].replace(/^\s*-\s*name\s*:\s*["']?/, '').replace(/["']?\s*$/, '').trim();
+            if (secretPatterns.test(envName) && i + 1 < lines.length && /^\s*value\s*:/.test(lines[i + 1])) {
+              r.push({ line: i + 2, text: lines[i] + '\n' + lines[i + 1], explanation: 'Secret "' + envName + '" is set as a plain text value. Anyone with pod read access can see it. Use a Kubernetes Secret with secretKeyRef instead.', fix: '            - name: ' + envName + '\n              valueFrom:\n                secretKeyRef:\n                  name: my-secret\n                  key: ' + envName.toLowerCase() });
+            }
+          }
+        }
+        return r;
+      }
+    },
+    {
+      id: 'k8s-image-latest',
+      name: 'Image uses :latest or no tag',
+      severity: 'high',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*image\s*:/.test(l)) {
+            var img = l.replace(/^\s*image\s*:\s*["']?/, '').replace(/["']?\s*$/, '').trim();
+            if (/:latest\s*$/.test(img) || (img.indexOf(':') === -1 && img.indexOf('@') === -1))
+              r.push({ line: i + 1, text: l, explanation: 'Using :latest or an untagged image means you cannot guarantee what code is running. Pin images to a specific digest or semver tag.', fix: '          image: ' + img.replace(/:latest$/, '') + ':1.25.4  # Pin to specific version' });
+          }
+        });
+        return r;
+      }
+    },
+    {
+      id: 'k8s-no-readonly-rootfs',
+      name: 'Missing readOnlyRootFilesystem',
+      severity: 'high',
+      test: function (lines) {
+        var text = lines.join('\n');
+        if (!/readOnlyRootFilesystem\s*:\s*true/i.test(text)) {
+          var scLine = -1;
+          lines.forEach(function (l, i) { if (/^\s*securityContext\s*:/.test(l)) scLine = i; });
+          if (scLine !== -1)
+            return [{ line: scLine + 1, text: lines[scLine], explanation: 'Without a read-only root filesystem, an attacker can write malware, modify binaries, or plant backdoors inside the container.', fix: '            readOnlyRootFilesystem: true' }];
+          var containerLine = -1;
+          lines.forEach(function (l, i) { if (/^\s*containers\s*:/.test(l) && containerLine === -1) containerLine = i; });
+          if (containerLine !== -1)
+            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'Without a read-only root filesystem, an attacker can write malware, modify binaries, or plant backdoors inside the container.', fix: '          securityContext:\n            readOnlyRootFilesystem: true' }];
+        }
+        return [];
+      }
+    },
+
+    /* ── MEDIUM ── */
+    {
+      id: 'k8s-no-security-context',
+      name: 'Missing securityContext entirely',
+      severity: 'medium',
+      test: function (lines) {
+        var text = lines.join('\n');
+        if (!/securityContext\s*:/i.test(text)) {
+          var containerLine = -1;
+          lines.forEach(function (l, i) { if (/^\s*containers\s*:/.test(l) && containerLine === -1) containerLine = i; });
+          if (containerLine !== -1)
+            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'No securityContext is defined at all. This means all security defaults are inherited, which typically means root, full capabilities, and writable filesystem.', fix: '          securityContext:\n            runAsNonRoot: true\n            runAsUser: 1000\n            readOnlyRootFilesystem: true\n            allowPrivilegeEscalation: false\n            capabilities:\n              drop:\n                - ALL' }];
+        }
+        return [];
+      }
+    },
+    {
+      id: 'k8s-no-drop-all',
+      name: 'Capabilities not dropped',
+      severity: 'medium',
+      test: function (lines) {
+        var text = lines.join('\n');
+        if (/securityContext\s*:/i.test(text) && !/drop\s*:\s*\n\s*-\s*["']?ALL["']?/i.test(text) && !/drop\s*:\s*\[\s*["']?ALL["']?\s*\]/i.test(text)) {
+          var scLine = -1;
+          lines.forEach(function (l, i) { if (/^\s*securityContext\s*:/.test(l)) scLine = i; });
+          if (scLine !== -1)
+            return [{ line: scLine + 1, text: lines[scLine], explanation: 'Linux capabilities are not explicitly dropped. Best practice is to drop ALL and add back only the specific capabilities your app needs.', fix: '            capabilities:\n              drop:\n                - ALL' }];
+        }
+        return [];
+      }
+    },
+    {
+      id: 'k8s-no-probes',
+      name: 'No liveness or readiness probes',
+      severity: 'medium',
+      test: function (lines) {
+        var text = lines.join('\n');
+        var r = [];
+        if (!/livenessProbe\s*:/i.test(text)) {
+          var containerLine = -1;
+          lines.forEach(function (l, i) { if (/^\s*-\s*name\s*:/.test(l) && containerLine === -1) containerLine = i; });
+          if (containerLine !== -1)
+            r.push({ line: containerLine + 1, text: lines[containerLine], explanation: 'No livenessProbe defined. Kubernetes cannot detect if the application is stuck or deadlocked.', fix: '          livenessProbe:\n            httpGet:\n              path: /healthz\n              port: 8080\n            initialDelaySeconds: 10\n            periodSeconds: 15' });
+        }
+        if (!/readinessProbe\s*:/i.test(text)) {
+          var containerLine2 = -1;
+          lines.forEach(function (l, i) { if (/^\s*-\s*name\s*:/.test(l) && containerLine2 === -1) containerLine2 = i; });
+          if (containerLine2 !== -1)
+            r.push({ line: containerLine2 + 1, text: lines[containerLine2], explanation: 'No readinessProbe defined. Kubernetes may route traffic to pods before they are ready to serve requests.', fix: '          readinessProbe:\n            httpGet:\n              path: /ready\n              port: 8080\n            initialDelaySeconds: 5\n            periodSeconds: 10' });
+        }
+        return r;
+      }
+    },
+    {
+      id: 'k8s-automount-sa-token',
+      name: 'Service account token auto-mounted',
+      severity: 'medium',
+      test: function (lines) {
+        var text = lines.join('\n');
+        if (/automountServiceAccountToken\s*:\s*true/i.test(text) || (!/automountServiceAccountToken/i.test(text) && /serviceAccountName\s*:/i.test(text))) {
+          var r = [];
+          lines.forEach(function (l, i) {
+            if (/automountServiceAccountToken\s*:\s*true/i.test(l))
+              r.push({ line: i + 1, text: l, explanation: 'The service account token is auto-mounted into the container. If the pod is compromised, the attacker gets API server access.', fix: '      automountServiceAccountToken: false' });
+          });
+          if (r.length === 0) {
+            lines.forEach(function (l, i) {
+              if (/serviceAccountName\s*:/i.test(l))
+                r.push({ line: i + 1, text: l, explanation: 'A service account is assigned but automountServiceAccountToken is not explicitly set to false. The token will be mounted by default.', fix: '      automountServiceAccountToken: false' });
+            });
+          }
+          return r;
+        }
+        return [];
+      }
+    },
+    {
+      id: 'k8s-allow-priv-escalation',
+      name: 'allowPrivilegeEscalation not disabled',
+      severity: 'medium',
+      test: function (lines) {
+        var text = lines.join('\n');
+        if (!/allowPrivilegeEscalation\s*:\s*false/i.test(text) && /securityContext\s*:/i.test(text)) {
+          var scLine = -1;
+          lines.forEach(function (l, i) { if (/^\s*securityContext\s*:/.test(l)) scLine = i; });
+          if (scLine !== -1)
+            return [{ line: scLine + 1, text: lines[scLine], explanation: 'allowPrivilegeEscalation is not set to false. A process inside the container could gain more privileges than its parent process.', fix: '            allowPrivilegeEscalation: false' }];
+        }
+        return [];
+      }
+    },
+    {
+      id: 'k8s-default-namespace',
+      name: 'Deployed to default namespace',
+      severity: 'low',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*namespace\s*:\s*["']?default["']?\s*$/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'Using the default namespace makes RBAC policies harder to scope and mixes workloads. Use a dedicated namespace.', fix: '  namespace: my-app' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'k8s-no-network-policy',
+      name: 'No NetworkPolicy defined',
+      severity: 'low',
+      test: function (lines) {
+        var text = lines.join('\n');
+        if (!/kind\s*:\s*NetworkPolicy/i.test(text) && /kind\s*:\s*(Deployment|StatefulSet|DaemonSet|Pod)/i.test(text)) {
+          return [{ line: 1, text: '(document-level)', explanation: 'No NetworkPolicy is present. Without network policies, all pods can communicate freely, enabling lateral movement after compromise.', fix: '---\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: deny-all\nspec:\n  podSelector: {}\n  policyTypes:\n    - Ingress\n    - Egress' }];
+        }
+        return [];
+      }
+    }
+  ];
+
+  /* ═══════════════════════════════════════════════════════════════
+     DOCKERFILE RULES
+     ═══════════════════════════════════════════════════════════════ */
+  var DOCKERFILE_RULES = [
+    {
+      id: 'df-run-as-root',
+      name: 'Running as root (no USER instruction)',
+      severity: 'high',
+      test: function (lines) {
+        var hasUser = false;
+        lines.forEach(function (l) { if (/^USER\s+/i.test(l.trim())) hasUser = true; });
+        if (!hasUser) {
+          var fromLine = -1;
+          lines.forEach(function (l, i) { if (/^FROM\s/i.test(l.trim()) && fromLine === -1) fromLine = i; });
+          if (fromLine !== -1)
+            return [{ line: fromLine + 1, text: lines[fromLine], explanation: 'No USER instruction is set. The container will run as root (UID 0), maximizing blast radius if compromised.', fix: 'RUN addgroup -S appgroup && adduser -S appuser -G appgroup\nUSER appuser' }];
+        }
+        return [];
+      }
+    },
+    {
+      id: 'df-latest-tag',
+      name: 'Base image uses :latest or no tag',
+      severity: 'high',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^FROM\s/i.test(l.trim())) {
+            var img = l.trim().replace(/^FROM\s+/i, '').split(/\s+/)[0];
+            if (img === 'scratch') return;
+            if (/:latest\s*$/i.test(img) || (img.indexOf(':') === -1 && img.indexOf('@') === -1))
+              r.push({ line: i + 1, text: l, explanation: 'Using :latest or an untagged base image means your build is non-reproducible. Pin to a specific version or SHA digest.', fix: 'FROM ' + img.replace(/:latest$/i, '') + ':3.19  # Pin to specific version' });
+          }
+        });
+        return r;
+      }
+    },
+    {
+      id: 'df-copy-sensitive',
+      name: 'COPY/ADD of sensitive files',
+      severity: 'high',
+      test: function (lines) {
+        var sensitivePatterns = /\.(env|pem|key|p12|pfx|jks|credentials|htpasswd|pgpass)|id_rsa|id_ed25519|\.ssh|authorized_keys/i;
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^(COPY|ADD)\s/i.test(l.trim())) {
+            if (sensitivePatterns.test(l))
+              r.push({ line: i + 1, text: l, explanation: 'This COPY/ADD instruction includes a potentially sensitive file (keys, credentials, env files). These get baked into the image layer and are recoverable even if deleted later.', fix: '# Use multi-stage builds or --mount=type=secret\n# RUN --mount=type=secret,id=mykey cat /run/secrets/mykey' });
+          }
+        });
+        return r;
+      }
+    },
+    {
+      id: 'df-expose-ssh',
+      name: 'Exposing SSH port (22)',
+      severity: 'high',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^EXPOSE\s/i.test(l.trim()) && /\b22\b/.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'Exposing port 22 (SSH) in a container is almost always wrong. Use kubectl exec or docker exec for debugging. SSH increases attack surface.', fix: '# Remove EXPOSE 22 — use kubectl exec / docker exec instead' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'df-shell-form',
+      name: 'CMD/ENTRYPOINT uses shell form',
+      severity: 'medium',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          var trimmed = l.trim();
+          if (/^(CMD|ENTRYPOINT)\s/i.test(trimmed) && !/^\S+\s+\[/.test(trimmed))
+            r.push({ line: i + 1, text: l, explanation: 'Shell form (CMD command arg) runs via /bin/sh -c, which makes signal handling unreliable and can introduce shell injection. Use exec form: CMD ["command", "arg"].', fix: trimmed.replace(/^(CMD|ENTRYPOINT)\s+(.+)$/i, function (m, instr, cmd) { var parts = cmd.trim().split(/\s+/); return instr.toUpperCase() + ' ["' + parts.join('", "') + '"]'; }) });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'df-apt-no-recommends',
+      name: 'apt-get without --no-install-recommends',
+      severity: 'low',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/apt-get\s+install/i.test(l) && !/--no-install-recommends/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'Without --no-install-recommends, apt installs suggested packages, bloating the image and increasing attack surface.', fix: l.trim().replace(/apt-get\s+install/i, 'apt-get install --no-install-recommends') });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'df-no-healthcheck',
+      name: 'Missing HEALTHCHECK instruction',
+      severity: 'medium',
+      test: function (lines) {
+        var hasHealthcheck = false;
+        lines.forEach(function (l) { if (/^HEALTHCHECK\s/i.test(l.trim())) hasHealthcheck = true; });
+        if (!hasHealthcheck) {
+          return [{ line: 1, text: '(document-level)', explanation: 'No HEALTHCHECK instruction is defined. Docker cannot determine if the application inside the container is healthy.', fix: 'HEALTHCHECK --interval=30s --timeout=5s --retries=3 \\\n  CMD wget -qO- http://localhost:8080/healthz || exit 1' }];
+        }
+        return [];
+      }
+    },
+    {
+      id: 'df-env-secrets',
+      name: 'Secrets in ENV instruction',
+      severity: 'high',
+      test: function (lines) {
+        var secretPatterns = /(?:password|secret|key|token|api_key|credentials|auth_token)/i;
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^ENV\s/i.test(l.trim())) {
+            var rest = l.trim().replace(/^ENV\s+/i, '');
+            var varName = rest.split(/[\s=]/)[0];
+            if (secretPatterns.test(varName))
+              r.push({ line: i + 1, text: l, explanation: 'ENV instruction embeds "' + varName + '" into the image layer. This value is visible to anyone who inspects the image. Use build-time secrets or runtime env injection instead.', fix: '# Use runtime environment variables instead:\n# docker run -e ' + varName + '=$' + varName + ' myimage' });
+          }
+        });
+        return r;
+      }
+    },
+    {
+      id: 'df-add-remote',
+      name: 'ADD with remote URL',
+      severity: 'medium',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^ADD\s+https?:\/\//i.test(l.trim()))
+            r.push({ line: i + 1, text: l, explanation: 'ADD with a URL downloads without checksum verification, risking supply chain attacks. Use RUN curl/wget with hash verification instead.', fix: '# Use RUN with checksum verification:\n# RUN curl -fsSL https://example.com/file -o /tmp/file && \\\n#     echo "expected_sha256  /tmp/file" | sha256sum -c -' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'df-pip-no-version',
+      name: 'pip install without version pinning',
+      severity: 'low',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/pip3?\s+install/i.test(l) && !/requirements\.txt/i.test(l) && !/==/i.test(l) && !/--require-hashes/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'pip install without version pinning can pull in different versions on different builds, creating reproducibility and supply-chain risks.', fix: '# Pin package versions: pip install package==1.2.3\n# Or use: pip install --require-hashes -r requirements.txt' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'df-curl-bash',
+      name: 'curl | bash anti-pattern',
+      severity: 'high',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/curl\s.*\|\s*(bash|sh|zsh)/i.test(l) || /wget\s.*\|\s*(bash|sh|zsh)/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'Piping a remote script directly to a shell executes arbitrary code without verification. Download the script, verify its checksum, then execute.', fix: '# Download, verify, then execute:\n# RUN curl -fsSL https://example.com/install.sh -o /tmp/install.sh && \\\n#     echo "sha256hash  /tmp/install.sh" | sha256sum -c - && \\\n#     bash /tmp/install.sh' });
+        });
+        return r;
+      }
+    }
+  ];
+
+  /* ═══════════════════════════════════════════════════════════════
+     DOCKER-COMPOSE RULES
+     ═══════════════════════════════════════════════════════════════ */
+  var COMPOSE_RULES = [
+    {
+      id: 'dc-privileged',
+      name: 'Privileged mode enabled',
+      severity: 'critical',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*privileged\s*:\s*true/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'Privileged mode gives the container full host access. An attacker can escape trivially.', fix: '    privileged: false  # Or remove entirely' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'dc-bind-all',
+      name: 'Port binding to 0.0.0.0',
+      severity: 'medium',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*-\s*["']?(0\.0\.0\.0:|\d+:)/.test(l) && /^\s*-\s/.test(l)) {
+            var p = l.trim().replace(/^\s*-\s*["']?/, '');
+            if (/^0\.0\.0\.0:/.test(p) || /^\d+:\d+/.test(p))
+              r.push({ line: i + 1, text: l, explanation: 'Binding to 0.0.0.0 (or without an explicit bind address) exposes the port on all interfaces including public-facing ones. Bind to 127.0.0.1 for local-only access.', fix: '      - "127.0.0.1:' + p.replace(/^0\.0\.0\.0:/, '') + '"' });
+          }
+        });
+        return r;
+      }
+    },
+    {
+      id: 'dc-hardcoded-password',
+      name: 'Hardcoded password in environment',
+      severity: 'high',
+      test: function (lines) {
+        var secretPatterns = /(?:password|passwd|secret|key|token|api_key|credentials|auth)/i;
+        var r = [];
+        lines.forEach(function (l, i) {
+          var trimmed = l.trim();
+          if (/^\s*-?\s*[A-Z_]*(?:PASSWORD|PASSWD|SECRET|KEY|TOKEN|API_KEY|CREDENTIALS|AUTH)[A-Z_]*\s*[=:]\s*.+/i.test(trimmed) || (secretPatterns.test(trimmed) && /[=:]\s*["']?[^\s${}]+["']?\s*$/.test(trimmed) && !/\$\{/.test(trimmed))) {
+            if (!/\$\{/.test(trimmed) && !/^\s*#/.test(trimmed))
+              r.push({ line: i + 1, text: l, explanation: 'A password or secret is hardcoded in the compose file. Use environment variable interpolation (${VAR}) or Docker secrets.', fix: l.replace(/[=:]\s*["']?[^\s"']+["']?\s*$/, '=${' + l.trim().split(/[=:\s]/)[0].replace(/^\s*-\s*/, '') + '}') });
+          }
+        });
+        return r;
+      }
+    },
+    {
+      id: 'dc-docker-sock',
+      name: 'Docker socket mounted',
+      severity: 'critical',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/\/var\/run\/docker\.sock/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'Mounting the Docker socket gives the container full control over the Docker daemon, equivalent to root on the host. This is the most common container escape vector.', fix: '      # Remove docker.sock mount — use Docker-in-Docker (dind) or rootless Docker instead' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'dc-sensitive-volumes',
+      name: 'Sensitive host path mounted',
+      severity: 'high',
+      test: function (lines) {
+        var sensitivePaths = /(?:\/etc(?:\/|["'])|\/root(?:\/|["'])|\/proc(?:\/|["'])|\/sys(?:\/|["'])|\/dev(?:\/|["']))/;
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/volumes\s*:/i.test(l)) return;
+          if (/^\s*-\s/.test(l) && sensitivePaths.test(l) && !/docker\.sock/.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'Mounting sensitive host directories (/etc, /root, /proc, /sys, /dev) gives the container access to critical host configuration and can enable privilege escalation.', fix: '      # Remove sensitive host volume mount' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'dc-network-host',
+      name: 'Network mode: host',
+      severity: 'high',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*network_mode\s*:\s*["']?host["']?/i.test(l))
+            r.push({ line: i + 1, text: l, explanation: 'Host network mode removes all network isolation. The container shares the host network stack and can sniff traffic or bind to any port.', fix: '    network_mode: bridge  # Or use a custom network' });
+        });
+        return r;
+      }
+    },
+    {
+      id: 'dc-cap-add',
+      name: 'Dangerous capabilities added',
+      severity: 'high',
+      test: function (lines) {
+        var dangerous = ['SYS_ADMIN', 'NET_ADMIN', 'SYS_PTRACE', 'ALL'];
+        var inCapAdd = false;
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*cap_add\s*:/i.test(l)) { inCapAdd = true; return; }
+          if (inCapAdd && /^\s*-\s/.test(l)) {
+            var cap = l.replace(/^\s*-\s*["']?/, '').replace(/["']?\s*$/, '').trim();
+            if (dangerous.indexOf(cap) !== -1)
+              r.push({ line: i + 1, text: l, explanation: cap + ' grants excessive privileges to the container. Drop all capabilities and add only what is needed.', fix: '      # Remove ' + cap + ' — use cap_drop: [ALL] instead' });
+          } else if (inCapAdd && !/^\s*#/.test(l) && l.trim() !== '' && !/^\s*-\s/.test(l)) {
+            inCapAdd = false;
+          }
+        });
+        return r;
+      }
+    },
+    {
+      id: 'dc-image-latest',
+      name: 'Image uses :latest or no tag',
+      severity: 'medium',
+      test: function (lines) {
+        var r = [];
+        lines.forEach(function (l, i) {
+          if (/^\s*image\s*:/i.test(l)) {
+            var img = l.replace(/^\s*image\s*:\s*["']?/, '').replace(/["']?\s*$/, '').trim();
+            if (/:latest\s*$/.test(img) || (img.indexOf(':') === -1 && img.indexOf('@') === -1 && img.length > 0))
+              r.push({ line: i + 1, text: l, explanation: 'Using :latest or no tag means the image version is unpinned. Builds are non-reproducible and you may unknowingly deploy breaking changes.', fix: '    image: ' + img.replace(/:latest$/, '') + ':1.0.0  # Pin to specific version' });
+          }
+        });
+        return r;
+      }
+    },
+    {
+      id: 'dc-no-read-only',
+      name: 'No read_only filesystem',
+      severity: 'low',
+      test: function (lines) {
+        var text = lines.join('\n');
+        if (!/read_only\s*:\s*true/i.test(text) && /services\s*:/i.test(text)) {
+          return [{ line: 1, text: '(document-level)', explanation: 'No read_only: true is set on any service. A read-only root filesystem prevents attackers from writing malware or modifying binaries inside the container.', fix: '    read_only: true' }];
+        }
+        return [];
+      }
+    },
+    {
+      id: 'dc-no-security-opt',
+      name: 'No security_opt or seccomp profile',
+      severity: 'low',
+      test: function (lines) {
+        var text = lines.join('\n');
+        if (!/security_opt\s*:/i.test(text) && /services\s*:/i.test(text)) {
+          return [{ line: 1, text: '(document-level)', explanation: 'No security_opt is configured. Consider adding a seccomp profile to restrict the syscalls available to the container.', fix: '    security_opt:\n      - "no-new-privileges:true"\n      - "seccomp:default"' }];
+        }
+        return [];
+      }
+    }
+  ];
+
+  /* ── Scoring ── */
+  function calculateScore(findings) {
+    var deductions = { critical: 20, high: 10, medium: 5, low: 2 };
+    var total = 100;
+    findings.forEach(function (f) {
+      total -= (deductions[f.severity] || 0);
+    });
+    return Math.max(0, total);
+  }
+
+  function scoreGradeLabel(score) {
+    if (score >= 90) return 'A';
+    if (score >= 80) return 'B';
+    if (score >= 70) return 'C';
+    if (score >= 60) return 'D';
+    return 'F';
+  }
+
+  function scoreColor(score) {
+    if (score >= 90) return '#4ade80';
+    if (score >= 70) return '#fbbf24';
+    if (score >= 50) return '#f97316';
+    return '#ef4444';
+  }
+
+  /* ── Generate fixed version ── */
+  var lastFindings = [];
+  var lastType = 'unknown';
+  var lastInput = '';
+
+  function generateFixed() {
+    var text = lastInput;
+    var lines = text.split('\n');
+    var type = lastType;
+
+    if (type === 'kubernetes') {
+      // Apply line-level fixes
+      var fixMap = {};
+      lastFindings.forEach(function (f) {
+        if (f.line && f.fix && f.text !== '(document-level)') {
+          fixMap[f.line - 1] = f;
+        }
+      });
+
+      var result = [];
+      var skipAppend = {};
+
+      // Collect appended content
+      var appendAfterSpec = [];
+      lastFindings.forEach(function (f) {
+        if (f.text === '(document-level)' && f.fix) {
+          appendAfterSpec.push('\n' + f.fix);
+        }
+      });
+
+      for (var i = 0; i < lines.length; i++) {
+        if (fixMap[i]) {
+          var f = fixMap[i];
+          // For simple value replacements, replace the line
+          if (f.fix.indexOf('\n') === -1) {
+            result.push(f.fix);
+          } else {
+            // Multi-line fix — replace line and add fix below
+            result.push(f.fix);
+          }
+        } else {
+          result.push(lines[i]);
+        }
+      }
+
+      // Ensure essential security context additions
+      var resultText = result.join('\n');
+      if (!/runAsNonRoot\s*:\s*true/i.test(resultText) && /containers\s*:/i.test(resultText)) {
+        // Find the containers line and add pod-level securityContext
+        for (var j = 0; j < result.length; j++) {
+          if (/^\s*containers\s*:/.test(result[j])) {
+            var indent = result[j].match(/^(\s*)/)[1];
+            result.splice(j, 0,
+              indent + 'securityContext:',
+              indent + '  runAsNonRoot: true',
+              indent + '  runAsUser: 1000'
+            );
+            break;
+          }
+        }
+      }
+
+      if (appendAfterSpec.length > 0) {
+        result.push(appendAfterSpec.join('\n'));
+      }
+
+      return result.join('\n');
+    }
+
+    if (type === 'dockerfile') {
+      var result = [];
+      var hasUser = false;
+      var hasHealthcheck = false;
+      lines.forEach(function (l) {
+        if (/^USER\s/i.test(l.trim())) hasUser = true;
+        if (/^HEALTHCHECK\s/i.test(l.trim())) hasHealthcheck = true;
+      });
+
+      lines.forEach(function (l, idx) {
+        var trimmed = l.trim();
+
+        // Fix :latest tag on FROM
+        if (/^FROM\s/i.test(trimmed)) {
+          var img = trimmed.replace(/^FROM\s+/i, '').split(/\s+/)[0];
+          var rest = trimmed.replace(/^FROM\s+\S+/i, '');
+          if (img !== 'scratch' && (/:latest$/i.test(img) || (img.indexOf(':') === -1 && img.indexOf('@') === -1))) {
+            result.push('FROM ' + img.replace(/:latest$/i, '') + ':3.19' + rest);
+            return;
+          }
+        }
+
+        // Fix shell form CMD/ENTRYPOINT
+        if (/^(CMD|ENTRYPOINT)\s/i.test(trimmed) && !/^\S+\s+\[/.test(trimmed)) {
+          var replaced = trimmed.replace(/^(CMD|ENTRYPOINT)\s+(.+)$/i, function (m, instr, cmd) {
+            var parts = cmd.trim().split(/\s+/);
+            return instr.toUpperCase() + ' ["' + parts.join('", "') + '"]';
+          });
+          result.push(replaced);
+          return;
+        }
+
+        // Fix apt-get without --no-install-recommends
+        if (/apt-get\s+install/i.test(l) && !/--no-install-recommends/i.test(l)) {
+          result.push(l.replace(/apt-get\s+install/i, 'apt-get install --no-install-recommends'));
+          return;
+        }
+
+        // Skip EXPOSE 22
+        if (/^EXPOSE\s/i.test(trimmed) && /\b22\b/.test(trimmed)) {
+          result.push('# EXPOSE 22 removed — use kubectl exec / docker exec');
+          return;
+        }
+
+        result.push(l);
+      });
+
+      // Append USER instruction if missing
+      if (!hasUser) {
+        result.push('');
+        result.push('# Run as non-root user');
+        result.push('RUN addgroup -S appgroup && adduser -S appuser -G appgroup');
+        result.push('USER appuser');
+      }
+
+      // Append HEALTHCHECK if missing
+      if (!hasHealthcheck) {
+        result.push('');
+        result.push('HEALTHCHECK --interval=30s --timeout=5s --retries=3 \\');
+        result.push('  CMD wget -qO- http://localhost:8080/healthz || exit 1');
+      }
+
+      return result.join('\n');
+    }
+
+    if (type === 'compose') {
+      var result = [];
+      lines.forEach(function (l) {
+        // Fix privileged
+        if (/^\s*privileged\s*:\s*true/i.test(l)) {
+          result.push(l.replace(/true/i, 'false'));
+          return;
+        }
+        // Fix network_mode: host
+        if (/^\s*network_mode\s*:\s*["']?host["']?/i.test(l)) {
+          result.push(l.replace(/["']?host["']?/i, 'bridge'));
+          return;
+        }
+        // Fix docker.sock mount
+        if (/\/var\/run\/docker\.sock/i.test(l)) {
+          result.push('      # docker.sock mount removed for security');
+          return;
+        }
+        result.push(l);
+      });
+      return result.join('\n');
+    }
+
+    return text;
+  }
+
+  /* ── Main lint function ── */
+  function lint() {
+    var text = inputEl.value;
+    if (!text.trim()) {
+      resetUI();
+      emptyEl.style.display = '';
+      return;
+    }
+
+    var type = detectType(text);
+    var lines = text.split('\n');
+    var rules;
+
+    if (type === 'kubernetes') {
+      typeLabel.innerHTML = 'Detected: <span class="csl-type-detected">Kubernetes YAML</span>';
+      rules = K8S_RULES;
+    } else if (type === 'dockerfile') {
+      typeLabel.innerHTML = 'Detected: <span class="csl-type-detected">Dockerfile</span>';
+      rules = DOCKERFILE_RULES;
+    } else if (type === 'compose') {
+      typeLabel.innerHTML = 'Detected: <span class="csl-type-detected">docker-compose.yml</span>';
+      rules = COMPOSE_RULES;
+    } else {
+      typeLabel.innerHTML = 'Detected: <span class="csl-type-detected">Unknown — trying all rules</span>';
+      rules = K8S_RULES.concat(DOCKERFILE_RULES).concat(COMPOSE_RULES);
+    }
+
+    var findings = [];
+    rules.forEach(function (rule) {
+      var matches = rule.test(lines);
+      matches.forEach(function (m) {
+        findings.push({
+          id: rule.id,
+          name: rule.name,
+          severity: rule.severity,
+          line: m.line,
+          text: m.text,
+          explanation: m.explanation,
+          fix: m.fix
+        });
+      });
+    });
+
+    // Deduplicate by id + line
+    var seen = {};
+    findings = findings.filter(function (f) {
+      var key = f.id + ':' + f.line;
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+
+    // Sort: critical first, then high, medium, low
+    var sevOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    findings.sort(function (a, b) { return (sevOrder[a.severity] || 9) - (sevOrder[b.severity] || 9); });
+
+    lastFindings = findings;
+    lastType = type;
+    lastInput = text;
+
+    emptyEl.style.display = 'none';
+    fixedArea.style.display = 'none';
+
+    if (findings.length === 0) {
+      resultsEl.style.display = 'none';
+      scoreArea.style.display = 'none';
+      cleanEl.style.display = '';
+      summaryEl.textContent = rules.length + ' rules checked';
+      fixBtn.style.display = 'none';
+      return;
+    }
+
+    cleanEl.style.display = 'none';
+    resultsEl.style.display = '';
+    scoreArea.style.display = '';
+
+    /* ── Score ── */
+    var score = calculateScore(findings);
+    var grade = scoreGradeLabel(score);
+    var color = scoreColor(score);
+    var dashOffset = 327 - (327 * score / 100);
+    scoreCircle.setAttribute('stroke', color);
+    scoreCircle.setAttribute('stroke-dashoffset', dashOffset);
+    scoreText.textContent = score;
+    scoreGrade.textContent = grade;
+
+    var crit = findings.filter(function (f) { return f.severity === 'critical'; }).length;
+    var high = findings.filter(function (f) { return f.severity === 'high'; }).length;
+    var med  = findings.filter(function (f) { return f.severity === 'medium'; }).length;
+    var low  = findings.filter(function (f) { return f.severity === 'low'; }).length;
+    var parts = [];
+    if (crit) parts.push('<strong>' + crit + '</strong> critical');
+    if (high) parts.push('<strong>' + high + '</strong> high');
+    if (med)  parts.push('<strong>' + med  + '</strong> medium');
+    if (low)  parts.push('<strong>' + low  + '</strong> low');
+    scoreMeta.innerHTML = parts.join(' &middot; ') + '<br>' + rules.length + ' rules checked against ' + type;
+
+    summaryEl.textContent = findings.length + ' finding' + (findings.length !== 1 ? 's' : '') + ' — score: ' + score + '/100';
+
+    fixBtn.style.display = '';
+
+    /* ── Render findings ── */
+    while (findingsEl.firstChild) findingsEl.removeChild(findingsEl.firstChild);
+
+    findings.forEach(function (f) {
+      var card = document.createElement('div');
+      card.className = 'csl-finding csl-finding--' + f.severity;
+
+      var header = document.createElement('div');
+      header.className = 'csl-finding-header';
+
+      var typeSpan = document.createElement('span');
+      typeSpan.className = 'csl-finding-type';
+      typeSpan.textContent = f.name;
+
+      var lineSpan = document.createElement('span');
+      lineSpan.className = 'csl-line-num';
+      lineSpan.textContent = f.text === '(document-level)' ? 'Global' : 'Line ' + f.line;
+
+      var badge = document.createElement('span');
+      badge.className = 'csl-badge csl-badge--' + f.severity;
+      badge.textContent = f.severity;
+
+      header.appendChild(typeSpan);
+      header.appendChild(lineSpan);
+      header.appendChild(badge);
+
+      var body = document.createElement('div');
+      body.className = 'csl-finding-body';
+
+      if (f.text && f.text !== '(document-level)') {
+        var pre = document.createElement('pre');
+        pre.className = 'csl-match-pre';
+        pre.textContent = f.text;
+        body.appendChild(pre);
+      }
+
+      var expl = document.createElement('div');
+      expl.className = 'csl-explanation';
+      var explStrong = document.createElement('strong');
+      explStrong.textContent = 'Why: ';
+      expl.appendChild(explStrong);
+      expl.appendChild(document.createTextNode(f.explanation));
+      body.appendChild(expl);
+
+      if (f.fix) {
+        var fixLabel = document.createElement('div');
+        fixLabel.className = 'csl-fix-label';
+        fixLabel.textContent = 'Fix';
+        body.appendChild(fixLabel);
+
+        var fixPre = document.createElement('pre');
+        fixPre.className = 'csl-fix-pre';
+        fixPre.textContent = f.fix;
+        body.appendChild(fixPre);
+      }
+
+      card.appendChild(header);
+      card.appendChild(body);
+      findingsEl.appendChild(card);
+    });
+  }
+
+  function resetUI() {
+    resultsEl.style.display = 'none';
+    scoreArea.style.display = 'none';
+    cleanEl.style.display = 'none';
+    emptyEl.style.display = 'none';
+    fixedArea.style.display = 'none';
+    summaryEl.textContent = '';
+    typeLabel.textContent = 'Paste a Kubernetes YAML, Dockerfile, or docker-compose.yml';
+    fixBtn.style.display = 'none';
+    while (findingsEl.firstChild) findingsEl.removeChild(findingsEl.firstChild);
+  }
+
+  /* ── Event listeners ── */
+  lintBtn.addEventListener('click', lint);
+
+  var debounceTimer = null;
+  inputEl.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(lint, 600);
+  });
+
+  exampleBtn.addEventListener('click', function () {
+    inputEl.value = EXAMPLE;
+    lint();
+  });
+
+  clearBtn.addEventListener('click', function () {
+    inputEl.value = '';
+    resetUI();
+    emptyEl.style.display = '';
+  });
+
+  fixBtn.addEventListener('click', function () {
+    var fixed = generateFixed();
+    fixedOut.textContent = fixed;
+    fixedArea.style.display = '';
+    fixedArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  fixedCopy.addEventListener('click', function () {
+    navigator.clipboard.writeText(fixedOut.textContent).then(function () {
+      fixedCopy.textContent = 'Copied';
+      setTimeout(function () { fixedCopy.textContent = 'Copy'; }, 1500);
+    });
+  });
+})();
+</script>

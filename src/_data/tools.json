@@ -804,5 +804,29 @@
     "isNew": true,
     "relatedTools": ["prompt-injection-tester", "secrets-scanner", "jwt-attack"],
     "status": "live"
+  },
+  {
+    "name": "SSL Chain Debugger",
+    "slug": "ssl-chain-debugger",
+    "description": "Parse, visualize, and fix SSL/TLS certificate chain ordering issues.",
+    "longDescription": "Paste PEM certificates and get a visual chain diagram, validation results, and automatic chain reordering. Detects missing intermediates, wrong order, expired certs, and weak cryptography. Generate openssl commands for live debugging. 100% client-side.",
+    "category": "security",
+    "keywords": ["ssl", "tls", "certificate", "chain", "intermediate", "pem", "x509", "certificate chain", "ssl debug", "openssl", "cert chain order"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["ct-monitor", "security-headers", "ssh-keygen"],
+    "status": "live"
+  },
+  {
+    "name": "Container Security Linter",
+    "slug": "container-security-linter",
+    "description": "Lint Kubernetes YAML, Dockerfiles, and docker-compose for security misconfigurations.",
+    "longDescription": "Paste Kubernetes manifests, Dockerfiles, or docker-compose files and get instant security analysis with 40+ rules. Detects running as root, privileged containers, missing resource limits, exposed secrets, and more. Auto-generates a fixed version. 100% client-side.",
+    "category": "devops",
+    "keywords": ["kubernetes", "docker", "container security", "dockerfile lint", "k8s security", "docker-compose", "container scan", "security linter", "pod security", "devops security"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["k8s-manifest-generator", "dockerfile-optimizer", "yaml-linter"],
+    "status": "live"
   }
 ]
