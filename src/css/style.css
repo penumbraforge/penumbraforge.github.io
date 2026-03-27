@@ -5518,6 +5518,14 @@ body:has(.tools-hub-page) {
   display: none;
 }
 @media (max-width: 900px) {
+  /* Remove top padding from scroll container so sticky works flush */
+  .tools-content {
+    padding-top: 0;
+  }
+  /* Push the title down instead */
+  .tools-content-title {
+    padding-top: 20px;
+  }
   .tools-mobile-search {
     display: block;
     position: sticky;
