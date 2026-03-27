@@ -1,0 +1,800 @@
+---
+toolSlug: yara-playground
+permalink: /tools/yara-playground/
+---
+
+<div class="yp-layout">
+  <!-- Left: Editor panel -->
+  <div class="yp-panel yp-panel--editor">
+    <div class="yp-panel-header">
+      <span class="yp-panel-title">Rule Editor</span>
+      <div class="yp-header-actions">
+        <select id="yp-template-select" class="yp-select" title="Load a template">
+          <option value="">Load template…</option>
+          <option value="generic">Generic File Detection</option>
+          <option value="pe_header">PE Header Check</option>
+          <option value="doc_macro">Document Macro</option>
+          <option value="ransomware_note">Ransomware Note</option>
+          <option value="webshell">Webshell Patterns</option>
+          <option value="packed_binary">Packed Binary</option>
+          <option value="crypto_miner">Crypto Miner</option>
+          <option value="phishing_kit">Phishing Kit</option>
+          <option value="suspicious_script">Suspicious Script</option>
+          <option value="lateral_movement">Lateral Movement</option>
+          <option value="custom">Custom Template</option>
+        </select>
+        <button class="btn yp-btn-sm" id="yp-validate-btn">Validate</button>
+      </div>
+    </div>
+    <textarea id="yp-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Write or paste a YARA rule here, or load a template above…"></textarea>
+    <div id="yp-validate-result" class="yp-validate-result" style="display:none;"></div>
+    <div class="yp-editor-actions">
+      <button class="btn btn--primary" id="yp-analyze-btn">Analyze Rule</button>
+      <button class="btn yp-btn-sm" id="yp-copy-btn">Copy Rule</button>
+      <button class="btn yp-btn-sm" id="yp-download-btn">Download .yar</button>
+      <button class="btn yp-btn-sm" id="yp-clear-btn">Clear</button>
+    </div>
+  </div>
+
+  <!-- Right: Analysis + Test panel -->
+  <div class="yp-panel yp-panel--right">
+
+    <!-- Hex String Builder -->
+    <div class="yp-section">
+      <div class="yp-section-title">Hex String Builder</div>
+      <div class="yp-hex-row">
+        <input type="text" id="yp-hex-input" class="yp-input" placeholder="ASCII string or hex (e.g. MZ or 4D5A)" spellcheck="false" autocomplete="off">
+        <button class="btn yp-btn-sm" id="yp-hex-to-ascii-btn">Hex → ASCII</button>
+        <button class="btn yp-btn-sm" id="yp-ascii-to-hex-btn">ASCII → Hex</button>
+      </div>
+      <div id="yp-hex-result" class="yp-hex-result" style="display:none;"></div>
+    </div>
+
+    <!-- Rule Analyzer -->
+    <div class="yp-section" id="yp-analyzer-section" style="display:none;">
+      <div class="yp-section-title">Rule Analysis</div>
+      <div id="yp-analyzer-content"></div>
+    </div>
+
+    <!-- Test Mode -->
+    <div class="yp-section">
+      <div class="yp-section-title">
+        Pattern Test
+        <span class="yp-approx-badge">approximate — not full YARA semantics</span>
+      </div>
+      <textarea id="yp-test-input" rows="6" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Paste hex dump or ASCII text to test rule string patterns against…"></textarea>
+      <div class="yp-test-actions">
+        <button class="btn btn--primary yp-btn-sm" id="yp-test-btn">Test Patterns</button>
+        <button class="btn yp-btn-sm" id="yp-test-example-btn">Load Example</button>
+        <button class="btn yp-btn-sm" id="yp-test-clear-btn">Clear</button>
+      </div>
+      <div id="yp-test-result" style="display:none;"></div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  .yp-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+  @media (max-width: 768px) {
+    .yp-layout { grid-template-columns: 1fr; }
+  }
+
+  .yp-panel {
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface-1, #1a1a2e);
+  }
+  .yp-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.875rem;
+    background: var(--surface-0, #0f0f1a);
+    border-bottom: 1px solid var(--border, #2a2a3a);
+    flex-wrap: wrap;
+  }
+  .yp-panel-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-1, #e2e8f0);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .yp-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .yp-select {
+    font-size: 0.8125rem;
+    background: var(--surface-1, #1a1a2e);
+    color: var(--text-1, #e2e8f0);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 5px;
+    padding: 0.3rem 0.5rem;
+    cursor: pointer;
+  }
+  .yp-select:focus { outline: none; border-color: #818cf8; }
+
+  #yp-editor {
+    width: 100%;
+    min-height: 340px;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    background: var(--surface-0, #0f0f1a);
+    color: var(--text-1, #e2e8f0);
+    border: none;
+    border-bottom: 1px solid var(--border, #2a2a3a);
+    padding: 0.875rem;
+    resize: vertical;
+    box-sizing: border-box;
+    display: block;
+  }
+  #yp-editor:focus { outline: none; }
+
+  .yp-editor-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.6rem 0.875rem;
+    flex-wrap: wrap;
+    background: var(--surface-0, #0f0f1a);
+    border-top: 1px solid var(--border, #2a2a3a);
+  }
+
+  .yp-validate-result {
+    padding: 0.6rem 0.875rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+  .yp-validate-result--ok {
+    background: rgba(34, 197, 94, 0.07);
+    color: #4ade80;
+    border-top: 1px solid rgba(34, 197, 94, 0.2);
+  }
+  .yp-validate-result--error {
+    background: rgba(239, 68, 68, 0.07);
+    color: #f87171;
+    border-top: 1px solid rgba(239, 68, 68, 0.2);
+  }
+  .yp-validate-result--warn {
+    background: rgba(234, 179, 8, 0.07);
+    color: #fbbf24;
+    border-top: 1px solid rgba(234, 179, 8, 0.2);
+  }
+
+  .yp-panel--right {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .yp-section {
+    padding: 0.875rem;
+    border-bottom: 1px solid var(--border, #2a2a3a);
+  }
+  .yp-section:last-child { border-bottom: none; }
+  .yp-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-2, #94a3b8);
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .yp-hex-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .yp-input {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125rem;
+    background: var(--surface-0, #0f0f1a);
+    color: var(--text-1, #e2e8f0);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 5px;
+    padding: 0.35rem 0.6rem;
+  }
+  .yp-input:focus { outline: none; border-color: #818cf8; }
+  .yp-hex-result {
+    margin-top: 0.5rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125rem;
+    background: var(--surface-0, #0f0f1a);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 5px;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-1, #e2e8f0);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .yp-btn-sm {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.65rem;
+  }
+
+  .yp-approx-badge {
+    font-size: 0.68rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    background: rgba(234, 179, 8, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(234, 179, 8, 0.2);
+    border-radius: 4px;
+    padding: 1px 6px;
+  }
+
+  #yp-test-input {
+    width: 100%;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125rem;
+    background: var(--surface-0, #0f0f1a);
+    color: var(--text-1, #e2e8f0);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 5px;
+    padding: 0.5rem 0.75rem;
+    resize: vertical;
+    box-sizing: border-box;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  #yp-test-input:focus { outline: none; border-color: #818cf8; }
+
+  .yp-test-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+
+  #yp-test-result {
+    margin-top: 0.5rem;
+  }
+  .yp-match-hit {
+    background: rgba(34, 197, 94, 0.07);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 6px;
+    padding: 0.65rem 0.875rem;
+    margin-bottom: 0.4rem;
+  }
+  .yp-match-miss {
+    background: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    border-radius: 6px;
+    padding: 0.65rem 0.875rem;
+    margin-bottom: 0.4rem;
+  }
+  .yp-match-label {
+    font-size: 0.8125rem;
+    font-family: var(--font-mono, monospace);
+    color: var(--text-1, #e2e8f0);
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+  .yp-match-detail {
+    font-size: 0.75rem;
+    color: var(--text-2, #94a3b8);
+  }
+  .yp-match-status-hit { color: #4ade80; }
+  .yp-match-status-miss { color: #f87171; }
+
+  /* Analyzer output */
+  .yp-analyzer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .yp-stat-card {
+    background: var(--surface-0, #0f0f1a);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+  }
+  .yp-stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-3, #888);
+    margin-bottom: 0.2rem;
+  }
+  .yp-stat-value {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--text-1, #e2e8f0);
+  }
+  .yp-perf-simple { color: #4ade80; }
+  .yp-perf-moderate { color: #fbbf24; }
+  .yp-perf-expensive { color: #f87171; }
+  .yp-mitre-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-family: var(--font-mono, monospace);
+    background: rgba(129, 140, 248, 0.1);
+    color: #818cf8;
+    border: 1px solid rgba(129, 140, 248, 0.2);
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin: 2px 2px 0 0;
+  }
+  .yp-analyzer-strings {
+    font-size: 0.8rem;
+    font-family: var(--font-mono, monospace);
+    background: var(--surface-0, #0f0f1a);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 5px;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-2, #94a3b8);
+    max-height: 120px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-top: 0.5rem;
+  }
+  .yp-section-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-3, #888);
+    margin-bottom: 0.35rem;
+    font-weight: 600;
+  }
+</style>
+
+<script>
+(function () {
+  var editorEl       = document.getElementById('yp-editor');
+  var templateSel    = document.getElementById('yp-template-select');
+  var validateBtn    = document.getElementById('yp-validate-btn');
+  var validateResult = document.getElementById('yp-validate-result');
+  var analyzeBtn     = document.getElementById('yp-analyze-btn');
+  var analyzerSec    = document.getElementById('yp-analyzer-section');
+  var analyzerContent= document.getElementById('yp-analyzer-content');
+  var copyBtn        = document.getElementById('yp-copy-btn');
+  var downloadBtn    = document.getElementById('yp-download-btn');
+  var clearBtn       = document.getElementById('yp-clear-btn');
+
+  var hexInput       = document.getElementById('yp-hex-input');
+  var hexToAsciiBtn  = document.getElementById('yp-hex-to-ascii-btn');
+  var asciiToHexBtn  = document.getElementById('yp-ascii-to-hex-btn');
+  var hexResult      = document.getElementById('yp-hex-result');
+
+  var testInput      = document.getElementById('yp-test-input');
+  var testBtn        = document.getElementById('yp-test-btn');
+  var testExampleBtn = document.getElementById('yp-test-example-btn');
+  var testClearBtn   = document.getElementById('yp-test-clear-btn');
+  var testResult     = document.getElementById('yp-test-result');
+
+  // ─── Templates ───────────────────────────────────────────────────────────────
+  var TEMPLATES = {
+    generic: 'rule generic_file_detection {\n    meta:\n        description = "Detect files containing suspicious strings"\n        author = "analyst"\n        date = "2026-03-27"\n        severity = "medium"\n    strings:\n        $s1 = "malicious_string" ascii wide\n        $s2 = "another_indicator" nocase\n        $s3 = { 4D 5A 90 00 }  // MZ header hex pattern\n    condition:\n        any of them\n}',
+    pe_header: 'rule pe_header_check {\n    meta:\n        description = "Detect Windows PE executables"\n        author = "analyst"\n        date = "2026-03-27"\n        severity = "low"\n    strings:\n        $mz = { 4D 5A }  // MZ magic\n        $pe = { 50 45 00 00 }  // PE signature\n        $dos_stub = "This program cannot be run in DOS mode"\n    condition:\n        $mz at 0 and\n        $pe and\n        filesize < 10MB\n}',
+    doc_macro: 'rule document_with_macro {\n    meta:\n        description = "Detect Office documents containing VBA macros"\n        author = "analyst"\n        date = "2026-03-27"\n        severity = "high"\n        mitre_technique = "T1566.001"\n    strings:\n        $ole_magic = { D0 CF 11 E0 A1 B1 1A E1 }  // OLE2 compound document\n        $vba_magic = { 41 74 74 72 69 62 75 74 65 56 42 }  // AttributeVB\n        $auto_open = "AutoOpen" nocase\n        $auto_exec = "AutoExec" nocase\n        $shell = "Shell" nocase\n        $wscript = "WScript.Shell" nocase\n    condition:\n        $ole_magic at 0 and\n        $vba_magic and\n        any of ($auto_open, $auto_exec) and\n        any of ($shell, $wscript)\n}',
+    ransomware_note: 'rule ransomware_note_dropper {\n    meta:\n        description = "Detect ransomware note files dropped on disk"\n        author = "analyst"\n        date = "2026-03-27"\n        severity = "critical"\n        mitre_technique = "T1486"\n    strings:\n        $note1 = "YOUR FILES HAVE BEEN ENCRYPTED" nocase\n        $note2 = "All your files are encrypted" nocase\n        $note3 = "HOW TO RECOVER" nocase\n        $note4 = "pay ransom" nocase\n        $note5 = "bitcoin" nocase\n        $note6 = "decryption key" nocase\n        $ext1 = ".onion" nocase\n        $ext2 = "tor browser" nocase\n    condition:\n        2 of ($note*) and\n        any of ($ext*)\n}',
+    webshell: 'rule webshell_php {\n    meta:\n        description = "Detect PHP webshell backdoors"\n        author = "analyst"\n        date = "2026-03-27"\n        severity = "critical"\n        mitre_technique = "T1505.003"\n    strings:\n        $eval_b64 = /eval\\s*\\(\\s*base64_decode/ nocase\n        $passthru  = /passthru\\s*\\(/ nocase\n        $shell_exec= /shell_exec\\s*\\(/ nocase\n        $system    = /system\\s*\\(\\s*\\$/ nocase\n        $preg_replace = /preg_replace\\s*\\(.*\\/e/\n        $assert_str = /assert\\s*\\(\\s*\\$_(POST|GET|REQUEST|COOKIE)/ nocase\n        $cmd_param  = /\\$_(POST|GET|REQUEST|COOKIE)\\[.*(cmd|exec|command|shell)/ nocase\n    condition:\n        any of them\n}',
+    packed_binary: 'rule packed_binary_upx {\n    meta:\n        description = "Detect UPX-packed executables"\n        author = "analyst"\n        date = "2026-03-27"\n        severity = "medium"\n        mitre_technique = "T1027"\n    strings:\n        $upx0 = "UPX0" ascii\n        $upx1 = "UPX1" ascii\n        $upx2 = "UPX!" ascii\n        $upx_sig = { 55 50 58 21 }  // UPX! signature\n        $mz = { 4D 5A }  // MZ header\n    condition:\n        $mz at 0 and\n        2 of ($upx*)\n}',
+    crypto_miner: 'rule crypto_miner_indicators {\n    meta:\n        description = "Detect cryptocurrency mining software"\n        author = "analyst"\n        date = "2026-03-27"\n        severity = "high"\n        mitre_technique = "T1496"\n    strings:\n        $stratum = "stratum+tcp://" nocase\n        $xmrig   = "xmrig" nocase\n        $pool1   = "pool.supportxmr.com" nocase\n        $pool2   = "minexmr.com" nocase\n        $pool3   = "moneroocean.stream" nocase\n        $wallet  = /[48][0-9AB][1-9A-HJ-NP-Za-km-z]{93}/ // XMR wallet pattern\n        $arg1    = "--donate-level" ascii\n        $arg2    = "--mining-threads" ascii\n    condition:\n        $stratum or\n        ($xmrig and any of ($pool*)) or\n        (2 of ($arg*))\n}',
+    phishing_kit: 'rule phishing_kit_html {\n    meta:\n        description = "Detect phishing kit HTML pages mimicking login portals"\n        author = "analyst"\n        date = "2026-03-27"\n        severity = "high"\n        mitre_technique = "T1566"\n    strings:\n        $form_action = /action=["\\x27][^"\\x27]*(php|asp)/ nocase\n        $password_field = /type=["\\x27]password["\\x27]/ nocase\n        $mailer1 = "mail(" nocase\n        $mailer2 = "smtp_" nocase\n        $brand1  = "Microsoft" nocase\n        $brand2  = "PayPal" nocase\n        $brand3  = "Apple" nocase\n        $brand4  = "Google" nocase\n        $redirect = "header(\"Location:" nocase\n    condition:\n        $form_action and\n        $password_field and\n        ($mailer1 or $mailer2) and\n        any of ($brand*)\n}',
+    suspicious_script: 'rule suspicious_powershell {\n    meta:\n        description = "Detect suspicious PowerShell execution patterns"\n        author = "analyst"\n        date = "2026-03-27"\n        severity = "high"\n        mitre_technique = "T1059.001"\n    strings:\n        $enc1 = "-EncodedCommand" nocase\n        $enc2 = "-enc " nocase\n        $bypass1 = "-ExecutionPolicy Bypass" nocase\n        $bypass2 = "Set-ExecutionPolicy" nocase\n        $download = "DownloadString" nocase\n        $iex = "IEX(" nocase\n        $invoke = "Invoke-Expression" nocase\n        $hidden = "-WindowStyle Hidden" nocase\n        $noprofile = "-NoProfile" nocase\n    condition:\n        ($enc1 or $enc2) or\n        ($bypass1 and $download) or\n        (($iex or $invoke) and ($hidden or $noprofile))\n}',
+    lateral_movement: 'rule lateral_movement_wmi {\n    meta:\n        description = "Detect WMI-based lateral movement techniques"\n        author = "analyst"\n        date = "2026-03-27"\n        severity = "high"\n        mitre_technique = "T1047"\n    strings:\n        $wmi1 = "Win32_Process" ascii wide nocase\n        $wmi2 = "winmgmts" ascii wide nocase\n        $wmi3 = "wmic" ascii wide nocase\n        $remote1 = "node:" ascii wide nocase\n        $remote2 = "/node:" ascii wide nocase\n        $create = "Create" ascii wide nocase\n        $psexec = "psexec" ascii wide nocase\n    condition:\n        ($wmi1 or $wmi2) and\n        ($remote1 or $remote2 or $wmi3) and\n        $create\n}',
+    custom: 'rule custom_rule_name {\n    meta:\n        description = "Custom detection rule"\n        author = "your-name"\n        date = "2026-03-27"\n        severity = "medium"\n    strings:\n        $str1 = "pattern_one" ascii wide nocase\n        $str2 = { 00 01 02 03 }  // hex pattern\n        $regex1 = /your-regex-here/ nocase\n    condition:\n        any of them\n}'
+  };
+
+  // MITRE suggestion map based on string/keyword patterns in rule text
+  var MITRE_HINTS = [
+    { pattern: /phish|credential|login.*form|mailer/i, techniques: ['T1566', 'T1566.001', 'T1566.002'] },
+    { pattern: /powershell|encodedcommand|invoke-expression/i, techniques: ['T1059.001', 'T1027.010'] },
+    { pattern: /ransomware|encrypt.*file|bitcoin|ransom/i, techniques: ['T1486', 'T1490'] },
+    { pattern: /webshell|eval.*base64|passthru|shell_exec/i, techniques: ['T1505.003', 'T1059.004'] },
+    { pattern: /miner|stratum|xmrig|monero/i, techniques: ['T1496'] },
+    { pattern: /upx|packed|packer|obfuscat/i, techniques: ['T1027', 'T1027.002'] },
+    { pattern: /wmi|winmgmt|win32_process/i, techniques: ['T1047', 'T1021'] },
+    { pattern: /autoopen|autoexec|vba|macro/i, techniques: ['T1566.001', 'T1204.002'] },
+    { pattern: /psexec|remote.*exec|lateral/i, techniques: ['T1021', 'T1570'] },
+    { pattern: /\\bpe\\b|mz.header|dll/i, techniques: ['T1055', 'T1106'] }
+  ];
+
+  // ─── Validate ─────────────────────────────────────────────────────────────
+  function validateRule(text) {
+    var errors = [];
+    var warnings = [];
+
+    if (!text.trim()) {
+      return { ok: false, errors: ['Rule is empty.'], warnings: [] };
+    }
+
+    // Must have rule keyword and name
+    if (!/^\s*rule\s+\w+/m.test(text)) {
+      errors.push('Missing rule declaration. Expected: rule <name> { … }');
+    }
+
+    // Braces balance
+    var open  = (text.match(/\{/g) || []).length;
+    var close = (text.match(/\}/g) || []).length;
+    if (open !== close) {
+      errors.push('Unbalanced braces: ' + open + ' opening, ' + close + ' closing.');
+    }
+
+    // meta block
+    if (!/\bmeta\s*:/m.test(text)) {
+      warnings.push('No meta: block found. Best practice is to include description, author, and date.');
+    }
+
+    // strings block (optional if condition uses filesize/math)
+    var hasStrings = /\bstrings\s*:/m.test(text);
+
+    // condition block
+    if (!/\bcondition\s*:/m.test(text)) {
+      errors.push('Missing condition: block — required for every YARA rule.');
+    } else {
+      // Check condition is non-empty
+      var condMatch = text.match(/\bcondition\s*:\s*([\s\S]*?)(?=\}[\s\r\n]*$|$)/m);
+      if (condMatch && !condMatch[1].trim()) {
+        errors.push('condition: block is empty.');
+      }
+    }
+
+    // String identifier format
+    var badId = text.match(/\$[a-zA-Z_][a-zA-Z0-9_]*\s*==\s*/);
+    if (badId) {
+      warnings.push('Use = (not ==) to define string variables in the strings: section.');
+    }
+
+    // Detect unclosed string literals
+    var strLines = text.split('\n');
+    strLines.forEach(function (line, i) {
+      var stripped = line.replace(/\/\/.*$/, ''); // strip line comments
+      var quoteCount = (stripped.match(/"/g) || []).length;
+      if (quoteCount % 2 !== 0) {
+        warnings.push('Possible unclosed string on line ' + (i + 1) + '.');
+      }
+    });
+
+    // regex modifier placement
+    if (/\/(nocase|ascii|wide|fullword)\b/.test(text)) {
+      warnings.push('Modifiers (nocase, ascii, wide, fullword) go after the closing delimiter of regex strings, not inside them.');
+    }
+
+    // Warn on expensive patterns
+    var regexCount = (text.match(/\/[^\/\n]+\//g) || []).length;
+    if (regexCount > 3) {
+      warnings.push('High regex count (' + regexCount + ') may impact scan performance.');
+    }
+
+    return {
+      ok: errors.length === 0,
+      errors: errors,
+      warnings: warnings
+    };
+  }
+
+  // ─── Analyze ──────────────────────────────────────────────────────────────
+  function analyzeRule(text) {
+    // Count strings
+    var stringDefs = text.match(/\$\w+\s*=/g) || [];
+    var stringCount = stringDefs.length;
+
+    // Count regexes
+    var regexes = text.match(/\/[^\/\n]+\/[a-z]*/g) || [];
+    var regexCount = regexes.length;
+
+    // Count hex patterns
+    var hexPats = text.match(/\{[0-9A-Fa-f\s\?\(\)\[\]\|]+\}/g) || [];
+    var hexCount = hexPats.length;
+
+    // Wildcards
+    var wildcards = (text.match(/\*/g) || []).length;
+
+    // Estimate performance
+    var perfScore = regexCount * 3 + wildcards + stringCount;
+    var perf, perfClass;
+    if (perfScore <= 4) {
+      perf = 'Simple'; perfClass = 'yp-perf-simple';
+    } else if (perfScore <= 12) {
+      perf = 'Moderate'; perfClass = 'yp-perf-moderate';
+    } else {
+      perf = 'Expensive'; perfClass = 'yp-perf-expensive';
+    }
+
+    // MITRE suggestions
+    var mitreMatches = [];
+    MITRE_HINTS.forEach(function (hint) {
+      if (hint.pattern.test(text)) {
+        hint.techniques.forEach(function (t) {
+          if (mitreMatches.indexOf(t) === -1) mitreMatches.push(t);
+        });
+      }
+    });
+
+    // Collect string names
+    var stringNames = [];
+    var snRe = /\$(\w+)\s*=/g;
+    var m;
+    while ((m = snRe.exec(text)) !== null) {
+      stringNames.push('$' + m[1]);
+    }
+
+    return {
+      stringCount: stringCount,
+      hexCount: hexCount,
+      regexCount: regexCount,
+      wildcards: wildcards,
+      perf: perf,
+      perfClass: perfClass,
+      mitre: mitreMatches,
+      stringNames: stringNames
+    };
+  }
+
+  // ─── Test patterns ────────────────────────────────────────────────────────
+  function extractStringPatterns(ruleText) {
+    var patterns = [];
+    // Match: $name = "value" [modifiers]
+    var plainRe = /\$\w+\s*=\s*"([^"\\]*(\\.[^"\\]*)*)"\s*([a-z\s]*)/g;
+    var m;
+    while ((m = plainRe.exec(ruleText)) !== null) {
+      var value = m[1].replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\r/g, '\r').replace(/\\\\/g, '\\').replace(/\\"/g, '"');
+      var modifiers = m[3] || '';
+      var flags = 'g';
+      if (/nocase/i.test(modifiers)) flags += 'i';
+      patterns.push({ label: m[0].trim().split('\n')[0], re: new RegExp(escapeRegex(value), flags), isRegex: false });
+    }
+    // Match: $name = /regex/ [modifiers]
+    var regexRe = /\$\w+\s*=\s*\/([^\/\n]+)\/([a-z]*)/g;
+    while ((m = regexRe.exec(ruleText)) !== null) {
+      try {
+        var flags2 = 'g' + (m[2] || '').replace(/[^im]/g, '');
+        patterns.push({ label: m[0].trim(), re: new RegExp(m[1], flags2), isRegex: true });
+      } catch (e) {
+        patterns.push({ label: m[0].trim(), re: null, isRegex: true, error: e.message });
+      }
+    }
+    // Match: $name = { hex bytes }
+    var hexRe = /\$\w+\s*=\s*\{([^}]+)\}/g;
+    while ((m = hexRe.exec(ruleText)) !== null) {
+      var hexStr = m[1].trim().replace(/\s+/g, ' ').replace(/\/\/[^\n]*/g, '');
+      patterns.push({ label: m[0].trim().substring(0, 60), re: null, hexStr: hexStr, isHex: true });
+    }
+    return patterns;
+  }
+
+  function escapeRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function hexPatternMatch(hexStr, testText) {
+    // Convert test text to a hex representation and try to match
+    // Strip wildcards and just match concrete bytes
+    var cleanHex = hexStr.replace(/\s/g, '').replace(/[^0-9A-Fa-f]/g, '').toLowerCase();
+    if (cleanHex.length < 2) return false;
+    // Convert testText to hex for comparison
+    var testHex = '';
+    for (var i = 0; i < testText.length; i++) {
+      var b = testText.charCodeAt(i).toString(16).padStart(2, '0');
+      testHex += b;
+    }
+    return testHex.indexOf(cleanHex) !== -1;
+  }
+
+  function runTests() {
+    var ruleText = editorEl.value;
+    var testText = testInput.value;
+
+    if (!ruleText.trim()) {
+      showTestResult('<div class="yp-match-miss"><div class="yp-match-label yp-match-status-miss">No rule loaded. Write or load a rule first.</div></div>');
+      return;
+    }
+    if (!testText.trim()) {
+      showTestResult('<div class="yp-match-miss"><div class="yp-match-label yp-match-status-miss">No test content. Paste some text or a hex dump above.</div></div>');
+      return;
+    }
+
+    var patterns = extractStringPatterns(ruleText);
+    if (!patterns.length) {
+      showTestResult('<div class="yp-match-miss"><div class="yp-match-label">No parseable string patterns found in rule.</div><div class="yp-match-detail">Ensure your strings: block uses &#34;text&#34;, /regex/, or { hex } syntax.</div></div>');
+      return;
+    }
+
+    var html = '';
+    var hitCount = 0;
+    patterns.forEach(function (p) {
+      if (p.error) {
+        html += '<div class="yp-match-miss"><div class="yp-match-label">' + escHtml(p.label) + '</div><div class="yp-match-detail yp-match-status-miss">Regex parse error: ' + escHtml(p.error) + '</div></div>';
+        return;
+      }
+      if (p.isHex) {
+        var hit = hexPatternMatch(p.hexStr, testText);
+        if (hit) hitCount++;
+        html += '<div class="' + (hit ? 'yp-match-hit' : 'yp-match-miss') + '">' +
+          '<div class="yp-match-label ' + (hit ? 'yp-match-status-hit' : 'yp-match-status-miss') + '">' + (hit ? '✓ HIT' : '✗ MISS') + '</div>' +
+          '<div class="yp-match-detail">' + escHtml(p.label) + '</div>' +
+          '</div>';
+        return;
+      }
+      if (p.re) {
+        p.re.lastIndex = 0;
+        var match = p.re.exec(testText);
+        var hit2 = match !== null;
+        if (hit2) hitCount++;
+        html += '<div class="' + (hit2 ? 'yp-match-hit' : 'yp-match-miss') + '">' +
+          '<div class="yp-match-label ' + (hit2 ? 'yp-match-status-hit' : 'yp-match-status-miss') + '">' + (hit2 ? '✓ HIT' : '✗ MISS') + '</div>' +
+          '<div class="yp-match-detail">' + escHtml(p.label) + (hit2 ? ' — matched at offset ' + match.index : '') + '</div>' +
+          '</div>';
+      }
+    });
+
+    var summary = '<div class="yp-section-subtitle" style="margin-bottom:0.5rem;">' + hitCount + ' of ' + patterns.length + ' pattern(s) matched</div>';
+    showTestResult(summary + html);
+  }
+
+  function showTestResult(html) {
+    testResult.innerHTML = html;
+    testResult.style.display = '';
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ─── Hex Builder ──────────────────────────────────────────────────────────
+  asciiToHexBtn.addEventListener('click', function () {
+    var val = hexInput.value.trim();
+    if (!val) return;
+    var hex = '';
+    for (var i = 0; i < val.length; i++) {
+      hex += val.charCodeAt(i).toString(16).padStart(2, '0').toUpperCase() + ' ';
+    }
+    var yaraHex = '{ ' + hex.trim() + ' }';
+    hexResult.textContent = 'YARA hex: ' + yaraHex;
+    hexResult.style.display = '';
+  });
+
+  hexToAsciiBtn.addEventListener('click', function () {
+    var val = hexInput.value.trim();
+    if (!val) return;
+    // Strip { } and spaces
+    var clean = val.replace(/[{}]/g, '').trim();
+    var bytes = clean.split(/\s+/);
+    var ascii = '';
+    bytes.forEach(function (b) {
+      var code = parseInt(b, 16);
+      if (!isNaN(code)) {
+        ascii += code >= 32 && code < 127 ? String.fromCharCode(code) : '.';
+      }
+    });
+    hexResult.textContent = 'ASCII: ' + ascii;
+    hexResult.style.display = '';
+  });
+
+  // ─── Validate button ──────────────────────────────────────────────────────
+  validateBtn.addEventListener('click', function () {
+    var result = validateRule(editorEl.value);
+    validateResult.style.display = '';
+    if (result.ok && result.warnings.length === 0) {
+      validateResult.className = 'yp-validate-result yp-validate-result--ok';
+      validateResult.textContent = 'Rule structure looks valid.';
+    } else if (!result.ok) {
+      validateResult.className = 'yp-validate-result yp-validate-result--error';
+      validateResult.innerHTML = result.errors.map(function (e) { return '✗ ' + escHtml(e); }).join('<br>') +
+        (result.warnings.length ? '<br>' + result.warnings.map(function (w) { return '⚠ ' + escHtml(w); }).join('<br>') : '');
+    } else {
+      validateResult.className = 'yp-validate-result yp-validate-result--warn';
+      validateResult.innerHTML = result.warnings.map(function (w) { return '⚠ ' + escHtml(w); }).join('<br>');
+    }
+  });
+
+  // ─── Analyze button ───────────────────────────────────────────────────────
+  analyzeBtn.addEventListener('click', function () {
+    var text = editorEl.value;
+    if (!text.trim()) {
+      analyzerContent.innerHTML = '<div style="font-size:0.85rem;color:var(--text-3,#888);">Write or load a rule first.</div>';
+      analyzerSec.style.display = '';
+      return;
+    }
+    var a = analyzeRule(text);
+    var mitreHtml = a.mitre.length
+      ? a.mitre.map(function (t) { return '<span class="yp-mitre-tag">' + t + '</span>'; }).join('')
+      : '<span style="color:var(--text-3,#888);font-size:0.8rem;">none detected</span>';
+
+    var namesHtml = a.stringNames.length
+      ? a.stringNames.join('  ')
+      : '(none)';
+
+    analyzerContent.innerHTML =
+      '<div class="yp-analyzer-grid">' +
+        '<div class="yp-stat-card"><div class="yp-stat-label">Strings</div><div class="yp-stat-value">' + a.stringCount + '</div></div>' +
+        '<div class="yp-stat-card"><div class="yp-stat-label">Hex Patterns</div><div class="yp-stat-value">' + a.hexCount + '</div></div>' +
+        '<div class="yp-stat-card"><div class="yp-stat-label">Regexes</div><div class="yp-stat-value">' + a.regexCount + '</div></div>' +
+        '<div class="yp-stat-card"><div class="yp-stat-label">Est. Performance</div><div class="yp-stat-value ' + a.perfClass + '">' + a.perf + '</div></div>' +
+      '</div>' +
+      '<div class="yp-section-subtitle">MITRE Technique Suggestions</div>' +
+      '<div style="margin-bottom:0.65rem;">' + mitreHtml + '</div>' +
+      '<div class="yp-section-subtitle">Defined Strings</div>' +
+      '<div class="yp-analyzer-strings">' + escHtml(namesHtml) + '</div>';
+
+    analyzerSec.style.display = '';
+  });
+
+  // ─── Template loader ──────────────────────────────────────────────────────
+  templateSel.addEventListener('change', function () {
+    var key = templateSel.value;
+    if (!key) return;
+    editorEl.value = TEMPLATES[key] || '';
+    validateResult.style.display = 'none';
+    analyzerSec.style.display = 'none';
+    templateSel.value = '';
+  });
+
+  // ─── Copy ─────────────────────────────────────────────────────────────────
+  copyBtn.addEventListener('click', function () {
+    var text = editorEl.value;
+    if (!text.trim()) return;
+    navigator.clipboard.writeText(text).then(function () {
+      var orig = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      setTimeout(function () { copyBtn.textContent = orig; }, 1500);
+    });
+  });
+
+  // ─── Download ─────────────────────────────────────────────────────────────
+  downloadBtn.addEventListener('click', function () {
+    var text = editorEl.value;
+    if (!text.trim()) return;
+    var nameMatch = text.match(/rule\s+(\w+)/);
+    var filename = (nameMatch ? nameMatch[1] : 'rule') + '.yar';
+    var blob = new Blob([text], { type: 'text/plain' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // ─── Clear ────────────────────────────────────────────────────────────────
+  clearBtn.addEventListener('click', function () {
+    editorEl.value = '';
+    validateResult.style.display = 'none';
+    analyzerSec.style.display = 'none';
+  });
+
+  // ─── Test buttons ─────────────────────────────────────────────────────────
+  testBtn.addEventListener('click', runTests);
+
+  testExampleBtn.addEventListener('click', function () {
+    // Load ransomware note template and matching test content
+    editorEl.value = TEMPLATES.ransomware_note;
+    testInput.value = 'NOTICE: YOUR FILES HAVE BEEN ENCRYPTED\n\nAll your files are encrypted with RSA-2048 and AES-256.\nTo decrypt your files, you must pay a ransom of 0.5 bitcoin.\n\nYour personal decryption key is stored on our servers.\nVisit our tor browser page for instructions:\nhttp://decrypt5xyzexample.onion\n\nTime remaining: 72 hours\nHOW TO RECOVER your files — visit the above URL immediately.';
+    validateResult.style.display = 'none';
+    analyzerSec.style.display = 'none';
+    runTests();
+  });
+
+  testClearBtn.addEventListener('click', function () {
+    testInput.value = '';
+    testResult.style.display = 'none';
+  });
+
+  // Load a default template on first load
+  editorEl.value = TEMPLATES.generic;
+})();
+</script>
