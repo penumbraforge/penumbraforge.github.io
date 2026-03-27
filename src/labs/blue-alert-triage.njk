@@ -1,437 +1,406 @@
 ---
-layout: lab-workspace-blue.njk
+layout: lab-workspace-blue-v2.njk
 permalink: /labs/blue/alert-triage/
 labCode: "BLUE-01"
-labTitle: "Alert Triage — Is This Real?"
+labTitle: "Alert Triage"
 labDifficulty: "beginner"
-labDescription: "Your SIEM fires 5 alerts overnight. Three are noise, one is a misconfigured rule, and one is a real incident. Classify each correctly under time pressure."
-labCompletionText: "You successfully triaged all alerts, correctly identifying the real incident and dismissing false positives."
+labDescription: "Your SOC queue has 80 alerts. Classify them as true positives, false positives, or misconfigured rules."
+targetHost: "acme-corp.lab.penumbraforge.com"
 ---
 
-<!-- Blue Team Two-Panel Layout -->
-<div class="blue-workspace">
-
-<!-- LEFT: Mission & Evidence Panel -->
-<div class="blue-mission-panel">
-  <div class="lab-panel-tabs">
-    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
-    <button class="lab-panel-tab" data-tab="evidence">Evidence</button>
-  </div>
-  <div class="lab-panel-content">
-<div class="lab-tab-content active" data-tab-content="mission">
-  <div class="lab-section-label">Scenario</div>
-  <div class="lab-scenario">
-    You're the <strong>overnight SOC analyst</strong> at Meridian Financial. You arrive at your shift to find 5 unacknowledged alerts in the SIEM queue from the past 4 hours. The day shift left no notes.
-  </div>
-  <div class="lab-scenario">
-    Your job: <strong>classify each alert</strong> as a True Positive (real threat — escalate), False Positive (benign — close), or Misconfigured Rule (needs tuning). You have the raw event data and your experience to guide you.
-  </div>
-
-  <div class="lab-section-label">Objectives</div>
-  <div class="lab-objective current" id="obj-review">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 1 — Review all alerts</span>
-      Expand each alert and read the raw event data
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-classify">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 2 — Classify all alerts</span>
-      Mark each alert as True Positive, False Positive, or Misconfigured
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-correct">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 3 — Submit for review</span>
-      Submit your classifications and score 80% or higher
-    </div>
-  </div>
-
-  <div class="lab-section-label" style="margin-top:24px;">Context</div>
-  <div class="lab-scenario">
-    <strong>Alert fatigue</strong> is the #1 cause of missed incidents in SOC operations. Analysts see hundreds of alerts per shift. Learning to quickly distinguish real threats from noise is the most important skill a SOC analyst can develop.
-  </div>
-  <div class="lab-scenario">
-    Look for: <strong>unusual source IPs</strong>, <strong>off-hours activity</strong>, <strong>known-bad indicators</strong>, <strong>impossible geography</strong>, and <strong>deviation from baseline behavior</strong>.
-  </div>
+<div class="soc-case-header">INC-2024-0901</div>
+<div class="soc-case-id">Brute Force Login Attempt Detected</div>
+<div class="soc-case-narrative">
+  At 02:14 UTC, the authentication gateway flagged 847 failed login attempts against the VPN from a single external IP. Your SOC queue has 80 unacknowledged alerts from the past shift. Most are noise — your job is to find the real attack.
+  <br><br>
+  Classify each alert as a true positive, false positive, or misconfigured rule. Identify the brute force attack, dismiss the noise, and flag the rules that need tuning.
 </div>
 
-<div class="lab-tab-content" data-tab-content="evidence">
-  <div class="lab-section-label">Evidence Log</div>
-  <div id="evidence-log" class="evidence-list">
-    <div class="evidence-empty">Evidence will appear here as you classify alerts.</div>
-  </div>
+<div class="soc-case-goal">
+  <div class="soc-case-goal-label">Objective 1</div>
+  <div class="soc-case-goal-text">Identify the real brute force attack in the alert queue</div>
 </div>
-  </div>
+<div class="soc-case-goal">
+  <div class="soc-case-goal-label">Objective 2</div>
+  <div class="soc-case-goal-text">Classify false positives correctly</div>
 </div>
-
-<!-- RIGHT: Investigation Dashboard -->
-<div class="blue-dashboard">
-<!-- SIEM Header -->
-<div class="siem-header" id="siem-header">
-  <div class="siem-header-title">Meridian SIEM — Alert Queue</div>
-  <div class="siem-status-bar">
-    <div class="siem-status-item">
-      <div class="siem-status-dot siem-dot-live"></div>
-      <span class="siem-status-text">Status:</span>
-      <span class="siem-status-val">Collecting</span>
-    </div>
-    <div class="siem-status-item">
-      <span class="siem-status-text">Sources:</span>
-      <span class="siem-status-val">14 active</span>
-    </div>
-    <div class="siem-status-item">
-      <span class="siem-status-text">EPS:</span>
-      <span class="siem-status-val">2,847</span>
-    </div>
-    <div class="siem-status-item">
-      <span class="siem-status-text">Queue:</span>
-      <span class="siem-status-val" id="queue-count">5 unacknowledged</span>
-    </div>
-  </div>
+<div class="soc-case-goal">
+  <div class="soc-case-goal-label">Objective 3</div>
+  <div class="soc-case-goal-text">Find the misconfigured rule generating unnecessary alerts</div>
 </div>
 
-<!-- Alert Queue -->
-<div class="siem-content" id="siem-content"></div>
-
-<!-- Debrief (shown after submission) -->
-<div class="siem-content blue-debrief" id="blue-debrief">
-  <div class="blue-debrief-label">Debrief — Alert Triage</div>
-  <div class="blue-debrief-card">
-    <h3>Your Results</h3>
-    <div class="score-breakdown" id="score-breakdown"></div>
-  </div>
-  <div class="blue-debrief-card">
-    <h3>What to look for</h3>
-    <p><strong>True Positives:</strong> Unusual access patterns, impossible travel (same user from two continents in minutes), known-malicious IPs, credential stuffing velocity, off-hours admin actions from unexpected sources.</p>
-    <p><strong>False Positives:</strong> Scheduled vulnerability scans, automated health checks, known service accounts, expected geographic access patterns, routine maintenance windows.</p>
-    <p><strong>Misconfigured Rules:</strong> Alerts that fire on legitimate traffic because thresholds are too low, exclusions are missing, or the rule logic doesn't account for normal business operations.</p>
-  </div>
-  <div class="blue-debrief-card">
-    <h3>Detection logic improvements</h3>
-    <p>Based on this exercise, here are the rule changes a SOC engineer should implement:</p>
-    <p><strong>Vulnerability scanner exclusion:</strong> Add <code>vuln-scanner-01.meridian.local</code> to the port scan rule's source exclusion list. Better: exclude by asset tag rather than hostname.</p>
-    <p><strong>DLP backup exclusion:</strong> Add <code>34.102.44.0/24</code> (CloudProvider backup range) and process <code>db-backup-agent</code> to the DLP rule's exclusion list. Monitor for changes to the backup schedule.</p>
-    <p><strong>Brute force threshold:</strong> Current rule triggered at 847 attempts. Consider lowering to 50 attempts in 5 minutes for faster detection.</p>
-  </div>
-
-  <div class="blue-debrief-card">
-    <h3>SOAR automation opportunities</h3>
-    <p>Three of these five alerts could be handled automatically with SOAR playbooks:</p>
-    <p><strong>Auto-close:</strong> Alerts from known vulnerability scanners during their scheduled windows can be auto-acknowledged with a note.</p>
-    <p><strong>Auto-enrich + escalate:</strong> Brute force alerts can be enriched with threat intel on the source IP, GeoIP data, and target account sensitivity — then auto-escalated if the IP is known-malicious or targets privileged accounts.</p>
-    <p><strong>Auto-contain:</strong> DNS queries to known C2 domains can trigger automatic workstation isolation and create a ticket for forensic investigation.</p>
-    <p>Implementing these three playbooks would have resolved 60% of this queue without human intervention.</p>
-  </div>
-
-  <div class="blue-debrief-card">
-    <h3>In the real world</h3>
-    <p>The average SOC analyst sees <strong>500+ alerts per day</strong>. Studies show that alert fatigue causes analysts to miss or ignore 30-40% of legitimate alerts. The key skill is rapid triage — spending seconds on obvious false positives and minutes on suspicious events.</p>
-    <p>Automating the dismissal of known false positives via SOAR playbooks can reduce alert volume by 60-80%, letting analysts focus on what matters. The three playbooks described above would reduce this queue from 5 alerts requiring manual review to 2.</p>
-  </div>
-</div>
-
-<!-- Summary Bar -->
-<div class="siem-summary">
-  <div class="siem-summary-item">
-    <div class="siem-summary-num" id="classified-count">0</div>
-    <div class="siem-summary-label">Classified</div>
-  </div>
-  <div class="siem-summary-item">
-    <div class="siem-summary-num" style="color:#eb5757;" id="tp-count">0</div>
-    <div class="siem-summary-label">Escalated</div>
-  </div>
-  <div class="siem-summary-item">
-    <div class="siem-summary-num" style="color:var(--sage);" id="fp-count">0</div>
-    <div class="siem-summary-label">Closed</div>
-  </div>
-  <div class="siem-summary-item">
-    <div class="siem-summary-num" style="color:#e8b84d;" id="mc-count">0</div>
-    <div class="siem-summary-label">Tune</div>
-  </div>
-  <div class="siem-summary-progress">
-    <div class="siem-summary-bar"><div class="siem-summary-fill" id="progress-fill" style="width:0%;"></div></div>
-    <span class="siem-summary-pct" id="progress-pct">0/5</span>
-  </div>
-  <button class="siem-submit-btn" id="btn-submit" disabled>Submit Classifications</button>
-</div>
-
-</div><!-- /blue-dashboard -->
-</div><!-- /blue-workspace -->
 <script>
 (function() {
-  var ALERTS = [
-    {
-      id: 'ALT-4821',
-      severity: 'critical',
-      title: 'Brute Force Authentication — Multiple Failed Logins',
-      source: 'Auth Gateway',
-      time: '02:14:33 UTC',
-      timeAgo: '4h ago',
-      description: 'Detected 847 failed login attempts against the VPN gateway from a single source IP over a 12-minute window. The target accounts include executive-level users.',
-      raw: '<span class="rk">"event_type"</span>: <span class="rs">"auth_failure"</span>,\n<span class="rk">"source_ip"</span>: <span class="rd">"185.220.101.34"</span>,\n<span class="rk">"geo"</span>: <span class="rv">"Moscow, Russia"</span>,\n<span class="rk">"target_accounts"</span>: [<span class="rs">"ceo@meridian.com"</span>, <span class="rs">"cfo@meridian.com"</span>, <span class="rs">"cto@meridian.com"</span>, <span class="rs">"admin@meridian.com"</span>],\n<span class="rk">"attempt_count"</span>: <span class="rd">847</span>,\n<span class="rk">"window"</span>: <span class="rv">"12 minutes"</span>,\n<span class="rk">"protocol"</span>: <span class="rv">"IKEv2"</span>,\n<span class="rk">"user_agent"</span>: <span class="rv">"python-requests/2.31.0"</span>,\n<span class="rk">"last_success"</span>: <span class="rd">null</span>',
-      answer: 'tp',
-      explanation: 'Real credential stuffing attack. 847 attempts in 12 minutes from a Russian IP using python-requests (automated tool) targeting executive accounts. This is a textbook brute-force attack that should be escalated immediately and the source IP blocked.'
-    },
-    {
-      id: 'ALT-4822',
-      severity: 'high',
-      title: 'Port Scan Detected — Internal Network',
-      source: 'IDS/IPS',
-      time: '03:45:12 UTC',
-      timeAgo: '2h ago',
-      description: 'Sequential port scan detected from 10.0.4.55 targeting the 10.0.1.0/24 subnet (production database servers). 1,024 ports scanned in 90 seconds.',
-      raw: '<span class="rk">"event_type"</span>: <span class="rs">"port_scan"</span>,\n<span class="rk">"source_ip"</span>: <span class="rv">"10.0.4.55"</span>,\n<span class="rk">"source_hostname"</span>: <span class="rs">"vuln-scanner-01.meridian.local"</span>,\n<span class="rk">"target_subnet"</span>: <span class="rv">"10.0.1.0/24"</span>,\n<span class="rk">"ports_scanned"</span>: <span class="rv">1024</span>,\n<span class="rk">"duration"</span>: <span class="rv">"90 seconds"</span>,\n<span class="rk">"scan_type"</span>: <span class="rv">"SYN"</span>,\n<span class="rk">"schedule"</span>: <span class="rs">"Weekly vulnerability scan — Tuesdays 03:00 UTC"</span>,\n<span class="rk">"owner"</span>: <span class="rs">"infosec-team@meridian.com"</span>',
-      answer: 'fp',
-      explanation: 'Scheduled vulnerability scan. The hostname is "vuln-scanner-01" and the raw event explicitly shows a weekly scan schedule for Tuesdays at 03:00 UTC. The source is the InfoSec team\'s scanner. This is expected activity that should be excluded from the alert rule.'
-    },
-    {
-      id: 'ALT-4823',
-      severity: 'medium',
-      title: 'Impossible Travel — VPN Login from Two Countries',
-      source: 'IAM / UBA',
-      time: '04:22:07 UTC',
-      timeAgo: '1h ago',
-      description: 'User "sarah.martinez" authenticated to the VPN from New York at 04:18 UTC, then from London at 04:22 UTC. Physical travel between locations is impossible in 4 minutes.',
-      raw: '<span class="rk">"event_type"</span>: <span class="rs">"impossible_travel"</span>,\n<span class="rk">"user"</span>: <span class="rs">"sarah.martinez@meridian.com"</span>,\n<span class="rk">"login_1"</span>: {\n  <span class="rk">"time"</span>: <span class="rv">"04:18:33 UTC"</span>,\n  <span class="rk">"ip"</span>: <span class="rv">"72.44.128.90"</span>,\n  <span class="rk">"geo"</span>: <span class="rv">"New York, US"</span>,\n  <span class="rk">"device"</span>: <span class="rs">"MacBook Pro — Chrome 124"</span>\n},\n<span class="rk">"login_2"</span>: {\n  <span class="rk">"time"</span>: <span class="rv">"04:22:07 UTC"</span>,\n  <span class="rk">"ip"</span>: <span class="rd">"51.15.42.198"</span>,\n  <span class="rk">"geo"</span>: <span class="rv">"London, UK"</span>,\n  <span class="rk">"device"</span>: <span class="rs">"Unknown — curl/8.4.0"</span>\n},\n<span class="rk">"travel_time"</span>: <span class="rd">"4 minutes"</span>,\n<span class="rk">"minimum_travel_time"</span>: <span class="rv">"7 hours"</span>',
-      answer: 'tp',
-      explanation: 'Account compromise. The first login is from a MacBook/Chrome (normal), but the second login 4 minutes later is from London using curl (command-line tool, not a browser). This is a stolen credential being used from a different location. The impossible travel combined with a non-browser user agent is a strong indicator of compromise.'
-    },
-    {
-      id: 'ALT-4824',
-      severity: 'high',
-      title: 'Data Exfiltration — Large Outbound Transfer',
-      source: 'DLP / NetFlow',
-      time: '01:30:45 UTC',
-      timeAgo: '5h ago',
-      description: 'Detected 2.4 GB outbound transfer from database server db-prod-02 to external IP over port 443. Transfer occurred outside business hours.',
-      raw: '<span class="rk">"event_type"</span>: <span class="rs">"large_transfer"</span>,\n<span class="rk">"source"</span>: <span class="rv">"db-prod-02.meridian.local (10.0.1.12)"</span>,\n<span class="rk">"destination"</span>: <span class="rv">"backup-east.cloudprovider.com (34.102.44.9)"</span>,\n<span class="rk">"bytes"</span>: <span class="rv">2,470,000,000</span>,\n<span class="rk">"port"</span>: <span class="rv">443</span>,\n<span class="rk">"protocol"</span>: <span class="rv">"TLS 1.3"</span>,\n<span class="rk">"process"</span>: <span class="rs">"db-backup-agent v4.2"</span>,\n<span class="rk">"schedule"</span>: <span class="rs">"Nightly backup — 01:00 UTC"</span>,\n<span class="rk">"certificate_cn"</span>: <span class="rs">"*.cloudprovider.com"</span>',
-      answer: 'mc',
-      explanation: 'Misconfigured DLP rule. The transfer is from the backup agent to the company\'s cloud backup provider, on schedule (nightly at 01:00 UTC). The rule triggered because it doesn\'t exclude known backup destinations. The rule should be tuned to whitelist the backup provider\'s IP range and the db-backup-agent process.'
-    },
-    {
-      id: 'ALT-4825',
-      severity: 'low',
-      title: 'DNS Query to Known Malware C2 Domain',
-      source: 'DNS Firewall',
-      time: '05:55:18 UTC',
-      timeAgo: '12m ago',
-      description: 'Workstation WS-MKT-042 queried a domain on the threat intelligence blocklist associated with Emotet C2 infrastructure.',
-      raw: '<span class="rk">"event_type"</span>: <span class="rs">"dns_block"</span>,\n<span class="rk">"source"</span>: <span class="rv">"WS-MKT-042 (10.0.8.42)"</span>,\n<span class="rk">"user"</span>: <span class="rs">"james.wong@meridian.com"</span>,\n<span class="rk">"query"</span>: <span class="rd">"update.microsofft-security.com"</span>,\n<span class="rk">"query_type"</span>: <span class="rv">"A"</span>,\n<span class="rk">"action"</span>: <span class="rs">"BLOCKED"</span>,\n<span class="rk">"threat_intel"</span>: {\n  <span class="rk">"feed"</span>: <span class="rv">"Abuse.ch"</span>,\n  <span class="rk">"category"</span>: <span class="rd">"Emotet C2"</span>,\n  <span class="rk">"confidence"</span>: <span class="rv">95</span>,\n  <span class="rk">"first_seen"</span>: <span class="rv">"2026-03-18"</span>\n},\n<span class="rk">"note"</span>: <span class="rw">"Domain uses typosquatting: microsofft (double f)"</span>',
-      answer: 'tp',
-      explanation: 'Real malware activity. The DNS query is for a typosquatted Microsoft domain (microsofft with double F) flagged by Abuse.ch as Emotet C2 with 95% confidence. Even though the DNS firewall blocked it, the workstation attempted to connect — meaning the machine is likely infected. The workstation needs to be isolated and investigated.'
-    }
-  ];
+  'use strict';
 
-  var classifications = {};
-  var expandedCount = 0;
-  var Engine = PenumbraLabs.Engine;
-  var Toast = PenumbraLabs.Toast;
+  var Labs = window.PenumbraLabs;
 
-  var LAB_CONFIG = {
+  // ── Scenario Definition ──
+  var scenario = {
     id: 'blue-alert-triage',
     type: 'blue',
     title: 'Alert Triage',
-    target: 'SOC Station',
     difficulty: 'beginner',
-    estimatedTime: 10,
-    xpReward: 100,
-    hintCost: [],
-    skills: ['triage-alert-classification'],
+    estimatedTime: 15,
+    xpReward: 150,
+    skills: ['triage-alert-classification', 'triage-false-positive-tuning'],
     unlocks: [],
-    objectives: [
-      { id: 'review', step: 1, title: 'Review all alerts' },
-      { id: 'classify', step: 2, title: 'Classify all alerts' },
-      { id: 'correct', step: 3, title: 'Submit with 80%+ accuracy' },
+    optimalActions: 8,
+    techniqueChecks: [
+      { id: 'searched-siem', check: function(log) { return log.some(function(a) { return a.type === 'siem_action'; }); }, points: 20 },
+      { id: 'pivoted-ip', check: function(log) { return log.some(function(a) { return a.type === 'siem_action' && a.action === 'pivot'; }); }, points: 20 },
+      { id: 'used-ioc', check: function(log) { return log.some(function(a) { return a.type === 'ioc_lookup'; }); }, points: 20 },
+      { id: 'built-timeline', check: function(log) { return log.some(function(a) { return a.type === 'timeline_action'; }); }, points: 20 },
+      { id: 'submitted-containment', check: function(log) { return log.some(function(a) { return a.type === 'containment_action'; }); }, points: 20 }
     ],
+
+    stateGraph: {
+      states: {
+        'start': { transitions: {
+          'found_brute_force': 'brute_force_found',
+          'found_false_positive': 'false_positive_found',
+          'found_misconfig': 'misconfig_found'
+        }},
+        'brute_force_found': { transitions: {
+          'found_false_positive': 'multiple_evidence',
+          'found_misconfig': 'multiple_evidence',
+          'found_brute_force': 'brute_force_found'
+        }},
+        'false_positive_found': { transitions: {
+          'found_brute_force': 'multiple_evidence',
+          'found_misconfig': 'multiple_evidence',
+          'found_false_positive': 'false_positive_found'
+        }},
+        'misconfig_found': { transitions: {
+          'found_brute_force': 'multiple_evidence',
+          'found_false_positive': 'multiple_evidence',
+          'found_misconfig': 'misconfig_found'
+        }},
+        'multiple_evidence': { transitions: {
+          'found_brute_force': 'multiple_evidence',
+          'found_false_positive': 'multiple_evidence',
+          'found_misconfig': 'multiple_evidence',
+          'classified_all': 'all_classified',
+          'report_submitted': 'all_classified'
+        }},
+        'all_classified': { transitions: {
+          'report_submitted': 'complete'
+        }},
+        'complete': { terminal: true }
+      },
+      initialState: 'start'
+    },
+
+    validationRules: {
+      'found_brute_force': {
+        trigger: 'siem_action',
+        condition: function(action) {
+          return action.action === 'evidence' && action.entry &&
+                 action.entry.evidenceId && action.entry.evidenceId === 'brute-force';
+        }
+      },
+      'found_false_positive': {
+        trigger: 'siem_action',
+        condition: function(action) {
+          return action.action === 'evidence' && action.entry &&
+                 action.entry.evidenceId && action.entry.evidenceId === 'vuln-scan-fp';
+        }
+      },
+      'found_misconfig': {
+        trigger: 'siem_action',
+        condition: function(action) {
+          return action.action === 'evidence' && action.entry &&
+                 action.entry.evidenceId && action.entry.evidenceId === 'dlp-misconfig';
+        }
+      },
+      'classified_all': {
+        trigger: 'timeline_action',
+        condition: function(action) {
+          return action.type === 'timeline_add' &&
+                 Labs.Timeline.getEvents().length >= 3;
+        }
+      },
+      'report_submitted': {
+        trigger: 'containment_action',
+        condition: function(action) {
+          return action.type === 'containment_submit' && action.score >= 60;
+        }
+      }
+    },
+
+    nudges: {
+      'start': {
+        delay: 90,
+        text: 'Start by filtering the SIEM for critical severity events. What stands out from the noise?'
+      },
+      'brute_force_found': {
+        delay: 120,
+        text: 'Good, you found the brute force. Now look at the other alerts — which are routine and which need rule tuning?'
+      },
+      'multiple_evidence': {
+        delay: 180,
+        text: 'You have identified multiple alert types. Pin key events to the timeline and submit your containment actions.'
+      }
+    },
+
+    objectives: [
+      { id: 'found_brute_force', title: 'Brute Force Attack Identified' },
+      { id: 'found_false_positive', title: 'False Positive Classified' },
+      { id: 'found_misconfig', title: 'Misconfigured Rule Found' },
+      { id: 'classified_all', title: 'All Alert Types Classified' },
+      { id: 'report_submitted', title: 'Containment Plan Submitted' }
+    ],
+
+    evidencePieces: [
+      { id: 'brute-force', label: 'Brute force attack from 185.220.101.34' },
+      { id: 'vuln-scan-fp', label: 'Vulnerability scanner false positive' },
+      { id: 'dlp-misconfig', label: 'DLP rule misconfiguration (backup traffic)' },
+      { id: 'impossible-travel', label: 'Impossible travel — credential compromise' },
+      { id: 'c2-dns', label: 'Emotet C2 DNS query detected' },
+      { id: 'alert-classification', label: 'All alerts correctly classified' }
+    ],
+
+    knownIOCs: {
+      '185.220.101.34': {
+        type: 'IPv4', reputation: 'Malicious', score: 95,
+        geo: 'Moscow, Russia', asn: 'AS9009 M247 Ltd',
+        firstSeen: '2024-01-10', lastSeen: '2024-03-22',
+        associations: ['Credential stuffing', 'Brute force', 'Tor exit node'],
+        tags: ['brute-force', 'tor-exit', 'eastern-europe']
+      },
+      '51.15.42.198': {
+        type: 'IPv4', reputation: 'Suspicious', score: 72,
+        geo: 'London, UK', asn: 'AS12876 Scaleway',
+        firstSeen: '2024-02-18', lastSeen: '2024-03-22',
+        associations: ['VPS hosting', 'Mixed traffic', 'Credential abuse'],
+        tags: ['vps', 'hosting', 'suspicious']
+      },
+      'update.microsofft-security.com': {
+        type: 'Domain', reputation: 'Malicious', score: 97,
+        geo: 'Unknown', asn: 'AS48666',
+        firstSeen: '2026-03-18', lastSeen: '2026-03-22',
+        associations: ['Emotet C2', 'Typosquatting', 'Malware distribution'],
+        tags: ['c2', 'emotet', 'typosquat']
+      }
+    },
+
+    expectedActions: ['block-ip', 'reset-passwords', 'enable-mfa']
   };
 
-  Engine.init(LAB_CONFIG);
-
-  // Render alerts
-  var content = document.getElementById('siem-content');
-  var html = '<div class="siem-queue-label"><span>Unacknowledged Alerts</span><span class="siem-queue-count">5 alerts · last 6 hours</span></div>';
-
-  ALERTS.forEach(function(alert, i) {
-    html += '<div class="siem-alert" id="alert-' + i + '">' +
-      '<div class="siem-alert-header" onclick="toggleAlert(' + i + ')">' +
-        '<span class="siem-alert-severity sev-' + alert.severity + '">' + alert.severity + '</span>' +
-        '<div class="siem-alert-info">' +
-          '<div class="siem-alert-title">' + alert.title + '</div>' +
-          '<div class="siem-alert-meta">' +
-            '<span class="siem-alert-source">' + alert.source + '</span>' +
-            '<span>' + alert.id + '</span>' +
-          '</div>' +
-        '</div>' +
-        '<span class="siem-alert-time">' + alert.timeAgo + '</span>' +
-        '<span class="siem-alert-chevron">&#x203a;</span>' +
-      '</div>' +
-      '<div class="siem-alert-detail">' +
-        '<div class="siem-alert-description">' + alert.description + '</div>' +
-        '<div class="siem-raw-label">Raw Event Data</div>' +
-        '<pre class="siem-raw-event">{<br>  ' + alert.raw + '<br>}</pre>' +
-        '<div class="siem-classify" id="classify-' + i + '">' +
-          '<button class="siem-classify-btn classify-tp" onclick="classifyAlert(' + i + ', \'tp\')">&#x1f6a8; True Positive<br><span style="font-size:10px;opacity:0.7;">Escalate</span></button>' +
-          '<button class="siem-classify-btn classify-fp" onclick="classifyAlert(' + i + ', \'fp\')">&#x2705; False Positive<br><span style="font-size:10px;opacity:0.7;">Close</span></button>' +
-          '<button class="siem-classify-btn classify-mc" onclick="classifyAlert(' + i + ', \'mc\')">&#x2699; Misconfigured<br><span style="font-size:10px;opacity:0.7;">Tune Rule</span></button>' +
-        '</div>' +
-        '<div id="classified-badge-' + i + '"></div>' +
-      '</div>' +
-    '</div>';
+  // ── Initialize Panel System ──
+  Labs.PanelSystem.init({
+    container: document.getElementById('workspace'),
+    panels: [
+      { id: 'panel-casefile', minWidth: 220, defaultWidth: 280 },
+      { id: 'panel-siem', flex: true },
+      { id: 'panel-tools', minWidth: 280, defaultWidth: 340 }
+    ]
   });
 
-  content.innerHTML = html;
+  // ── Get Evidence Corpus ──
+  var corpus = Labs.EvidenceCorpus.get('blue-alert-triage');
 
-  // Toggle alert expansion
-  window.toggleAlert = function(i) {
-    var el = document.getElementById('alert-' + i);
-    var wasOpen = el.classList.contains('open');
-    el.classList.toggle('open');
+  // ── Track evidence discoveries ──
+  var discoveredEvidence = {};
+  var totalEvidence = scenario.evidencePieces.length;
 
-    if (!wasOpen) {
-      expandedCount++;
-      if (expandedCount >= 5) {
-        Engine.tryCompleteObjective('review');
+  function updateEvidenceTracker(evidenceId) {
+    if (discoveredEvidence[evidenceId]) return;
+    discoveredEvidence[evidenceId] = true;
+
+    var panel = document.getElementById('evidence-panel');
+    if (panel) {
+      var items = panel.querySelectorAll('.soc-evidence-item');
+      items.forEach(function(item) {
+        if (item.getAttribute('data-evidence-id') === evidenceId) {
+          item.classList.remove('undiscovered');
+          item.classList.add('discovered');
+          var icon = item.querySelector('.soc-evidence-icon');
+          if (icon) icon.textContent = '\u2713';
+        }
+      });
+    }
+
+    var count = Object.keys(discoveredEvidence).length;
+    var el = document.getElementById('soc-evidence-count');
+    if (el) el.textContent = 'Evidence: ' + count + '/' + totalEvidence;
+  }
+
+  // ── Initialize Simulation Engine ──
+  var sim = Labs.Simulation.init({
+    scenario: scenario,
+    bridge: Labs.SimulationBridge,
+    onStateChange: function(fromState, toState, action) {
+      Labs.Toast.show('Evidence discovered', 'success');
+
+      if (action && action.entry && action.entry.evidenceId) {
+        updateEvidenceTracker(action.entry.evidenceId);
+      }
+
+      var el = document.getElementById('soc-event-count');
+      if (el) el.textContent = 'Events: ' + corpus.length;
+    },
+    onComplete: function() {
+      var elapsed = Labs.Timer.stop();
+      var evidenceCount = Object.keys(discoveredEvidence).length;
+      var scoringData = {
+        actionsLog: sim.getActionsLog(),
+        nudgesShown: sim._nudgeRef ? sim._nudgeRef._shownCount || 0 : 0,
+        nudgesDismissed: sim._nudgeRef ? sim._nudgeRef._dismissCount || 0 : 0,
+        evidenceFound: evidenceCount,
+        totalEvidence: totalEvidence
+      };
+      var result = Labs.SimulationBridge.onLabComplete(scenario.id, scenario, elapsed, scoringData);
+      showCompletion(result, elapsed);
+    }
+  });
+
+  // ── Initialize SIEM ──
+  Labs.SIEM.init({
+    container: document.getElementById('tool-siem'),
+    evidenceCorpus: corpus,
+    onAction: function(action) {
+      sim.dispatch({ type: 'siem_action', action: action.action, entry: action.entry });
+
+      if (action.action === 'timeline') {
+        Labs.Timeline.addEvent({
+          timestamp: action.entry.timestamp,
+          title: action.entry.summary.replace(/<[^>]+>/g, '').substring(0, 80),
+          description: action.entry.source.toUpperCase() + ' \u2014 ' + action.entry.severity,
+          severity: action.entry.severity,
+          sources: [action.entry.source],
+          userDiscovered: true
+        });
+      }
+      if (action.action === 'ioc_lookup' && action.entry.detail) {
+        var iocTab = document.querySelector('[data-right-tool="ioc"]');
+        if (iocTab) iocTab.click();
+        Labs.IOCLookup.lookup(action.entry.detail.srcIp);
+      }
+      if (action.action === 'evidence' && action.entry.evidenceId) {
+        updateEvidenceTracker(action.entry.evidenceId);
       }
     }
-  };
-
-  // Classify alert
-  window.classifyAlert = function(i, type) {
-    classifications[i] = type;
-    var alert = ALERTS[i];
-    var el = document.getElementById('alert-' + i);
-    var btns = document.getElementById('classify-' + i);
-    var badge = document.getElementById('classified-badge-' + i);
-
-    // Remove old classification classes
-    el.classList.remove('classified', 'classified-tp', 'classified-fp', 'classified-mc');
-    el.classList.add('classified', 'classified-' + type);
-
-    // Show badge
-    var labels = { tp: 'Escalated — True Positive', fp: 'Closed — False Positive', mc: 'Flagged — Misconfigured Rule' };
-    var badgeClass = { tp: 'badge-tp', fp: 'badge-fp', mc: 'badge-mc' };
-    badge.innerHTML = '<div class="siem-classified-badge ' + badgeClass[type] + '">' + labels[type] + '</div>';
-
-    // Add to evidence
-    addEvidence('Classified ' + alert.id + ' (' + alert.title.substring(0, 40) + '...) as ' + labels[type].split(' — ')[1]);
-
-    // Update counts
-    updateCounts();
-
-    // Check if all classified
-    if (Object.keys(classifications).length >= 5) {
-      Engine.tryCompleteObjective('classify');
-      document.getElementById('btn-submit').disabled = false;
-    }
-
-    Toast.show('Alert ' + alert.id + ' classified', 'info');
-  };
-
-  function updateCounts() {
-    var tp = 0, fp = 0, mc = 0;
-    Object.values(classifications).forEach(function(v) {
-      if (v === 'tp') tp++;
-      if (v === 'fp') fp++;
-      if (v === 'mc') mc++;
-    });
-    var total = Object.keys(classifications).length;
-    document.getElementById('classified-count').textContent = total;
-    document.getElementById('tp-count').textContent = tp;
-    document.getElementById('fp-count').textContent = fp;
-    document.getElementById('mc-count').textContent = mc;
-    document.getElementById('progress-fill').style.width = (total / 5 * 100) + '%';
-    document.getElementById('progress-pct').textContent = total + '/5';
-    document.getElementById('queue-count').textContent = (5 - total) + ' unacknowledged';
-  }
-
-  function addEvidence(text) {
-    var log = document.getElementById('evidence-log');
-    if (log.querySelector('.evidence-empty')) log.innerHTML = '';
-    var elapsed = PenumbraLabs.Timer.getElapsed();
-    var time = PenumbraLabs.Timer.format(elapsed);
-    log.innerHTML += '<div class="evidence-item"><div class="evidence-item-time">' + time + '</div><div class="evidence-item-text">' + text + '</div></div>';
-  }
-
-  // Submit
-  document.getElementById('btn-submit').addEventListener('click', function() {
-    var correct = 0;
-    var results = [];
-
-    ALERTS.forEach(function(alert, i) {
-      var userAnswer = classifications[i];
-      var isCorrect = userAnswer === alert.answer;
-      if (isCorrect) correct++;
-      results.push({
-        id: alert.id,
-        title: alert.title,
-        userAnswer: userAnswer,
-        correctAnswer: alert.answer,
-        isCorrect: isCorrect,
-        explanation: alert.explanation
-      });
-    });
-
-    var score = Math.round((correct / 5) * 100);
-    var labels = { tp: 'True Positive', fp: 'False Positive', mc: 'Misconfigured' };
-    var icons = { tp: '&#x1f6a8;', fp: '&#x2705;', mc: '&#x2699;' };
-
-    // Build the full debrief view
-    var breakdownHtml = '<div style="display:flex;align-items:center;gap:20px;margin-bottom:24px;padding:24px;border-radius:12px;border:1px solid var(--border);background:var(--surface-1);">' +
-      '<div style="font-family:var(--font-display);font-size:48px;color:' + (score >= 80 ? 'var(--sage)' : score >= 60 ? '#e8b84d' : '#eb5757') + ';">' + score + '%</div>' +
-      '<div style="flex:1;">' +
-        '<div style="font-family:var(--font-display);font-size:18px;color:var(--text-1);margin-bottom:4px;">' + (score >= 80 ? 'Excellent triage' : score >= 60 ? 'Decent — room for improvement' : 'Needs work') + '</div>' +
-        '<div style="font-size:13px;color:var(--text-3);">' + correct + ' of 5 alerts classified correctly</div>' +
-      '</div>' +
-    '</div>';
-
-    // Per-alert breakdown with explanations
-    results.forEach(function(r) {
-      var statusColor = r.isCorrect ? 'rgba(107,207,143,0.06)' : 'rgba(235,87,87,0.06)';
-      var statusBorder = r.isCorrect ? 'rgba(107,207,143,0.12)' : 'rgba(235,87,87,0.12)';
-      breakdownHtml += '<div style="border:1px solid ' + statusBorder + ';background:' + statusColor + ';border-radius:10px;padding:16px 18px;margin-bottom:10px;">' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
-          '<span style="font-size:16px;">' + (r.isCorrect ? '&#x2705;' : '&#x274c;') + '</span>' +
-          '<span style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">' + r.id + '</span>' +
-          '<span style="font-size:13px;color:var(--text-1);flex:1;">' + r.title + '</span>' +
-        '</div>' +
-        '<div style="display:flex;gap:12px;font-family:var(--font-mono);font-size:11px;margin-bottom:10px;">' +
-          '<span style="color:' + (r.isCorrect ? 'var(--sage)' : '#eb5757') + ';">Your answer: ' + labels[r.userAnswer] + '</span>' +
-          (r.isCorrect ? '' : '<span style="color:var(--sage);">Correct: ' + labels[r.correctAnswer] + '</span>') +
-        '</div>' +
-        '<div style="font-size:12px;color:var(--text-2);line-height:1.6;">' + r.explanation + '</div>' +
-      '</div>';
-    });
-
-    document.getElementById('score-breakdown').innerHTML = breakdownHtml;
-
-    // Hide the alert queue and show debrief as the full dashboard view
-    document.getElementById('siem-content').style.display = 'none';
-    document.getElementById('siem-header').style.display = 'none';
-    document.getElementById('blue-debrief').classList.add('visible');
-    document.getElementById('blue-debrief').style.flex = '1';
-    document.getElementById('blue-debrief').style.overflowY = 'auto';
-
-    // Transform the summary bar to show final score
-    var summaryEl = document.querySelector('.siem-summary');
-    summaryEl.innerHTML = '<div style="display:flex;align-items:center;gap:16px;flex:1;">' +
-      '<span style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);">Score: ' + correct + '/5 (' + score + '%)</span>' +
-      '<div style="flex:1;height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden;">' +
-        '<div style="height:100%;width:' + score + '%;border-radius:2px;background:' + (score >= 80 ? 'var(--sage)' : '#e8b84d') + ';"></div>' +
-      '</div>' +
-    '</div>' +
-    '<button class="siem-submit-btn" onclick="document.getElementById(\'siem-content\').style.display=\'\';document.getElementById(\'siem-header\').style.display=\'\';document.getElementById(\'blue-debrief\').classList.remove(\'visible\');location.reload();">Review Alerts</button>';
-
-    if (score >= 80) {
-      Engine.tryCompleteObjective('correct');
-    } else {
-      Toast.show('Score: ' + score + '% — need 80% to pass. Review the explanations and try again.', 'error');
-    }
-
-    addEvidence('Submitted classifications — Score: ' + correct + '/5 (' + score + '%)');
   });
+
+  // ── Initialize source-filtered SIEM views ──
+  ['firewall', 'auth', 'dns'].forEach(function(source) {
+    var container = document.getElementById('tool-' + source);
+    if (container) {
+      var sourceMap = { firewall: 'fw', auth: 'auth', dns: 'dns' };
+      var filtered = corpus.filter(function(e) { return e.source === sourceMap[source]; });
+      Labs.SIEM.init({
+        container: container,
+        evidenceCorpus: filtered,
+        onAction: function(action) {
+          sim.dispatch({ type: 'siem_action', action: action.action, entry: action.entry });
+          if (action.action === 'evidence' && action.entry.evidenceId) {
+            updateEvidenceTracker(action.entry.evidenceId);
+          }
+        }
+      });
+    }
+  });
+
+  // ── Initialize Timeline ──
+  Labs.Timeline.init({
+    container: document.getElementById('tool-timeline'),
+    onAction: function(action) {
+      sim.dispatch({ type: 'timeline_action', type: action.type, event: action.event });
+      if (Labs.Timeline.getEvents().length >= 3) {
+        updateEvidenceTracker('alert-classification');
+      }
+    }
+  });
+
+  // ── Initialize IOC Lookup ──
+  Labs.IOCLookup.init({
+    container: document.getElementById('tool-ioc'),
+    knownIOCs: scenario.knownIOCs,
+    onAction: function(action) {
+      sim.dispatch(action);
+    }
+  });
+
+  // ── Initialize Actions ──
+  Labs.SOCActions.init({
+    container: document.getElementById('tool-actions'),
+    expectedActions: scenario.expectedActions,
+    onAction: function(action) {
+      sim.dispatch({ type: 'containment_action', type: action.type, score: action.score, selected: action.selected });
+    }
+  });
+
+  // ── Start Timer ──
+  Labs.Timer.start(function(elapsed) {
+    var el = document.getElementById('lab-timer');
+    if (el) el.textContent = Labs.Timer.format(elapsed);
+  });
+
+  // ── Update level display ──
+  var profile = Labs.Progress.getProfile();
+  var levelEl = document.getElementById('soc-level');
+  if (levelEl) levelEl.textContent = 'Level ' + profile.level + ' \u00b7 ' + Labs.Xp.titleForLevel(profile.level);
+
+  // ── Update event count ──
+  var evtEl = document.getElementById('soc-event-count');
+  if (evtEl) evtEl.textContent = 'Events: ' + corpus.length;
+
+  // ── Completion handler ──
+  function showCompletion(result, elapsed) {
+    document.getElementById('complete-time').textContent = Labs.Timer.format(elapsed);
+    document.getElementById('complete-score').textContent = result.scoring ? result.scoring.composite : 100;
+    document.getElementById('complete-xp').textContent = '+' + (result.scoring ? result.scoring.xp : result.xp);
+    document.getElementById('complete-level').textContent = 'Level ' + result.level + ' \u2014 ' + Labs.Xp.titleForLevel(result.level);
+
+    if (scenario.unlocks && scenario.unlocks.length > 0) {
+      var unlockEl = document.getElementById('complete-unlock');
+      if (unlockEl) {
+        unlockEl.style.display = '';
+      }
+    }
+
+    document.getElementById('lab-complete-overlay').classList.add('visible');
+
+    var reportPanel = document.getElementById('report-panel');
+    if (reportPanel && Labs.Debrief) {
+      reportPanel.style.display = '';
+
+      var evidenceHtml = '<div class="debrief-evidence">';
+      scenario.evidencePieces.forEach(function(piece) {
+        var found = !!discoveredEvidence[piece.id];
+        evidenceHtml += '<div class="debrief-evidence-item ' + (found ? 'found' : 'missed') + '">' +
+          (found ? '\u2713 ' : '\u2717 ') + piece.label + '</div>';
+      });
+      evidenceHtml += '</div>';
+
+      Labs.Debrief.render({
+        container: reportPanel,
+        scoring: result.scoring,
+        elapsed: elapsed,
+        scenario: scenario,
+        debriefContent: {
+          analysis: '<div class="debrief-card"><h3>Incident: Brute Force Against VPN Gateway</h3><p>The attacker at <code>185.220.101.34</code> (Moscow, known Tor exit node) launched an automated credential stuffing attack against the VPN gateway, targeting executive accounts (CEO, CFO, CTO, admin). 847 attempts in 12 minutes using <code>python-requests</code> indicates an automated tool.</p><p>Meanwhile, the impossible travel alert for <code>sarah.martinez</code> revealed a separate credential compromise — a login from London using <code>curl</code> 4 minutes after a legitimate New York session. The DNS query to <code>update.microsofft-security.com</code> (typosquatted) confirmed an Emotet-infected workstation.</p></div>' + '<div class="debrief-card"><h3>Evidence Summary</h3>' + evidenceHtml + '</div>',
+
+          framework: '<div class="debrief-card"><h3>Alert Classification Methodology</h3><p><strong>True Positives</strong> — Unusual source IPs, impossible travel, off-hours activity, known-bad indicators, automated user agents (python-requests, curl), deviation from baseline behavior.</p><p><strong>False Positives</strong> — Scheduled vulnerability scans from known internal scanners, routine health checks, expected geographic access patterns, maintenance windows with documented change tickets.</p><p><strong>Misconfigured Rules</strong> — Alerts triggering on legitimate traffic because thresholds are too low, exclusions are missing, or rule logic does not account for normal operations (e.g., DLP alerting on scheduled cloud backups).</p></div>' + '<div class="debrief-card"><h3>False Positive Tuning</h3><p><strong>Vulnerability scanner exclusion:</strong> Add <code>vuln-scanner-01.meridian.local</code> to the port scan rule source exclusion list. Better: exclude by asset tag rather than hostname.</p><p><strong>DLP backup exclusion:</strong> Add <code>34.102.44.0/24</code> (cloud backup range) and process <code>db-backup-agent</code> to the DLP rule exclusion list.</p><p><strong>Brute force threshold:</strong> Current rule triggered at 847 attempts. Consider lowering to 50 attempts in 5 minutes for faster detection of real attacks.</p></div>',
+
+          code: '<div class="debrief-section-title">Alert Classification Summary</div><div class="debrief-code"><span class="vuln">ALT-4821 [CRITICAL] Brute Force — TRUE POSITIVE\n  Source: 185.220.101.34 (Moscow) python-requests\n  Target: ceo, cfo, cto, admin accounts\n  Action: Block IP, reset passwords, enable MFA\n\nALT-4822 [HIGH] Port Scan — FALSE POSITIVE\n  Source: vuln-scanner-01 (scheduled weekly scan)\n  Action: Add scanner to exclusion list\n\nALT-4823 [MEDIUM] Impossible Travel — TRUE POSITIVE\n  User: sarah.martinez — NY then London in 4 min\n  Second device: curl (not browser)\n  Action: Reset password, revoke sessions\n\nALT-4824 [HIGH] Data Exfil — MISCONFIGURED RULE\n  Source: db-backup-agent to cloud provider\n  Action: Tune DLP rule to exclude backup traffic\n\nALT-4825 [LOW] DNS C2 Query — TRUE POSITIVE\n  Domain: update.microsofft-security.com (Emotet)\n  Action: Isolate workstation, investigate</span></div>',
+
+          crossPerspective: {
+            title: 'What the Attacker Did',
+            description: 'From the attacker\'s perspective, the brute force was a blunt instrument — automated credential stuffing using a leaked password list. The real danger was the separate credential compromise (sarah.martinez) and the Emotet infection, which represent more sophisticated and stealthy attack vectors that could easily be missed in a noisy alert queue.',
+            linkText: 'Try the Red Team Attack \u2192',
+            linkHref: '/labs/red/brute-force/'
+          }
+        }
+      });
+    }
+
+    var statusEl = document.getElementById('soc-mission-status');
+    if (statusEl) {
+      statusEl.textContent = '\u2713 Incident Resolved';
+      statusEl.style.color = '#4ade80';
+    }
+  }
 })();
 </script>

@@ -1,727 +1,405 @@
 ---
-layout: lab-workspace-blue.njk
+layout: lab-workspace-blue-v2.njk
 permalink: /labs/blue/phishing-analysis/
 labCode: "BLUE-03"
-labTitle: "Phishing Campaign Analysis"
+labTitle: "Phishing Analysis"
 labDifficulty: "intermediate"
-labDescription: "A phishing email bypassed the email gateway. Analyze the headers to find the real sender, decode the obfuscated payload URL, identify which users clicked, and determine the blast radius."
-labCompletionText: "You successfully analyzed the phishing campaign, identified the real sending infrastructure, decoded the malicious payload, and determined the full blast radius."
+labDescription: "Three employees reported suspicious emails. Analyze the phishing campaign, identify compromised accounts, and trace the attacker."
+targetHost: "acme-corp.lab.penumbraforge.com"
 ---
 
-<!-- Blue Team Two-Panel Layout -->
-<div class="blue-workspace">
-
-<!-- LEFT: Mission Panel -->
-<div class="blue-mission-panel">
-  <div class="lab-panel-tabs">
-    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
-    <button class="lab-panel-tab" data-tab="evidence">Evidence</button>
-  </div>
-  <div class="lab-panel-content">
-
-<div class="lab-tab-content active" data-tab-content="mission">
-  <div class="lab-section-label">Incident Report</div>
-  <div class="lab-scenario">
-    <strong>Incident #INC-5102</strong> — A user in the Marketing department reported a suspicious email claiming to be from the IT Security Team, demanding an immediate password reset. The email bypassed the Proofpoint gateway and landed in at least 12 inboxes across three departments.
-  </div>
-  <div class="lab-scenario">
-    You need to analyze the email, determine the real sending infrastructure, decode the obfuscated payload, and identify which users may have been compromised.
-  </div>
-
-  <div class="lab-section-label">Objectives</div>
-  <div class="lab-objective current" id="obj-sender">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 1 — Identify the real sender</span>
-      Find the actual sending server from the email headers
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-decode">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 2 — Decode the payload URL</span>
-      The malicious link is Base64-encoded in the email body
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-clicks">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 3 — Count the clicks</span>
-      Determine how many users clicked the malicious link
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-submit">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 4 — Submit findings</span>
-      Submit the sender domain, decoded URL, and click count
-    </div>
-  </div>
-
-  <div class="lab-section-label" style="margin-top:24px;">Investigation Tips</div>
-  <div class="lab-scenario">
-    <strong>Email headers are read bottom-up.</strong> The lowest <code>Received:</code> header shows the originating server. Compare it with the <code>From:</code> address to spot spoofing.
-  </div>
-  <div class="lab-scenario">
-    Check SPF, DKIM, and DMARC results in the <code>Authentication-Results</code> header. A <strong>fail</strong> on all three is a strong indicator of a spoofed sender.
-  </div>
-  <div class="lab-scenario">
-    Attackers often obfuscate URLs using Base64 to evade link scanners. Look for long strings of letters, numbers, and <code>=</code> signs in the email body.
-  </div>
+<div class="soc-case-header">INC-2024-0955</div>
+<div class="soc-case-id">Credential Harvesting Phishing Campaign</div>
+<div class="soc-case-narrative">
+  At 09:14 UTC, a Marketing employee reported a suspicious email claiming to be from the IT Security Team demanding an immediate password reset. The email bypassed the Proofpoint gateway and landed in at least 12 inboxes across three departments.
+  <br><br>
+  Analyze the phishing infrastructure, decode the obfuscated payload, identify which users were compromised, and trace the attacker's post-compromise activity.
 </div>
 
-<div class="lab-tab-content" data-tab-content="evidence">
-  <div class="lab-section-label">Evidence Log</div>
-  <div id="evidence-log" class="evidence-list">
-    <div class="evidence-empty">Findings will appear here as you investigate.</div>
-  </div>
+<div class="soc-case-goal">
+  <div class="soc-case-goal-label">Objective 1</div>
+  <div class="soc-case-goal-text">Identify the phishing domain and sending infrastructure</div>
 </div>
-
-  </div>
+<div class="soc-case-goal">
+  <div class="soc-case-goal-label">Objective 2</div>
+  <div class="soc-case-goal-text">Find compromised accounts that clicked the malicious link</div>
 </div>
-
-<!-- RIGHT: Investigation Dashboard -->
-<div class="blue-dashboard">
-
-<!-- Dashboard tabs -->
-<div class="siem-header" id="siem-header">
-  <div class="siem-header-title">Email Threat Analysis</div>
-  <div class="siem-status-bar">
-    <div class="siem-status-item">
-      <div class="siem-status-dot siem-dot-crit"></div>
-      <span class="siem-status-text">Severity:</span>
-      <span class="siem-status-val" style="color:#eb5757;">High</span>
-    </div>
-    <div class="siem-status-item">
-      <span class="siem-status-text">Reported:</span>
-      <span class="siem-status-val">2026-03-22 09:14 UTC</span>
-    </div>
-  </div>
+<div class="soc-case-goal">
+  <div class="soc-case-goal-label">Objective 3</div>
+  <div class="soc-case-goal-text">Trace attacker lateral movement using stolen credentials</div>
 </div>
-
-<!-- Investigation tabs -->
-<div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface-1);">
-  <button class="ph-tab active" data-ph-tab="email" style="flex:1;padding:10px;text-align:center;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;">Email</button>
-  <button class="ph-tab" data-ph-tab="recipients" style="flex:1;padding:10px;text-align:center;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;">Recipients</button>
-  <button class="ph-tab" data-ph-tab="indicators" style="flex:1;padding:10px;text-align:center;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-3);cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;">Indicators</button>
-</div>
-
-<!-- Tab contents -->
-<div class="siem-content" id="ph-content" style="flex:1;overflow-y:auto;">
-  <!-- Rendered by JS -->
-</div>
-
-<!-- Debrief -->
-<div class="siem-content blue-debrief" id="blue-debrief" style="display:none;flex:1;overflow-y:auto;">
-  <div class="blue-debrief-label">Debrief — Phishing Campaign Analysis</div>
-
-  <div class="blue-debrief-card">
-    <h3>Campaign Summary</h3>
-    <p>The attacker spoofed an email from <code>security@meridian-corp.com</code> using the sending infrastructure at <code>mail.evil-phish.ru</code> (IP 91.234.56.78). The email impersonated the IT Security Team and used urgency ("password expiration in 24 hours") to pressure users into clicking a malicious link.</p>
-    <p>The payload URL was Base64-encoded to evade email gateway link scanners: <code>aHR0cHM6Ly9tZXJpZGlhbi1jb3JwLWxvZ2luLmV2aWwtcGhpc2gucnUvYXV0aC9sb2dpbg==</code> decoded to <code>https://meridian-corp-login.evil-phish.ru/auth/login</code> — a credential harvesting page that mimicked the company's SSO portal.</p>
-  </div>
-
-  <div class="blue-debrief-card">
-    <h3>Why the gateway missed it</h3>
-    <p><strong>SPF failed</strong> but the gateway was set to "soft fail" mode (accept and tag). The email was delivered with a <code>[EXTERNAL]</code> tag that many users ignore.</p>
-    <p><strong>No DKIM signature</strong> — the gateway logged the missing signature but didn't block the email because DKIM-unsigned emails are common from legitimate senders with poor email hygiene.</p>
-    <p><strong>DMARC failed</strong> but the domain's DMARC policy was set to <code>p=none</code> (monitor only). Had it been <code>p=reject</code>, the email would have been blocked.</p>
-  </div>
-
-  <div class="blue-debrief-card">
-    <h3>Email authentication explained</h3>
-    <p><strong>SPF (Sender Policy Framework):</strong> A DNS TXT record listing which mail servers are authorized to send email for a domain. The <code>Received-SPF: fail</code> header tells us the sending server (91.234.56.78) is not in meridian-corp.com's SPF record.</p>
-    <p><strong>DKIM (DomainKeys Identified Mail):</strong> A cryptographic signature added by the sending server. Since the email came from evil-phish.ru (not meridian-corp.com), there's no valid DKIM signature for the From: domain.</p>
-    <p><strong>DMARC (Domain-based Message Authentication):</strong> A policy that tells receiving servers what to do when SPF and DKIM both fail. With <code>p=none</code>, the receiving server only reports — it doesn't block. Changing to <code>p=reject</code> would prevent this attack.</p>
-  </div>
-
-  <div class="blue-debrief-card">
-    <h3>Remediation</h3>
-    <p><strong>Immediate:</strong> Force password reset for all 4 users who clicked the link. Revoke their active sessions. Block the domain <code>evil-phish.ru</code> and IP <code>91.234.56.78</code> at the firewall and email gateway.</p>
-    <p><strong>Short-term:</strong> Update DMARC policy from <code>p=none</code> to <code>p=quarantine</code> (then <code>p=reject</code> after monitoring). Configure the email gateway to block emails failing both SPF and DKIM.</p>
-    <p><strong>Long-term:</strong> Deploy phishing-resistant MFA (FIDO2/WebAuthn). Implement URL rewriting and time-of-click analysis. Run regular phishing simulations to train employees.</p>
-  </div>
-
-  <div class="blue-debrief-card">
-    <h3>In the real world</h3>
-    <p>Phishing accounts for <strong>91% of cyberattacks</strong> (Verizon DBIR). Business Email Compromise (BEC) cost organizations $2.7 billion in 2022 alone. The most effective defense is layered: email authentication (SPF/DKIM/DMARC at <code>p=reject</code>), link scanning, user awareness training, and phishing-resistant MFA.</p>
-    <p>The 2020 Twitter hack began with a phone-based phishing attack targeting employees. The 2016 DNC breach started with a spear-phishing email containing a short URL. These campaigns typically take minutes to execute but can take months to fully remediate.</p>
-  </div>
-</div>
-
-<!-- Answer submission bar -->
-<div class="siem-summary">
-  <div style="flex:1;display:flex;gap:12px;align-items:center;">
-    <input type="text" id="answer-sender" placeholder="Sending server domain" autocomplete="off" style="width:170px;padding:7px 10px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;">
-    <input type="text" id="answer-url" placeholder="Decoded payload URL" autocomplete="off" style="flex:1;padding:7px 10px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;">
-    <input type="text" id="answer-clicks" placeholder="# clicked" autocomplete="off" style="width:80px;padding:7px 10px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;color:var(--text-1);font-family:var(--font-mono);font-size:11px;outline:none;">
-  </div>
-  <button class="siem-submit-btn" id="btn-submit">Submit Findings</button>
-</div>
-
-</div><!-- /blue-dashboard -->
-</div><!-- /blue-workspace -->
-
-<style>
-/* Phishing analysis custom styles */
-.ph-tab.active { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
-.ph-tab:hover { color: var(--text-2) !important; }
-
-.ph-email-client {
-  background: var(--surface-0);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-
-.ph-email-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--surface-1);
-  border-bottom: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-3);
-}
-
-.ph-email-toolbar-btn {
-  padding: 4px 10px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  cursor: pointer;
-}
-.ph-email-toolbar-btn:hover { color: var(--accent); border-color: var(--border-active); }
-
-.ph-email-header-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 6px 16px;
-  font-size: 12px;
-  border-bottom: 1px solid rgba(30,30,53,0.3);
-}
-
-.ph-email-header-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-3);
-  flex-shrink: 0;
-  min-width: 60px;
-  text-align: right;
-}
-
-.ph-email-header-value {
-  color: var(--text-2);
-  flex: 1;
-  word-break: break-all;
-}
-
-.ph-email-body {
-  padding: 20px;
-  font-size: 13px;
-  color: var(--text-2);
-  line-height: 1.7;
-}
-
-.ph-email-body p { margin-bottom: 12px; }
-
-.ph-email-body .ph-cta-btn {
-  display: inline-block;
-  padding: 12px 32px;
-  background: linear-gradient(135deg, #1a73e8, #1557b0);
-  color: #fff;
-  border-radius: 6px;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  margin: 8px 0;
-  cursor: default;
-}
-
-.ph-email-body .ph-obfuscated {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--muted);
-  background: var(--surface-1);
-  padding: 8px 12px;
-  border-radius: 4px;
-  word-break: break-all;
-  display: block;
-  margin-top: 8px;
-}
-
-.ph-raw-headers {
-  display: none;
-  background: var(--surface-0);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-2);
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-x: auto;
-  margin-top: 12px;
-}
-
-.ph-raw-headers.visible { display: block; }
-
-.ph-raw-headers .rk { color: var(--accent); }
-.ph-raw-headers .rv { color: var(--text-1); }
-.ph-raw-headers .rd { color: #eb5757; }
-.ph-raw-headers .rs { color: var(--sage); }
-.ph-raw-headers .rw { color: #e8b84d; }
-
-/* Recipients table */
-.ph-recipients-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.ph-recipients-table th {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-3);
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-1);
-}
-
-.ph-recipients-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(30,30,53,0.3);
-  color: var(--text-2);
-}
-
-.ph-recipients-table tr:hover { background: rgba(184,165,214,0.03); }
-
-.ph-status-badge {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  padding: 2px 8px;
-  border-radius: 3px;
-  display: inline-block;
-}
-
-.ph-status-delivered { color: var(--text-3); background: var(--surface-2); }
-.ph-status-opened { color: #e8b84d; background: rgba(232,184,77,0.1); }
-.ph-status-clicked { color: #eb5757; background: rgba(235,87,87,0.1); }
-
-/* Indicators tab */
-.ph-indicator-group {
-  margin-bottom: 20px;
-}
-
-.ph-indicator-label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--text-3);
-  margin-bottom: 8px;
-}
-
-.ph-indicator-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 6px;
-  font-size: 12px;
-}
-
-.ph-indicator-type {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  padding: 2px 8px;
-  border-radius: 3px;
-  flex-shrink: 0;
-  text-transform: uppercase;
-}
-
-.ph-indicator-value {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-1);
-  flex: 1;
-  word-break: break-all;
-}
-
-.ph-decode-tool {
-  margin-top: 16px;
-  padding: 16px;
-  background: var(--surface-0);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.ph-decode-label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-3);
-  margin-bottom: 8px;
-}
-
-.ph-decode-input {
-  width: 100%;
-  padding: 8px 12px;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-1);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  outline: none;
-  margin-bottom: 8px;
-  box-sizing: border-box;
-}
-
-.ph-decode-output {
-  padding: 8px 12px;
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--sage);
-  min-height: 20px;
-  word-break: break-all;
-}
-</style>
 
 <script>
 (function() {
-  var LAB_CONFIG = {
+  'use strict';
+
+  var Labs = window.PenumbraLabs;
+
+  // ── Scenario Definition ──
+  var scenario = {
     id: 'blue-phishing-analysis',
     type: 'blue',
-    title: 'Phishing Campaign Analysis',
-    target: 'Email Gateway',
+    title: 'Phishing Analysis',
     difficulty: 'intermediate',
-    estimatedTime: 15,
-    xpReward: 200,
-    hintCost: [],
-    skills: ['email-analysis', 'phishing-detection'],
+    estimatedTime: 25,
+    xpReward: 250,
+    skills: ['email-analysis', 'phishing-detection', 'investigation-credential-compromise'],
     unlocks: [],
-    objectives: [
-      { id: 'sender', step: 1, title: 'Identify real sender' },
-      { id: 'decode', step: 2, title: 'Decode payload URL' },
-      { id: 'clicks', step: 3, title: 'Count the clicks' },
-      { id: 'submit', step: 4, title: 'Submit findings' },
+    optimalActions: 14,
+    techniqueChecks: [
+      { id: 'searched-siem', check: function(log) { return log.some(function(a) { return a.type === 'siem_action'; }); }, points: 20 },
+      { id: 'pivoted-ip', check: function(log) { return log.some(function(a) { return a.type === 'siem_action' && a.action === 'pivot'; }); }, points: 20 },
+      { id: 'used-ioc', check: function(log) { return log.some(function(a) { return a.type === 'ioc_lookup'; }); }, points: 20 },
+      { id: 'built-timeline', check: function(log) { return log.some(function(a) { return a.type === 'timeline_action'; }); }, points: 20 },
+      { id: 'submitted-containment', check: function(log) { return log.some(function(a) { return a.type === 'containment_action'; }); }, points: 20 }
     ],
+
+    stateGraph: {
+      states: {
+        'start': { transitions: {
+          'found_phishing_domain': 'phishing_domain_found',
+          'found_compromised': 'compromised_found',
+          'found_lateral': 'lateral_found'
+        }},
+        'phishing_domain_found': { transitions: {
+          'found_compromised': 'multiple_evidence',
+          'found_lateral': 'multiple_evidence',
+          'found_phishing_domain': 'phishing_domain_found'
+        }},
+        'compromised_found': { transitions: {
+          'found_phishing_domain': 'multiple_evidence',
+          'found_lateral': 'multiple_evidence',
+          'found_compromised': 'compromised_found'
+        }},
+        'lateral_found': { transitions: {
+          'found_phishing_domain': 'multiple_evidence',
+          'found_compromised': 'multiple_evidence',
+          'found_lateral': 'lateral_found'
+        }},
+        'multiple_evidence': { transitions: {
+          'found_phishing_domain': 'multiple_evidence',
+          'found_compromised': 'multiple_evidence',
+          'found_lateral': 'multiple_evidence',
+          'contained': 'investigation_complete',
+          'report_submitted': 'investigation_complete'
+        }},
+        'investigation_complete': { terminal: true }
+      },
+      initialState: 'start'
+    },
+
+    validationRules: {
+      'found_phishing_domain': {
+        trigger: 'siem_action',
+        condition: function(action) {
+          return action.action === 'evidence' && action.entry &&
+                 action.entry.evidenceId && action.entry.evidenceId === 'phishing-domain';
+        }
+      },
+      'found_compromised': {
+        trigger: 'siem_action',
+        condition: function(action) {
+          return action.action === 'evidence' && action.entry &&
+                 action.entry.evidenceId && action.entry.evidenceId === 'compromised-accounts';
+        }
+      },
+      'found_lateral': {
+        trigger: 'siem_action',
+        condition: function(action) {
+          return action.action === 'evidence' && action.entry &&
+                 action.entry.evidenceId && action.entry.evidenceId === 'lateral-movement';
+        }
+      },
+      'contained': {
+        trigger: 'timeline_action',
+        condition: function(action) {
+          return action.type === 'timeline_add' &&
+                 Labs.Timeline.getEvents().length >= 5;
+        }
+      },
+      'report_submitted': {
+        trigger: 'containment_action',
+        condition: function(action) {
+          return action.type === 'containment_submit' && action.score >= 60;
+        }
+      }
+    },
+
+    nudges: {
+      'start': {
+        delay: 120,
+        text: 'Start by examining the email-related events in the SIEM. Look for SPF/DKIM failures and suspicious sender domains.'
+      },
+      'phishing_domain_found': {
+        delay: 180,
+        text: 'Good, you identified the phishing domain. Now check the auth logs — did any users click the link and enter credentials?'
+      },
+      'multiple_evidence': {
+        delay: 240,
+        text: 'You are making progress. Check for post-compromise activity — did the attacker use the stolen credentials to access other systems?'
+      }
+    },
+
+    objectives: [
+      { id: 'found_phishing_domain', title: 'Phishing Domain Identified' },
+      { id: 'found_compromised', title: 'Compromised Accounts Found' },
+      { id: 'found_lateral', title: 'Lateral Movement Traced' },
+      { id: 'contained', title: 'Timeline Built' },
+      { id: 'report_submitted', title: 'Containment Plan Submitted' }
+    ],
+
+    evidencePieces: [
+      { id: 'phishing-domain', label: 'Phishing domain: evil-phish.ru' },
+      { id: 'sending-server', label: 'Sending server: mail.evil-phish.ru (91.234.56.78)' },
+      { id: 'spf-dkim-fail', label: 'SPF/DKIM/DMARC all failed' },
+      { id: 'compromised-accounts', label: '4 users clicked the credential harvesting link' },
+      { id: 'lateral-movement', label: 'Attacker accessed internal systems with stolen creds' },
+      { id: 'gophish-tool', label: 'GoPhish v0.12.1 identified as phishing framework' },
+      { id: 'base64-payload', label: 'Decoded Base64 payload URL' },
+      { id: 'full-timeline', label: 'Full campaign timeline reconstructed' }
+    ],
+
+    knownIOCs: {
+      '91.234.56.78': {
+        type: 'IPv4', reputation: 'Malicious', score: 94,
+        geo: 'Saint Petersburg, Russia', asn: 'AS48666',
+        firstSeen: '2026-03-18', lastSeen: '2026-03-22',
+        associations: ['Phishing infrastructure', 'GoPhish hosting', 'Credential harvesting'],
+        tags: ['phishing', 'credential-theft', 'newly-active']
+      },
+      'evil-phish.ru': {
+        type: 'Domain', reputation: 'Malicious', score: 98,
+        geo: 'Russia', asn: 'AS48666',
+        firstSeen: '2026-03-19', lastSeen: '2026-03-22',
+        associations: ['Phishing campaign', 'Credential harvesting', 'Typosquatting'],
+        tags: ['phishing', 'newly-registered', 'credential-harvest']
+      },
+      'meridian-corp-login.evil-phish.ru': {
+        type: 'Domain', reputation: 'Malicious', score: 99,
+        geo: 'Russia', asn: 'AS48666',
+        firstSeen: '2026-03-20', lastSeen: '2026-03-22',
+        associations: ['Credential harvesting page', 'SSO portal clone'],
+        tags: ['phishing', 'credential-harvest', 'lookalike']
+      }
+    },
+
+    expectedActions: ['block-ip', 'revoke-sessions', 'reset-passwords', 'block-domain', 'notify-customers']
   };
 
-  var Engine = PenumbraLabs.Engine;
-  var Toast = PenumbraLabs.Toast;
-  Engine.init(LAB_CONFIG);
+  // ── Initialize Panel System ──
+  Labs.PanelSystem.init({
+    container: document.getElementById('workspace'),
+    panels: [
+      { id: 'panel-casefile', minWidth: 220, defaultWidth: 280 },
+      { id: 'panel-siem', flex: true },
+      { id: 'panel-tools', minWidth: 280, defaultWidth: 340 }
+    ]
+  });
 
-  var RECIPIENTS = [
-    { name: 'Lisa Park', email: 'l.park@meridian-corp.com', dept: 'Marketing', status: 'clicked', time: '09:18' },
-    { name: 'Tom Bradley', email: 't.bradley@meridian-corp.com', dept: 'Sales', status: 'opened', time: '09:22' },
-    { name: 'Aisha Patel', email: 'a.patel@meridian-corp.com', dept: 'Marketing', status: 'clicked', time: '09:25' },
-    { name: 'James Chen', email: 'j.chen@meridian-corp.com', dept: 'Engineering', status: 'opened', time: '09:31' },
-    { name: 'Maria Santos', email: 'm.santos@meridian-corp.com', dept: 'Sales', status: 'delivered', time: null },
-    { name: 'David Miller', email: 'd.miller@meridian-corp.com', dept: 'HR', status: 'clicked', time: '09:42' },
-    { name: 'Rachel Kim', email: 'r.kim@meridian-corp.com', dept: 'Engineering', status: 'opened', time: '09:45' },
-    { name: 'Kevin O\'Brien', email: 'k.obrien@meridian-corp.com', dept: 'Marketing', status: 'opened', time: '09:48' },
-    { name: 'Sofia Garcia', email: 's.garcia@meridian-corp.com', dept: 'Sales', status: 'delivered', time: null },
-    { name: 'Ryan Hughes', email: 'r.hughes@meridian-corp.com', dept: 'Engineering', status: 'clicked', time: '10:02' },
-    { name: 'Nina Chowdhury', email: 'n.chowdhury@meridian-corp.com', dept: 'HR', status: 'delivered', time: null },
-    { name: 'Chris Taylor', email: 'c.taylor@meridian-corp.com', dept: 'Marketing', status: 'delivered', time: null },
-  ];
+  // ── Get Evidence Corpus ──
+  var corpus = Labs.EvidenceCorpus.get('blue-phishing-analysis');
 
-  var PAYLOAD_B64 = 'aHR0cHM6Ly9tZXJpZGlhbi1jb3JwLWxvZ2luLmV2aWwtcGhpc2gucnUvYXV0aC9sb2dpbg==';
-  var PAYLOAD_DECODED = 'https://meridian-corp-login.evil-phish.ru/auth/login';
-  var REAL_SENDER = 'mail.evil-phish.ru';
+  // ── Track evidence discoveries ──
+  var discoveredEvidence = {};
+  var totalEvidence = scenario.evidencePieces.length;
 
-  var headersVisible = false;
+  function updateEvidenceTracker(evidenceId) {
+    if (discoveredEvidence[evidenceId]) return;
+    discoveredEvidence[evidenceId] = true;
 
-  // Build email tab content
-  function buildEmailTab() {
-    return '<div class="ph-email-client">' +
-      '<div class="ph-email-toolbar">' +
-        '<span>Reported Phishing Email</span>' +
-        '<span style="flex:1;"></span>' +
-        '<button class="ph-email-toolbar-btn" id="btn-show-headers">Show Full Headers</button>' +
-      '</div>' +
-      '<div class="ph-email-header-row"><span class="ph-email-header-label">From:</span><span class="ph-email-header-value">IT Security Team &lt;security@meridian-corp.com&gt;</span></div>' +
-      '<div class="ph-email-header-row"><span class="ph-email-header-label">To:</span><span class="ph-email-header-value">marketing-all@meridian-corp.com, sales-team@meridian-corp.com, hr-dept@meridian-corp.com</span></div>' +
-      '<div class="ph-email-header-row"><span class="ph-email-header-label">Subject:</span><span class="ph-email-header-value" style="color:var(--text-1);font-weight:500;">&#x1f6a8; Action Required: Password Expiration Notice — Immediate Response Needed</span></div>' +
-      '<div class="ph-email-header-row"><span class="ph-email-header-label">Date:</span><span class="ph-email-header-value">Sat, 22 Mar 2026 08:47:12 +0000</span></div>' +
-      '<div class="ph-email-header-row"><span class="ph-email-header-label">Reply-To:</span><span class="ph-email-header-value">no-reply-security@meridian-corp.com</span></div>' +
-    '</div>' +
-
-    '<div id="raw-headers" class="ph-raw-headers">' +
-      '<span class="rk">Return-Path:</span> <span class="rd">&lt;bounce-1847@evil-phish.ru&gt;</span>\n' +
-      '<span class="rk">Received:</span> <span class="rv">from mx01.meridian-corp.com (mx01.meridian-corp.com [10.0.1.5])</span>\n' +
-      '    <span class="rv">by mail-gw.meridian-corp.com with ESMTP id q8K2nL9</span>\n' +
-      '    <span class="rv">for &lt;marketing-all@meridian-corp.com&gt;;</span>\n' +
-      '    <span class="rv">Sat, 22 Mar 2026 08:47:15 +0000</span>\n' +
-      '<span class="rk">Received:</span> <span class="rv">from</span> <span class="rd">mail.evil-phish.ru</span> <span class="rv">(</span><span class="rd">91.234.56.78</span><span class="rv">)</span>\n' +
-      '    <span class="rv">by mx01.meridian-corp.com with ESMTP id xR4mP7v</span>\n' +
-      '    <span class="rv">for &lt;marketing-all@meridian-corp.com&gt;;</span>\n' +
-      '    <span class="rv">Sat, 22 Mar 2026 08:47:13 +0000</span>\n' +
-      '<span class="rk">Received:</span> <span class="rv">from localhost (</span><span class="rd">91.234.56.78</span><span class="rv">)</span>\n' +
-      '    <span class="rv">by</span> <span class="rd">mail.evil-phish.ru</span> <span class="rv">with ESMTP id aB3kQ1w;</span>\n' +
-      '    <span class="rv">Sat, 22 Mar 2026 08:47:11 +0000</span>\n\n' +
-      '<span class="rk">Authentication-Results:</span> <span class="rv">mx01.meridian-corp.com;</span>\n' +
-      '    <span class="rk">spf=</span><span class="rd">fail</span> <span class="rv">(sender IP 91.234.56.78 not permitted by domain meridian-corp.com)</span>\n' +
-      '    <span class="rk">dkim=</span><span class="rd">none</span> <span class="rv">(no DKIM signature found)</span>\n' +
-      '    <span class="rk">dmarc=</span><span class="rd">fail</span> <span class="rv">(policy: none, disposition: none)</span>\n\n' +
-      '<span class="rk">Received-SPF:</span> <span class="rd">fail</span> <span class="rv">(mx01.meridian-corp.com: domain of security@meridian-corp.com</span>\n' +
-      '    <span class="rv">does not designate 91.234.56.78 as permitted sender)</span>\n\n' +
-      '<span class="rk">From:</span> <span class="rw">"IT Security Team" &lt;security@meridian-corp.com&gt;</span>\n' +
-      '<span class="rk">To:</span> <span class="rv">marketing-all@meridian-corp.com, sales-team@meridian-corp.com, hr-dept@meridian-corp.com</span>\n' +
-      '<span class="rk">Subject:</span> <span class="rv">Action Required: Password Expiration Notice</span>\n' +
-      '<span class="rk">Date:</span> <span class="rv">Sat, 22 Mar 2026 08:47:12 +0000</span>\n' +
-      '<span class="rk">Message-ID:</span> <span class="rd">&lt;5a8c3f1e.evil-phish.ru@localhost&gt;</span>\n' +
-      '<span class="rk">MIME-Version:</span> <span class="rv">1.0</span>\n' +
-      '<span class="rk">Content-Type:</span> <span class="rv">text/html; charset=UTF-8</span>\n' +
-      '<span class="rk">X-Mailer:</span> <span class="rd">GoPhish v0.12.1</span>\n' +
-      '<span class="rk">X-Priority:</span> <span class="rv">1 (High)</span>' +
-    '</div>' +
-
-    '<div class="ph-email-client" style="margin-top:16px;">' +
-      '<div class="ph-email-body">' +
-        '<div style="text-align:center;margin-bottom:20px;">' +
-          '<div style="font-size:36px;margin-bottom:8px;">&#x1f512;</div>' +
-          '<div style="font-family:var(--font-display);font-size:18px;color:var(--text-1);">Password Expiration Notice</div>' +
-        '</div>' +
-        '<p>Dear Employee,</p>' +
-        '<p>Your corporate network password is set to <strong style="color:var(--text-1);">expire in 24 hours</strong>. To maintain uninterrupted access to company resources, you must reset your password immediately.</p>' +
-        '<p>Failure to reset your password will result in account lockout and you will need to contact the IT Help Desk to restore access.</p>' +
-        '<div style="text-align:center;margin:24px 0;">' +
-          '<span class="ph-cta-btn">&#x1f510; Reset Password Now</span>' +
-        '</div>' +
-        '<p style="font-size:11px;color:var(--muted);">If the button above does not work, copy and paste the following link into your browser:</p>' +
-        '<span class="ph-obfuscated" id="payload-b64">' + PAYLOAD_B64 + '</span>' +
-        '<p style="font-size:11px;color:var(--muted);margin-top:16px;">This is an automated message from the IT Security Team.<br>Meridian Corporation | 1200 Enterprise Blvd, Suite 400<br>Do not reply to this email.</p>' +
-      '</div>' +
-    '</div>';
-  }
-
-  function buildRecipientsTab() {
-    var html = '<div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-3);margin-bottom:12px;">Recipient Activity Log</div>' +
-      '<div style="margin-bottom:12px;display:flex;gap:16px;font-family:var(--font-mono);font-size:11px;">' +
-        '<span style="color:var(--text-3);">Total: <span style="color:var(--text-1);">12</span></span>' +
-        '<span style="color:var(--text-3);">Delivered: <span style="color:var(--text-1);">12</span></span>' +
-        '<span style="color:#e8b84d;">Opened: <span style="color:var(--text-1);">8</span></span>' +
-        '<span style="color:#eb5757;">Clicked: <span style="color:var(--text-1);">?</span></span>' +
-      '</div>' +
-      '<table class="ph-recipients-table"><thead><tr>' +
-        '<th>Name</th><th>Email</th><th>Dept</th><th>Status</th><th>Time</th>' +
-      '</tr></thead><tbody>';
-
-    RECIPIENTS.forEach(function(r) {
-      var statusClass = 'ph-status-' + r.status;
-      var statusLabel = r.status.charAt(0).toUpperCase() + r.status.slice(1);
-      html += '<tr>' +
-        '<td>' + escHtml(r.name) + '</td>' +
-        '<td style="font-family:var(--font-mono);font-size:10px;">' + escHtml(r.email) + '</td>' +
-        '<td>' + r.dept + '</td>' +
-        '<td><span class="ph-status-badge ' + statusClass + '">' + statusLabel + '</span></td>' +
-        '<td style="font-family:var(--font-mono);font-size:10px;color:var(--muted);">' + (r.time || '—') + '</td>' +
-      '</tr>';
-    });
-
-    html += '</tbody></table>';
-    return html;
-  }
-
-  function buildIndicatorsTab() {
-    return '<div class="ph-indicator-group">' +
-      '<div class="ph-indicator-label">Network Indicators</div>' +
-      '<div class="ph-indicator-item">' +
-        '<span class="ph-indicator-type" style="color:#eb5757;background:rgba(235,87,87,0.1);">IP</span>' +
-        '<span class="ph-indicator-value">91.234.56.78</span>' +
-        '<span style="font-size:10px;color:var(--muted);">Sending server</span>' +
-      '</div>' +
-      '<div class="ph-indicator-item">' +
-        '<span class="ph-indicator-type" style="color:#e8b84d;background:rgba(232,184,77,0.1);">Domain</span>' +
-        '<span class="ph-indicator-value">evil-phish.ru</span>' +
-        '<span style="font-size:10px;color:var(--muted);">Registered 2026-03-19</span>' +
-      '</div>' +
-      '<div class="ph-indicator-item">' +
-        '<span class="ph-indicator-type" style="color:#e8b84d;background:rgba(232,184,77,0.1);">Domain</span>' +
-        '<span class="ph-indicator-value">meridian-corp-login.evil-phish.ru</span>' +
-        '<span style="font-size:10px;color:var(--muted);">Credential harvesting page</span>' +
-      '</div>' +
-    '</div>' +
-
-    '<div class="ph-indicator-group">' +
-      '<div class="ph-indicator-label">Email Indicators</div>' +
-      '<div class="ph-indicator-item">' +
-        '<span class="ph-indicator-type" style="color:var(--accent);background:rgba(184,165,214,0.1);">Header</span>' +
-        '<span class="ph-indicator-value">X-Mailer: GoPhish v0.12.1</span>' +
-        '<span style="font-size:10px;color:var(--muted);">Phishing framework</span>' +
-      '</div>' +
-      '<div class="ph-indicator-item">' +
-        '<span class="ph-indicator-type" style="color:var(--accent);background:rgba(184,165,214,0.1);">Header</span>' +
-        '<span class="ph-indicator-value">Message-ID contains evil-phish.ru</span>' +
-        '<span style="font-size:10px;color:var(--muted);">Sender mismatch</span>' +
-      '</div>' +
-    '</div>' +
-
-    '<div class="ph-indicator-group">' +
-      '<div class="ph-indicator-label">Base64 Decoder Tool</div>' +
-      '<div class="ph-decode-tool">' +
-        '<div class="ph-decode-label">Input (Base64)</div>' +
-        '<input type="text" class="ph-decode-input" id="decode-input" placeholder="Paste Base64 string here..." autocomplete="off">' +
-        '<div class="ph-decode-label">Decoded Output</div>' +
-        '<div class="ph-decode-output" id="decode-output">—</div>' +
-      '</div>' +
-    '</div>';
-  }
-
-  var tabs = { email: buildEmailTab, recipients: buildRecipientsTab, indicators: buildIndicatorsTab };
-  var contentEl = document.getElementById('ph-content');
-  var currentTab = 'email';
-
-  function showTab(tabName) {
-    currentTab = tabName;
-    contentEl.innerHTML = tabs[tabName]();
-    document.querySelectorAll('.ph-tab').forEach(function(t) {
-      t.classList.toggle('active', t.getAttribute('data-ph-tab') === tabName);
-    });
-
-    // Reattach handlers after render
-    if (tabName === 'email') {
-      var hdrBtn = document.getElementById('btn-show-headers');
-      if (hdrBtn) {
-        hdrBtn.addEventListener('click', function() {
-          var hdrs = document.getElementById('raw-headers');
-          headersVisible = !headersVisible;
-          hdrs.classList.toggle('visible', headersVisible);
-          this.textContent = headersVisible ? 'Hide Full Headers' : 'Show Full Headers';
-          addEvidence('Viewed full email headers');
-        });
-      }
+    var panel = document.getElementById('evidence-panel');
+    if (panel) {
+      var items = panel.querySelectorAll('.soc-evidence-item');
+      items.forEach(function(item) {
+        if (item.getAttribute('data-evidence-id') === evidenceId) {
+          item.classList.remove('undiscovered');
+          item.classList.add('discovered');
+          var icon = item.querySelector('.soc-evidence-icon');
+          if (icon) icon.textContent = '\u2713';
+        }
+      });
     }
 
-    if (tabName === 'indicators') {
-      var decodeInput = document.getElementById('decode-input');
-      var decodeOutput = document.getElementById('decode-output');
-      if (decodeInput) {
-        decodeInput.addEventListener('input', function() {
-          var val = this.value.trim();
-          if (!val) { decodeOutput.textContent = '\u2014'; return; }
-          try {
-            var decoded = atob(val);
-            decodeOutput.textContent = decoded;
-            decodeOutput.style.color = 'var(--sage)';
+    var count = Object.keys(discoveredEvidence).length;
+    var el = document.getElementById('soc-evidence-count');
+    if (el) el.textContent = 'Evidence: ' + count + '/' + totalEvidence;
+  }
 
-            // Check if they decoded the payload
-            if (decoded === PAYLOAD_DECODED) {
-              Engine.tryCompleteObjective('decode');
-              addEvidence('Decoded payload URL: ' + decoded);
-              Toast.show('Payload decoded!', 'success');
-            }
-          } catch(e) {
-            decodeOutput.textContent = 'Invalid Base64';
-            decodeOutput.style.color = '#eb5757';
+  // ── Initialize Simulation Engine ──
+  var sim = Labs.Simulation.init({
+    scenario: scenario,
+    bridge: Labs.SimulationBridge,
+    onStateChange: function(fromState, toState, action) {
+      Labs.Toast.show('Evidence discovered', 'success');
+
+      if (action && action.entry && action.entry.evidenceId) {
+        updateEvidenceTracker(action.entry.evidenceId);
+      }
+
+      var el = document.getElementById('soc-event-count');
+      if (el) el.textContent = 'Events: ' + corpus.length;
+    },
+    onComplete: function() {
+      var elapsed = Labs.Timer.stop();
+      var evidenceCount = Object.keys(discoveredEvidence).length;
+      var scoringData = {
+        actionsLog: sim.getActionsLog(),
+        nudgesShown: sim._nudgeRef ? sim._nudgeRef._shownCount || 0 : 0,
+        nudgesDismissed: sim._nudgeRef ? sim._nudgeRef._dismissCount || 0 : 0,
+        evidenceFound: evidenceCount,
+        totalEvidence: totalEvidence
+      };
+      var result = Labs.SimulationBridge.onLabComplete(scenario.id, scenario, elapsed, scoringData);
+      showCompletion(result, elapsed);
+    }
+  });
+
+  // ── Initialize SIEM ──
+  Labs.SIEM.init({
+    container: document.getElementById('tool-siem'),
+    evidenceCorpus: corpus,
+    onAction: function(action) {
+      sim.dispatch({ type: 'siem_action', action: action.action, entry: action.entry });
+
+      if (action.action === 'timeline') {
+        Labs.Timeline.addEvent({
+          timestamp: action.entry.timestamp,
+          title: action.entry.summary.replace(/<[^>]+>/g, '').substring(0, 80),
+          description: action.entry.source.toUpperCase() + ' \u2014 ' + action.entry.severity,
+          severity: action.entry.severity,
+          sources: [action.entry.source],
+          userDiscovered: true
+        });
+      }
+      if (action.action === 'ioc_lookup' && action.entry.detail) {
+        var iocTab = document.querySelector('[data-right-tool="ioc"]');
+        if (iocTab) iocTab.click();
+        Labs.IOCLookup.lookup(action.entry.detail.srcIp);
+      }
+      if (action.action === 'evidence' && action.entry.evidenceId) {
+        updateEvidenceTracker(action.entry.evidenceId);
+      }
+    }
+  });
+
+  // ── Initialize source-filtered SIEM views ──
+  ['firewall', 'auth', 'dns'].forEach(function(source) {
+    var container = document.getElementById('tool-' + source);
+    if (container) {
+      var sourceMap = { firewall: 'fw', auth: 'auth', dns: 'dns' };
+      var filtered = corpus.filter(function(e) { return e.source === sourceMap[source]; });
+      Labs.SIEM.init({
+        container: container,
+        evidenceCorpus: filtered,
+        onAction: function(action) {
+          sim.dispatch({ type: 'siem_action', action: action.action, entry: action.entry });
+          if (action.action === 'evidence' && action.entry.evidenceId) {
+            updateEvidenceTracker(action.entry.evidenceId);
           }
-        });
+        }
+      });
+    }
+  });
+
+  // ── Initialize Timeline ──
+  Labs.Timeline.init({
+    container: document.getElementById('tool-timeline'),
+    onAction: function(action) {
+      sim.dispatch({ type: 'timeline_action', type: action.type, event: action.event });
+      if (Labs.Timeline.getEvents().length >= 5) {
+        updateEvidenceTracker('full-timeline');
       }
     }
-  }
-
-  // Tab click handlers
-  document.querySelectorAll('.ph-tab').forEach(function(tab) {
-    tab.addEventListener('click', function() {
-      showTab(this.getAttribute('data-ph-tab'));
-    });
   });
 
-  // Initial render
-  showTab('email');
-
-  function addEvidence(text) {
-    var log = document.getElementById('evidence-log');
-    if (log.querySelector('.evidence-empty')) log.innerHTML = '';
-    var elapsed = PenumbraLabs.Timer.getElapsed();
-    var time = PenumbraLabs.Timer.format(elapsed);
-    log.innerHTML += '<div class="evidence-item"><div class="evidence-item-time">' + time + '</div><div class="evidence-item-text">' + text + '</div></div>';
-  }
-
-  // Submit findings
-  document.getElementById('btn-submit').addEventListener('click', function() {
-    var sender = document.getElementById('answer-sender').value.trim().toLowerCase();
-    var url = document.getElementById('answer-url').value.trim().toLowerCase();
-    var clicks = document.getElementById('answer-clicks').value.trim();
-
-    var allCorrect = true;
-
-    // Check sender
-    if (sender === 'mail.evil-phish.ru' || sender === 'evil-phish.ru') {
-      Engine.tryCompleteObjective('sender');
-      addEvidence('Correctly identified sending server: ' + sender);
-    } else if (sender) {
-      Toast.show('Incorrect sender — check the Received: headers (read bottom to top)', 'error');
-      addEvidence('Submitted incorrect sender: ' + sender);
-      allCorrect = false;
-    } else {
-      allCorrect = false;
-    }
-
-    // Check decoded URL
-    if (url === PAYLOAD_DECODED || url === 'meridian-corp-login.evil-phish.ru/auth/login' || url.indexOf('evil-phish.ru') !== -1) {
-      Engine.tryCompleteObjective('decode');
-      addEvidence('Correctly identified payload URL');
-    } else if (url) {
-      Toast.show('That URL doesn\'t look right — try decoding the Base64 string from the email body', 'error');
-      addEvidence('Submitted incorrect URL: ' + url);
-      allCorrect = false;
-    } else {
-      allCorrect = false;
-    }
-
-    // Check click count
-    if (clicks === '4') {
-      Engine.tryCompleteObjective('clicks');
-      addEvidence('Correctly identified 4 users who clicked');
-    } else if (clicks) {
-      Toast.show('Check the Recipients tab — count only users with "Clicked" status', 'error');
-      addEvidence('Submitted incorrect click count: ' + clicks);
-      allCorrect = false;
-    } else {
-      allCorrect = false;
-    }
-
-    // Final submit objective
-    var progress = Engine.getProgress();
-    if (progress.objectivesCompleted.length >= 3 || (allCorrect && sender && url && clicks)) {
-      Engine.tryCompleteObjective('submit');
-
-      // Show debrief
-      contentEl.style.display = 'none';
-      document.getElementById('siem-header').style.display = 'none';
-      document.querySelector('.siem-summary').style.display = 'none';
-      document.querySelectorAll('.ph-tab').forEach(function(t) { t.parentElement.style.display = 'none'; });
-      var debrief = document.getElementById('blue-debrief');
-      debrief.style.display = '';
-      debrief.style.flex = '1';
-      debrief.style.overflowY = 'auto';
+  // ── Initialize IOC Lookup ──
+  Labs.IOCLookup.init({
+    container: document.getElementById('tool-ioc'),
+    knownIOCs: scenario.knownIOCs,
+    onAction: function(action) {
+      sim.dispatch(action);
     }
   });
 
-  function escHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // ── Initialize Actions ──
+  Labs.SOCActions.init({
+    container: document.getElementById('tool-actions'),
+    expectedActions: scenario.expectedActions,
+    onAction: function(action) {
+      sim.dispatch({ type: 'containment_action', type: action.type, score: action.score, selected: action.selected });
+    }
+  });
+
+  // ── Start Timer ──
+  Labs.Timer.start(function(elapsed) {
+    var el = document.getElementById('lab-timer');
+    if (el) el.textContent = Labs.Timer.format(elapsed);
+  });
+
+  // ── Update level display ──
+  var profile = Labs.Progress.getProfile();
+  var levelEl = document.getElementById('soc-level');
+  if (levelEl) levelEl.textContent = 'Level ' + profile.level + ' \u00b7 ' + Labs.Xp.titleForLevel(profile.level);
+
+  // ── Update event count ──
+  var evtEl = document.getElementById('soc-event-count');
+  if (evtEl) evtEl.textContent = 'Events: ' + corpus.length;
+
+  // ── Completion handler ──
+  function showCompletion(result, elapsed) {
+    document.getElementById('complete-time').textContent = Labs.Timer.format(elapsed);
+    document.getElementById('complete-score').textContent = result.scoring ? result.scoring.composite : 100;
+    document.getElementById('complete-xp').textContent = '+' + (result.scoring ? result.scoring.xp : result.xp);
+    document.getElementById('complete-level').textContent = 'Level ' + result.level + ' \u2014 ' + Labs.Xp.titleForLevel(result.level);
+
+    if (scenario.unlocks && scenario.unlocks.length > 0) {
+      var unlockEl = document.getElementById('complete-unlock');
+      if (unlockEl) {
+        unlockEl.style.display = '';
+      }
+    }
+
+    document.getElementById('lab-complete-overlay').classList.add('visible');
+
+    var reportPanel = document.getElementById('report-panel');
+    if (reportPanel && Labs.Debrief) {
+      reportPanel.style.display = '';
+
+      var evidenceHtml = '<div class="debrief-evidence">';
+      scenario.evidencePieces.forEach(function(piece) {
+        var found = !!discoveredEvidence[piece.id];
+        evidenceHtml += '<div class="debrief-evidence-item ' + (found ? 'found' : 'missed') + '">' +
+          (found ? '\u2713 ' : '\u2717 ') + piece.label + '</div>';
+      });
+      evidenceHtml += '</div>';
+
+      Labs.Debrief.render({
+        container: reportPanel,
+        scoring: result.scoring,
+        elapsed: elapsed,
+        scenario: scenario,
+        debriefContent: {
+          analysis: '<div class="debrief-card"><h3>Incident: Credential Harvesting Phishing Campaign</h3><p>The attacker spoofed <code>security@meridian-corp.com</code> using infrastructure at <code>mail.evil-phish.ru</code> (91.234.56.78). The email impersonated the IT Security Team and used urgency ("password expiration in 24 hours") to pressure 12 recipients into clicking a malicious link.</p><p>The payload URL was Base64-encoded to evade link scanners: decoded to <code>https://meridian-corp-login.evil-phish.ru/auth/login</code> — a credential harvesting page cloning the company SSO portal. 4 users clicked and entered credentials. The attacker then used stolen credentials to access internal systems.</p></div>' + '<div class="debrief-card"><h3>Evidence Summary</h3>' + evidenceHtml + '</div>',
+
+          framework: '<div class="debrief-card"><h3>NIST Incident Response Framework</h3><p><strong>1. Preparation</strong> — Email gateway was set to SPF soft-fail mode (accept and tag). DMARC policy was <code>p=none</code> (monitor only). No phishing-resistant MFA was deployed.</p><p><strong>2. Detection & Analysis</strong> — User report triggered investigation. Email headers revealed SPF fail, missing DKIM, and DMARC fail. GoPhish framework identified via X-Mailer header.</p><p><strong>3. Containment</strong> — Force password reset for all 4 users who clicked. Revoke active sessions. Block domain <code>evil-phish.ru</code> and IP <code>91.234.56.78</code> at firewall and email gateway.</p><p><strong>4. Eradication</strong> — Update DMARC policy from <code>p=none</code> to <code>p=reject</code>. Configure gateway to block emails failing both SPF and DKIM.</p><p><strong>5. Recovery</strong> — Audit all actions taken with compromised credentials. Notify affected customers if data was accessed.</p><p><strong>6. Lessons Learned</strong> — Deploy phishing-resistant MFA (FIDO2/WebAuthn). Implement URL rewriting and time-of-click analysis. Run phishing simulations.</p></div>',
+
+          code: '<div class="debrief-section-title">Phishing Campaign Timeline</div><div class="debrief-code"><span class="vuln">08:47 — Phishing email sent from mail.evil-phish.ru\n08:47 — SPF: FAIL | DKIM: NONE | DMARC: FAIL (p=none)\n09:14 — First user report (Marketing)\n09:18 — l.park@meridian clicked credential harvesting link\n09:25 — a.patel@meridian clicked link\n09:42 — d.miller@meridian clicked link\n10:02 — r.hughes@meridian clicked link\n10:15 — Attacker used stolen credentials to access internal portal\n10:22 — Lateral movement to shared drives detected</span></div><div class="debrief-section-title" style="margin-top:16px;">Key Indicators of Compromise</div><div class="debrief-code"><span class="fix">IP: 91.234.56.78 (sending server)\nDomain: evil-phish.ru (phishing infrastructure)\nDomain: meridian-corp-login.evil-phish.ru (harvester)\nTool: GoPhish v0.12.1 (X-Mailer header)\nPayload: Base64-encoded URL in email body\nReturn-Path: bounce-1847@evil-phish.ru</span></div>',
+
+          crossPerspective: {
+            title: 'What the Attacker Did',
+            description: 'From the attacker\'s perspective, this was a well-crafted phishing campaign using GoPhish to send branded emails with urgency triggers. The Base64-encoded URL bypassed basic link scanning, and the DMARC p=none policy meant the spoofed email was delivered despite failing all authentication checks. The 33% click rate (4 of 12) is above average for targeted phishing.',
+            linkText: 'Try the Red Team Attack \u2192',
+            linkHref: '/labs/red/phishing/'
+          }
+        }
+      });
+    }
+
+    var statusEl = document.getElementById('soc-mission-status');
+    if (statusEl) {
+      statusEl.textContent = '\u2713 Incident Resolved';
+      statusEl.style.color = '#4ade80';
+    }
   }
 })();
 </script>
