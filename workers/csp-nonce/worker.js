@@ -30,7 +30,7 @@ const SECURITY_HEADERS = {
 function buildCSP(nonce) {
   return [
     "default-src 'none'",
-    `script-src 'self' 'nonce-${nonce}' https://static.cloudflareinsights.com https://challenges.cloudflare.com`,
+    `script-src 'nonce-${nonce}' 'strict-dynamic' https: 'self'`,
     "connect-src 'self' https://cloudflareinsights.com https://*.penumbraforge.workers.dev https://api.pwnedpasswords.com https://challenges.cloudflare.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
@@ -63,7 +63,7 @@ export default {
     const nonce = generateNonce();
 
     const transformed = new HTMLRewriter()
-      .on('script:not([src])', new NonceInjector(nonce))
+      .on('script', new NonceInjector(nonce))
       .transform(response);
 
     const headers = new Headers(transformed.headers);
@@ -94,9 +94,7 @@ class NonceInjector {
   }
 
   element(el) {
-    if (!el.getAttribute('src')) {
-      el.setAttribute('nonce', this.nonce);
-    }
+    el.setAttribute('nonce', this.nonce);
   }
 }
 
