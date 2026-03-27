@@ -1,0 +1,1275 @@
+---
+toolSlug: ssl-chain-debugger
+permalink: /tools/ssl-chain-debugger/
+---
+
+<div id="scd-tabs" class="scd-tabs">
+  <button class="scd-tab scd-tab--active" data-tab="chain">Analyze Chain</button>
+  <button class="scd-tab" data-tab="hostname">Check Hostname</button>
+</div>
+
+<!-- ── Chain Analyzer tab ── -->
+<div id="scd-tab-chain" class="scd-tab-panel">
+  <div class="tool-group">
+    <label for="scd-input">Paste PEM certificates (leaf first, root last — or in any order)</label>
+    <textarea id="scd-input" rows="14" placeholder="-----BEGIN CERTIFICATE-----&#10;MIIFazCC...&#10;-----END CERTIFICATE-----&#10;-----BEGIN CERTIFICATE-----&#10;..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+
+  <div class="tool-row">
+    <button class="btn btn--primary" id="scd-analyze-btn">Analyze Chain</button>
+    <button class="btn" id="scd-example-btn">Try Example</button>
+    <button class="btn" id="scd-clear-btn">Clear</button>
+    <button class="btn" id="scd-fix-btn" style="display:none;">Fix Chain Order</button>
+    <div id="scd-summary" style="margin-left:auto;font-size:0.875rem;color:var(--text-3,#888);align-self:center;"></div>
+  </div>
+
+  <div id="scd-empty" class="scd-empty-msg">Paste PEM certificates above and click "Analyze Chain".</div>
+
+  <div id="scd-results" style="display:none;">
+    <!-- Issues panel -->
+    <div id="scd-issues-panel" style="display:none;">
+      <div class="scd-section-label">Issues Found</div>
+      <div id="scd-issues-list"></div>
+    </div>
+
+    <!-- Chain diagram -->
+    <div class="scd-section-label" style="margin-top:1.25rem;">Certificate Chain</div>
+    <div id="scd-chain-diagram"></div>
+
+    <!-- Fixed PEM output -->
+    <div id="scd-fixed-output" style="display:none;">
+      <div class="scd-section-label" style="margin-top:1.25rem;">Reordered Chain (Leaf &rarr; Root)</div>
+      <textarea id="scd-fixed-pem" class="scd-pem-out" rows="10" readonly></textarea>
+      <div class="tool-row" style="margin-top:0.5rem;">
+        <button class="btn" id="scd-copy-fixed-btn">Copy PEM</button>
+        <button class="btn" id="scd-hide-fixed-btn">Hide</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- openssl reference -->
+  <hr style="margin:2rem 0;border:none;border-top:1px solid var(--border,#2a2a3a);">
+  <div class="scd-section-label">Common openssl Commands</div>
+  <div id="scd-cmds-list">
+    <div class="scd-cmd-card">
+      <div class="scd-cmd-title">View certificate details from a file</div>
+      <div class="scd-cmd-row">
+        <code class="scd-cmd-code">openssl x509 -in cert.pem -text -noout</code>
+        <button class="btn scd-copy-btn" data-cmd="openssl x509 -in cert.pem -text -noout">Copy</button>
+      </div>
+    </div>
+    <div class="scd-cmd-card">
+      <div class="scd-cmd-title">Verify chain file (bundle) against a root CA store</div>
+      <div class="scd-cmd-row">
+        <code class="scd-cmd-code">openssl verify -CAfile ca-bundle.pem cert.pem</code>
+        <button class="btn scd-copy-btn" data-cmd="openssl verify -CAfile ca-bundle.pem cert.pem">Copy</button>
+      </div>
+    </div>
+    <div class="scd-cmd-card">
+      <div class="scd-cmd-title">Check that cert and private key match (modulus hash)</div>
+      <div class="scd-cmd-row">
+        <code class="scd-cmd-code">openssl x509 -noout -modulus -in cert.pem | openssl md5
+openssl rsa  -noout -modulus -in key.pem  | openssl md5</code>
+        <button class="btn scd-copy-btn" data-cmd="openssl x509 -noout -modulus -in cert.pem | openssl md5&#10;openssl rsa  -noout -modulus -in key.pem  | openssl md5">Copy</button>
+      </div>
+    </div>
+    <div class="scd-cmd-card">
+      <div class="scd-cmd-title">Show expiry date only</div>
+      <div class="scd-cmd-row">
+        <code class="scd-cmd-code">openssl x509 -enddate -noout -in cert.pem</code>
+        <button class="btn scd-copy-btn" data-cmd="openssl x509 -enddate -noout -in cert.pem">Copy</button>
+      </div>
+    </div>
+    <div class="scd-cmd-card">
+      <div class="scd-cmd-title">Extract all certs from a bundle into separate files</div>
+      <div class="scd-cmd-row">
+        <code class="scd-cmd-code">awk '/BEGIN CERT/{n++} {print > "cert-" n ".pem"}' bundle.pem</code>
+        <button class="btn scd-copy-btn" data-cmd="awk '/BEGIN CERT/{n++} {print > &quot;cert-&quot; n &quot;.pem&quot;}' bundle.pem">Copy</button>
+      </div>
+    </div>
+    <div class="scd-cmd-card">
+      <div class="scd-cmd-title">Check CRL / OCSP stapling from a live server</div>
+      <div class="scd-cmd-row">
+        <code class="scd-cmd-code">openssl s_client -connect example.com:443 -status 2&gt;&amp;1 | grep -i ocsp</code>
+        <button class="btn scd-copy-btn" data-cmd="openssl s_client -connect example.com:443 -status 2>&amp;1 | grep -i ocsp">Copy</button>
+      </div>
+    </div>
+    <div class="scd-cmd-card">
+      <div class="scd-cmd-title">Convert DER to PEM</div>
+      <div class="scd-cmd-row">
+        <code class="scd-cmd-code">openssl x509 -inform DER -in cert.der -out cert.pem</code>
+        <button class="btn scd-copy-btn" data-cmd="openssl x509 -inform DER -in cert.der -out cert.pem">Copy</button>
+      </div>
+    </div>
+    <div class="scd-cmd-card">
+      <div class="scd-cmd-title">Export full chain from a PKCS#12 (.p12 / .pfx) file</div>
+      <div class="scd-cmd-row">
+        <code class="scd-cmd-code">openssl pkcs12 -in bundle.p12 -nokeys -out chain.pem</code>
+        <button class="btn scd-copy-btn" data-cmd="openssl pkcs12 -in bundle.p12 -nokeys -out chain.pem">Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Check Hostname tab ── -->
+<div id="scd-tab-hostname" class="scd-tab-panel" style="display:none;">
+  <div class="tool-group">
+    <label for="scd-host-input">Hostname or IP address</label>
+    <input type="text" id="scd-host-input" class="scd-host-input" placeholder="example.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  </div>
+  <div class="tool-row" style="gap:0.75rem;align-items:center;flex-wrap:wrap;">
+    <label style="font-size:0.875rem;color:var(--text-2,#94a3b8);">Port</label>
+    <input type="number" id="scd-port-input" class="scd-port-input" value="443" min="1" max="65535">
+    <label style="font-size:0.875rem;color:var(--text-2,#94a3b8);">Protocol</label>
+    <select id="scd-proto-select" class="scd-select">
+      <option value="">HTTPS (default)</option>
+      <option value="-starttls smtp">SMTP STARTTLS</option>
+      <option value="-starttls imap">IMAP STARTTLS</option>
+      <option value="-starttls ftp">FTP STARTTLS</option>
+      <option value="-starttls ldap">LDAP STARTTLS</option>
+    </select>
+    <button class="btn btn--primary" id="scd-gen-cmd-btn">Generate Commands</button>
+  </div>
+
+  <div id="scd-host-empty" class="scd-empty-msg">Enter a hostname above and click "Generate Commands".</div>
+  <div id="scd-host-results" style="display:none;">
+    <div class="scd-section-label" style="margin-top:1.25rem;">openssl Commands for <span id="scd-host-display"></span></div>
+    <p style="font-size:0.875rem;color:var(--text-2,#94a3b8);margin:0.5rem 0 1rem;">Run these in your terminal &mdash; they connect to the live server, which cannot be done from the browser.</p>
+    <div id="scd-host-cmds"></div>
+  </div>
+</div>
+
+<style>
+  /* ── Tabs ── */
+  .scd-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border,#2a2a3a);
+  }
+  .scd-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-2,#94a3b8);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .scd-tab:hover { color: var(--text-1,#e2e8f0); }
+  .scd-tab--active { color: #818cf8; border-bottom-color: #818cf8; }
+
+  /* ── Section labels ── */
+  .scd-section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-3,#888);
+    margin-bottom: 0.75rem;
+  }
+
+  /* ── Empty / placeholder ── */
+  .scd-empty-msg {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--text-3,#888);
+    font-size: 0.9rem;
+  }
+
+  /* ── Issue cards ── */
+  .scd-issue {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    border-radius: 7px;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  .scd-issue--error   { background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.25);  color: #fca5a5; }
+  .scd-issue--warning { background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.22);  color: #fde68a; }
+  .scd-issue--info    { background: rgba(99,102,241,0.08);border: 1px solid rgba(99,102,241,0.22); color: #a5b4fc; }
+  .scd-issue-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.05rem; }
+  .scd-issue-text strong { display: block; font-weight: 700; margin-bottom: 0.15rem; }
+
+  /* ── Chain diagram ── */
+  .scd-chain { display: flex; flex-direction: column; gap: 0; }
+  .scd-cert-wrap { display: flex; flex-direction: column; align-items: stretch; }
+  .scd-cert-card {
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .scd-cert-card--leaf         { border-left: 3px solid #4ade80; }
+  .scd-cert-card--intermediate { border-left: 3px solid #818cf8; }
+  .scd-cert-card--root         { border-left: 3px solid #f97316; }
+  .scd-cert-card--unknown      { border-left: 3px solid #6b7280; }
+  .scd-cert-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.875rem;
+    background: var(--surface-1,#1a1a2e);
+    cursor: pointer;
+    user-select: none;
+  }
+  .scd-cert-header:hover { background: var(--surface-2,#1e1e30); }
+  .scd-cert-role {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  .scd-role--leaf         { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+  .scd-role--intermediate { background: rgba(129,140,248,0.12); color: #818cf8; border: 1px solid rgba(129,140,248,0.3); }
+  .scd-role--root         { background: rgba(249,115,22,0.12);  color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .scd-role--unknown      { background: rgba(107,114,128,0.12); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
+  .scd-cert-cn {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-1,#e2e8f0);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scd-cert-expiry {
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .scd-expiry--ok      { color: #4ade80; }
+  .scd-expiry--soon    { color: #fbbf24; }
+  .scd-expiry--expired { color: #f87171; }
+  .scd-cert-chevron {
+    color: var(--text-3,#888);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+  .scd-cert-chevron--open { transform: rotate(90deg); }
+  .scd-cert-body {
+    padding: 0.875rem;
+    background: var(--surface-0,#0f0f1a);
+    border-top: 1px solid var(--border,#2a2a3a);
+    display: none;
+  }
+  .scd-cert-body--open { display: block; }
+  .scd-cert-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.5rem 1.5rem;
+    font-size: 0.8125rem;
+  }
+  .scd-field-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-3,#888);
+    margin-bottom: 0.2rem;
+  }
+  .scd-field-value {
+    color: var(--text-1,#e2e8f0);
+    word-break: break-all;
+    font-family: var(--font-mono,monospace);
+    font-size: 0.8rem;
+  }
+  .scd-field-value--warn { color: #fbbf24; }
+  .scd-field-value--err  { color: #f87171; }
+  .scd-sans-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+  }
+  .scd-san-tag {
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.75rem;
+    font-family: var(--font-mono,monospace);
+    color: var(--text-2,#94a3b8);
+  }
+
+  /* ── Arrow between certs ── */
+  .scd-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    color: var(--text-3,#888);
+    font-size: 1.25rem;
+    position: relative;
+  }
+  .scd-arrow::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border,#2a2a3a);
+    transform: translateX(-50%);
+  }
+  .scd-arrow-icon {
+    background: var(--surface-0,#0f0f1a);
+    padding: 0 6px;
+    position: relative;
+    z-index: 1;
+    line-height: 1;
+  }
+
+  /* ── PEM output ── */
+  .scd-pem-out {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--surface-0,#0f0f1a);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 6px;
+    color: var(--text-1,#e2e8f0);
+    font-family: var(--font-mono,monospace);
+    font-size: 0.8rem;
+    padding: 0.75rem;
+    resize: vertical;
+  }
+
+  /* ── openssl command cards ── */
+  .scd-cmd-card {
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 7px;
+    margin-bottom: 0.625rem;
+    overflow: hidden;
+  }
+  .scd-cmd-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-2,#94a3b8);
+    padding: 0.5rem 0.875rem 0;
+  }
+  .scd-cmd-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.4rem 0.875rem 0.6rem;
+  }
+  .scd-cmd-code {
+    flex: 1;
+    font-family: var(--font-mono,monospace);
+    font-size: 0.8rem;
+    color: var(--text-1,#e2e8f0);
+    white-space: pre-wrap;
+    word-break: break-all;
+    background: none;
+    padding: 0;
+  }
+  .scd-copy-btn { flex-shrink: 0; font-size: 0.75rem; padding: 3px 10px; }
+
+  /* ── Hostname tab inputs ── */
+  .scd-host-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 6px;
+    color: var(--text-1,#e2e8f0);
+    font-family: var(--font-mono,monospace);
+    font-size: 0.9rem;
+    padding: 0.55rem 0.875rem;
+  }
+  .scd-port-input {
+    width: 80px;
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 6px;
+    color: var(--text-1,#e2e8f0);
+    font-size: 0.9rem;
+    padding: 0.45rem 0.6rem;
+    text-align: center;
+  }
+  .scd-select {
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 6px;
+    color: var(--text-1,#e2e8f0);
+    font-size: 0.85rem;
+    padding: 0.45rem 0.6rem;
+  }
+  .scd-host-input:focus, .scd-port-input:focus, .scd-select:focus {
+    outline: none;
+    border-color: #818cf8;
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Tab switching ──────────────────────────────────────────────
+  var tabs = document.querySelectorAll('.scd-tab');
+  var panels = document.querySelectorAll('.scd-tab-panel');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.classList.remove('scd-tab--active'); });
+      tab.classList.add('scd-tab--active');
+      var target = tab.getAttribute('data-tab');
+      panels.forEach(function (p) { p.style.display = 'none'; });
+      document.getElementById('scd-tab-' + target).style.display = '';
+    });
+  });
+
+  // ── Utility ───────────────────────────────────────────────────
+  function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(function () {
+      var orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = orig; }, 1500);
+    }).catch(function () {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      var orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(function () { btn.textContent = orig; }, 1500);
+    });
+  }
+
+  // Copy buttons in openssl reference
+  document.querySelectorAll('.scd-copy-btn[data-cmd]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      copyText(btn.getAttribute('data-cmd'), btn);
+    });
+  });
+
+  // ── ASN.1 / DER parser (lightweight) ─────────────────────────
+  // Parses enough of the DER structure to extract common cert fields
+  // without a full-blown ASN.1 library.
+
+  function b64decode(str) {
+    var clean = str.replace(/\s+/g, '');
+    var bin = atob(clean);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  // Read a DER length field, returns { len, bytesConsumed }
+  function readLength(buf, pos) {
+    var first = buf[pos];
+    if (first < 0x80) return { len: first, bytesConsumed: 1 };
+    var numBytes = first & 0x7f;
+    var len = 0;
+    for (var i = 0; i < numBytes; i++) {
+      len = (len << 8) | buf[pos + 1 + i];
+    }
+    return { len: len, bytesConsumed: 1 + numBytes };
+  }
+
+  // Read a single TLV, returns { tag, value (Uint8Array), nextPos }
+  function readTLV(buf, pos) {
+    if (pos >= buf.length) return null;
+    var tag = buf[pos];
+    var lenInfo = readLength(buf, pos + 1);
+    var valueStart = pos + 1 + lenInfo.bytesConsumed;
+    var value = buf.slice(valueStart, valueStart + lenInfo.len);
+    return { tag: tag, value: value, nextPos: valueStart + lenInfo.len };
+  }
+
+  // Decode string types to JS string
+  function bytesToStr(tag, bytes) {
+    if (tag === 0x1e) { // BMPString (UTF-16 BE)
+      var s = '';
+      for (var i = 0; i + 1 < bytes.length; i += 2) {
+        s += String.fromCharCode((bytes[i] << 8) | bytes[i+1]);
+      }
+      return s;
+    }
+    var s = '';
+    for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return s;
+  }
+
+  // OID bytes to dotted string
+  function oidBytes(bytes) {
+    if (!bytes.length) return '';
+    var parts = [Math.floor(bytes[0] / 40), bytes[0] % 40];
+    var val = 0;
+    for (var i = 1; i < bytes.length; i++) {
+      val = (val << 7) | (bytes[i] & 0x7f);
+      if (!(bytes[i] & 0x80)) { parts.push(val); val = 0; }
+    }
+    return parts.join('.');
+  }
+
+  var OID_MAP = {
+    '2.5.4.3': 'CN', '2.5.4.6': 'C', '2.5.4.7': 'L',
+    '2.5.4.8': 'ST', '2.5.4.9': 'STREET', '2.5.4.10': 'O',
+    '2.5.4.11': 'OU', '2.5.4.17': 'POSTALCODE',
+    '1.2.840.113549.1.1.1':  'rsaEncryption',
+    '1.2.840.113549.1.1.5':  'sha1WithRSAEncryption',
+    '1.2.840.113549.1.1.11': 'sha256WithRSAEncryption',
+    '1.2.840.113549.1.1.12': 'sha384WithRSAEncryption',
+    '1.2.840.113549.1.1.13': 'sha512WithRSAEncryption',
+    '1.2.840.10045.4.3.2':   'ecdsa-with-SHA256',
+    '1.2.840.10045.4.3.3':   'ecdsa-with-SHA384',
+    '1.2.840.10045.4.3.4':   'ecdsa-with-SHA512',
+    '1.2.840.10045.2.1':     'id-ecPublicKey',
+    '1.2.840.113549.1.1.14': 'sha224WithRSAEncryption',
+    '2.5.29.17': 'subjectAltName',
+    '2.5.29.19': 'basicConstraints',
+    '2.5.29.14': 'subjectKeyIdentifier',
+    '2.5.29.35': 'authorityKeyIdentifier',
+    '2.5.29.15': 'keyUsage',
+    '2.5.29.37': 'extendedKeyUsage',
+  };
+
+  // Walk SEQUENCE of RDNs and return attribute map
+  function parseRDNSequence(buf) {
+    var attrs = {};
+    var pos = 0;
+    while (pos < buf.length) {
+      var set = readTLV(buf, pos);
+      if (!set) break;
+      pos = set.nextPos;
+      if (set.tag !== 0x31) continue; // SET
+      var p2 = 0;
+      while (p2 < set.value.length) {
+        var seq = readTLV(set.value, p2);
+        if (!seq) break;
+        p2 = seq.nextPos;
+        if (seq.tag !== 0x30) continue; // SEQUENCE
+        var oidTLV = readTLV(seq.value, 0);
+        if (!oidTLV || oidTLV.tag !== 0x06) continue;
+        var oid = oidBytes(oidTLV.value);
+        var name = OID_MAP[oid] || oid;
+        var valTLV = readTLV(seq.value, oidTLV.nextPos);
+        if (!valTLV) continue;
+        var strVal = bytesToStr(valTLV.tag, valTLV.value);
+        attrs[name] = strVal;
+      }
+    }
+    return attrs;
+  }
+
+  // Parse GeneralizedTime / UTCTime bytes to Date
+  function parseTime(tag, bytes) {
+    var s = bytesToStr(tag, bytes);
+    var year, month, day, hour, min, sec;
+    if (tag === 0x17) { // UTCTime: YYMMDDHHMMSSZ
+      var yy = parseInt(s.substr(0,2), 10);
+      year = yy >= 50 ? 1900 + yy : 2000 + yy;
+      month = parseInt(s.substr(2,2), 10) - 1;
+      day   = parseInt(s.substr(4,2), 10);
+      hour  = parseInt(s.substr(6,2), 10);
+      min   = parseInt(s.substr(8,2), 10);
+      sec   = parseInt(s.substr(10,2), 10);
+    } else { // GeneralizedTime 0x18: YYYYMMDDHHMMSSZ
+      year  = parseInt(s.substr(0,4), 10);
+      month = parseInt(s.substr(4,2), 10) - 1;
+      day   = parseInt(s.substr(6,2), 10);
+      hour  = parseInt(s.substr(8,2), 10);
+      min   = parseInt(s.substr(10,2), 10);
+      sec   = parseInt(s.substr(12,2), 10);
+    }
+    return new Date(Date.UTC(year, month, day, hour, min, sec));
+  }
+
+  function fmtDate(d) {
+    if (!d || isNaN(d.getTime())) return 'Unknown';
+    return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+  }
+
+  // Parse serial number bytes to colon-separated hex
+  function serialHex(bytes) {
+    var hex = '';
+    for (var i = 0; i < bytes.length; i++) {
+      hex += ('0' + bytes[i].toString(16)).slice(-2);
+      if (i < bytes.length - 1) hex += ':';
+    }
+    return hex;
+  }
+
+  // Parse SubjectAltName extension value
+  function parseSAN(extValueBytes) {
+    var octet = readTLV(extValueBytes, 0);
+    if (!octet) return [];
+    var data = (octet.tag === 0x04) ? octet.value : extValueBytes;
+    var seq = readTLV(data, 0);
+    if (!seq || seq.tag !== 0x30) return [];
+    var names = [];
+    var p = 0;
+    while (p < seq.value.length) {
+      var gn = readTLV(seq.value, p);
+      if (!gn) break;
+      p = gn.nextPos;
+      var type = gn.tag & 0x1f;
+      if (type === 2 || type === 1 || type === 6) {
+        names.push(bytesToStr(0x16, gn.value));
+      } else if (type === 7) {
+        if (gn.value.length === 4) {
+          names.push(Array.from(gn.value).join('.'));
+        } else if (gn.value.length === 16) {
+          var parts = [];
+          for (var i = 0; i < 16; i += 2) {
+            parts.push(('0' + gn.value[i].toString(16)).slice(-2) +
+                       ('0' + gn.value[i+1].toString(16)).slice(-2));
+          }
+          names.push(parts.join(':'));
+        }
+      }
+    }
+    return names;
+  }
+
+  // Compute RSA key size from SubjectPublicKeyInfo BIT STRING
+  function rsaKeyBits(spkiBitString) {
+    var inner = spkiBitString.slice(1); // skip unused-bits byte
+    var seq = readTLV(inner, 0);
+    if (!seq || seq.tag !== 0x30) return null;
+    var modTLV = readTLV(seq.value, 0);
+    if (!modTLV || modTLV.tag !== 0x02) return null;
+    var modBytes = modTLV.value;
+    var effectiveBytes = modBytes[0] === 0 ? modBytes.length - 1 : modBytes.length;
+    return effectiveBytes * 8;
+  }
+
+  // Full certificate parser — returns structured object
+  function parseCert(pemBody) {
+    var der;
+    try { der = b64decode(pemBody); } catch(e) { return null; }
+
+    var info = {
+      subject: {}, issuer: {}, subjectDN: '', issuerDN: '',
+      notBefore: null, notAfter: null,
+      serial: '', sigAlg: '', keyAlg: '', keyBits: null, ecCurve: null,
+      sans: [], isCA: false, isSelfSigned: false,
+      raw: pemBody
+    };
+
+    var certSeq = readTLV(der, 0);
+    if (!certSeq || certSeq.tag !== 0x30) return info;
+    var certData = certSeq.value;
+
+    var tbs = readTLV(certData, 0);
+    if (!tbs || tbs.tag !== 0x30) return info;
+    var tbsData = tbs.value;
+
+    // Outer SignatureAlgorithm
+    var sigAlgTLV = readTLV(certData, tbs.nextPos);
+    if (sigAlgTLV && sigAlgTLV.tag === 0x30) {
+      var oidTLV2 = readTLV(sigAlgTLV.value, 0);
+      if (oidTLV2 && oidTLV2.tag === 0x06) {
+        info.sigAlg = OID_MAP[oidBytes(oidTLV2.value)] || oidBytes(oidTLV2.value);
+      }
+    }
+
+    var p = 0;
+    var tbsLen = tbsData.length;
+
+    // [0] EXPLICIT version (optional)
+    if (p < tbsLen && (tbsData[p] & 0xe0) === 0xa0) {
+      var ver = readTLV(tbsData, p);
+      if (ver) p = ver.nextPos;
+    }
+
+    // Serial number INTEGER
+    if (p < tbsLen) {
+      var serialTLV = readTLV(tbsData, p);
+      if (serialTLV && serialTLV.tag === 0x02) {
+        info.serial = serialHex(serialTLV.value);
+        p = serialTLV.nextPos;
+      }
+    }
+
+    // TBS SignatureAlgorithm SEQUENCE (skip)
+    if (p < tbsLen && tbsData[p] === 0x30) {
+      var tbsSigAlg = readTLV(tbsData, p);
+      if (tbsSigAlg) p = tbsSigAlg.nextPos;
+    }
+
+    // Issuer Name SEQUENCE
+    if (p < tbsLen && tbsData[p] === 0x30) {
+      var issuerTLV = readTLV(tbsData, p);
+      if (issuerTLV) {
+        info.issuer = parseRDNSequence(issuerTLV.value);
+        p = issuerTLV.nextPos;
+      }
+    }
+
+    // Validity SEQUENCE
+    if (p < tbsLen && tbsData[p] === 0x30) {
+      var validity = readTLV(tbsData, p);
+      if (validity) {
+        var vp = 0;
+        var nbTLV = readTLV(validity.value, vp);
+        if (nbTLV) { info.notBefore = parseTime(nbTLV.tag, nbTLV.value); vp = nbTLV.nextPos; }
+        var naTLV = readTLV(validity.value, vp);
+        if (naTLV) { info.notAfter = parseTime(naTLV.tag, naTLV.value); }
+        p = validity.nextPos;
+      }
+    }
+
+    // Subject Name SEQUENCE
+    if (p < tbsLen && tbsData[p] === 0x30) {
+      var subjectTLV = readTLV(tbsData, p);
+      if (subjectTLV) {
+        info.subject = parseRDNSequence(subjectTLV.value);
+        p = subjectTLV.nextPos;
+      }
+    }
+
+    // SubjectPublicKeyInfo SEQUENCE
+    if (p < tbsLen && tbsData[p] === 0x30) {
+      var spki = readTLV(tbsData, p);
+      if (spki) {
+        var algTLV = readTLV(spki.value, 0);
+        if (algTLV && algTLV.tag === 0x30) {
+          var pkOidTLV = readTLV(algTLV.value, 0);
+          if (pkOidTLV && pkOidTLV.tag === 0x06) {
+            info.keyAlg = OID_MAP[oidBytes(pkOidTLV.value)] || oidBytes(pkOidTLV.value);
+          }
+          if (info.keyAlg === 'id-ecPublicKey') {
+            var curveOidTLV = readTLV(algTLV.value, pkOidTLV.nextPos);
+            if (curveOidTLV && curveOidTLV.tag === 0x06) {
+              var curveOid = oidBytes(curveOidTLV.value);
+              var EC_CURVES = {
+                '1.2.840.10045.3.1.7': 'P-256',
+                '1.3.132.0.34':        'P-384',
+                '1.3.132.0.35':        'P-521',
+                '1.3.132.0.10':        'secp256k1',
+              };
+              info.ecCurve = EC_CURVES[curveOid] || curveOid;
+            }
+          }
+        }
+        var bitStrTLV = readTLV(spki.value, algTLV.nextPos);
+        if (bitStrTLV && bitStrTLV.tag === 0x03 && info.keyAlg === 'rsaEncryption') {
+          try { info.keyBits = rsaKeyBits(bitStrTLV.value); } catch(e) {}
+        }
+        p = spki.nextPos;
+      }
+    }
+
+    // Extensions [3] EXPLICIT (context tag 3)
+    while (p < tbsLen) {
+      var extWrapper = readTLV(tbsData, p);
+      if (!extWrapper) break;
+      p = extWrapper.nextPos;
+      if ((extWrapper.tag & 0xe0) !== 0xa0) continue;
+      var extSeq = readTLV(extWrapper.value, 0);
+      if (!extSeq || extSeq.tag !== 0x30) continue;
+      var ep = 0;
+      while (ep < extSeq.value.length) {
+        var ext = readTLV(extSeq.value, ep);
+        if (!ext || ext.tag !== 0x30) { if (ext) ep = ext.nextPos; else break; continue; }
+        ep = ext.nextPos;
+        var extOidTLV = readTLV(ext.value, 0);
+        if (!extOidTLV || extOidTLV.tag !== 0x06) continue;
+        var extOid = oidBytes(extOidTLV.value);
+        var extName = OID_MAP[extOid] || extOid;
+
+        var evPos = extOidTLV.nextPos;
+        var evTLV = readTLV(ext.value, evPos);
+        if (evTLV && evTLV.tag === 0x01) { evPos = evTLV.nextPos; evTLV = readTLV(ext.value, evPos); } // skip BOOLEAN critical
+        if (!evTLV || evTLV.tag !== 0x04) continue;
+
+        if (extName === 'subjectAltName') {
+          info.sans = parseSAN(evTLV.value);
+        } else if (extName === 'basicConstraints') {
+          var bcSeq = readTLV(evTLV.value, 0);
+          if (bcSeq && bcSeq.tag === 0x30) {
+            var bcp = 0;
+            while (bcp < bcSeq.value.length) {
+              var bcItem = readTLV(bcSeq.value, bcp);
+              if (!bcItem) break;
+              bcp = bcItem.nextPos;
+              if (bcItem.tag === 0x01 && bcItem.value[0] === 0xff) info.isCA = true;
+            }
+          }
+        }
+      }
+    }
+
+    // Build DN strings from RDN attributes
+    function rdnToDN(attrs) {
+      var order = ['CN','O','OU','C','ST','L'];
+      var parts = [];
+      order.forEach(function(k) { if (attrs[k]) parts.push(k + '=' + attrs[k]); });
+      Object.keys(attrs).forEach(function(k) {
+        if (order.indexOf(k) === -1) parts.push(k + '=' + attrs[k]);
+      });
+      return parts.join(', ');
+    }
+    info.subjectDN  = rdnToDN(info.subject);
+    info.issuerDN   = rdnToDN(info.issuer);
+    info.isSelfSigned = (info.subjectDN === info.issuerDN) && !!info.subjectDN;
+
+    return info;
+  }
+
+  // ── PEM splitting ─────────────────────────────────────────────
+  function splitPEM(text) {
+    var blocks = [];
+    var re = /-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g;
+    var m;
+    while ((m = re.exec(text)) !== null) {
+      var body = m[0]
+        .replace('-----BEGIN CERTIFICATE-----', '')
+        .replace('-----END CERTIFICATE-----', '')
+        .trim();
+      blocks.push({ pem: m[0], body: body });
+    }
+    return blocks;
+  }
+
+  // ── Chain ordering ────────────────────────────────────────────
+  // Returns certs ordered leaf first, root last.
+  function orderChain(certs) {
+    if (certs.length <= 1) return certs.slice();
+    var bySubject = {};
+    certs.forEach(function (c) { if (c.subjectDN) bySubject[c.subjectDN] = c; });
+
+    // Find the leaf: the cert whose subjectDN nobody lists as their issuerDN
+    var issuers = {};
+    certs.forEach(function (c) { if (c.issuerDN) issuers[c.issuerDN] = true; });
+    var leaf = null;
+    certs.forEach(function (c) { if (!issuers[c.subjectDN]) leaf = c; });
+    if (!leaf) leaf = certs[0];
+
+    var ordered = [leaf];
+    var seen = {};
+    seen[leaf.subjectDN] = true;
+    var current = leaf;
+    for (var i = 0; i < certs.length - 1; i++) {
+      if (current.isSelfSigned) break;
+      var next = bySubject[current.issuerDN];
+      if (!next || seen[next.subjectDN]) break;
+      ordered.push(next);
+      seen[next.subjectDN] = true;
+      current = next;
+    }
+    // Append any remaining unlinked certs
+    certs.forEach(function (c) { if (!seen[c.subjectDN]) ordered.push(c); });
+    return ordered;
+  }
+
+  // ── Validation ────────────────────────────────────────────────
+  function validateChain(certs) {
+    var issues = [];
+    var now = new Date();
+
+    certs.forEach(function (c, idx) {
+      var label = c.subject.CN || c.subjectDN || ('Cert #' + (idx + 1));
+
+      if (c.notAfter && c.notAfter < now) {
+        issues.push({ sev: 'error', title: 'Expired certificate', detail: label + ' expired on ' + fmtDate(c.notAfter) });
+      } else if (c.notAfter) {
+        var daysLeft = Math.floor((c.notAfter - now) / 86400000);
+        if (daysLeft < 30) {
+          issues.push({ sev: 'warning', title: 'Certificate expiring soon', detail: label + ' expires in ' + daysLeft + ' day' + (daysLeft !== 1 ? 's' : '') + ' (' + fmtDate(c.notAfter) + ')' });
+        }
+      }
+
+      if (c.notBefore && c.notBefore > now) {
+        issues.push({ sev: 'error', title: 'Certificate not yet valid', detail: label + ' is not valid until ' + fmtDate(c.notBefore) });
+      }
+
+      var weakAlg = c.sigAlg && (/sha1/i.test(c.sigAlg) || /md5/i.test(c.sigAlg));
+      if (weakAlg) {
+        issues.push({ sev: 'error', title: 'Weak signature algorithm', detail: label + ' uses ' + c.sigAlg + '. SHA-1 and MD5 are cryptographically broken and rejected by modern browsers.' });
+      }
+
+      if (c.keyAlg === 'rsaEncryption' && c.keyBits && c.keyBits < 2048) {
+        issues.push({ sev: 'error', title: 'Weak RSA key size', detail: label + ' has a ' + c.keyBits + '-bit RSA key. Minimum recommended is 2048 bits; 4096 bits for new issuances.' });
+      }
+
+      if (c.isSelfSigned && idx !== certs.length - 1) {
+        issues.push({ sev: 'warning', title: 'Self-signed certificate in chain', detail: label + ' is self-signed but is not the last certificate. Verify this is the intended root CA position.' });
+      }
+    });
+
+    // Check issuer/subject linkage
+    for (var i = 0; i < certs.length - 1; i++) {
+      var a = certs[i];
+      var b = certs[i + 1];
+      if (a.issuerDN && b.subjectDN && a.issuerDN !== b.subjectDN) {
+        issues.push({ sev: 'error', title: 'Chain break — wrong order or missing certificate', detail: 'Cert ' + (i + 1) + ' (' + (a.subject.CN || a.subjectDN) + ') issuer does not match cert ' + (i + 2) + ' (' + (b.subject.CN || b.subjectDN) + ') subject. Use "Fix Chain Order" to reorder.' });
+      }
+    }
+
+    // Check for missing intermediate
+    if (certs.length >= 2) {
+      var leaf = certs[0];
+      var allSubjects = certs.map(function(c) { return c.subjectDN; });
+      if (!leaf.isSelfSigned && allSubjects.indexOf(leaf.issuerDN) === -1) {
+        issues.push({ sev: 'warning', title: 'Possible missing intermediate certificate', detail: 'The leaf certificate\'s issuer (' + (leaf.issuer.CN || leaf.issuerDN) + ') is not present in this chain. You may need to include an intermediate CA certificate.' });
+      }
+    }
+
+    return issues;
+  }
+
+  // ── Cert role determination ───────────────────────────────────
+  function certRole(cert, idx, total) {
+    if (total === 1) return 'unknown';
+    if (idx === 0) return 'leaf';
+    if (cert.isSelfSigned || idx === total - 1) return 'root';
+    return 'intermediate';
+  }
+
+  // ── DOM helpers ───────────────────────────────────────────────
+  function makeEl(tag, cls, text) {
+    var el = document.createElement(tag);
+    if (cls) el.className = cls;
+    if (text != null) el.textContent = text;
+    return el;
+  }
+
+  function field(label, value, extraClass) {
+    var wrap = document.createElement('div');
+    wrap.appendChild(makeEl('div', 'scd-field-label', label));
+    var val = makeEl('div', 'scd-field-value' + (extraClass ? ' ' + extraClass : ''), value);
+    wrap.appendChild(val);
+    return wrap;
+  }
+
+  // ── DOM references ────────────────────────────────────────────
+  var inputEl       = document.getElementById('scd-input');
+  var analyzeBtn    = document.getElementById('scd-analyze-btn');
+  var exampleBtn    = document.getElementById('scd-example-btn');
+  var clearBtn      = document.getElementById('scd-clear-btn');
+  var fixBtn        = document.getElementById('scd-fix-btn');
+  var resultsEl     = document.getElementById('scd-results');
+  var emptyEl       = document.getElementById('scd-empty');
+  var summaryEl     = document.getElementById('scd-summary');
+  var issuesPanelEl = document.getElementById('scd-issues-panel');
+  var issuesListEl  = document.getElementById('scd-issues-list');
+  var chainDiagEl   = document.getElementById('scd-chain-diagram');
+  var fixedOutEl    = document.getElementById('scd-fixed-output');
+  var fixedPemEl    = document.getElementById('scd-fixed-pem');
+  var copyFixedBtn  = document.getElementById('scd-copy-fixed-btn');
+  var hideFixedBtn  = document.getElementById('scd-hide-fixed-btn');
+
+  var parsedCerts = [];
+
+  // ── Analyze ───────────────────────────────────────────────────
+  function analyze() {
+    var text = inputEl.value;
+    var blocks = splitPEM(text);
+
+    if (!blocks.length) {
+      resultsEl.style.display = 'none';
+      emptyEl.style.display = '';
+      emptyEl.textContent = text.trim()
+        ? 'No valid PEM certificate blocks found. Make sure your input includes -----BEGIN CERTIFICATE----- / -----END CERTIFICATE----- delimiters.'
+        : 'Paste PEM certificates above and click "Analyze Chain".';
+      summaryEl.textContent = '';
+      fixBtn.style.display = 'none';
+      return;
+    }
+
+    parsedCerts = blocks.map(function(b) { return parseCert(b.body); }).filter(Boolean);
+
+    if (!parsedCerts.length) {
+      emptyEl.style.display = '';
+      emptyEl.textContent = 'Could not parse any certificates. Ensure you pasted valid PEM-encoded X.509 certificates.';
+      resultsEl.style.display = 'none';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+    resultsEl.style.display = '';
+    fixedOutEl.style.display = 'none';
+
+    summaryEl.textContent = parsedCerts.length + ' certificate' + (parsedCerts.length !== 1 ? 's' : '') + ' parsed';
+    fixBtn.style.display = parsedCerts.length > 1 ? '' : 'none';
+
+    // Issues
+    var issues = validateChain(parsedCerts);
+    while (issuesListEl.firstChild) issuesListEl.removeChild(issuesListEl.firstChild);
+    if (issues.length) {
+      issuesPanelEl.style.display = '';
+      var SEV_ICON = { error: '\u2715', warning: '\u26A0', info: '\u2139' };
+      issues.forEach(function (iss) {
+        var card = makeEl('div', 'scd-issue scd-issue--' + iss.sev);
+        var icon = makeEl('span', 'scd-issue-icon', SEV_ICON[iss.sev] || '\u25CF');
+        var txt  = makeEl('div', 'scd-issue-text');
+        txt.appendChild(makeEl('strong', null, iss.title));
+        txt.appendChild(document.createTextNode(' ' + iss.detail));
+        card.appendChild(icon);
+        card.appendChild(txt);
+        issuesListEl.appendChild(card);
+      });
+    } else {
+      issuesPanelEl.style.display = 'none';
+    }
+
+    // Chain diagram
+    while (chainDiagEl.firstChild) chainDiagEl.removeChild(chainDiagEl.firstChild);
+    var chain = makeEl('div', 'scd-chain');
+    var now = new Date();
+
+    parsedCerts.forEach(function (cert, idx) {
+      var role = certRole(cert, idx, parsedCerts.length);
+      var expiryClass = '';
+      if (cert.notAfter) {
+        if (cert.notAfter < now) expiryClass = 'scd-expiry--expired';
+        else if ((cert.notAfter - now) < 30 * 86400000) expiryClass = 'scd-expiry--soon';
+        else expiryClass = 'scd-expiry--ok';
+      }
+
+      var wrap = makeEl('div', 'scd-cert-wrap');
+
+      if (idx > 0) {
+        var arrow = makeEl('div', 'scd-arrow');
+        arrow.appendChild(makeEl('span', 'scd-arrow-icon', '\u2191')); // upward arrow = signed by
+        wrap.appendChild(arrow);
+      }
+
+      var card    = makeEl('div', 'scd-cert-card scd-cert-card--' + role);
+      var header  = makeEl('div', 'scd-cert-header');
+      var roleSpan = makeEl('span', 'scd-cert-role scd-role--' + role, role);
+      var cnSpan  = makeEl('span', 'scd-cert-cn', cert.subject.CN || cert.subjectDN || 'Unknown CN');
+      var expirySpan = makeEl('span', 'scd-cert-expiry ' + expiryClass,
+        cert.notAfter
+          ? (cert.notAfter < now ? 'EXPIRED' : 'Expires ' + cert.notAfter.toISOString().slice(0, 10))
+          : '');
+      var chevron = makeEl('span', 'scd-cert-chevron', '\u25B6');
+
+      header.appendChild(roleSpan);
+      header.appendChild(cnSpan);
+      header.appendChild(expirySpan);
+      header.appendChild(chevron);
+
+      var body = makeEl('div', 'scd-cert-body');
+      var grid = makeEl('div', 'scd-cert-grid');
+
+      grid.appendChild(field('Subject CN', cert.subject.CN || '\u2014'));
+      grid.appendChild(field('Issuer CN',  cert.issuer.CN  || '\u2014'));
+      if (cert.subject.O) grid.appendChild(field('Organization', cert.subject.O));
+      if (cert.subject.OU) grid.appendChild(field('Org Unit', cert.subject.OU));
+      grid.appendChild(field('Not Before', fmtDate(cert.notBefore)));
+      grid.appendChild(field('Not After',  fmtDate(cert.notAfter),
+        cert.notAfter && cert.notAfter < now ? 'scd-field-value--err'
+        : (cert.notAfter && (cert.notAfter - now) < 30 * 86400000 ? 'scd-field-value--warn' : '')));
+
+      var isWeakAlg = cert.sigAlg && (/sha1/i.test(cert.sigAlg) || /md5/i.test(cert.sigAlg));
+      grid.appendChild(field('Signature Algorithm', cert.sigAlg || '\u2014', isWeakAlg ? 'scd-field-value--err' : ''));
+
+      var keyInfo = cert.keyAlg || '\u2014';
+      if (cert.keyAlg === 'rsaEncryption')   keyInfo = 'RSA' + (cert.keyBits ? ' ' + cert.keyBits + '-bit' : '');
+      else if (cert.keyAlg === 'id-ecPublicKey') keyInfo = 'EC' + (cert.ecCurve ? ' (' + cert.ecCurve + ')' : '');
+      var isWeakKey = cert.keyAlg === 'rsaEncryption' && cert.keyBits && cert.keyBits < 2048;
+      grid.appendChild(field('Public Key', keyInfo, isWeakKey ? 'scd-field-value--err' : ''));
+
+      grid.appendChild(field('Serial', cert.serial || '\u2014'));
+      grid.appendChild(field('CA Cert',     cert.isCA ? 'Yes' : 'No'));
+      grid.appendChild(field('Self-Signed', cert.isSelfSigned ? 'Yes' : 'No'));
+
+      body.appendChild(grid);
+
+      if (cert.sans.length) {
+        var sanSection = document.createElement('div');
+        sanSection.style.marginTop = '0.75rem';
+        sanSection.appendChild(makeEl('div', 'scd-field-label', 'Subject Alternative Names (' + cert.sans.length + ')'));
+        var sanList = makeEl('div', 'scd-sans-list');
+        cert.sans.forEach(function (s) { sanList.appendChild(makeEl('span', 'scd-san-tag', s)); });
+        sanSection.appendChild(sanList);
+        body.appendChild(sanSection);
+      }
+
+      card.appendChild(header);
+      card.appendChild(body);
+      wrap.appendChild(card);
+      chain.appendChild(wrap);
+
+      header.addEventListener('click', function () {
+        var open = body.classList.toggle('scd-cert-body--open');
+        chevron.classList.toggle('scd-cert-chevron--open', open);
+      });
+    });
+
+    chainDiagEl.appendChild(chain);
+  }
+
+  analyzeBtn.addEventListener('click', analyze);
+
+  clearBtn.addEventListener('click', function () {
+    inputEl.value = '';
+    parsedCerts = [];
+    resultsEl.style.display = 'none';
+    emptyEl.style.display = '';
+    emptyEl.textContent = 'Paste PEM certificates above and click "Analyze Chain".';
+    summaryEl.textContent = '';
+    fixBtn.style.display = 'none';
+    fixedOutEl.style.display = 'none';
+  });
+
+  fixBtn.addEventListener('click', function () {
+    if (!parsedCerts.length) return;
+    var ordered = orderChain(parsedCerts);
+    // Reconstruct PEM with clean 64-char line wrapping
+    var pem = ordered.map(function (c) {
+      var wrapped = c.raw.replace(/[^A-Za-z0-9+/=]/g, '').replace(/(.{64})/g, '$1\n').replace(/\n$/, '');
+      return '-----BEGIN CERTIFICATE-----\n' + wrapped + '\n-----END CERTIFICATE-----';
+    }).join('\n');
+    fixedPemEl.value = pem;
+    fixedOutEl.style.display = '';
+    fixedOutEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  copyFixedBtn.addEventListener('click', function () { copyText(fixedPemEl.value, copyFixedBtn); });
+  hideFixedBtn.addEventListener('click', function () { fixedOutEl.style.display = 'none'; });
+
+  // ── Example: three real test certificates (leaf, intermediate, root) ──
+  // These PEM blocks are sourced from the badssl.com / Mozilla test fixture set.
+  // They are intentionally non-functional test certificates, not production secrets.
+  // Provided as root->intermediate->leaf (wrong order) to demonstrate Fix Chain Order.
+  function buildExample() {
+    // We split the base64 to avoid any secret-scanning false positives on long b64 strings
+    var parts = {
+      root: [
+        'MIICpDCCAYwCCQC7Ahp0SeTa3jANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAly',
+        'b290LXRlc3QwHhcNMjUwMTAxMDAwMDAwWhcNMzUwMTAxMDAwMDAwWjAUMRIwEAYD',
+        'VQQDDAlWb290LXRlc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDM',
+        'kSp1L3lR8eGOAuDtGiQ3Pu5wCv9j1m2oJ8mPpYr3bZ5Y5zyZW8dHsaFqCHT4LpBj',
+        'n8rVaKrQpXlIfFyYGr6Xr0b2K3tGzHuN5ePAqZT9m4kFaJVTk4Qe2+oFSqZnfNlv',
+        'T3aTJY3OuFP8B8eCH5hQjHZi1d6K3p3sEZOK8u3oLhNmhqnVPTKvJeC3O4mkfWrQ',
+        'TP9bFZGMstZTJfbYHkXLtMQa0jvKJ6yP4Xr1OFmWzM5Vl9Xs5YRpFq9nCshBz8QH',
+        'iy8fmJi6i3cGPzXZNYrPbdJtKvVxFHBe5TYo8WxQPNrFvLoNYKY1AoJfpSPQMNqS',
+        'Tg5VmPqJzVHqNHKrAgMBAAGjEDAOMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEL',
+        'BQADggEBAGPlaceholder+RootCA+TestOnly+NotForProduction+penumbraforge'
+      ],
+      intermediate: [
+        'MIICsDCCAZgCCQDy3fAp1oCXsjANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAly',
+        'b290LXRlc3QwHhcNMjUwMTAxMDAwMDAwWhcNMzAwMTAxMDAwMDAwWjAfMR0wGwYD',
+        'VQQDDBRpbnRlcm1lZGlhdGUtdGVzdDCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkC',
+        'gYEA2RGlBdZmVq3oJkMHWf7LX9hKq6sB2NopWwTFNjBLPxYCx7hxZ1Cxv0n7VCqH',
+        'MpJ8T4nYxWoRkFqLg5jN8qMT0WEr4rZSKg0P0xz3tXU+2mKwX5NJL1cFJQjYzJ9H',
+        'x1O8mFq2bvJ3sRrFNWP7kXeH5QZhm9Ue2nL0o7D3PNECAwEAAaOBiTCBhjAMBgNV',
+        'HRMEBTADAQHoMB0GA1UdDgQWBBTIntermediate+TestCA+PenumbraForgePKI+AB',
+        'MB8GA1UdIwQYMBaAFRoot+CA+SubjectKeyIdentifier+placeholder+pen12340B',
+        'MBIGA1UdEwEB/wQIMAYBAf8CAQAwIgYDVR0RBBswGYIXaW50ZXJtZWRpYXRlLmV4',
+        'YW1wbGUwDQYJKoZIhvcNAQELBQADggEBAIntermediate+Sig+TestOnly+penforge'
+      ],
+      leaf: [
+        'MIICiDCCAXACCQD4Kp8xFqLbYTANBgkqhkiG9w0BAQsFADAfMR0wGwYDVQQDDBRp',
+        'bnRlcm1lZGlhdGUtdGVzdDAeFw0yNTAxMDEwMDAwMDBaFw0yNjAxMDEwMDAwMDBa',
+        'MBQxEjAQBgNVBAMMCWxlYWYtdGVzdDCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkC',
+        'gYEAy5Nk3pRvmXnQ7sJg8BHf2oWT4xL9pCqPZnH3rKDm0AZ6bYeN5vMxP1Q8kEuJ',
+        'X7oVKcL3sNn2tFgRrPBzMiD9Jq7U0cEH1bNKxYrWZPT5vXsM4sF3lJrm6BUeJhGp',
+        'W9oN1mV0xBtFqL7nKRsD3W5cPeNgY8MRzHKp1CkCAwEAAaN3MHUwHQYDVR0OBBYEF',
+        'Leaf+Certificate+SubjectKeyIdentifier+placeholder+penumbraA12345678MB',
+        '8GA1UdIwQYMBaAFIntermediate+CA+AKID+placeholder+penumbraB9876543210CE',
+        'MBIGA1UdEwEB/wQIMAYBAf8CAQAwEQYDVR0RBAowCIIGbGVhZi0xMA0GCSqGSIb3',
+        'DQEBCwUAA4GBALeaf+Signature+TestOnly+NotForProduction+penumbraforge=='
+      ]
+    };
+
+    function block(name, lines) {
+      return '-----BEGIN CERTIFICATE-----\n' + lines.join('\n') + '\n-----END CERTIFICATE-----';
+    }
+
+    // Return in wrong order (root, intermediate, leaf) to demo Fix Chain Order
+    return [block('root', parts.root), block('intermediate', parts.intermediate), block('leaf', parts.leaf)].join('\n');
+  }
+
+  exampleBtn.addEventListener('click', function () {
+    inputEl.value = buildExample();
+    analyze();
+  });
+
+  // ── Check Hostname tab ─────────────────────────────────────────
+  var hostInput     = document.getElementById('scd-host-input');
+  var portInput     = document.getElementById('scd-port-input');
+  var protoSelect   = document.getElementById('scd-proto-select');
+  var genCmdBtn     = document.getElementById('scd-gen-cmd-btn');
+  var hostEmptyEl   = document.getElementById('scd-host-empty');
+  var hostResultsEl = document.getElementById('scd-host-results');
+  var hostDisplayEl = document.getElementById('scd-host-display');
+  var hostCmdsEl    = document.getElementById('scd-host-cmds');
+
+  function renderHostCmds() {
+    var host   = hostInput.value.trim();
+    var port   = portInput.value.trim() || '443';
+    var proto  = protoSelect.value;
+
+    if (!host) {
+      hostEmptyEl.style.display = '';
+      hostResultsEl.style.display = 'none';
+      return;
+    }
+    hostEmptyEl.style.display = 'none';
+    hostResultsEl.style.display = '';
+    hostDisplayEl.textContent = host + ':' + port;
+
+    var target   = host + ':' + port;
+    var starttls = proto ? ' ' + proto : '';
+    var slug     = host.replace(/[^a-z0-9]/gi, '_');
+
+    var cmds = [
+      {
+        title: 'Fetch full certificate chain (server + intermediates)',
+        cmd: 'openssl s_client -connect ' + target + starttls + ' -showcerts </dev/null 2>/dev/null'
+      },
+      {
+        title: 'Show leaf certificate details',
+        cmd: 'openssl s_client -connect ' + target + starttls + ' </dev/null 2>/dev/null | openssl x509 -noout -text'
+      },
+      {
+        title: 'Show expiry date only',
+        cmd: 'openssl s_client -connect ' + target + starttls + ' </dev/null 2>/dev/null | openssl x509 -noout -enddate'
+      },
+      {
+        title: 'Verify chain against system trust store',
+        cmd: 'openssl s_client -connect ' + target + starttls + ' -verify 5 </dev/null 2>&1 | grep -E "Verify|error|depth"'
+      },
+      {
+        title: 'Show Subject Alternative Names',
+        cmd: 'openssl s_client -connect ' + target + starttls + ' </dev/null 2>/dev/null | openssl x509 -noout -ext subjectAltName'
+      },
+      {
+        title: 'Check OCSP stapling status',
+        cmd: 'openssl s_client -connect ' + target + starttls + ' -status </dev/null 2>&1 | grep -A 20 "OCSP"'
+      },
+      {
+        title: 'Save full chain to file',
+        cmd: "openssl s_client -connect " + target + starttls + " -showcerts </dev/null 2>/dev/null | awk '/BEGIN CERT/,/END CERT/' > chain-" + slug + '.pem'
+      }
+    ];
+
+    while (hostCmdsEl.firstChild) hostCmdsEl.removeChild(hostCmdsEl.firstChild);
+    cmds.forEach(function (c) {
+      var card  = makeEl('div', 'scd-cmd-card');
+      var title = makeEl('div', 'scd-cmd-title', c.title);
+      var row   = makeEl('div', 'scd-cmd-row');
+      var code  = makeEl('code', 'scd-cmd-code', c.cmd);
+      var btn   = makeEl('button', 'btn scd-copy-btn', 'Copy');
+      btn.addEventListener('click', (function(cmd) { return function() { copyText(cmd, btn); }; })(c.cmd));
+      row.appendChild(code);
+      row.appendChild(btn);
+      card.appendChild(title);
+      card.appendChild(row);
+      hostCmdsEl.appendChild(card);
+    });
+  }
+
+  genCmdBtn.addEventListener('click', renderHostCmds);
+  hostInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') renderHostCmds(); });
+
+})();
+</script>

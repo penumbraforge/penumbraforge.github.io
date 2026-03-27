@@ -828,5 +828,41 @@
     "isNew": true,
     "relatedTools": ["k8s-manifest-generator", "dockerfile-optimizer", "yaml-linter"],
     "status": "live"
+  },
+  {
+    "name": "LLM Privacy Analyzer",
+    "slug": "llm-privacy-analyzer",
+    "description": "Scan LLM API requests for PII, secrets, and sensitive data before it leaves your infrastructure.",
+    "longDescription": "Paste an LLM API request and scan for accidentally included PII — emails, SSNs, API keys, credit cards, and other sensitive data in your prompts. Supports OpenAI, Anthropic, and Google formats. Get risk scores and remediation recommendations. 100% client-side — the irony of sending your PII checker to a server is not lost on us.",
+    "category": "security",
+    "keywords": ["llm privacy", "ai privacy", "pii in prompts", "openai privacy", "claude privacy", "data leakage", "prompt privacy", "ai data protection"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["prompt-injection-tester", "pii-secrets-redactor", "agent-security-audit"],
+    "status": "live"
+  },
+  {
+    "name": "Email Auth Wizard",
+    "slug": "email-auth-wizard",
+    "description": "Build correct SPF, DKIM, and DMARC DNS records with a guided wizard.",
+    "longDescription": "Generate production-ready SPF, DKIM, and DMARC records through a guided wizard. Select your email providers, configure policies, set up reporting — get copy-ready DNS TXT records with plain-English explanations. Includes lookup count warnings and deployment guides for popular DNS providers.",
+    "category": "security",
+    "keywords": ["dmarc", "spf", "dkim", "email authentication", "dns txt record", "email security", "spf generator", "dmarc generator", "email spoofing", "dmarc policy"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["email-header-forensics", "dmarc-builder", "dns-builder"],
+    "status": "live"
+  },
+  {
+    "name": "SSL Chain Debugger",
+    "slug": "ssl-chain-debugger",
+    "description": "Parse, visualize, and fix SSL/TLS certificate chain ordering issues.",
+    "longDescription": "Paste PEM certificates and get a visual chain diagram, validation results, and automatic chain reordering. Detects missing intermediates, wrong order, expired certs, and weak cryptography. 100% client-side.",
+    "category": "security",
+    "keywords": ["ssl", "tls", "certificate", "chain", "intermediate", "pem", "x509", "ssl debug", "openssl", "cert chain"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["ct-monitor", "security-headers-analyzer", "ssh-key-generator"],
+    "status": "live"
   }
 ]
