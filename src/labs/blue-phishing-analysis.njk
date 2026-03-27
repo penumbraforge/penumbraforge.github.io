@@ -199,6 +199,43 @@ targetHost: "acme-corp.lab.penumbraforge.com"
   // ── Get Evidence Corpus ──
   var corpus = Labs.EvidenceCorpus.get('blue-phishing-analysis');
 
+  // Apply procedural randomization so evidence differs each run
+  if (Labs.Procedural) {
+    var tpl = Labs.EvidenceCorpus.getTemplate('blue-phishing-analysis');
+    if (tpl) {
+      corpus = Labs.Procedural.apply(corpus, tpl);
+
+      // Rebuild knownIOCs from randomized corpus
+      var phishingIp = null;
+      var reuseIp = null;
+      var phishingDomain = null;
+      for (var _i = 0; _i < corpus.length; _i++) {
+        var _e = corpus[_i];
+        if (_e.evidenceId === 'phishing-domain' && _e.detail) {
+          if (_e.detail.dstIp) phishingIp = _e.detail.dstIp;
+          if (_e.detail.domain) phishingDomain = _e.detail.domain;
+        }
+        if (_e.evidenceId === 'lateral-movement' && _e.detail && _e.detail.srcIp) {
+          reuseIp = _e.detail.srcIp;
+        }
+      }
+      if (phishingIp && phishingIp !== '93.184.216.34') {
+        scenario.knownIOCs[phishingIp] = scenario.knownIOCs['91.234.56.78'];
+        delete scenario.knownIOCs['91.234.56.78'];
+      }
+      if (phishingDomain && phishingDomain !== 'acmecorp-login.xyz') {
+        // Migrate both the base domain and subdomain IOCs
+        if (scenario.knownIOCs['evil-phish.ru']) {
+          scenario.knownIOCs[phishingDomain] = scenario.knownIOCs['evil-phish.ru'];
+          delete scenario.knownIOCs['evil-phish.ru'];
+        }
+        if (scenario.knownIOCs['meridian-corp-login.evil-phish.ru']) {
+          delete scenario.knownIOCs['meridian-corp-login.evil-phish.ru'];
+        }
+      }
+    }
+  }
+
   // ── Track evidence discoveries ──
   var discoveredEvidence = {};
   var totalEvidence = scenario.evidencePieces.length;

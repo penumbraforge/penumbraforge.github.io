@@ -214,6 +214,39 @@ targetHost: "datacore.lab.penumbraforge.com"
   // ── Get Evidence Corpus ──
   var corpus = Labs.EvidenceCorpus.get('blue-log-analysis');
 
+  // Apply procedural randomization so evidence differs each run
+  if (Labs.Procedural) {
+    var tpl = Labs.EvidenceCorpus.getTemplate('blue-log-analysis');
+    if (tpl) {
+      corpus = Labs.Procedural.apply(corpus, tpl);
+
+      // Rebuild knownIOCs from randomized corpus
+      var c2Ip = null;
+      var c2Domain = null;
+      for (var _i = 0; _i < corpus.length; _i++) {
+        var _e = corpus[_i];
+        if (_e.evidenceId === 'c2-domain' && _e.detail) {
+          if (_e.detail.response) c2Ip = _e.detail.response;
+          if (_e.detail.domain) {
+            // Extract base domain from subdomain (e.g. "aGVhcnRiZWF0.newdomain.xyz" -> "newdomain.xyz")
+            var parts = _e.detail.domain.split('.');
+            if (parts.length > 2) {
+              c2Domain = parts.slice(1).join('.');
+            } else {
+              c2Domain = _e.detail.domain;
+            }
+          }
+        }
+      }
+      if (c2Domain && c2Domain !== 'x9z-analytics.xyz') {
+        if (scenario.knownIOCs['data.exfil-tunnel.xyz']) {
+          scenario.knownIOCs['data.' + c2Domain] = scenario.knownIOCs['data.exfil-tunnel.xyz'];
+          delete scenario.knownIOCs['data.exfil-tunnel.xyz'];
+        }
+      }
+    }
+  }
+
   // ── Track evidence discoveries ──
   var discoveredEvidence = {};
   var totalEvidence = scenario.evidencePieces.length;

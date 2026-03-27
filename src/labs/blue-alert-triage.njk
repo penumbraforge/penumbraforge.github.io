@@ -200,6 +200,33 @@ targetHost: "acme-corp.lab.penumbraforge.com"
   // ── Get Evidence Corpus ──
   var corpus = Labs.EvidenceCorpus.get('blue-alert-triage');
 
+  // Apply procedural randomization so evidence differs each run
+  if (Labs.Procedural) {
+    var tpl = Labs.EvidenceCorpus.getTemplate('blue-alert-triage');
+    if (tpl) {
+      corpus = Labs.Procedural.apply(corpus, tpl);
+
+      // Rebuild knownIOCs from randomized corpus
+      var attackerIp = null;
+      for (var _i = 0; _i < corpus.length; _i++) {
+        if (corpus[_i].evidenceId === 'brute-force' && corpus[_i].detail && corpus[_i].detail.srcIp) {
+          attackerIp = corpus[_i].detail.srcIp;
+          break;
+        }
+      }
+      if (attackerIp && attackerIp !== '45.33.32.100') {
+        scenario.knownIOCs[attackerIp] = scenario.knownIOCs['185.220.101.34'] || {
+          type: 'IPv4', reputation: 'Malicious', score: 95,
+          geo: 'Moscow, Russia', asn: 'AS9009 M247 Ltd',
+          firstSeen: '2024-01-10', lastSeen: '2024-03-22',
+          associations: ['Credential stuffing', 'Brute force', 'Tor exit node'],
+          tags: ['brute-force', 'tor-exit', 'eastern-europe']
+        };
+        delete scenario.knownIOCs['185.220.101.34'];
+      }
+    }
+  }
+
   // ── Track evidence discoveries ──
   var discoveredEvidence = {};
   var totalEvidence = scenario.evidencePieces.length;

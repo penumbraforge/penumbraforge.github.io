@@ -211,6 +211,49 @@ targetHost: "corpsec.lab.penumbraforge.com"
   // ── Get Evidence Corpus ──
   var corpus = Labs.EvidenceCorpus.get('blue-containment');
 
+  // Apply procedural randomization so evidence differs each run
+  if (Labs.Procedural) {
+    var tpl = Labs.EvidenceCorpus.getTemplate('blue-containment');
+    if (tpl) {
+      corpus = Labs.Procedural.apply(corpus, tpl);
+
+      // Rebuild knownIOCs from randomized corpus
+      var attackerIp = null;
+      var c2Ip = null;
+      var c2Domain = null;
+      for (var _i = 0; _i < corpus.length; _i++) {
+        var _e = corpus[_i];
+        if (_e.evidenceId === 'initial-access' && _e.detail && _e.detail.srcIp) {
+          attackerIp = _e.detail.srcIp;
+        }
+        if (_e.evidenceId === 'c2-callback' && _e.detail && _e.detail.dstIp) {
+          c2Ip = _e.detail.dstIp;
+        }
+        if (_e.evidenceId === 'c2-callback' && _e.detail && _e.detail.domain) {
+          c2Domain = _e.detail.domain;
+        }
+      }
+      if (attackerIp && attackerIp !== '185.141.63.22') {
+        if (scenario.knownIOCs['91.215.85.17']) {
+          scenario.knownIOCs[attackerIp] = scenario.knownIOCs['91.215.85.17'];
+          delete scenario.knownIOCs['91.215.85.17'];
+        }
+      }
+      if (c2Ip && c2Ip !== '91.240.118.200') {
+        if (scenario.knownIOCs['185.141.63.92']) {
+          scenario.knownIOCs[c2Ip] = scenario.knownIOCs['185.141.63.92'];
+          delete scenario.knownIOCs['185.141.63.92'];
+        }
+      }
+      if (c2Domain && c2Domain !== 'cdn-update.systemcheck.xyz') {
+        if (scenario.knownIOCs['update-service.darkside-ops.net']) {
+          scenario.knownIOCs[c2Domain] = scenario.knownIOCs['update-service.darkside-ops.net'];
+          delete scenario.knownIOCs['update-service.darkside-ops.net'];
+        }
+      }
+    }
+  }
+
   // ── Track evidence discoveries ──
   var discoveredEvidence = {};
   var totalEvidence = scenario.evidencePieces.length;

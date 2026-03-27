@@ -48,6 +48,11 @@ workerUrl: "https://lab-sqli.penumbraforge.workers.dev"
   'use strict';
 
   var Labs = window.PenumbraLabs;
+
+  // NOTE: Red team procedural randomization (target app content, defenses,
+  // response tokens) will be handled by Worker-side randomization in a
+  // future update. The procedural engine is primarily for blue team
+  // evidence corpora.
   var workerUrl = '{{ workerUrl }}';
 
   // ── Scenario Definition ──

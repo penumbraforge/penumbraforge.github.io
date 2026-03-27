@@ -190,6 +190,35 @@ targetHost: "secops.lab.penumbraforge.com"
   // ── Get Evidence Corpus ──
   var corpus = Labs.EvidenceCorpus.get('blue-soar-playbook');
 
+  // Apply procedural randomization so evidence differs each run
+  if (Labs.Procedural) {
+    var tpl = Labs.EvidenceCorpus.getTemplate('blue-soar-playbook');
+    if (tpl) {
+      corpus = Labs.Procedural.apply(corpus, tpl);
+
+      // Rebuild knownIOCs from randomized corpus.
+      // The corpus scanner IP (originally 23.94.12.88) is randomized,
+      // so we add the new IP to knownIOCs as malicious.
+      var scannerIp = null;
+      for (var _i = 0; _i < corpus.length; _i++) {
+        if (corpus[_i].evidenceId === 'scan-pattern' && corpus[_i].detail && corpus[_i].detail.srcIp) {
+          scannerIp = corpus[_i].detail.srcIp;
+          break;
+        }
+      }
+      if (scannerIp && scannerIp !== '23.94.12.88') {
+        // Map the new scanner IP to the malicious IOC data
+        scenario.knownIOCs[scannerIp] = {
+          type: 'IPv4', reputation: 'Malicious', score: 89,
+          geo: 'Fremont, CA, USA', asn: 'AS63949 Linode',
+          firstSeen: '2026-03-18', lastSeen: '2026-03-22',
+          associations: ['Reconnaissance scanning', 'Nmap fingerprinting', 'Pre-attack enumeration'],
+          tags: ['scanner', 'recon', 'suspicious']
+        };
+      }
+    }
+  }
+
   // ── Track evidence discoveries ──
   var discoveredEvidence = {};
   var totalEvidence = scenario.evidencePieces.length;

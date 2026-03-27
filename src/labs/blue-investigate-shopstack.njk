@@ -237,6 +237,47 @@ targetHost: "shopstack.lab.penumbraforge.com"
   // ── Get Evidence Corpus ──
   var corpus = Labs.EvidenceCorpus.get('blue-investigate-shopstack');
 
+  // Apply procedural randomization so evidence differs each run
+  if (Labs.Procedural) {
+    var tpl = Labs.EvidenceCorpus.getTemplate('blue-investigate-shopstack');
+    if (tpl) {
+      corpus = Labs.Procedural.apply(corpus, tpl);
+
+      // Rebuild knownIOCs from the randomized corpus so IOC Lookup
+      // matches the IPs/domains the analyst actually sees.
+      var attackerIp = null;
+      var exfilIp = null;
+      for (var _i = 0; _i < corpus.length; _i++) {
+        if (corpus[_i].evidenceId === 'recon' && corpus[_i].detail && corpus[_i].detail.srcIp) {
+          attackerIp = corpus[_i].detail.srcIp;
+        }
+        if (corpus[_i].evidenceId === 'exfil-domain' && corpus[_i].detail && corpus[_i].detail.dstIp) {
+          exfilIp = corpus[_i].detail.dstIp;
+        }
+      }
+      if (attackerIp && attackerIp !== '198.51.100.47') {
+        scenario.knownIOCs[attackerIp] = scenario.knownIOCs['198.51.100.47'];
+        delete scenario.knownIOCs['198.51.100.47'];
+      }
+      if (exfilIp && exfilIp !== '203.0.113.99') {
+        scenario.knownIOCs[exfilIp] = scenario.knownIOCs['203.0.113.99'];
+        delete scenario.knownIOCs['203.0.113.99'];
+      }
+      // Update the exfil domain IOC key if the domain was randomized
+      var exfilDomain = null;
+      for (var _j = 0; _j < corpus.length; _j++) {
+        if (corpus[_j].evidenceId === 'exfil-domain' && corpus[_j].detail && corpus[_j].detail.domain) {
+          exfilDomain = corpus[_j].detail.domain;
+          break;
+        }
+      }
+      if (exfilDomain && exfilDomain !== 'evil-collector.example.com') {
+        scenario.knownIOCs[exfilDomain] = scenario.knownIOCs['evil-collector.example.com'];
+        delete scenario.knownIOCs['evil-collector.example.com'];
+      }
+    }
+  }
+
   // ── Track evidence discoveries ──
   var discoveredEvidence = {};
   var totalEvidence = scenario.evidencePieces.length;
