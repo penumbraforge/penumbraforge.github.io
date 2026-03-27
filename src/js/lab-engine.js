@@ -734,9 +734,23 @@
     onStateTransition: function (labId, fromState, toState, action) {
       ProgressStore.completeObjective(labId, toState);
     },
-    onLabComplete: function (labId, config, elapsed) {
-      var score = 100; // Basic score — Plan 3 adds multi-axis scoring
-      var result = ProgressStore.completeLab(labId, score, elapsed, config);
+    onLabComplete: function (labId, config, elapsed, scoringData) {
+      var scoreResult;
+      if (window.PenumbraLabs.Scoring && scoringData) {
+        scoreResult = window.PenumbraLabs.Scoring.calculate({
+          actionsLog:      scoringData.actionsLog      || [],
+          scenario:        config,
+          elapsed:         elapsed,
+          nudgesShown:     scoringData.nudgesShown     || 0,
+          nudgesDismissed: scoringData.nudgesDismissed || 0,
+          evidenceFound:   scoringData.evidenceFound   || 0,
+          totalEvidence:   scoringData.totalEvidence   || 1
+        });
+      } else {
+        scoreResult = { composite: 100, xp: config.xpReward || 100, technique: 100, efficiency: 100, thoroughness: 100, independence: 100, bonuses: {} };
+      }
+      var result = ProgressStore.completeLab(labId, scoreResult.composite, elapsed, config);
+      result.scoring = scoreResult;
       return result;
     }
   };
