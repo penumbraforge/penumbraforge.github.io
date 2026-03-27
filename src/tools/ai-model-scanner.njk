@@ -267,6 +267,69 @@ permalink: /tools/ai-model-scanner/
   .ams-check-item--pass { color: var(--text-2, #94a3b8); }
   .ams-check-item--fail { color: var(--text-3, #888); }
   .ams-check-item--pass .ams-check-label { color: var(--text-1, #e2e8f0); }
+
+  @media (max-width: 640px) {
+    .ams-score-card {
+      padding: 16px;
+      gap: 16px;
+    }
+    .ams-risk-ring {
+      width: 72px;
+      height: 72px;
+    }
+    .ams-ring-label {
+      font-size: 1.1rem;
+    }
+    .ams-score-title {
+      font-size: 1rem;
+    }
+    .ams-score-subtitle {
+      font-size: 0.8rem;
+    }
+    .ams-score-pills {
+      gap: 4px;
+    }
+    .ams-pill {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+    }
+    .ams-finding-header {
+      padding: 0.5rem 0.625rem;
+      min-height: 44px;
+      gap: 0.5rem;
+    }
+    .ams-finding-body {
+      padding: 0.6rem 0.625rem;
+    }
+    .ams-detected-value {
+      font-size: 0.75rem;
+      overflow-x: auto;
+    }
+    .ams-checklist-grid {
+      grid-template-columns: 1fr;
+    }
+    .ams-check-item {
+      border-right: none;
+      padding: 8px 12px;
+      min-height: 44px;
+      font-size: 0.8rem;
+    }
+    .ams-check-item:nth-last-child(-n+2) {
+      border-bottom: 1px solid var(--border, #2a2a3a);
+    }
+    .ams-check-item:last-child {
+      border-bottom: none;
+    }
+    .ams-checklist-title {
+      padding: 10px 12px;
+    }
+    .ams-rating {
+      font-size: 0.75rem;
+    }
+    .ams-empty-msg {
+      padding: 1.5rem;
+    }
+  }
 </style>
 
 <script>

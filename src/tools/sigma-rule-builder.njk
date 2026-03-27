@@ -488,6 +488,100 @@ permalink: /tools/sigma-rule-builder/
 
   /* Validation states */
   .srb-input--invalid { border-color: #ef4444 !important; }
+
+  @media (max-width: 640px) {
+    .srb-layout {
+      grid-template-columns: 1fr;
+    }
+    .srb-panel--preview {
+      position: static;
+    }
+    .srb-section {
+      padding: 0.625rem;
+    }
+    .srb-field-row {
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .srb-field {
+      min-width: 0;
+      width: 100%;
+    }
+    .srb-field--wide {
+      flex: none;
+      width: 100%;
+    }
+    .srb-input, .srb-select, .srb-textarea {
+      min-height: 44px;
+      font-size: 0.875rem;
+    }
+    .srb-kv-row {
+      gap: 0.3rem;
+    }
+    .srb-kv-key, .srb-kv-val {
+      font-size: 0.75rem;
+      min-width: 0;
+    }
+    .srb-kv-modifier {
+      min-height: 36px;
+    }
+    .srb-kv-remove {
+      min-height: 44px;
+      min-width: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .srb-group-header {
+      padding: 0.35rem 0.5rem;
+      min-height: 44px;
+    }
+    .srb-group-name-input {
+      width: 90px;
+      font-size: 0.75rem;
+    }
+    .srb-group-remove {
+      min-height: 44px;
+      min-width: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .srb-condition-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .srb-condition-row .srb-input {
+      min-width: 0;
+    }
+    .srb-actions {
+      padding: 0.625rem;
+    }
+    .srb-panel-header {
+      padding: 0.5rem 0.625rem;
+      min-height: 44px;
+    }
+    .srb-yaml-pre {
+      font-size: 0.75rem;
+      padding: 0.625rem;
+      min-height: 140px;
+      overflow-x: auto;
+    }
+    .srb-export-header {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.4rem 0.625rem;
+    }
+    .srb-yaml-pre--export {
+      min-height: 60px;
+    }
+    .srb-btn-sm {
+      min-height: 44px;
+    }
+    .srb-add-row-btn {
+      min-height: 44px;
+    }
+  }
 </style>
 
 <script>

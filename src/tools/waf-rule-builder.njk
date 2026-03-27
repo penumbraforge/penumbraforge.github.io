@@ -168,6 +168,65 @@ permalink: /tools/waf-rule-builder/
     border-top:1px solid var(--border,#2a2a3a);
   }
   .waf-section-heading:first-child { border-top:none; }
+
+  @media (max-width: 640px) {
+    .waf-results-tabs {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      flex-wrap: nowrap;
+    }
+    .waf-tab {
+      white-space: nowrap;
+      min-height: 44px;
+      padding: 0.5rem 0.75rem;
+    }
+    .waf-category-filters {
+      gap: 0.25rem;
+    }
+    .waf-cat-btn {
+      min-height: 36px;
+      padding: 5px 10px;
+      font-size: 0.7rem;
+    }
+    .waf-score-bar {
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: flex-start;
+    }
+    .waf-score-meter {
+      width: 100%;
+      min-width: 0;
+    }
+    .waf-payload-row {
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      padding: 0.5rem;
+    }
+    .waf-payload-str {
+      font-size: 0.7rem;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .waf-payload-cat {
+      font-size: 0.6rem;
+    }
+    .waf-export-header {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .waf-export-pre {
+      font-size: 0.75rem;
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .waf-copy-btn {
+      min-height: 44px;
+    }
+    .waf-empty-msg {
+      padding: 1.5rem;
+    }
+  }
 </style>
 
 {% raw %}<script>

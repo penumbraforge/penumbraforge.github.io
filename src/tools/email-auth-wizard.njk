@@ -616,6 +616,79 @@ permalink: /tools/email-auth-wizard/
     color: #a5b4fc; background: var(--surface-0,#0f0f1a);
     padding: 1px 5px; border-radius: 3px;
   }
+
+  @media (max-width: 640px) {
+    .ew-tabs {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      flex-wrap: nowrap;
+    }
+    .ew-tab {
+      min-height: 44px;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.8rem;
+    }
+    .ew-provider-grid {
+      grid-template-columns: 1fr;
+    }
+    .ew-provider-check {
+      min-height: 44px;
+    }
+    .ew-form-grid {
+      grid-template-columns: 1fr;
+    }
+    .ew-info-cards {
+      grid-template-columns: 1fr;
+    }
+    .ew-explain-item {
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .ew-explain-tag {
+      min-width: 0;
+      white-space: normal;
+      word-break: break-all;
+    }
+    .ew-result-block {
+      padding: 0.75rem;
+    }
+    .ew-record-name {
+      font-size: 0.8rem;
+      word-break: break-all;
+    }
+    .ew-rollout-step {
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.625rem 0.75rem;
+    }
+    .ew-rollout-step-badge {
+      align-self: flex-start;
+    }
+    .ew-rollout-step-body strong {
+      word-break: break-all;
+    }
+    .ew-dkim-detail summary {
+      padding: 0.5rem 0.75rem;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+    .ew-steps {
+      padding: 0.6rem 0.75rem 0.6rem 1.5rem;
+    }
+    .ew-steps code {
+      word-break: break-all;
+    }
+    .ew-deploy-tip {
+      padding: 0.75rem;
+    }
+    .ew-deploy-tip-list code {
+      word-break: break-all;
+    }
+    .ew-lookup-warning {
+      font-size: 0.8rem;
+    }
+  }
 </style>
 
 <script>

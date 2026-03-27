@@ -274,6 +274,56 @@ permalink: /tools/siem-query-translator/
     color: var(--text-3, #888);
     font-size: 0.9rem;
   }
+
+  @media (max-width: 640px) {
+    .sq-lang-row {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .sq-lang-col {
+      flex: none;
+      width: 100%;
+      min-width: 0;
+    }
+    .sq-swap-btn {
+      align-self: center;
+      min-height: 44px;
+    }
+    .sq-lang-col select {
+      min-height: 44px;
+      font-size: 1rem;
+    }
+    .sq-code-block {
+      font-size: 0.75rem;
+      padding: 0.75rem;
+      overflow-x: auto;
+      word-break: break-all;
+    }
+    .sq-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .sq-field-table {
+      font-size: 0.75rem;
+    }
+    .sq-field-table th,
+    .sq-field-table td {
+      padding: 0.35rem 0.5rem;
+    }
+    .sq-caveats {
+      padding: 0.625rem 0.875rem;
+    }
+    .sq-output-header {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .sq-copy-btn {
+      min-height: 44px;
+    }
+    .sq-empty-msg {
+      padding: 1.5rem;
+    }
+  }
 </style>
 
 <script>

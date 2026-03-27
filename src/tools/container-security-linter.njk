@@ -209,6 +209,49 @@ spec:
     font-weight: 600;
   }
   .csl-empty-msg { text-align: center; padding: 2.5rem; color: var(--text-3,#888); font-size: 0.9rem; }
+
+  @media (max-width: 640px) {
+    .csl-score-card {
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1rem;
+      align-items: flex-start;
+    }
+    .csl-score-breakdown {
+      min-width: 0;
+      width: 100%;
+    }
+    .csl-finding-header {
+      padding: 0.5rem 0.625rem;
+      min-height: 44px;
+      gap: 0.5rem;
+    }
+    .csl-finding-body {
+      padding: 0.6rem 0.625rem;
+    }
+    .csl-match-pre {
+      font-size: 0.75rem;
+      padding: 0.4rem 0.6rem;
+      overflow-x: auto;
+    }
+    .csl-fix-pre {
+      font-size: 0.75rem;
+      padding: 0.4rem 0.6rem;
+      overflow-x: auto;
+    }
+    .csl-fixed-pre {
+      font-size: 0.75rem;
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .csl-fixed-header {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .csl-empty-msg {
+      padding: 1.5rem;
+    }
+  }
 </style>
 
 <script>

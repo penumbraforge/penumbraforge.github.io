@@ -518,11 +518,56 @@ permalink: /tools/ai-cost-calculator/
     margin: 0;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 640px) {
     .acc-inputs-row { flex-direction: column; }
-    .acc-bar-name { width: 110px; }
-    .acc-bar-val { width: 58px; }
+    .acc-bar-name { width: 90px; font-size: 0.7rem; }
+    .acc-bar-val { width: 54px; font-size: 0.7rem; }
     .acc-models-grid { grid-template-columns: 1fr; }
+    .acc-mode-row {
+      gap: 0.25rem;
+    }
+    .acc-mode-btn {
+      min-height: 44px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8125rem;
+      flex: 1;
+      text-align: center;
+    }
+    .acc-input-group {
+      min-width: 0;
+      width: 100%;
+    }
+    .acc-num-input, .acc-select {
+      min-height: 44px;
+      font-size: 1rem;
+    }
+    .acc-token-estimate {
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+    .acc-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .acc-table {
+      font-size: 0.8rem;
+    }
+    .acc-table th, .acc-table td {
+      padding: 0.45rem 0.5rem;
+    }
+    .acc-link-btn {
+      min-height: 44px;
+    }
+    .acc-tips-section, .acc-projection-section {
+      padding: 0.75rem;
+    }
+    .acc-proj-row {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .acc-empty-msg {
+      padding: 1.5rem;
+    }
   }
 </style>
 

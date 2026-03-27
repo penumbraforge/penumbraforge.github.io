@@ -315,6 +315,64 @@ Subject: Meeting Tomorrow
     color: var(--text-1,#e2e8f0);
     word-break: break-all;
   }
+
+  @media (max-width: 640px) {
+    .ehf-auth-grid {
+      grid-template-columns: 1fr;
+    }
+    .ehf-auth-card {
+      padding: 0.75rem;
+    }
+    .ehf-ioc-grid {
+      grid-template-columns: 1fr;
+    }
+    .ehf-hop-header {
+      gap: 0.35rem;
+    }
+    .ehf-hop-delay {
+      margin-left: 0;
+    }
+    .ehf-hop-details span {
+      display: block;
+      margin-right: 0;
+      margin-bottom: 0.15rem;
+    }
+    .ehf-hop-details code {
+      word-break: break-all;
+    }
+    .ehf-timeline-list {
+      padding-left: 1.25rem;
+    }
+    .ehf-raw-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ehf-raw-table th {
+      width: auto;
+      min-width: 100px;
+      font-size: 0.7rem;
+    }
+    .ehf-raw-table td {
+      font-size: 0.7rem;
+    }
+    .ehf-verdict {
+      padding: 1rem;
+    }
+    .ehf-verdict-label {
+      font-size: 1rem;
+    }
+    .ehf-copy-iocs {
+      min-height: 44px;
+    }
+    .ehf-raw-toggle {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .ehf-empty-msg {
+      padding: 1.5rem;
+    }
+  }
 </style>
 
 <script>

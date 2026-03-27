@@ -356,6 +356,68 @@ permalink: /tools/yara-playground/
     margin-bottom: 0.35rem;
     font-weight: 600;
   }
+
+  @media (max-width: 640px) {
+    .yp-layout {
+      grid-template-columns: 1fr;
+    }
+    #yp-editor {
+      min-height: 220px;
+      font-size: 0.75rem;
+      padding: 0.625rem;
+    }
+    .yp-panel-header {
+      padding: 0.5rem 0.625rem;
+      min-height: 44px;
+    }
+    .yp-panel-title {
+      font-size: 0.75rem;
+    }
+    .yp-header-actions {
+      gap: 0.35rem;
+    }
+    .yp-select {
+      min-height: 36px;
+      font-size: 0.8rem;
+    }
+    .yp-editor-actions {
+      padding: 0.5rem 0.625rem;
+    }
+    .yp-section {
+      padding: 0.625rem;
+    }
+    .yp-analyzer-grid {
+      grid-template-columns: 1fr;
+    }
+    .yp-hex-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .yp-input {
+      font-size: 0.8rem;
+    }
+    .yp-hex-result {
+      font-size: 0.75rem;
+      overflow-x: auto;
+    }
+    #yp-test-input {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.6rem;
+    }
+    .yp-btn-sm {
+      min-height: 44px;
+      font-size: 0.8rem;
+    }
+    .yp-match-hit, .yp-match-miss {
+      padding: 0.5rem 0.625rem;
+    }
+    .yp-match-label {
+      font-size: 0.75rem;
+    }
+    .yp-analyzer-strings {
+      font-size: 0.75rem;
+    }
+  }
 </style>
 
 <script>
