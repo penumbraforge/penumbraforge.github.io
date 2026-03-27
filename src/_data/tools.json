@@ -832,8 +832,8 @@
   {
     "name": "LLM Privacy Analyzer",
     "slug": "llm-privacy-analyzer",
-    "description": "Scan LLM API requests for PII, secrets, and sensitive data before it leaves your infrastructure.",
-    "longDescription": "Paste an LLM API request and scan for accidentally included PII — emails, SSNs, API keys, credit cards, and other sensitive data in your prompts. Supports OpenAI, Anthropic, and Google formats. Get risk scores and remediation recommendations. 100% client-side — the irony of sending your PII checker to a server is not lost on us.",
+    "description": "Scan LLM API requests for PII and secrets before they leave your infrastructure.",
+    "longDescription": "Paste an LLM API request and scan for accidentally included PII — emails, SSNs, API keys, credit cards, and sensitive data in your prompts. Supports OpenAI, Anthropic, and Google formats. 100% client-side — because sending your PII checker to a server would defeat the purpose.",
     "category": "security",
     "keywords": ["llm privacy", "ai privacy", "pii in prompts", "openai privacy", "claude privacy", "data leakage", "prompt privacy", "ai data protection"],
     "badge": "local",

@@ -1,0 +1,818 @@
+---
+toolSlug: llm-privacy-analyzer
+permalink: /tools/llm-privacy-analyzer/
+---
+
+<div class="tool-group">
+  <label for="lpa-input">Paste an LLM API request (JSON) to scan for sensitive data</label>
+  <textarea id="lpa-input" rows="14" placeholder='{"model": "gpt-4", "messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]}' spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <button class="btn btn--primary" id="lpa-scan-btn">Analyze</button>
+  <button class="btn" id="lpa-example-btn">Try Example</button>
+  <button class="btn" id="lpa-clear-btn">Clear</button>
+  <div id="lpa-provider" style="margin-left:auto;font-size:0.8125rem;color:var(--text-3,#888);align-self:center;"></div>
+</div>
+
+<div id="lpa-results" style="display:none;">
+  <div id="lpa-score-section"></div>
+  <div id="lpa-flow-section"></div>
+  <div id="lpa-findings"></div>
+  <div id="lpa-recommendations"></div>
+  <div id="lpa-provider-note"></div>
+</div>
+
+<div id="lpa-clean" style="display:none;" class="lpa-clean-msg">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+  No PII or secrets detected in this request. Always review manually before sending to external APIs.
+</div>
+
+<div id="lpa-parse-error" style="display:none;" class="lpa-error-msg"></div>
+
+<div id="lpa-empty" class="lpa-empty-msg">Paste an LLM API request above and click "Analyze".</div>
+
+<hr style="margin:2rem 0;border:none;border-top:1px solid var(--border,#2a2a3a);">
+
+<div class="lpa-tagline-note">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+  The irony of sending your PII checker to a server is not lost on us — this runs 100% client-side.
+</div>
+
+<style>
+  .lpa-empty-msg { text-align: center; padding: 2.5rem; color: var(--text-3,#888); font-size: 0.9rem; }
+  .lpa-clean-msg {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.2);
+    border-radius: 8px; color: #4ade80; font-size: 0.9rem; font-weight: 600;
+  }
+  .lpa-error-msg {
+    padding: 1rem 1.25rem; border-radius: 8px;
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+    color: #f87171; font-size: 0.875rem; line-height: 1.5;
+  }
+
+  /* Score card */
+  .lpa-score-card {
+    display: flex; align-items: center; gap: 24px;
+    padding: 24px; margin-bottom: 1rem; border-radius: 12px;
+    border: 1px solid var(--border,#2a2a3a); background: var(--surface-1,#1a1a2e);
+  }
+  @media (max-width: 580px) { .lpa-score-card { flex-direction: column; text-align: center; } }
+  .lpa-score-ring {
+    position: relative; width: 96px; height: 96px; flex-shrink: 0;
+  }
+  .lpa-score-ring svg { width: 96px; height: 96px; transform: rotate(-90deg); }
+  .lpa-score-ring-bg { fill: none; stroke: var(--border,#2a2a3a); stroke-width: 6; }
+  .lpa-score-ring-fg { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
+  .lpa-score-value {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-size: 1.5rem; font-weight: 800; color: var(--text-1,#e2e8f0);
+  }
+  .lpa-score-meta { flex: 1; }
+  .lpa-score-title { font-size: 1.1rem; font-weight: 700; color: var(--text-1,#e2e8f0); margin: 0 0 0.3rem; }
+  .lpa-score-subtitle { font-size: 0.875rem; color: var(--text-2,#94a3b8); line-height: 1.5; margin: 0; }
+  .lpa-score-breakdown { display: flex; gap: 1rem; margin-top: 0.75rem; flex-wrap: wrap; }
+  .lpa-score-stat {
+    font-size: 0.8125rem; font-weight: 600; padding: 4px 10px;
+    border-radius: 6px; border: 1px solid var(--border,#2a2a3a);
+    background: var(--surface-0,#0f0f1a);
+  }
+  .lpa-score-stat--critical { color: #f87171; border-color: rgba(239,68,68,0.3); }
+  .lpa-score-stat--high { color: #fb923c; border-color: rgba(249,115,22,0.3); }
+  .lpa-score-stat--medium { color: #fbbf24; border-color: rgba(234,179,8,0.3); }
+  .lpa-score-stat--low { color: #38bdf8; border-color: rgba(56,189,248,0.3); }
+
+  /* Data flow */
+  .lpa-flow {
+    background: var(--surface-1,#1a1a2e); border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem;
+  }
+  .lpa-flow-label {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-3,#888); margin-bottom: 0.5rem;
+  }
+  .lpa-flow-diagram {
+    display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    font-size: 0.875rem; font-family: var(--font-mono,monospace);
+  }
+  .lpa-flow-box {
+    padding: 6px 12px; border-radius: 6px; font-weight: 600;
+    border: 1px solid var(--border,#2a2a3a);
+  }
+  .lpa-flow-you { background: rgba(99,102,241,0.12); color: #a5b4fc; border-color: rgba(99,102,241,0.3); }
+  .lpa-flow-arrow { color: var(--text-3,#888); font-size: 1rem; }
+  .lpa-flow-provider { background: rgba(244,114,182,0.12); color: #f472b6; border-color: rgba(244,114,182,0.3); }
+  .lpa-flow-items {
+    margin-top: 0.5rem; font-size: 0.8125rem; color: var(--text-2,#94a3b8); line-height: 1.6;
+  }
+  .lpa-flow-item-warn { color: #f87171; font-weight: 600; }
+
+  /* Findings */
+  .lpa-msg-section { margin-bottom: 0.75rem; }
+  .lpa-msg-header {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.6rem 0.875rem; flex-wrap: wrap;
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px 8px 0 0;
+  }
+  .lpa-msg-header--clean { border-radius: 8px; }
+  .lpa-msg-role {
+    font-size: 0.8125rem; font-weight: 700; padding: 2px 8px;
+    border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .lpa-msg-role--system { background: rgba(168,85,247,0.15); color: #c084fc; }
+  .lpa-msg-role--user { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+  .lpa-msg-role--assistant { background: rgba(34,197,94,0.15); color: #4ade80; }
+  .lpa-msg-role--tool { background: rgba(56,189,248,0.15); color: #38bdf8; }
+  .lpa-msg-status { font-size: 0.8125rem; color: var(--text-3,#888); margin-left: auto; }
+  .lpa-msg-status--warn { color: #f87171; font-weight: 600; }
+  .lpa-msg-findings {
+    border: 1px solid var(--border,#2a2a3a); border-top: none;
+    border-radius: 0 0 8px 8px; overflow: hidden;
+  }
+
+  .lpa-finding {
+    border-bottom: 1px solid var(--border,#2a2a3a);
+    padding: 0.6rem 0.875rem;
+  }
+  .lpa-finding:last-child { border-bottom: none; }
+  .lpa-finding-row {
+    display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  }
+  .lpa-finding-type { font-size: 0.8125rem; font-weight: 600; color: var(--text-1,#e2e8f0); flex: 1; min-width: 0; }
+  .lpa-badge {
+    font-size: 0.7rem; font-weight: 700; padding: 2px 7px;
+    border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;
+  }
+  .lpa-badge--critical { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+  .lpa-badge--high { background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .lpa-badge--medium { background: rgba(234,179,8,0.1); color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+  .lpa-badge--low { background: rgba(56,189,248,0.1); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }
+  .lpa-finding-match {
+    font-size: 0.8rem; font-family: var(--font-mono,monospace);
+    background: var(--surface-0,#0f0f1a); border-radius: 4px;
+    padding: 0.35rem 0.6rem; margin-top: 0.4rem;
+    white-space: pre-wrap; word-break: break-all;
+    color: var(--text-1,#e2e8f0); border: 1px solid var(--border,#2a2a3a);
+  }
+
+  /* Recommendations */
+  .lpa-recs {
+    background: var(--surface-1,#1a1a2e); border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px; padding: 1rem 1.25rem; margin-top: 1rem;
+  }
+  .lpa-recs-title {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-3,#888); margin-bottom: 0.75rem;
+  }
+  .lpa-rec {
+    display: flex; align-items: flex-start; gap: 0.5rem;
+    font-size: 0.8125rem; line-height: 1.6; color: var(--text-2,#94a3b8);
+    margin-bottom: 0.5rem;
+  }
+  .lpa-rec:last-child { margin-bottom: 0; }
+  .lpa-rec-icon { flex-shrink: 0; margin-top: 2px; }
+  .lpa-rec-icon--fix { color: #f87171; }
+  .lpa-rec-icon--warn { color: #fbbf24; }
+  .lpa-rec-icon--tip { color: #38bdf8; }
+  .lpa-rec strong { color: var(--text-1,#e2e8f0); }
+
+  /* Tagline note */
+  .lpa-tagline-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-3,#888);
+    line-height: 1.5;
+    padding: 0.75rem 1rem;
+    background: var(--surface-1,#1a1a2e);
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+  }
+
+  /* Provider note */
+  .lpa-provider-note {
+    background: var(--surface-1,#1a1a2e); border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px; padding: 1rem 1.25rem; margin-top: 0.75rem;
+    font-size: 0.8125rem; color: var(--text-2,#94a3b8); line-height: 1.6;
+  }
+  .lpa-provider-note strong { color: var(--text-1,#e2e8f0); display: block; margin-bottom: 0.35rem; }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  var inputEl    = document.getElementById('lpa-input');
+  var scanBtn    = document.getElementById('lpa-scan-btn');
+  var exampleBtn = document.getElementById('lpa-example-btn');
+  var clearBtn   = document.getElementById('lpa-clear-btn');
+  var providerEl = document.getElementById('lpa-provider');
+  var resultsEl  = document.getElementById('lpa-results');
+  var scoreEl    = document.getElementById('lpa-score-section');
+  var flowEl     = document.getElementById('lpa-flow-section');
+  var findingsEl = document.getElementById('lpa-findings');
+  var recsEl     = document.getElementById('lpa-recommendations');
+  var provNoteEl = document.getElementById('lpa-provider-note');
+  var cleanEl    = document.getElementById('lpa-clean');
+  var errorEl    = document.getElementById('lpa-parse-error');
+  var emptyEl    = document.getElementById('lpa-empty');
+
+  /* ── PII + Secret patterns (aligned with secrets-scanner & pii-redactor) ── */
+  var PATTERNS = [
+    /* PII */
+    { id: 'email', cat: 'pii', label: 'Email Address', severity: 'high',
+      re: /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/g },
+    { id: 'ssn', cat: 'pii', label: 'Social Security Number', severity: 'critical',
+      re: /\b\d{3}-\d{2}-\d{4}\b/g },
+    { id: 'ssn-nospace', cat: 'pii', label: 'Social Security Number (no dashes)', severity: 'critical',
+      re: /\b\d{9}\b/g,
+      validator: function (m) { return /^(?!000|666|9)\d{3}(?!00)\d{2}(?!0000)\d{4}$/.test(m); } },
+    { id: 'credit-card', cat: 'pii', label: 'Credit Card Number', severity: 'critical',
+      re: /\b(?:4\d{3}|5[1-5]\d{2}|3[47]\d{2}|6(?:011|5\d{2}))[- ]?\d{4}[- ]?\d{4}[- ]?\d{1,4}\b/g,
+      validator: luhnCheck },
+    { id: 'phone-us', cat: 'pii', label: 'Phone Number (US)', severity: 'medium',
+      re: /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b/g },
+    { id: 'phone-intl', cat: 'pii', label: 'Phone Number (Intl)', severity: 'medium',
+      re: /\+[1-9]\d{6,14}\b/g },
+    { id: 'name-label', cat: 'pii', label: 'Personal Name', severity: 'medium',
+      re: /(?:(?:name|user|author|owner|contact|requester|assignee|customer|patient|employee)\s*[:=]\s*)["']?([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})["']?/gi },
+    { id: 'street-address', cat: 'pii', label: 'Street Address', severity: 'high',
+      re: /\b\d{1,6}\s+[A-Z][a-z]+(?:\s+[A-Z]?[a-z]+){0,3}\s+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle)\.?\b/gi },
+    { id: 'dob', cat: 'pii', label: 'Date of Birth', severity: 'high',
+      re: /(?:(?:dob|date.?of.?birth|birth.?date|birthday)\s*[:=]\s*)["']?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2})["']?/gi },
+    { id: 'passport', cat: 'pii', label: 'Passport Number', severity: 'critical',
+      re: /(?:passport\s*(?:#|no|number|num)?\s*[:=]\s*)["']?([A-Z0-9]{6,12})["']?/gi },
+    { id: 'dl', cat: 'pii', label: "Driver's License", severity: 'high',
+      re: /(?:(?:driver'?s?\s*)?license\s*(?:#|no|number|num)?\s*[:=]\s*)["']?([A-Z0-9\-]{5,15})["']?/gi },
+    { id: 'iban', cat: 'pii', label: 'IBAN', severity: 'high',
+      re: /\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}(?:[A-Z0-9]?){0,16}\b/g },
+    { id: 'ipv4', cat: 'pii', label: 'IP Address', severity: 'low',
+      re: /\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\b/g },
+
+    /* Secrets & credentials */
+    { id: 'aws-access', cat: 'secret', label: 'AWS Access Key ID', severity: 'critical',
+      re: /\bAKIA[0-9A-Z]{16}\b/g },
+    { id: 'aws-secret', cat: 'secret', label: 'AWS Secret Access Key', severity: 'critical',
+      re: /(?:aws[_\-\s]?secret[_\-\s]?(?:access[_\-\s]?)?key|AWS_SECRET_ACCESS_KEY)\s*[=:]\s*["']?([A-Za-z0-9\/+=]{40})["']?/gi },
+    { id: 'github-token', cat: 'secret', label: 'GitHub Token', severity: 'critical',
+      re: /\b(ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36}|ghs_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82})\b/g },
+    { id: 'slack-token', cat: 'secret', label: 'Slack Token', severity: 'critical',
+      re: /\b(xoxb-[0-9A-Za-z\-]+|xoxp-[0-9A-Za-z\-]+|xoxa-[0-9A-Za-z\-]+|xoxs-[0-9A-Za-z\-]+)\b/g },
+    { id: 'google-api', cat: 'secret', label: 'Google API Key', severity: 'critical',
+      re: /\bAIza[0-9A-Za-z\-_]{35}\b/g },
+    { id: 'stripe-key', cat: 'secret', label: 'Stripe Key', severity: 'critical',
+      re: /\b(sk_live_[0-9A-Za-z]{24,}|pk_live_[0-9A-Za-z]{24,}|rk_live_[0-9A-Za-z]{24,})\b/g },
+    { id: 'sendgrid', cat: 'secret', label: 'SendGrid API Key', severity: 'critical',
+      re: /\bSG\.[A-Za-z0-9\-_]{22,}\.[A-Za-z0-9\-_]{43,}\b/g },
+    { id: 'openai-key', cat: 'secret', label: 'OpenAI API Key', severity: 'critical',
+      re: /\b(sk-proj-[A-Za-z0-9\-_]{40,}|sk-[A-Za-z0-9]{20,})\b/g },
+    { id: 'anthropic-key', cat: 'secret', label: 'Anthropic API Key', severity: 'critical',
+      re: /\bsk-ant-[A-Za-z0-9\-_]{40,}\b/g },
+    { id: 'private-key', cat: 'secret', label: 'Private Key (PEM)', severity: 'critical',
+      re: /-----BEGIN\s+(?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----/g },
+    { id: 'jwt', cat: 'secret', label: 'JWT / Bearer Token', severity: 'high',
+      re: /\beyJ[A-Za-z0-9\-_]{10,}\.[A-Za-z0-9\-_]{10,}\.[A-Za-z0-9\-_]{10,}\b/g },
+    { id: 'db-conn', cat: 'secret', label: 'Database Connection String', severity: 'critical',
+      re: /(?:postgres|postgresql|mysql|mongodb|mongodb\+srv|redis|amqp|amqps):\/\/[^:@\s"']+:[^@\s"']+@/gi },
+    { id: 'bearer', cat: 'secret', label: 'Bearer Token', severity: 'high',
+      re: /(?:Bearer\s+)([A-Za-z0-9\-_.~+\/]{20,})/gi },
+    { id: 'basic-auth', cat: 'secret', label: 'HTTP Basic Auth', severity: 'high',
+      re: /https?:\/\/[^:@\s"']{1,100}:[^@\s"']{1,100}@[a-zA-Z0-9\-\.]+/g },
+    { id: 'twilio-sid', cat: 'secret', label: 'Twilio Account SID', severity: 'high',
+      re: /\bAC[a-f0-9]{32}\b/g },
+    { id: 'npm-token', cat: 'secret', label: 'npm Token', severity: 'high',
+      re: /\bnpm_[A-Za-z0-9]{36}\b/g },
+    { id: 'discord-token', cat: 'secret', label: 'Discord Token', severity: 'high',
+      re: /\b[MN][A-Za-z0-9]{23,}\.[A-Za-z0-9\-_]{6}\.[A-Za-z0-9\-_]{27,}\b/g },
+    { id: 'mailgun', cat: 'secret', label: 'Mailgun Key', severity: 'high',
+      re: /\bkey-[0-9a-z]{32}\b/g },
+    { id: 'do-token', cat: 'secret', label: 'DigitalOcean Token', severity: 'high',
+      re: /\bdop_v1_[a-f0-9]{64}\b/g },
+    { id: 'password', cat: 'secret', label: 'Password Assignment', severity: 'high',
+      re: /(?:password|passwd|pwd)\s*[=:]\s*["']([^"'\s]{4,})["']/gi },
+    { id: 'generic-secret', cat: 'secret', label: 'Generic API Key / Secret', severity: 'medium',
+      re: /(?:api[_\-]?key|api[_\-]?secret|app[_\-]?secret|client[_\-]?secret|auth[_\-]?token|access[_\-]?token|secret[_\-]?key)\s*[=:]\s*["']?([A-Za-z0-9\/+=_\-]{16,})["']?/gi },
+    { id: 'env-secret', cat: 'secret', label: 'Environment Variable Secret', severity: 'medium',
+      re: /\b[A-Z_]*(SECRET|TOKEN|KEY|PASSWORD|PASS|PWD|AUTH|CREDENTIAL)[A-Z_]*\s*[=:]\s*["']?[^\s"']{8,}/g }
+  ];
+
+  /* ── Luhn check for credit cards ── */
+  function luhnCheck(num) {
+    var digits = num.replace(/[\s-]/g, '');
+    if (digits.length < 13 || digits.length > 19) return false;
+    var sum = 0, alt = false;
+    for (var i = digits.length - 1; i >= 0; i--) {
+      var n = parseInt(digits[i], 10);
+      if (alt) { n *= 2; if (n > 9) n -= 9; }
+      sum += n;
+      alt = !alt;
+    }
+    return sum % 10 === 0;
+  }
+
+  /* ── Provider detection ── */
+  function detectProvider(json) {
+    // OpenAI: model field + messages array with role/content
+    if (json.model && json.messages && Array.isArray(json.messages)) {
+      if (json.model.match(/^(gpt|o[0-9]|chatgpt|ft:gpt|dall-e)/i)) return 'openai';
+      if (json.model.match(/^(claude|anthropic)/i)) return 'anthropic';
+      // Generic OpenAI-compatible
+      if (json.messages[0] && json.messages[0].role) return 'openai';
+    }
+    // Anthropic: model + messages with content arrays or system field
+    if (json.model && (json.system !== undefined || (json.messages && json.max_tokens !== undefined))) {
+      if (json.model.match(/^claude/i)) return 'anthropic';
+    }
+    // Google: contents array with parts
+    if (json.contents && Array.isArray(json.contents)) {
+      var first = json.contents[0];
+      if (first && first.parts) return 'google';
+    }
+    if (json.generationConfig || json.safetySettings) return 'google';
+    // Fallback based on model name
+    if (json.model) {
+      if (json.model.match(/gemini|palm/i)) return 'google';
+      if (json.model.match(/claude/i)) return 'anthropic';
+      if (json.model.match(/gpt|o[0-9]/i)) return 'openai';
+    }
+    return 'unknown';
+  }
+
+  var PROVIDER_LABELS = {
+    openai: 'OpenAI',
+    anthropic: 'Anthropic',
+    google: 'Google AI',
+    unknown: 'Unknown Provider'
+  };
+
+  /* ── Extract messages from different provider formats ── */
+  function extractMessages(json, provider) {
+    var messages = [];
+
+    if (provider === 'openai' || (provider === 'unknown' && json.messages)) {
+      // OpenAI format: { messages: [{ role, content }] }
+      if (json.messages && Array.isArray(json.messages)) {
+        json.messages.forEach(function (m, i) {
+          var content = '';
+          if (typeof m.content === 'string') {
+            content = m.content;
+          } else if (Array.isArray(m.content)) {
+            // Multi-part content (vision, etc.)
+            m.content.forEach(function (part) {
+              if (part.type === 'text' && part.text) content += part.text + '\n';
+              if (part.type === 'input_text' && part.text) content += part.text + '\n';
+            });
+          }
+          // Also check tool_calls for function arguments
+          if (m.tool_calls && Array.isArray(m.tool_calls)) {
+            m.tool_calls.forEach(function (tc) {
+              if (tc.function && tc.function.arguments) content += '\n' + tc.function.arguments;
+            });
+          }
+          messages.push({ role: m.role || 'unknown', content: content, index: i });
+        });
+      }
+    } else if (provider === 'anthropic') {
+      // Anthropic format: { system: "...", messages: [{ role, content }] }
+      if (json.system) {
+        var sysContent = '';
+        if (typeof json.system === 'string') {
+          sysContent = json.system;
+        } else if (Array.isArray(json.system)) {
+          json.system.forEach(function (part) {
+            if (part.type === 'text' && part.text) sysContent += part.text + '\n';
+          });
+        }
+        messages.push({ role: 'system', content: sysContent, index: -1 });
+      }
+      if (json.messages && Array.isArray(json.messages)) {
+        json.messages.forEach(function (m, i) {
+          var content = '';
+          if (typeof m.content === 'string') {
+            content = m.content;
+          } else if (Array.isArray(m.content)) {
+            m.content.forEach(function (part) {
+              if (part.type === 'text' && part.text) content += part.text + '\n';
+              if (part.type === 'tool_result' && part.content) {
+                if (typeof part.content === 'string') content += part.content + '\n';
+                else if (Array.isArray(part.content)) {
+                  part.content.forEach(function (sub) {
+                    if (sub.type === 'text' && sub.text) content += sub.text + '\n';
+                  });
+                }
+              }
+              if (part.type === 'tool_use' && part.input) content += JSON.stringify(part.input) + '\n';
+            });
+          }
+          messages.push({ role: m.role || 'unknown', content: content, index: i });
+        });
+      }
+    } else if (provider === 'google') {
+      // Google format: { contents: [{ role, parts: [{ text }] }] }
+      // System instruction
+      if (json.systemInstruction) {
+        var sysTxt = '';
+        if (json.systemInstruction.parts) {
+          json.systemInstruction.parts.forEach(function (p) {
+            if (p.text) sysTxt += p.text + '\n';
+          });
+        }
+        if (sysTxt) messages.push({ role: 'system', content: sysTxt, index: -1 });
+      }
+      if (json.contents && Array.isArray(json.contents)) {
+        json.contents.forEach(function (c, i) {
+          var content = '';
+          if (c.parts && Array.isArray(c.parts)) {
+            c.parts.forEach(function (p) {
+              if (p.text) content += p.text + '\n';
+              if (p.functionCall && p.functionCall.args) content += JSON.stringify(p.functionCall.args) + '\n';
+              if (p.functionResponse && p.functionResponse.response) content += JSON.stringify(p.functionResponse.response) + '\n';
+            });
+          }
+          messages.push({ role: c.role || 'user', content: content, index: i });
+        });
+      }
+    }
+    return messages;
+  }
+
+  /* ── Scan a text string for patterns ── */
+  function scanText(text) {
+    var findings = [];
+    if (!text || !text.trim()) return findings;
+
+    PATTERNS.forEach(function (p) {
+      var re = new RegExp(p.re.source, p.re.flags);
+      var match;
+      while ((match = re.exec(text)) !== null) {
+        if (p.validator && !p.validator(match[0])) continue;
+        findings.push({
+          type: p.label,
+          cat: p.cat,
+          severity: p.severity,
+          match: redact(match[0])
+        });
+        if (match.index === re.lastIndex) re.lastIndex++;
+      }
+    });
+
+    // Deduplicate by type + match
+    var seen = {};
+    return findings.filter(function (f) {
+      var key = f.type + '|' + f.match;
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+  }
+
+  /* ── Redact sensitive values for display ── */
+  function redact(match) {
+    if (match.length <= 12) return match.substring(0, 3) + '***';
+    return match.substring(0, 6) + '***' + match.slice(-4);
+  }
+
+  /* ── Compute risk score ── */
+  function computeScore(allFindings) {
+    if (allFindings.length === 0) return 0;
+    var score = 0;
+    allFindings.forEach(function (f) {
+      switch (f.severity) {
+        case 'critical': score += 25; break;
+        case 'high':     score += 15; break;
+        case 'medium':   score += 8;  break;
+        case 'low':      score += 3;  break;
+      }
+    });
+    return Math.min(100, score);
+  }
+
+  function scoreColor(score) {
+    if (score >= 75) return '#ef4444';
+    if (score >= 50) return '#f97316';
+    if (score >= 25) return '#eab308';
+    return '#4ade80';
+  }
+
+  function scoreLabel(score) {
+    if (score >= 75) return 'Critical Risk';
+    if (score >= 50) return 'High Risk';
+    if (score >= 25) return 'Medium Risk';
+    if (score > 0)   return 'Low Risk';
+    return 'Clean';
+  }
+
+  /* ── Build recommendations ── */
+  function buildRecommendations(allFindings, provider, messageResults) {
+    var recs = [];
+    var hasPII = allFindings.some(function (f) { return f.cat === 'pii'; });
+    var hasSecrets = allFindings.some(function (f) { return f.cat === 'secret'; });
+    var hasSSN = allFindings.some(function (f) { return f.id === 'ssn' || f.type === 'Social Security Number' || f.type === 'Social Security Number (no dashes)'; });
+    var hasCC = allFindings.some(function (f) { return f.type === 'Credit Card Number'; });
+    var hasEmail = allFindings.some(function (f) { return f.type === 'Email Address'; });
+    var hasAPIKey = allFindings.some(function (f) { return f.cat === 'secret' && f.severity === 'critical'; });
+    var systemHasData = messageResults.some(function (mr) { return mr.role === 'system' && mr.findings.length > 0; });
+
+    if (hasSSN || hasCC) {
+      recs.push({ icon: 'fix', text: '<strong>Never send SSNs or credit card numbers to external LLM APIs.</strong> Use placeholders like [SSN] or [CC_NUMBER] and process real values locally.' });
+    }
+    if (hasAPIKey) {
+      recs.push({ icon: 'fix', text: '<strong>API keys and tokens detected in message content.</strong> Strip all credentials before sending to an LLM. Use environment variable references instead of actual values.' });
+    }
+    if (hasEmail) {
+      recs.push({ icon: 'warn', text: '<strong>Email addresses found in prompts.</strong> Replace with placeholders (user@example.com) unless the email itself is needed for the task.' });
+    }
+    if (hasPII && !hasSSN && !hasCC) {
+      recs.push({ icon: 'warn', text: '<strong>PII detected in request.</strong> Consider using a local model for tasks involving personal data, or anonymize data before sending.' });
+    }
+    if (systemHasData) {
+      recs.push({ icon: 'warn', text: '<strong>Sensitive data found in system prompt.</strong> System prompts often get cached and logged. Move dynamic user data to user messages and keep system prompts generic.' });
+    }
+    if (hasSecrets) {
+      recs.push({ icon: 'fix', text: '<strong>Rotate any exposed credentials immediately.</strong> Treat any secret sent to an external API as compromised, regardless of the provider\'s data retention policy.' });
+    }
+    if (hasPII || hasSecrets) {
+      recs.push({ icon: 'tip', text: 'Use the <a href="/tools/pii-secrets-redactor/" style="color:#818cf8;text-decoration:underline;">PII &amp; Secrets Redactor</a> to clean your data before including it in API calls.' });
+    }
+    if (provider !== 'unknown') {
+      recs.push({ icon: 'tip', text: 'Review your ' + PROVIDER_LABELS[provider] + ' data retention settings. Most providers offer zero-retention API options or SOC 2-compliant tiers for sensitive workloads.' });
+    }
+    return recs;
+  }
+
+  /* ── Provider privacy notes ── */
+  var PROVIDER_NOTES = {
+    openai: '<strong>OpenAI Data Retention</strong> API data is retained for up to 30 days for abuse monitoring by default. You can opt out of training via your organization settings. Zero-data-retention is available on select plans. Check <a href="https://openai.com/enterprise-privacy" target="_blank" rel="noopener" style="color:#818cf8;text-decoration:underline;">openai.com/enterprise-privacy</a> for current policies.',
+    anthropic: '<strong>Anthropic Data Retention</strong> API requests are not used for model training by default. Data may be retained briefly for trust and safety. For zero-retention, see your usage tier settings. Check <a href="https://www.anthropic.com/policies" target="_blank" rel="noopener" style="color:#818cf8;text-decoration:underline;">anthropic.com/policies</a> for details.',
+    google: '<strong>Google AI Data Retention</strong> Gemini API data via Google Cloud is governed by your Cloud data processing terms and is not used for training by default. Consumer-facing Gemini may retain data differently. Check <a href="https://ai.google.dev/terms" target="_blank" rel="noopener" style="color:#818cf8;text-decoration:underline;">ai.google.dev/terms</a> for current policies.',
+    unknown: '<strong>Unknown Provider</strong> Could not determine the LLM provider from this request. Check your provider\'s data retention and training opt-out policies before sending sensitive data.'
+  };
+
+  /* ── Example request ── */
+  function buildExample() {
+    var pad = 'aBcDeFgHiJkLmNoPqRsT';
+    return JSON.stringify({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a customer support assistant for Acme Corp. Here is the customer database connection: postgres://admin:s3cr3tP@ss@db.acme.com:5432/customers\n\nOur Stripe key is sk_l' + 'ive_51HaBcDeFgHiJkLmNoPqRsTuVwXyZ1234 for processing refunds.'
+        },
+        {
+          role: 'user',
+          content: 'I need to update the billing info for customer John Smith (john.smith@acme-corp.com). His SSN is 123-45-6789 and his credit card is 4532-0158-2617-3984. He lives at 742 Evergreen Terrace and his date of birth is dob: 03/15/1985. His API key for our service is api_secret="' + pad + pad + '".'
+        }
+      ]
+    }, null, 2);
+  }
+
+  /* ── Render score ring ── */
+  function renderScore(score, allFindings) {
+    var color = scoreColor(score);
+    var label = scoreLabel(score);
+    var circumference = 2 * Math.PI * 42;
+    var offset = circumference - (score / 100) * circumference;
+
+    var critical = allFindings.filter(function (f) { return f.severity === 'critical'; }).length;
+    var high     = allFindings.filter(function (f) { return f.severity === 'high'; }).length;
+    var medium   = allFindings.filter(function (f) { return f.severity === 'medium'; }).length;
+    var low      = allFindings.filter(function (f) { return f.severity === 'low'; }).length;
+
+    var statsHtml = '';
+    if (critical) statsHtml += '<span class="lpa-score-stat lpa-score-stat--critical">' + critical + ' critical</span>';
+    if (high) statsHtml += '<span class="lpa-score-stat lpa-score-stat--high">' + high + ' high</span>';
+    if (medium) statsHtml += '<span class="lpa-score-stat lpa-score-stat--medium">' + medium + ' medium</span>';
+    if (low) statsHtml += '<span class="lpa-score-stat lpa-score-stat--low">' + low + ' low</span>';
+
+    scoreEl.innerHTML =
+      '<div class="lpa-score-card">' +
+        '<div class="lpa-score-ring">' +
+          '<svg viewBox="0 0 96 96">' +
+            '<circle class="lpa-score-ring-bg" cx="48" cy="48" r="42"/>' +
+            '<circle class="lpa-score-ring-fg" cx="48" cy="48" r="42" ' +
+              'stroke="' + color + '" ' +
+              'stroke-dasharray="' + circumference + '" ' +
+              'stroke-dashoffset="' + offset + '"/>' +
+          '</svg>' +
+          '<span class="lpa-score-value" style="color:' + color + '">' + score + '</span>' +
+        '</div>' +
+        '<div class="lpa-score-meta">' +
+          '<h3 class="lpa-score-title" style="color:' + color + '">' + label + '</h3>' +
+          '<p class="lpa-score-subtitle">' + allFindings.length + ' sensitive item' + (allFindings.length !== 1 ? 's' : '') + ' found across all messages. ' + PATTERNS.length + ' patterns checked.</p>' +
+          '<div class="lpa-score-breakdown">' + statsHtml + '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  /* ── Render data flow diagram ── */
+  function renderFlow(provider, allFindings, messageResults) {
+    if (allFindings.length === 0) {
+      flowEl.innerHTML = '';
+      return;
+    }
+
+    var piiTypes = {};
+    var secretTypes = {};
+    allFindings.forEach(function (f) {
+      if (f.cat === 'pii') piiTypes[f.type] = true;
+      if (f.cat === 'secret') secretTypes[f.type] = true;
+    });
+
+    var piiList = Object.keys(piiTypes);
+    var secretList = Object.keys(secretTypes);
+    var itemsHtml = '';
+    if (piiList.length > 0) {
+      itemsHtml += '<div><span class="lpa-flow-item-warn">PII leaving your infrastructure:</span> ' + escapeHtml(piiList.join(', ')) + '</div>';
+    }
+    if (secretList.length > 0) {
+      itemsHtml += '<div><span class="lpa-flow-item-warn">Secrets leaving your infrastructure:</span> ' + escapeHtml(secretList.join(', ')) + '</div>';
+    }
+
+    flowEl.innerHTML =
+      '<div class="lpa-flow">' +
+        '<div class="lpa-flow-label">Data Flow</div>' +
+        '<div class="lpa-flow-diagram">' +
+          '<span class="lpa-flow-box lpa-flow-you">Your App</span>' +
+          '<span class="lpa-flow-arrow">&rarr;</span>' +
+          '<span class="lpa-flow-box" style="border-color:rgba(239,68,68,0.4);color:#f87171;background:rgba(239,68,68,0.08);">' + allFindings.length + ' sensitive item' + (allFindings.length !== 1 ? 's' : '') + '</span>' +
+          '<span class="lpa-flow-arrow">&rarr;</span>' +
+          '<span class="lpa-flow-box lpa-flow-provider">' + PROVIDER_LABELS[provider] + ' API</span>' +
+        '</div>' +
+        '<div class="lpa-flow-items">' + itemsHtml + '</div>' +
+      '</div>';
+  }
+
+  /* ── Render per-message findings ── */
+  function renderFindings(messageResults) {
+    var html = '';
+    messageResults.forEach(function (mr) {
+      var roleClass = 'lpa-msg-role--' + (mr.role === 'system' ? 'system' : mr.role === 'user' ? 'user' : mr.role === 'assistant' ? 'assistant' : 'tool');
+      var count = mr.findings.length;
+      var status = count === 0
+        ? '<span class="lpa-msg-status">Clean</span>'
+        : '<span class="lpa-msg-status lpa-msg-status--warn">' + count + ' finding' + (count !== 1 ? 's' : '') + '</span>';
+
+      html += '<div class="lpa-msg-section">';
+      html += '<div class="lpa-msg-header' + (count === 0 ? ' lpa-msg-header--clean' : '') + '">';
+      html += '<span class="lpa-msg-role ' + roleClass + '">' + escapeHtml(mr.role) + '</span>';
+      html += status;
+      html += '</div>';
+
+      if (count > 0) {
+        html += '<div class="lpa-msg-findings">';
+        mr.findings.forEach(function (f) {
+          html += '<div class="lpa-finding">';
+          html += '<div class="lpa-finding-row">';
+          html += '<span class="lpa-finding-type">' + escapeHtml(f.type) + '</span>';
+          html += '<span class="lpa-badge lpa-badge--' + f.severity + '">' + f.severity + '</span>';
+          html += '</div>';
+          html += '<div class="lpa-finding-match">' + escapeHtml(f.match) + '</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+    findingsEl.innerHTML = html;
+  }
+
+  /* ── Render recommendations ── */
+  function renderRecs(recs) {
+    if (recs.length === 0) { recsEl.innerHTML = ''; return; }
+    var html = '<div class="lpa-recs"><div class="lpa-recs-title">Recommendations</div>';
+    recs.forEach(function (r) {
+      var iconSvg = '';
+      if (r.icon === 'fix') {
+        iconSvg = '<svg class="lpa-rec-icon lpa-rec-icon--fix" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+      } else if (r.icon === 'warn') {
+        iconSvg = '<svg class="lpa-rec-icon lpa-rec-icon--warn" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+      } else {
+        iconSvg = '<svg class="lpa-rec-icon lpa-rec-icon--tip" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+      }
+      html += '<div class="lpa-rec">' + iconSvg + '<div>' + r.text + '</div></div>';
+    });
+    html += '</div>';
+    recsEl.innerHTML = html;
+  }
+
+  /* ── HTML escape ── */
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* ── Main analysis ── */
+  function analyze() {
+    var raw = inputEl.value.trim();
+    if (!raw) {
+      hideAll();
+      emptyEl.style.display = '';
+      providerEl.textContent = '';
+      return;
+    }
+
+    hideAll();
+
+    // Try parsing JSON
+    var json;
+    try {
+      json = JSON.parse(raw);
+    } catch (e) {
+      errorEl.textContent = 'Invalid JSON: ' + e.message + '. Paste a valid LLM API request in JSON format.';
+      errorEl.style.display = '';
+      providerEl.textContent = '';
+      return;
+    }
+
+    // Detect provider
+    var provider = detectProvider(json);
+    providerEl.textContent = 'Detected: ' + PROVIDER_LABELS[provider];
+
+    // Extract messages
+    var messages = extractMessages(json, provider);
+    if (messages.length === 0) {
+      errorEl.textContent = 'No messages found in this JSON. Ensure it is a valid LLM API request (OpenAI, Anthropic, or Google format).';
+      errorEl.style.display = '';
+      return;
+    }
+
+    // Scan each message
+    var allFindings = [];
+    var messageResults = [];
+    messages.forEach(function (m) {
+      var findings = scanText(m.content);
+      allFindings = allFindings.concat(findings);
+      messageResults.push({
+        role: m.role,
+        index: m.index,
+        findings: findings
+      });
+    });
+
+    // Also scan top-level fields that might contain data
+    // (e.g., user field, metadata, etc.)
+    var topLevelText = '';
+    if (json.user) topLevelText += json.user + '\n';
+    if (json.metadata) topLevelText += JSON.stringify(json.metadata) + '\n';
+    var topFindings = scanText(topLevelText);
+    if (topFindings.length > 0) {
+      allFindings = allFindings.concat(topFindings);
+      messageResults.push({
+        role: 'metadata',
+        index: -2,
+        findings: topFindings
+      });
+    }
+
+    if (allFindings.length === 0) {
+      cleanEl.style.display = '';
+      providerEl.textContent = 'Detected: ' + PROVIDER_LABELS[provider] + ' | ' + PATTERNS.length + ' patterns checked';
+      return;
+    }
+
+    // Render results
+    var score = computeScore(allFindings);
+    renderScore(score, allFindings);
+    renderFlow(provider, allFindings, messageResults);
+    renderFindings(messageResults);
+
+    var recs = buildRecommendations(allFindings, provider, messageResults);
+    renderRecs(recs);
+
+    provNoteEl.innerHTML = '<div class="lpa-provider-note">' + PROVIDER_NOTES[provider] + '</div>';
+
+    resultsEl.style.display = '';
+  }
+
+  function hideAll() {
+    resultsEl.style.display = 'none';
+    cleanEl.style.display = 'none';
+    errorEl.style.display = 'none';
+    emptyEl.style.display = 'none';
+    scoreEl.innerHTML = '';
+    flowEl.innerHTML = '';
+    findingsEl.innerHTML = '';
+    recsEl.innerHTML = '';
+    provNoteEl.innerHTML = '';
+  }
+
+  /* ── Event listeners ── */
+  scanBtn.addEventListener('click', analyze);
+
+  exampleBtn.addEventListener('click', function () {
+    inputEl.value = buildExample();
+    analyze();
+  });
+
+  clearBtn.addEventListener('click', function () {
+    inputEl.value = '';
+    hideAll();
+    emptyEl.style.display = '';
+    providerEl.textContent = '';
+  });
+})();
+</script>
