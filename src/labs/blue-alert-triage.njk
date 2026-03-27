@@ -282,35 +282,76 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // ── Initialize SIEM ──
-  Labs.SIEM.init({
-    container: document.getElementById('tool-siem'),
-    evidenceCorpus: corpus,
-    onAction: function(action) {
-      sim.dispatch({ type: 'siem_action', action: action.action, entry: action.entry });
-
-      if (action.action === 'timeline') {
-        Labs.Timeline.addEvent({
-          timestamp: action.entry.timestamp,
-          title: action.entry.summary.replace(/<[^>]+>/g, '').substring(0, 80),
-          description: action.entry.source.toUpperCase() + ' \u2014 ' + action.entry.severity,
-          severity: action.entry.severity,
-          sources: [action.entry.source],
-          userDiscovered: true
-        });
-      }
-      if (action.action === 'ioc_lookup' && action.entry.detail) {
-        var iocTab = document.querySelector('[data-right-tool="ioc"]');
-        if (iocTab) iocTab.click();
-        Labs.IOCLookup.lookup(action.entry.detail.srcIp);
-      }
-      if (action.action === 'evidence' && action.entry.evidenceId) {
-        updateEvidenceTracker(action.entry.evidenceId);
-      }
+  // ── Build alerts from the evidence corpus ──
+  var alerts = [];
+  corpus.forEach(function(entry) {
+    if (entry.suspicious || entry.severity === 'critical' || entry.severity === 'high') {
+      alerts.push({
+        id: entry.id,
+        severity: entry.severity,
+        title: entry.summary.replace(/<[^>]+>/g, ''),
+        source: entry.source.toUpperCase(),
+        timestamp: entry.timestamp,
+        description: entry.detail ? 'Source IP: ' + (entry.detail.srcIp || 'N/A') + ', Rule: ' + (entry.detail.rule || 'N/A') : entry.summary.replace(/<[^>]+>/g, ''),
+        raw: entry.raw || JSON.stringify(entry.detail || {}, null, 2),
+        indicators: entry.detail ? [entry.detail.srcIp, entry.detail.path].filter(Boolean) : [],
+        correctAnswer: entry.evidenceId ? 'tp' : (entry.severity === 'medium' ? 'misconfig' : 'fp'),
+        explanation: entry.evidenceId ? 'True positive — part of the brute force attack chain.' : 'This alert does not correspond to malicious activity.'
+      });
     }
   });
 
-  // ── Initialize source-filtered SIEM views ──
+  // Inject clearly false-positive alerts that don't come from the corpus
+  alerts.push({
+    id: 'fp-sql-search',
+    severity: 'medium',
+    title: 'SQL Injection Pattern Detected in Search Query',
+    source: 'WAF',
+    timestamp: corpus[0] ? corpus[0].timestamp : '2024-04-02 09:10:00',
+    description: 'WAF rule 942100 triggered on search query containing SQL keyword. User searched for "WHERE to buy wireless headphones".',
+    raw: '{ "rule": "942100", "matched_data": "WHERE to buy", "action": "LOG_ONLY" }',
+    indicators: ['72.44.128.90'],
+    correctAnswer: 'fp',
+    explanation: 'False positive — the word "WHERE" in a product search triggered the SQL injection rule.'
+  });
+
+  alerts.push({
+    id: 'mc-rate-limit',
+    severity: 'medium',
+    title: 'Rate Limit Threshold Exceeded',
+    source: 'WAF',
+    timestamp: corpus[Math.floor(corpus.length/2)] ? corpus[Math.floor(corpus.length/2)].timestamp : '2024-04-02 09:20:00',
+    description: 'Rate limit rule triggered at 30 requests/minute. Current threshold set to 25/min but legitimate crawlers regularly exceed this.',
+    raw: '{ "rule": "rate-limit-global", "threshold": 25, "actual": 30, "source": "Googlebot" }',
+    indicators: ['66.249.64.100'],
+    correctAnswer: 'misconfig',
+    explanation: 'Misconfigured rule — the rate limit threshold of 25/min is too low. Legitimate crawlers like Googlebot regularly hit 30-40/min.'
+  });
+
+  // Sort by timestamp
+  alerts.sort(function(a, b) { return a.timestamp.localeCompare(b.timestamp); });
+
+  // Rename the first tool tab to "Alert Queue"
+  var siemTab = document.querySelector('[data-tool="siem"]');
+  if (siemTab) siemTab.textContent = 'Alert Queue';
+
+  // ── Initialize Alert Triage as the primary tool ──
+  Labs.AlertTriage.init({
+    container: document.getElementById('tool-siem'),
+    alerts: alerts,
+    onClassify: function(alertId, classification) {
+      // Check if this classification discovers evidence
+      var alert = alerts.find(function(a) { return a.id === alertId; });
+      if (alert && alert.correctAnswer === classification) {
+        sim.dispatch({ type: 'siem_action', action: 'evidence', entry: { evidenceId: alert.id.indexOf('brute') !== -1 ? 'brute-force' : null } });
+      }
+    },
+    onSubmit: function(result) {
+      sim.dispatch({ type: 'containment_action', type: 'classification_submit', score: result.score });
+    }
+  });
+
+  // ── Initialize source-filtered SIEM views (secondary tabs) ──
   ['firewall', 'auth', 'dns'].forEach(function(source) {
     var container = document.getElementById('tool-' + source);
     if (container) {
