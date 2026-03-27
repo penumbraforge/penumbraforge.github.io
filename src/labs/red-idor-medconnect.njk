@@ -1,836 +1,328 @@
 ---
-layout: lab-workspace.njk
+layout: lab-workspace-v2.njk
 permalink: /labs/red/idor-medconnect/
 labCode: "RED-06"
 labTitle: "IDOR — Patient Record Access"
 labDifficulty: "beginner"
-labDescription: "MedConnect's patient portal has no server-side authorization on its API. Change the patient ID to access records you shouldn't see, and discover a VIP record with unmasked sensitive data."
-labCompletionText: "You successfully demonstrated an IDOR vulnerability, accessing unauthorized patient records including a VIP record with unmasked PII."
+labDescription: "MedConnect's patient portal has no authorization on its API. Access other patients' records by changing the ID."
+targetUrl: "https://lab-idor.penumbraforge.workers.dev"
+targetHost: "medconnect.lab.penumbraforge.com"
+workerUrl: "https://lab-idor.penumbraforge.workers.dev"
 ---
 
-<!-- LEFT: Mission Panel -->
-<div class="lab-mission-panel">
-  <div class="lab-panel-tabs">
-    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
-    <button class="lab-panel-tab" data-tab="source">Source</button>
-    <button class="lab-panel-tab" data-tab="hints">Hints</button>
-  </div>
-  <div class="lab-panel-content">
-<!-- Mission Tab -->
-<div class="lab-tab-content active" data-tab-content="mission">
-  <div class="lab-section-label">Scenario</div>
-  <div class="lab-scenario">
-    <strong>MedConnect Health Systems</strong> has contracted your team to audit their patient portal. You've been given a physician account (Dr. Sarah Chen) with access to one patient (ID 1001). Your objective: determine whether the API enforces authorization — or whether any authenticated user can access any patient record by simply changing the ID.
-  </div>
-  <div class="lab-scenario">
-    This is a <strong>horizontal privilege escalation</strong> test. The API authenticates you (it knows who you are), but it may not authorize you (it may not check what you're allowed to see).
-  </div>
-
-  <div class="lab-section-label">Objectives</div>
-  <div class="lab-objective current" id="obj-recon">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 1 — View your assigned patient</span>
-      Load patient 1001 and review the record returned by the API
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-access">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 2 — Access another patient</span>
-      Change the patient ID to access a record you are not assigned to
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-vip">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 3 — Find the VIP record</span>
-      Locate the high-value patient record (hint: try higher IDs)
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-exfiltrate">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 4 — Access sensitive fields</span>
-      Append <code>?fields=all</code> to retrieve unmasked PII including SSN
-    </div>
-  </div>
-
-  <div class="lab-section-label" style="margin-top:24px;">Security Context</div>
-  <div class="lab-scenario">
-    This lab targets <strong>CWE-639: Authorization Bypass Through User-Controlled Key</strong> (Insecure Direct Object Reference). The API uses the patient ID from the URL to look up records without verifying that the authenticated user is authorized to access that specific patient.
-  </div>
-  <div class="lab-scenario">
-    <strong>MITRE ATT&CK:</strong> T1530 — Data from Cloud Storage Object<br>
-    <strong>OWASP:</strong> A01:2021 — Broken Access Control<br>
-    <strong>Real-world precedent:</strong> First American Financial (2019) — 885 million records exposed via IDOR in document access portal
-  </div>
+<!-- Mission Brief Content -->
+<div class="ws-mission-header">Operation: Chart Breach</div>
+<div class="ws-mission-narrative">
+  MedConnect Health Systems has engaged your team to audit their patient portal API. You have been given a physician account (Dr. Sarah Chen) with access to one patient (ID 1001). The API authenticates users but may not authorize individual data requests.
+  <br><br>
+  Your objective: determine whether the API enforces authorization on patient record access, enumerate accessible records, and find the VIP patient with unmasked sensitive data.
 </div>
 
-<!-- Source Tab -->
-<div class="lab-tab-content" data-tab-content="source">
-  <div class="lab-section-label">Vulnerable Code</div>
-  <div class="lab-source-filename">&#x1f4c4; server/routes/patient.js</div>
-  <pre class="lab-source-pre"><span class="ln"> 1</span><span class="kw">const</span> express = <span class="fn">require</span>(<span class="str">'express'</span>);
-<span class="ln"> 2</span><span class="kw">const</span> router = express.<span class="fn">Router</span>();
-<span class="ln"> 3</span><span class="kw">const</span> db = <span class="fn">require</span>(<span class="str">'../db'</span>);
-<span class="ln"> 4</span><span class="kw">const</span> auth = <span class="fn">require</span>(<span class="str">'../middleware/auth'</span>);
-<span class="ln"> 5</span>
-<span class="ln"> 6</span><span class="cm">// Authentication is checked — user must be logged in</span>
-<span class="ln"> 7</span>router.<span class="fn">use</span>(auth.<span class="fn">requireLogin</span>);
-<span class="ln"> 8</span>
-<span class="ln"> 9</span><span class="cm">// GET /api/patient/:id</span>
-<span class="vuln"><span class="ln">10</span>router.<span class="fn">get</span>(<span class="str">'/api/patient/:id'</span>, (req, res) =&gt; {</span>
-<span class="vuln"><span class="ln">11</span>  <span class="kw">const</span> patient = db.<span class="fn">getPatient</span>(req.params.id);</span>
-<span class="ln">12</span>  <span class="cm">// &#x26a0; No authorization check!</span>
-<span class="ln">13</span>  <span class="cm">// Does NOT verify req.user has access to this patient</span>
-<span class="vuln"><span class="ln">14</span>  <span class="kw">if</span> (!patient) <span class="kw">return</span> res.<span class="fn">status</span>(404).<span class="fn">json</span>({ error: <span class="str">'Not found'</span> });</span>
-<span class="vuln"><span class="ln">15</span>  <span class="kw">return</span> res.<span class="fn">json</span>(patient);</span>
-<span class="ln">16</span>});</pre>
-
-  <div class="lab-section-label">The Fix</div>
-  <div class="lab-source-filename" style="color:var(--sage);">&#x2705; server/routes/patient-fixed.js</div>
-  <pre class="lab-source-pre"><span class="ln">10</span>router.<span class="fn">get</span>(<span class="str">'/api/patient/:id'</span>, (req, res) =&gt; {
-<span class="ln">11</span>  <span class="kw">const</span> patient = db.<span class="fn">getPatient</span>(req.params.id);
-<span class="ln">12</span>  <span class="kw">if</span> (!patient) <span class="kw">return</span> res.<span class="fn">status</span>(404).<span class="fn">json</span>({ error: <span class="str">'Not found'</span> });
-<span class="ln">13</span>
-<span class="ln">14</span>  <span class="cm">// Verify the authenticated user has access</span>
-<span class="ln">15</span>  <span class="kw">const</span> allowed = db.<span class="fn">getAssignedPatients</span>(req.user.id);
-<span class="ln">16</span>  <span class="kw">if</span> (!allowed.<span class="fn">includes</span>(patient.id)) {
-<span class="ln">17</span>    <span class="kw">return</span> res.<span class="fn">status</span>(403).<span class="fn">json</span>({ error: <span class="str">'Access denied'</span> });
-<span class="ln">18</span>  }
-<span class="ln">19</span>
-<span class="ln">20</span>  <span class="kw">return</span> res.<span class="fn">json</span>(patient);
-<span class="ln">21</span>});</pre>
+<div class="ws-mission-goal">
+  <div class="ws-mission-goal-label">Primary Objective</div>
+  <div class="ws-mission-goal-text">Access another patient's medical records by changing the ID in the API request</div>
 </div>
 
-<!-- Hints Tab -->
-<div class="lab-tab-content" data-tab-content="hints">
-  <div class="lab-section-label">Hints</div>
-  <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Each hint costs XP. Try to solve it without them for maximum score.</p>
-
-  <div class="lab-hint" id="hint-0">
-    <div class="lab-hint-header">
-      <span>Hint 1 — General direction</span>
-      <span class="lab-hint-cost">-10 xp</span>
-    </div>
-    <div class="lab-hint-body">The API endpoint uses the patient ID directly from the URL. Look at the URL bar — it says <code>/api/patient/1001</code>. What happens if you change 1001 to a different number? Try nearby values like 1002 or 1003.</div>
-  </div>
-
-  <div class="lab-hint" id="hint-1">
-    <div class="lab-hint-header">
-      <span>Hint 2 — Finding the VIP</span>
-      <span class="lab-hint-cost">-25 xp</span>
-    </div>
-    <div class="lab-hint-body">Important records are sometimes stored at memorable or round-number IDs. The hospital's VIP patient list uses IDs in the 1005 range. Try ID 1005 — this is a high-profile patient with a flag you need to find.</div>
-  </div>
-
-  <div class="lab-hint" id="hint-2">
-    <div class="lab-hint-header">
-      <span>Hint 3 — Unmasking sensitive data</span>
-      <span class="lab-hint-cost">-50 xp</span>
-    </div>
-    <div class="lab-hint-body">The API supports a query parameter <code>?fields=all</code> that returns all fields including normally masked data. Try entering <code>/api/patient/1005?fields=all</code> in the URL bar. This reveals the full SSN and other sensitive PII that is normally masked in the default response.</div>
-  </div>
+<div class="ws-mission-goal ws-mission-goal-bonus">
+  <div class="ws-mission-goal-label">Bonus</div>
+  <div class="ws-mission-goal-text">Find the VIP patient with unmasked PII data</div>
 </div>
 
-<!-- Debrief (shown after completion) -->
-<div class="lab-debrief" id="lab-debrief">
-  <div class="lab-debrief-label">Debrief — Insecure Direct Object Reference</div>
-
-  <h3>What happened</h3>
-  <p>MedConnect's patient API authenticates users (checks that you're logged in) but never authorizes individual requests (never checks that you're allowed to see patient 1002 vs. 1001). Any authenticated user — physician, nurse, billing clerk — can access any patient record by changing the ID in the URL.</p>
-
-  <h3>The vulnerable code</h3>
-  <pre>router.get('/api/patient/:id', (req, res) =&gt; {
-  const patient = db.getPatient(req.params.id);
-  // No check: does req.user have access to req.params.id?
-  return res.json(patient);
-});</pre>
-
-  <h3>The fix</h3>
-  <p>Every data access must verify that the authenticated user is authorized for that specific resource. This means checking a mapping table (physician_assignments, care_team, etc.) before returning data. Additionally:</p>
-  <pre>// 1. Check authorization
-const allowed = db.getAssignedPatients(req.user.id);
-if (!allowed.includes(req.params.id)) {
-  return res.status(403).json({ error: 'Access denied' });
-}
-
-// 2. Use UUIDs instead of sequential integers
-// Bad:  /api/patient/1001 (guessable)
-// Good: /api/patient/a3f8d2e1-4c91-4b... (not guessable)
-
-// 3. Log access attempts for audit trail
-audit.log({
-  user: req.user.id,
-  action: 'patient_access',
-  resource: req.params.id,
-  authorized: allowed.includes(req.params.id)
-});</pre>
-
-  <h3>Real-world impact</h3>
-  <p>In healthcare, IDOR vulnerabilities are a HIPAA violation that can result in fines of $100–$50,000 per record accessed, up to $1.5 million per year. Beyond financial penalties, exposed patient records erode trust and can be used for medical identity theft.</p>
-  <p><strong>First American Financial (2019):</strong> A simple IDOR vulnerability in the document access system exposed 885 million records — including bank account numbers, Social Security numbers, and wire transaction receipts — dating back to 2003. Anyone who knew the URL format could access any document by incrementing the ID number. The SEC later fined First American $487,616.</p>
-  <p><strong>LabCorp / Quest Diagnostics (2019):</strong> AMCA, a billing collections vendor, had an IDOR vulnerability that exposed 20 million patient records including lab results and financial data.</p>
-
-  <h3>How to find this in the wild</h3>
-  <p>During a pentest, identify any endpoint that uses an ID, filename, or key in the URL or request body. Create two accounts with different permissions. Using Account A's session, try to access Account B's resources by changing the identifier. Also test:</p>
-  <p><strong>Horizontal IDOR:</strong> Same role, different data (patient 1001 vs 1002)<br>
-  <strong>Vertical IDOR:</strong> Different role, higher-privilege data (admin panel, VIP records)<br>
-  <strong>Parameter pollution:</strong> <code>?fields=all</code>, <code>?include=ssn</code>, <code>?verbose=true</code></p>
-
-  <div class="lab-debrief-refs">
-    <div class="lab-section-label">References</div>
-    <a href="https://owasp.org/Top10/A01_2021-Broken_Access_Control/" target="_blank" rel="noopener">OWASP A01:2021 — Broken Access Control &#x2197;</a>
-    <a href="https://cwe.mitre.org/data/definitions/639.html" target="_blank" rel="noopener">CWE-639: Authorization Bypass Through User-Controlled Key &#x2197;</a>
-    <a href="https://attack.mitre.org/techniques/T1530/" target="_blank" rel="noopener">MITRE ATT&CK T1530 — Data from Cloud Storage Object &#x2197;</a>
+<div class="ws-mission-intel-section">
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Target</div>
+    <div class="ws-intel-value">medconnect.lab.penumbraforge.com</div>
+  </div>
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Scope</div>
+    <div class="ws-intel-value">Patient API — /api/patient/:id</div>
+  </div>
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Rules of Engagement</div>
+    <div class="ws-intel-value">No DoS. No data modification. Read-only access testing.</div>
   </div>
 </div>
-  </div>
-</div>
-
-<!-- CENTER: Target App (simulated, no iframe) -->
-<div class="lab-center">
-  <div class="lab-target-bar">
-    <div class="lab-target-dots"><div class="lab-dot lab-dot-r"></div><div class="lab-dot lab-dot-y"></div><div class="lab-dot lab-dot-g"></div></div>
-    <div class="lab-target-url" style="display:flex;align-items:center;gap:0;flex:1;">
-      <span class="lab-target-lock">&#x1f512;</span>
-      <span style="color:var(--text-3);font-size:12px;font-family:var(--font-mono);white-space:nowrap;">https://portal.medconnect.health</span>
-      <input type="text" id="mc-url-input" value="/api/patient/1001" autocomplete="off" spellcheck="false" style="flex:1;background:none;border:none;color:var(--text-1);font-family:var(--font-mono);font-size:12px;outline:none;padding:0 4px;">
-      <button id="mc-go-btn" style="background:rgba(76,175,140,0.15);color:#4caf8c;border:1px solid rgba(76,175,140,0.25);border-radius:4px;padding:3px 12px;font-family:var(--font-mono);font-size:10px;cursor:pointer;flex-shrink:0;">GO</button>
-    </div>
-  </div>
-
-  <!-- Simulated MedConnect Patient Portal -->
-  <div id="mc-app" style="flex:1;overflow-y:auto;background:#0a1a1f;">
-    <!-- Rendered by JS -->
-  </div>
-</div>
-
-<!-- RIGHT: Inspector -->
-<div class="lab-inspector">
-  <div class="lab-panel-tabs">
-    <button class="lab-panel-tab active" data-tab="http">HTTP</button>
-    <button class="lab-panel-tab" data-tab="logs">Server Logs</button>
-    <button class="lab-panel-tab" data-tab="console">Console</button>
-  </div>
-  <div class="lab-panel-content" style="padding:0;">
-    <div class="lab-tab-content active" data-tab-content="http">
-      <div class="lab-http">
-        <div class="lab-http-section">
-          <div class="lab-http-label">Request</div>
-          <pre class="lab-http-pre" id="http-req"><span class="lab-http-method">GET</span> /api/patient/1001 HTTP/1.1
-<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">portal.medconnect.health</span>
-<span class="lab-http-hname">Authorization:</span> <span class="lab-http-hval">Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9</span>
-<span class="lab-http-hname">Cookie:</span> <span class="lab-http-hval">session=mc_sess_dr_chen_7f2a</span></pre>
-        </div>
-        <div class="lab-http-section">
-          <div class="lab-http-label">Response</div>
-          <pre class="lab-http-pre" id="http-resp">HTTP/1.1 <span class="lab-http-status">200 OK</span>
-<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>
-<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span></pre>
-        </div>
-      </div>
-    </div>
-    <div class="lab-tab-content" data-tab-content="logs">
-      <div class="lab-logs" id="server-logs"></div>
-    </div>
-    <div class="lab-tab-content" data-tab-content="console">
-      <div class="lab-console">
-        <div class="lab-console-output" id="console-output">
-          <div class="c-info">Penumbra Forge Security Lab v1.0</div>
-          <div class="c-info">Target: portal.medconnect.health</div>
-          <div class="c-info">Type 'help' for available commands.</div>
-        </div>
-        <div class="lab-console-input-row">
-          <span class="lab-console-prefix">$</span>
-          <input type="text" class="lab-console-input" id="console-input" placeholder="Enter command..." autocomplete="off">
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<style>
-/* MedConnect Patient Portal Styles */
-#mc-app {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #c8e6d8;
-}
-
-.mc-header {
-  background: linear-gradient(135deg, #0d2b2e 0%, #143a3d 100%);
-  padding: 16px 24px;
-  border-bottom: 1px solid rgba(76,175,140,0.15);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.mc-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.mc-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #1a6b5a, #4caf8c);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-}
-
-.mc-brand-name {
-  font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 16px;
-  color: #e0f2ec;
-  font-weight: 400;
-}
-
-.mc-user-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  color: #8bb8a8;
-}
-
-.mc-user-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #2a7a6a, #4caf8c);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #fff;
-  font-weight: 500;
-}
-
-.mc-body {
-  padding: 24px;
-}
-
-.mc-alert {
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 12px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mc-alert-success {
-  background: rgba(76,175,140,0.08);
-  border: 1px solid rgba(76,175,140,0.2);
-  color: #4caf8c;
-}
-
-.mc-alert-info {
-  background: rgba(130,170,255,0.08);
-  border: 1px solid rgba(130,170,255,0.15);
-  color: #82aaff;
-}
-
-.mc-alert-warn {
-  background: rgba(232,184,77,0.08);
-  border: 1px solid rgba(232,184,77,0.15);
-  color: #e8b84d;
-}
-
-.mc-alert-danger {
-  background: rgba(235,87,87,0.08);
-  border: 1px solid rgba(235,87,87,0.15);
-  color: #eb5757;
-}
-
-.mc-patient-card {
-  background: linear-gradient(135deg, #0d2226 0%, #112a2e 100%);
-  border: 1px solid rgba(76,175,140,0.12);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.mc-patient-header {
-  background: linear-gradient(135deg, #143a3d 0%, #1a4a4d 100%);
-  padding: 18px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(76,175,140,0.1);
-}
-
-.mc-patient-name {
-  font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 18px;
-  color: #e0f2ec;
-  font-weight: 400;
-}
-
-.mc-patient-id-badge {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  padding: 3px 10px;
-  border-radius: 4px;
-  background: rgba(76,175,140,0.12);
-  color: #4caf8c;
-  border: 1px solid rgba(76,175,140,0.2);
-}
-
-.mc-patient-body {
-  padding: 20px;
-}
-
-.mc-field-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.mc-field {
-  padding: 12px;
-  background: rgba(76,175,140,0.03);
-  border: 1px solid rgba(76,175,140,0.06);
-  border-radius: 8px;
-}
-
-.mc-field-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #5a9a8a;
-  margin-bottom: 4px;
-}
-
-.mc-field-value {
-  font-size: 13px;
-  color: #c8e6d8;
-}
-
-.mc-field-value.mc-masked {
-  color: #8bb8a8;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-}
-
-.mc-field-value.mc-sensitive {
-  color: #eb5757;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-}
-
-.mc-section-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: #5a9a8a;
-  margin: 20px 0 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(76,175,140,0.08);
-}
-
-.mc-medications {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.mc-med-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(76,175,140,0.03);
-  border: 1px solid rgba(76,175,140,0.06);
-  border-radius: 6px;
-  font-size: 12px;
-  color: #c8e6d8;
-}
-
-.mc-med-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #4caf8c;
-  flex-shrink: 0;
-}
-
-.mc-vip-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  background: rgba(232,184,77,0.12);
-  border: 1px solid rgba(232,184,77,0.25);
-  border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  color: #e8b84d;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.mc-error-card {
-  text-align: center;
-  padding: 60px 24px;
-}
-
-.mc-error-code {
-  font-family: 'Bricolage Grotesque', sans-serif;
-  font-size: 48px;
-  color: rgba(76,175,140,0.15);
-  margin-bottom: 8px;
-}
-
-.mc-error-msg {
-  font-size: 14px;
-  color: #8bb8a8;
-}
-</style>
 
 <script>
 (function() {
-  var PATIENTS = {
-    1001: {
-      id: 1001,
-      name: 'Marcus Thompson',
-      dob: '1985-03-14',
-      age: 41,
-      gender: 'Male',
-      bloodType: 'O+',
-      physician: 'Dr. Sarah Chen',
-      department: 'Internal Medicine',
-      diagnosis: 'Type 2 Diabetes Mellitus',
-      admitDate: '2026-03-18',
-      status: 'Active',
-      ssn: '***-**-4829',
-      ssnFull: '442-38-4829',
-      insurance: 'BlueCross BlueShield — PPO',
-      medications: ['Metformin 500mg — twice daily', 'Lisinopril 10mg — once daily', 'Atorvastatin 20mg — once daily'],
-      notes: 'Patient managing well with current medication regimen. A1C levels improving. Follow-up in 3 months.',
-      assigned: true
-    },
-    1002: {
-      id: 1002,
-      name: 'Elena Rodriguez',
-      dob: '1992-07-22',
-      age: 33,
-      gender: 'Female',
-      bloodType: 'A-',
-      physician: 'Dr. James Park',
-      department: 'Cardiology',
-      diagnosis: 'Atrial Fibrillation',
-      admitDate: '2026-03-15',
-      status: 'Active',
-      ssn: '***-**-7731',
-      ssnFull: '518-62-7731',
-      insurance: 'Aetna — HMO',
-      medications: ['Apixaban 5mg — twice daily', 'Metoprolol 25mg — twice daily'],
-      notes: 'Rate control achieved. Anticoagulation therapy ongoing. Echocardiogram scheduled for next week.'
-    },
-    1003: {
-      id: 1003,
-      name: 'David Kim',
-      dob: '1978-11-03',
-      age: 47,
-      gender: 'Male',
-      bloodType: 'B+',
-      physician: 'Dr. Amanda Foster',
-      department: 'Orthopedics',
-      diagnosis: 'ACL Tear — Right Knee',
-      admitDate: '2026-03-20',
-      status: 'Pre-Op',
-      ssn: '***-**-2156',
-      ssnFull: '331-90-2156',
-      insurance: 'UnitedHealth — PPO',
-      medications: ['Ibuprofen 400mg — as needed', 'Oxycodone 5mg — post-op (pending)'],
-      notes: 'Surgical repair scheduled for March 25. Pre-op clearance obtained. Patient counseled on recovery timeline.'
-    },
-    1004: {
-      id: 1004,
-      name: 'Sarah Williams',
-      dob: '1969-05-30',
-      age: 56,
-      gender: 'Female',
-      bloodType: 'AB+',
-      physician: 'Dr. Michael Torres',
-      department: 'Oncology',
-      diagnosis: 'Stage II Breast Cancer',
-      admitDate: '2026-02-28',
-      status: 'Active',
-      ssn: '***-**-8843',
-      ssnFull: '276-51-8843',
-      insurance: 'Medicare Part B',
-      medications: ['Tamoxifen 20mg — once daily', 'Ondansetron 8mg — as needed', 'Dexamethasone 4mg — with chemo'],
-      notes: 'Completing third cycle of chemotherapy. Tumor response favorable on latest imaging. Tolerating treatment well.'
-    },
-    1005: {
-      id: 1005,
-      name: 'Robert J. Harrington III',
-      dob: '1960-01-12',
-      age: 66,
-      gender: 'Male',
-      bloodType: 'O-',
-      physician: 'Dr. Catherine Wells',
-      department: 'Executive Health',
-      diagnosis: 'Coronary Artery Disease, Hypertension, Hyperlipidemia',
-      admitDate: '2026-03-10',
-      status: 'VIP — Active',
-      ssn: '***-**-0001',
-      ssnFull: '078-05-0001',
-      insurance: 'Private — Harrington Trust',
-      medications: ['Clopidogrel 75mg — once daily', 'Atorvastatin 80mg — once daily', 'Amlodipine 10mg — once daily', 'Aspirin 81mg — once daily'],
-      notes: 'CEO of Harrington Capital Group. Three-vessel coronary disease. Drug-eluting stent placed LAD 2026-03-12. Recovery uneventful. Strictly confidential per hospital administration.',
-      vip: true
-    }
-  };
+  'use strict';
 
-  var LAB_CONFIG = {
+  var Labs = window.PenumbraLabs;
+
+  // NOTE: Red team procedural randomization (target app content, defenses,
+  // response tokens) will be handled by Worker-side randomization in a
+  // future update. The procedural engine is primarily for blue team
+  // evidence corpora.
+  var workerUrl = '{{ workerUrl }}';
+
+  // ── Scenario Definition ──
+  var scenario = {
     id: 'red-idor-medconnect',
     type: 'red',
-    title: 'IDOR',
-    target: 'MedConnect',
+    title: 'IDOR — Patient Record Access',
     difficulty: 'beginner',
     estimatedTime: 10,
     xpReward: 100,
-    hintCost: [10, 25, 50],
     skills: ['access-control-idor'],
-    unlocks: [],
-    objectives: [
-      { id: 'recon', step: 1, title: 'View assigned patient' },
-      { id: 'access', step: 2, title: 'Access unauthorized record' },
-      { id: 'vip', step: 3, title: 'Find VIP record' },
-      { id: 'exfiltrate', step: 4, title: 'Access sensitive fields' },
+    unlocks: ['blue-investigate-medconnect'],
+    optimalActions: 5,
+    techniqueChecks: [
+      { id: 'explored-own', check: function(log) { return log.some(function(a) { return a.type === 'terminal' && a.command === 'curl' && a.url && /\/api\/patient\/1001/.test(a.url); }); }, points: 25 },
+      { id: 'used-repeater', check: function(log) { return log.some(function(a) { return a.type === 'repeater'; }); }, points: 25 },
+      { id: 'enumerated-ids', check: function(log) { return log.some(function(a) { return a.type === 'iframe_message' && a.message && a.message.patientId && a.message.patientId !== '1001'; }); }, points: 25 },
+      { id: 'found-vip', check: function(log) { return log.some(function(a) { return a.type === 'iframe_message' && a.message && a.message.isVip === true; }); }, points: 25 }
     ],
+
+    stateGraph: {
+      states: {
+        'start':               { transitions: { 'recon': 'recon' } },
+        'recon':               { transitions: { 'id_discovered': 'id_discovered' } },
+        'id_discovered':       { transitions: { 'unauthorized_access': 'unauthorized_access' } },
+        'unauthorized_access': { transitions: { 'sensitive_data': 'sensitive_data' } },
+        'sensitive_data':      { transitions: { 'complete': 'complete' } },
+        'complete':            { terminal: true }
+      },
+      initialState: 'start'
+    },
+
+    validationRules: {
+      'recon': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'idor-result' && msg.patientId === '1001';
+        }
+      },
+      'id_discovered': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'idor-result' && msg.patientId && msg.patientId !== '1001';
+        }
+      },
+      'unauthorized_access': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'idor-result' && msg.unauthorized === true;
+        }
+      },
+      'sensitive_data': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'idor-result' && (msg.isVip === true || msg.unmaskedPii === true);
+        }
+      },
+      'complete': {
+        trigger: 'auto',
+        condition: function() { return true; }
+      }
+    },
+
+    nudges: {
+      'start': {
+        delay: 90,
+        text: 'Start by loading your assigned patient record (ID 1001). Look at the URL structure — the patient ID is right there in the path.'
+      },
+      'recon': {
+        delay: 120,
+        text: 'You can see patient 1001. The IDs are sequential integers. What happens if you change 1001 to 1002 or 1003?'
+      },
+      'id_discovered': {
+        delay: 120,
+        text: 'You accessed another patient\'s record without any authorization error. Try more IDs — can you find a VIP patient? Check IDs around 1005.'
+      },
+      'unauthorized_access': {
+        delay: 90,
+        text: 'Almost there. Try appending ?fields=all to the URL to request unmasked sensitive data like SSN.'
+      }
+    },
+
+    objectives: [
+      { id: 'recon', title: 'Reconnaissance' },
+      { id: 'id_discovered', title: 'ID Enumeration' },
+      { id: 'unauthorized_access', title: 'Unauthorized Access' },
+      { id: 'sensitive_data', title: 'Sensitive Data Exposed' }
+    ]
   };
 
-  var Engine = PenumbraLabs.Engine;
-  var ServerLogs = PenumbraLabs.ServerLogs;
-
-  Engine.init(LAB_CONFIG);
-  ServerLogs.init('server-logs');
-  ServerLogs.add('info', 'MedConnect Patient Portal started on port 443');
-  ServerLogs.add('info', 'Database connected — 5 patient records loaded');
-  ServerLogs.add('info', 'Auth: Dr. Sarah Chen authenticated — session mc_sess_dr_chen_7f2a');
-
-  var httpReq = document.getElementById('http-req');
-  var httpResp = document.getElementById('http-resp');
-  var urlInput = document.getElementById('mc-url-input');
-  var goBtn = document.getElementById('mc-go-btn');
-  var appEl = document.getElementById('mc-app');
-  var currentPatientId = null;
-  var showAllFields = false;
-
-  function parseUrl(url) {
-    var idMatch = url.match(/\/api\/patient\/(\d+)/);
-    var fieldsAll = /[?&]fields=all/i.test(url);
-    return {
-      patientId: idMatch ? parseInt(idMatch[1], 10) : null,
-      fieldsAll: fieldsAll
-    };
-  }
-
-  function renderPatient(patient, showSensitive) {
-    var isAssigned = patient.assigned === true;
-    var isVip = patient.vip === true;
-    var alertHtml = '';
-
-    if (isAssigned) {
-      alertHtml = '<div class="mc-alert mc-alert-success">&#x2705; Authorized — Patient assigned to your care team</div>';
-    } else {
-      alertHtml = '<div class="mc-alert mc-alert-warn">&#x26a0; Notice — This patient is not assigned to your care team</div>';
-    }
-
-    if (isVip) {
-      alertHtml += '<div class="mc-alert mc-alert-danger">&#x1f6e1; CONFIDENTIAL — VIP patient record. Access is logged and audited.</div>';
-    }
-
-    var ssnValue = showSensitive ? '<span class="mc-sensitive">' + patient.ssnFull + '</span>' : '<span class="mc-masked">' + patient.ssn + '</span>';
-
-    var medsHtml = patient.medications.map(function(med) {
-      return '<div class="mc-med-item"><div class="mc-med-dot"></div>' + escHtml(med) + '</div>';
-    }).join('');
-
-    var vipBadge = isVip ? ' <span class="mc-vip-badge">&#x2B50; VIP</span>' : '';
-    var statusColor = isVip ? '#e8b84d' : '#4caf8c';
-
-    return '<div class="mc-body">' +
-      alertHtml +
-      '<div class="mc-patient-card">' +
-        '<div class="mc-patient-header">' +
-          '<div><div class="mc-patient-name">' + escHtml(patient.name) + vipBadge + '</div></div>' +
-          '<div class="mc-patient-id-badge">MRN #' + patient.id + '</div>' +
-        '</div>' +
-        '<div class="mc-patient-body">' +
-          '<div class="mc-field-grid">' +
-            '<div class="mc-field"><div class="mc-field-label">Date of Birth</div><div class="mc-field-value">' + patient.dob + ' (Age ' + patient.age + ')</div></div>' +
-            '<div class="mc-field"><div class="mc-field-label">Gender</div><div class="mc-field-value">' + patient.gender + '</div></div>' +
-            '<div class="mc-field"><div class="mc-field-label">Blood Type</div><div class="mc-field-value">' + patient.bloodType + '</div></div>' +
-            '<div class="mc-field"><div class="mc-field-label">Status</div><div class="mc-field-value" style="color:' + statusColor + ';">' + patient.status + '</div></div>' +
-            '<div class="mc-field"><div class="mc-field-label">Primary Physician</div><div class="mc-field-value">' + escHtml(patient.physician) + '</div></div>' +
-            '<div class="mc-field"><div class="mc-field-label">Department</div><div class="mc-field-value">' + escHtml(patient.department) + '</div></div>' +
-            '<div class="mc-field"><div class="mc-field-label">Insurance</div><div class="mc-field-value">' + escHtml(patient.insurance) + '</div></div>' +
-            '<div class="mc-field"><div class="mc-field-label">Admit Date</div><div class="mc-field-value">' + patient.admitDate + '</div></div>' +
-          '</div>' +
-
-          '<div class="mc-section-label">Diagnosis</div>' +
-          '<div class="mc-field"><div class="mc-field-value">' + escHtml(patient.diagnosis) + '</div></div>' +
-
-          '<div class="mc-section-label">Social Security Number</div>' +
-          '<div class="mc-field"><div class="mc-field-value">' + ssnValue + '</div></div>' +
-
-          '<div class="mc-section-label">Current Medications</div>' +
-          '<div class="mc-medications">' + medsHtml + '</div>' +
-
-          '<div class="mc-section-label">Clinical Notes</div>' +
-          '<div class="mc-field"><div class="mc-field-value" style="line-height:1.7;font-size:12px;">' + escHtml(patient.notes) + '</div></div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-  }
-
-  function renderNotFound(id) {
-    return '<div class="mc-body">' +
-      '<div class="mc-error-card">' +
-        '<div class="mc-error-code">404</div>' +
-        '<div class="mc-error-msg">Patient #' + id + ' not found in the database</div>' +
-      '</div>' +
-    '</div>';
-  }
-
-  function renderPortalChrome(bodyHtml) {
-    return '<div class="mc-header">' +
-      '<div class="mc-brand">' +
-        '<div class="mc-logo">&#x2695;</div>' +
-        '<div class="mc-brand-name">MedConnect</div>' +
-      '</div>' +
-      '<div class="mc-user-info">' +
-        '<span>Dr. Sarah Chen</span>' +
-        '<div class="mc-user-avatar">SC</div>' +
-      '</div>' +
-    '</div>' +
-    bodyHtml;
-  }
-
-  function navigate(url) {
-    var parsed = parseUrl(url);
-    showAllFields = parsed.fieldsAll;
-
-    if (!parsed.patientId) {
-      appEl.innerHTML = renderPortalChrome('<div class="mc-body"><div class="mc-alert mc-alert-info">Enter a patient ID in the URL bar above. Example: /api/patient/1001</div></div>');
-      return;
-    }
-
-    var pid = parsed.patientId;
-    var patient = PATIENTS[pid];
-
-    // Update HTTP inspector
-    var reqPath = '/api/patient/' + pid + (showAllFields ? '?fields=all' : '');
-    httpReq.innerHTML = '<span class="lab-http-method">GET</span> ' + escHtml(reqPath) + ' HTTP/1.1\n' +
-      '<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">portal.medconnect.health</span>\n' +
-      '<span class="lab-http-hname">Authorization:</span> <span class="lab-http-hval">Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9</span>\n' +
-      '<span class="lab-http-hname">Cookie:</span> <span class="lab-http-hval">session=mc_sess_dr_chen_7f2a</span>';
-
-    if (patient) {
-      httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status">200 OK</span>\n' +
-        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n' +
-        '<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span>\n' +
-        '<span class="lab-http-hname">X-Request-ID:</span> <span class="lab-http-hval">req_' + Math.random().toString(36).substr(2, 8) + '</span>';
-
-      ServerLogs.add('info', 'GET /api/patient/' + pid + (showAllFields ? '?fields=all' : '') + ' — 200');
-
-      appEl.innerHTML = renderPortalChrome(renderPatient(patient, showAllFields));
-      currentPatientId = pid;
-
-      // Objective: View assigned patient
-      if (pid === 1001) {
-        Engine.tryCompleteObjective('recon');
-      }
-
-      // Objective: Access unauthorized record
-      if (pid !== 1001) {
-        Engine.tryCompleteObjective('access');
-        ServerLogs.add('warn', 'Access to patient ' + pid + ' by Dr. Chen — NOT in assigned patient list');
-      }
-
-      // Objective: Find VIP
-      if (pid === 1005) {
-        Engine.tryCompleteObjective('vip');
-        ServerLogs.add('warn', 'VIP record accessed — patient ' + pid + ' (' + patient.name + ')');
-      }
-
-      // Objective: fields=all
-      if (showAllFields) {
-        Engine.tryCompleteObjective('exfiltrate');
-        ServerLogs.add('err', 'Sensitive fields returned — SSN unmasked for patient ' + pid + ': ' + patient.ssnFull);
-      }
-    } else {
-      httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status" style="color:#eb5757;">404 Not Found</span>\n' +
-        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>';
-
-      ServerLogs.add('info', 'GET /api/patient/' + pid + ' — 404');
-      appEl.innerHTML = renderPortalChrome(renderNotFound(pid));
-    }
-  }
-
-  // URL bar navigation
-  goBtn.addEventListener('click', function() {
-    navigate(urlInput.value.trim());
+  // ── Initialize Panel System ──
+  Labs.PanelSystem.init({
+    container: document.getElementById('workspace'),
+    panels: [
+      { id: 'panel-mission', minWidth: 220, defaultWidth: 280 },
+      { id: 'panel-tools', flex: true },
+      { id: 'panel-browser', minWidth: 320, defaultWidth: 480 }
+    ]
   });
 
-  urlInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') navigate(this.value.trim());
-  });
+  // ── Initialize Simulation Engine ──
+  var sim = Labs.Simulation.init({
+    scenario: scenario,
+    bridge: Labs.SimulationBridge,
+    onStateChange: function(fromState, toState, action) {
+      var obj = scenario.objectives.find(function(o) { return o.id === toState; }) ||
+                scenario.objectives.find(function(o) { return o.id === fromState; });
+      var label = obj ? obj.title : toState;
+      Labs.Toast.show(label + ' — confirmed', 'success');
 
-  // Initial load — patient 1001
-  navigate('/api/patient/1001');
-
-  // Hint reveals
-  document.querySelectorAll('.lab-hint').forEach(function(hint, idx) {
-    hint.addEventListener('click', function() {
-      if (!this.classList.contains('revealed')) {
-        this.classList.add('revealed');
-        Engine.revealHint(idx);
-      }
-    });
-  });
-
-  // Restore previous progress
-  var progress = Engine.getProgress();
-  progress.objectivesCompleted.forEach(function(objId) {
-    var el = document.getElementById('obj-' + objId);
-    if (el) {
-      el.classList.remove('current');
-      el.classList.add('completed');
-      el.querySelector('.lab-obj-check').textContent = '\u2713';
+      updateDetection(toState);
+      updateRequestCount();
+      addIntel(toState, action);
+    },
+    onComplete: function() {
+      var elapsed = Labs.Timer.stop();
+      var scoringData = {
+        actionsLog: sim.getActionsLog(),
+        nudgesShown: sim._nudgeRef ? sim._nudgeRef._shownCount || 0 : 0,
+        nudgesDismissed: sim._nudgeRef ? sim._nudgeRef._dismissCount || 0 : 0,
+        evidenceFound: 4,
+        totalEvidence: 4
+      };
+      var result = Labs.SimulationBridge.onLabComplete(scenario.id, scenario, elapsed, scoringData);
+      showCompletion(result, elapsed);
     }
   });
 
-  var foundCurrent = false;
-  LAB_CONFIG.objectives.forEach(function(obj) {
-    var el = document.getElementById('obj-' + obj.id);
+  // ── Initialize Terminal ──
+  Labs.Terminal.init({
+    container: document.getElementById('tool-terminal'),
+    workerUrl: workerUrl,
+    onAction: function(action) {
+      sim.dispatch(action);
+      requestCount++;
+      updateRequestCount();
+    }
+  });
+
+  // ── Initialize Repeater ──
+  Labs.Repeater.init({
+    container: document.getElementById('tool-repeater'),
+    workerUrl: workerUrl,
+    onAction: function(action) {
+      sim.dispatch(action);
+      requestCount++;
+      updateRequestCount();
+    }
+  });
+
+  // ── Initialize Decoder & Notes ──
+  Labs.Decoder.init({ container: document.getElementById('tool-decoder') });
+  Labs.Notes.init({ container: document.getElementById('tool-notes'), labId: scenario.id });
+
+  // ── Listen for iframe messages ──
+  window.addEventListener('message', function(e) {
+    if (!e.data || !e.data.type) return;
+
+    if (e.data.type === 'idor-result') {
+      sim.dispatch({ type: 'iframe_message', message: e.data });
+    }
+
+    if (e.data.type === 'medconnect-nav' && e.data.url) {
+      var urlDisplay = document.getElementById('ws-url-display');
+      if (urlDisplay) {
+        var clean = e.data.url.replace(/^https?:\/\//, '');
+        urlDisplay.value = clean;
+      }
+    }
+  });
+
+  // ── Start Timer ──
+  Labs.Timer.start(function(elapsed) {
+    var el = document.getElementById('lab-timer');
+    if (el) el.textContent = Labs.Timer.format(elapsed);
+  });
+
+  // ── State helpers ──
+  var requestCount = 0;
+
+  function updateRequestCount() {
+    var el = document.getElementById('ws-request-count');
+    if (el) el.textContent = 'Requests: ' + requestCount;
+  }
+
+  function updateDetection(state) {
+    var el = document.getElementById('ws-detection');
     if (!el) return;
-    if (progress.objectivesCompleted.indexOf(obj.id) === -1 && !foundCurrent) {
-      el.classList.add('current');
-      foundCurrent = true;
+    var labels = {
+      'recon': '● Own Patient Record Loaded',
+      'id_discovered': '● Patient IDs Enumerated',
+      'unauthorized_access': '● Unauthorized Record Accessed',
+      'sensitive_data': '● VIP PII Data Exposed',
+      'complete': '● Full IDOR Exploitation'
+    };
+    el.textContent = labels[state] || '';
+    el.style.color = state === 'complete' || state === 'sensitive_data' ? '#ef4444' : '#f59e0b';
+  }
+
+  function addIntel(state, action) {
+    var panel = document.getElementById('intel-panel');
+    if (!panel) return;
+
+    var empty = panel.querySelector('.ws-mission-empty');
+    if (empty) empty.remove();
+
+    var intel = {
+      'recon': { label: 'API Structure', value: 'GET /api/patient/:id returns patient record. IDs are sequential integers — easily guessable.' },
+      'id_discovered': { label: 'ID Enumeration', value: 'Changing the patient ID in the URL returns different patients — no 403 Forbidden response' },
+      'unauthorized_access': { label: 'No Authorization', value: 'API authenticates users but never checks if the user is authorized for the requested patient' },
+      'sensitive_data': { label: 'VIP Data Exposed', value: 'VIP patient record found with unmasked SSN and full PII — ?fields=all bypasses data masking' }
+    };
+
+    var info = intel[state];
+    if (!info) return;
+
+    var div = document.createElement('div');
+    div.className = 'ws-intel-item';
+    div.innerHTML = '<div class="ws-intel-label">' + info.label + '</div>' +
+                    '<div class="ws-intel-value">' + info.value + '</div>';
+    panel.appendChild(div);
+  }
+
+  function showCompletion(result, elapsed) {
+    document.getElementById('complete-time').textContent = Labs.Timer.format(elapsed);
+    document.getElementById('complete-score').textContent = result.scoring ? result.scoring.composite : 100;
+    document.getElementById('complete-xp').textContent = '+' + (result.scoring ? result.scoring.xp : result.xp);
+    document.getElementById('complete-level').textContent = 'Level ' + result.level + ' — ' + Labs.Xp.titleForLevel(result.level);
+
+    if (scenario.unlocks && scenario.unlocks.length > 0) {
+      var unlockEl = document.getElementById('complete-unlock');
+      if (unlockEl) {
+        unlockEl.style.display = '';
+        unlockEl.textContent = 'Blue Team Investigation →';
+        unlockEl.href = '/labs/blue/investigate-medconnect/';
+      }
     }
-  });
 
-  progress.hintsUsed.forEach(function(idx) {
-    var hint = document.getElementById('hint-' + idx);
-    if (hint) hint.classList.add('revealed');
-  });
+    document.getElementById('lab-complete-overlay').classList.add('visible');
 
-  function escHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    var debriefPanel = document.getElementById('debrief-panel');
+    if (debriefPanel && Labs.Debrief) {
+      debriefPanel.style.display = '';
+      Labs.Debrief.render({
+        container: debriefPanel,
+        scoring: result.scoring,
+        elapsed: elapsed,
+        scenario: scenario,
+        debriefContent: {
+          analysis: '<div class="debrief-card"><h3>Vulnerability: CWE-639 — Authorization Bypass Through User-Controlled Key</h3><p>MedConnect\'s patient API uses the patient ID directly from the URL parameter to query the database. While the API requires authentication (it verifies you\'re logged in), it never checks authorization (it never verifies you\'re allowed to access that specific patient).</p><p>Any authenticated user — physician, nurse, billing clerk — can access any patient record by simply changing the ID. Sequential integer IDs make enumeration trivial. The <code>?fields=all</code> parameter exposes unmasked PII that should be protected by an additional access tier.</p></div>',
+
+          framework: '<div class="debrief-card"><h3>MITRE ATT&CK Mapping</h3><p><strong>T1078</strong> — Valid Accounts: Attacker uses legitimate credentials to access unauthorized data</p><p><strong>T1530</strong> — Data from Cloud Storage Object: Enumeration and exfiltration of patient records</p></div><div class="debrief-card"><h3>OWASP Top 10</h3><p><strong>A01:2021</strong> — Broken Access Control: Missing server-side authorization on data access</p></div>',
+
+          code: '<div class="debrief-section-title">Vulnerable Code</div><div class="debrief-code"><span class="vuln">router.get(\'/api/patient/:id\', (req, res) =&gt; {\n  const patient = db.getPatient(req.params.id);\n  // No authorization check!\n  return res.json(patient);\n});</span></div><div class="debrief-section-title" style="margin-top:16px;">The Fix</div><div class="debrief-code"><span class="fix">router.get(\'/api/patient/:id\', (req, res) =&gt; {\n  const patient = db.getPatient(req.params.id);\n  const allowed = db.getAssignedPatients(req.user.id);\n  if (!allowed.includes(patient.id)) {\n    return res.status(403).json({ error: \'Access denied\' });\n  }\n  return res.json(patient);\n});</span>\n// Also: use UUIDs, log access for audit trail</div>',
+
+          crossPerspective: {
+            title: 'What a Defender Sees',
+            description: 'From the SOC\'s perspective, this attack appears as a single authenticated session making sequential API requests to patient records it was never assigned to. Access logs show a pattern: /api/patient/1001, /api/patient/1002, /api/patient/1003 — a clear enumeration pattern. In healthcare, this is a HIPAA breach that triggers mandatory notification. The defense: server-side authorization checks, access logging with anomaly detection, and UUIDs instead of sequential IDs.',
+            linkText: 'Try the Blue Team Investigation →',
+            linkHref: '/labs/blue/investigate-medconnect/'
+          }
+        }
+      });
+    }
+
+    var statusEl = document.getElementById('ws-mission-status');
+    if (statusEl) {
+      statusEl.textContent = '✓ Mission Complete';
+      statusEl.style.color = '#4ade80';
+    }
   }
 })();
 </script>

@@ -1,366 +1,329 @@
 ---
-layout: lab-workspace.njk
+layout: lab-workspace-v2.njk
 permalink: /labs/red/ssrf-cloudsnap/
 labCode: "RED-03"
 labTitle: "SSRF — Cloud Metadata Theft"
 labDifficulty: "intermediate"
-labDescription: "CloudSnap's URL import feature fetches user-provided URLs server-side without validation. Exploit this to access internal services and steal cloud credentials from the metadata endpoint."
-targetUrl: "https://cloudsnap.io/import"
-targetHost: "cloudsnap.io"
+labDescription: "CloudSnap's URL import fetches user-provided URLs server-side. Access internal services and steal cloud credentials."
+targetUrl: "https://lab-ssrf.penumbraforge.workers.dev"
+targetHost: "cloudsnap.lab.penumbraforge.com"
 workerUrl: "https://lab-ssrf.penumbraforge.workers.dev"
-targetPath: "import"
-labCompletionText: "You successfully demonstrated a server-side request forgery attack, pivoting from a URL import feature to access internal services and extract IAM credentials from the cloud metadata endpoint."
 ---
 
-<!-- LEFT: Mission Panel -->
-<div class="lab-mission-panel">
-  <div class="lab-panel-tabs">
-    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
-    <button class="lab-panel-tab" data-tab="source">Source</button>
-    <button class="lab-panel-tab" data-tab="hints">Hints</button>
-  </div>
-  <div class="lab-panel-content">
-<!-- ── Mission Tab ── -->
-<div class="lab-tab-content active" data-tab-content="mission">
-  <div class="lab-section-label">Scenario</div>
-  <div class="lab-scenario">
-    <strong>CloudSnap</strong> is a photo-sharing platform that lets users import images by URL. Their infrastructure runs on AWS. A security audit flagged the import endpoint as potentially vulnerable. Your task: confirm if the server-side fetch can be abused to access internal resources and steal cloud credentials from the instance metadata service.
-  </div>
-
-  <div class="lab-section-label">Objectives</div>
-  <div class="lab-objective current" id="obj-recon">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 1 — Reconnaissance</span>
-      Import a normal external URL and observe how the application fetches it
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-discover">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 2 — Discover internal access</span>
-      Try importing a URL pointing to <code>localhost</code> or <code>127.0.0.1</code> to see if the server follows it
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-metadata">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 3 — Access metadata</span>
-      Reach the internal metadata endpoint at <code>/internal/metadata</code>
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-credentials">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 4 — Extract credentials</span>
-      Retrieve IAM credentials including the <code>AccessKeyId</code> from the metadata service
-    </div>
-  </div>
-
-  <div class="lab-section-label" style="margin-top:24px;">Security Context</div>
-  <div class="lab-scenario">
-    This lab targets <strong>CWE-918: Server-Side Request Forgery (SSRF)</strong>. The application fetches user-provided URLs without validating the destination, allowing an attacker to make the server issue requests to internal services, cloud metadata endpoints, and other resources that are not directly accessible from the internet.
-  </div>
-  <div class="lab-scenario">
-    <strong>MITRE ATT&CK:</strong> T1190 — Exploit Public-Facing Application<br>
-    <strong>OWASP:</strong> A10:2021 — Server-Side Request Forgery<br>
-    <strong>Real-world precedent:</strong> Capital One (2019) — 100 million records stolen via SSRF to AWS metadata service
-  </div>
+<!-- Mission Brief Content -->
+<div class="ws-mission-header">Operation: Cloud Hopper</div>
+<div class="ws-mission-narrative">
+  CloudSnap is a photo-sharing platform that lets users import images by URL. Their infrastructure runs on AWS EC2 instances with IAM roles attached. A security audit flagged the import endpoint as potentially vulnerable to server-side request forgery.
+  <br><br>
+  Your objective: confirm that the server-side fetch can be abused to reach internal services, then pivot to the cloud metadata endpoint and steal IAM credentials.
 </div>
 
-<!-- ── Source Tab ── -->
-<div class="lab-tab-content" data-tab-content="source">
-  <div class="lab-section-label">Vulnerable Code</div>
-  <div class="lab-source-filename">&#x1f4c4; server/routes/import.js</div>
-  <pre class="lab-source-pre"><span class="ln"> 1</span><span class="kw">const</span> express = <span class="fn">require</span>(<span class="str">'express'</span>);
-<span class="ln"> 2</span><span class="kw">const</span> router = express.<span class="fn">Router</span>();
-<span class="ln"> 3</span><span class="kw">const</span> fetch = <span class="fn">require</span>(<span class="str">'node-fetch'</span>);
-<span class="ln"> 4</span>
-<span class="ln"> 5</span><span class="cm">// POST /import { url: "..." }</span>
-<span class="ln"> 6</span>router.<span class="fn">post</span>(<span class="str">'/import'</span>, <span class="kw">async</span> (req, res) =&gt; {
-<span class="ln"> 7</span>  <span class="kw">const</span> userUrl = req.body.url;
-<span class="ln"> 8</span>
-<span class="vuln"><span class="ln"> 9</span>  <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(userUrl);</span>
-<span class="ln">10</span>  <span class="cm">// &#x26a0; No URL validation — server fetches any URL the user provides</span>
-<span class="ln">11</span>  <span class="cm">// Attacker can target localhost, internal IPs, cloud metadata</span>
-<span class="ln">12</span>
-<span class="ln">13</span>  <span class="kw">const</span> data = <span class="kw">await</span> response.<span class="fn">text</span>();
-<span class="ln">14</span>  res.<span class="fn">json</span>({ status: <span class="str">'imported'</span>, content: data });
-<span class="ln">15</span>});</pre>
-
-  <div class="lab-section-label">The Fix</div>
-  <div class="lab-source-filename" style="color:var(--sage);">&#x2705; server/routes/import-fixed.js</div>
-  <pre class="lab-source-pre"><span class="ln"> 7</span>  <span class="kw">const</span> userUrl = req.body.url;
-<span class="ln"> 8</span>
-<span class="ln"> 9</span>  <span class="cm">// Validate URL against allowlist and block private IPs</span>
-<span class="ln">10</span>  <span class="kw">const</span> parsed = <span class="kw">new</span> <span class="fn">URL</span>(userUrl);
-<span class="ln">11</span>  <span class="kw">const</span> allowedHosts = [<span class="str">'imgur.com'</span>, <span class="str">'i.imgur.com'</span>];
-<span class="ln">12</span>
-<span class="ln">13</span>  <span class="kw">if</span> (!allowedHosts.<span class="fn">includes</span>(parsed.hostname)) {
-<span class="ln">14</span>    <span class="kw">return</span> res.<span class="fn">status</span>(403).<span class="fn">json</span>({ error: <span class="str">'Host not allowed'</span> });
-<span class="ln">15</span>  }
-<span class="ln">16</span>
-<span class="ln">17</span>  <span class="cm">// Block private/internal IP ranges</span>
-<span class="ln">18</span>  <span class="kw">const</span> ip = <span class="kw">await</span> dns.<span class="fn">resolve</span>(parsed.hostname);
-<span class="ln">19</span>  <span class="kw">if</span> (<span class="fn">isPrivateIp</span>(ip)) {
-<span class="ln">20</span>    <span class="kw">return</span> res.<span class="fn">status</span>(403).<span class="fn">json</span>({ error: <span class="str">'Internal addresses blocked'</span> });
-<span class="ln">21</span>  }
-<span class="ln">22</span>
-<span class="ln">23</span>  <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(parsed.href);
-<span class="ln">24</span>  <span class="cm">// Also: disable redirects, enforce Content-Type, set timeout</span></pre>
+<div class="ws-mission-goal">
+  <div class="ws-mission-goal-label">Primary Objective</div>
+  <div class="ws-mission-goal-text">Access the AWS metadata endpoint (169.254.169.254) and steal IAM credentials via the import feature</div>
 </div>
 
-<!-- ── Hints Tab ── -->
-<div class="lab-tab-content" data-tab-content="hints">
-  <div class="lab-section-label">Hints</div>
-  <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Each hint costs XP. Try to solve it without them for maximum score.</p>
-
-  <div class="lab-hint" id="hint-0">
-    <div class="lab-hint-header">
-      <span>Hint 1 — General direction</span>
-      <span class="lab-hint-cost">-10 xp</span>
-    </div>
-    <div class="lab-hint-body">The URL import feature fetches whatever URL you give it <em>server-side</em>. That means the request originates from the server, not your browser. What internal endpoints can the server reach that you cannot?</div>
-  </div>
-
-  <div class="lab-hint" id="hint-1">
-    <div class="lab-hint-header">
-      <span>Hint 2 — Attack vector</span>
-      <span class="lab-hint-cost">-25 xp</span>
-    </div>
-    <div class="lab-hint-body">Cloud providers expose instance metadata at well-known internal endpoints. On AWS, it lives at <code>http://169.254.169.254/</code>. This application simulates a similar service at internal paths. Try importing a URL that points to <code>http://localhost/internal/metadata</code>.</div>
-  </div>
-
-  <div class="lab-hint" id="hint-2">
-    <div class="lab-hint-header">
-      <span>Hint 3 — Full payload</span>
-      <span class="lab-hint-cost">-50 xp</span>
-    </div>
-    <div class="lab-hint-body">Import the URL: <code>http://127.0.0.1/internal/metadata/iam/credentials</code><br><br>This makes the server fetch its own metadata endpoint, which returns IAM credentials including <code>AccessKeyId</code>, <code>SecretAccessKey</code>, and <code>Token</code>. With these credentials, an attacker has direct access to the cloud account's resources.</div>
-  </div>
+<div class="ws-mission-goal ws-mission-goal-bonus">
+  <div class="ws-mission-goal-label">Bonus</div>
+  <div class="ws-mission-goal-text">Access the internal admin panel at localhost/admin</div>
 </div>
 
-<!-- ── Debrief (shown after completion) ── -->
-<div class="lab-debrief" id="lab-debrief">
-  <div class="lab-debrief-label">Debrief — Server-Side Request Forgery</div>
-
-  <h3>What happened</h3>
-  <p>CloudSnap's URL import feature accepts any URL and fetches it server-side using <code>fetch()</code> without validation. Because the request originates from the server (not the user's browser), it can reach internal services that are not exposed to the internet — including cloud metadata endpoints that serve IAM credentials.</p>
-
-  <h3>The vulnerable code</h3>
-  <pre>const response = await fetch(userUrl);
-// userUrl comes directly from the request body — no validation
-// Server fetches ANY URL, including localhost and internal IPs</pre>
-
-  <h3>The fix</h3>
-  <p>Validate URLs against an allowlist of permitted hosts. Resolve hostnames to IP addresses and block private/internal ranges (127.0.0.0/8, 10.0.0.0/8, 169.254.0.0/16, etc.). Disable HTTP redirects to prevent bypass. On AWS, enable IMDSv2 which requires a PUT request with a token header.</p>
-  <pre>// 1. Allowlist permitted hosts
-if (!allowedHosts.includes(parsed.hostname)) return 403;
-
-// 2. Resolve and block private IPs
-const ip = await dns.resolve(parsed.hostname);
-if (isPrivateIp(ip)) return 403;
-
-// 3. Disable redirects
-fetch(url, { redirect: 'error' });
-
-// 4. Enable IMDSv2 on AWS (requires token)
-aws ec2 modify-instance-metadata-options \
-  --http-tokens required</pre>
-
-  <h3>Real-world impact</h3>
-  <p>In a real SSRF attack, the stolen IAM credentials grant the attacker direct access to cloud resources — S3 buckets, databases, secrets managers — without needing to compromise the application further. The credentials are typically short-lived but can be used to pivot deeper into the infrastructure.</p>
-  <p><strong>Capital One (2019):</strong> An attacker exploited an SSRF vulnerability in a misconfigured web application firewall to access the AWS metadata service. The stolen IAM credentials provided access to S3 buckets containing 100 million credit card applications and 140,000 Social Security numbers. The attacker was caught after bragging about it on social media.</p>
-
-  <h3>How to find this in the wild</h3>
-  <p>Look for any feature that fetches external resources — URL imports, webhook configurations, PDF generators, URL previews. Test by pointing the URL to a server you control (like Burp Collaborator or interactsh) to confirm the server makes outbound requests. Then try internal addresses: <code>127.0.0.1</code>, <code>169.254.169.254</code>, and internal hostnames.</p>
-
-  <div class="lab-debrief-refs">
-    <div class="lab-section-label">References</div>
-    <a href="https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/" target="_blank" rel="noopener">OWASP A10:2021 — Server-Side Request Forgery &#x2197;</a>
-    <a href="https://cwe.mitre.org/data/definitions/918.html" target="_blank" rel="noopener">CWE-918: Server-Side Request Forgery &#x2197;</a>
-    <a href="https://attack.mitre.org/techniques/T1190/" target="_blank" rel="noopener">MITRE ATT&CK T1190 — Exploit Public-Facing Application &#x2197;</a>
+<div class="ws-mission-intel-section">
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Target</div>
+    <div class="ws-intel-value">cloudsnap.lab.penumbraforge.com</div>
   </div>
-</div>
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Scope</div>
+    <div class="ws-intel-value">URL import endpoint — /import</div>
   </div>
-</div>
-
-<!-- CENTER: Target App -->
-<div class="lab-center">
-  <div class="lab-target-bar">
-    <div class="lab-target-dots"><div class="lab-dot lab-dot-r"></div><div class="lab-dot lab-dot-y"></div><div class="lab-dot lab-dot-g"></div></div>
-    <div class="lab-target-url"><span class="lab-target-lock">&#x1f512;</span> https://cloudsnap.io/import</div>
-  </div>
-  <iframe class="lab-target-frame" id="lab-target" sandbox="allow-scripts allow-forms allow-popups" src="https://lab-ssrf.penumbraforge.workers.dev/"></iframe>
-</div>
-
-<!-- RIGHT: Inspector -->
-<div class="lab-inspector">
-  <div class="lab-panel-tabs">
-    <button class="lab-panel-tab active" data-tab="http">HTTP</button>
-    <button class="lab-panel-tab" data-tab="logs">Server Logs</button>
-    <button class="lab-panel-tab" data-tab="console">Console</button>
-  </div>
-  <div class="lab-panel-content" style="padding:0;">
-    <div class="lab-tab-content active" data-tab-content="http">
-      <div class="lab-http">
-        <div class="lab-http-section">
-          <div class="lab-http-label">Request</div>
-          <pre class="lab-http-pre" id="http-req"><span class="lab-http-method">POST</span> /import HTTP/1.1
-<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">cloudsnap.io</span>
-<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span></pre>
-        </div>
-        <div class="lab-http-section">
-          <div class="lab-http-label">Response</div>
-          <pre class="lab-http-pre" id="http-resp">HTTP/1.1 <span class="lab-http-status">200 OK</span>
-<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>
-<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span></pre>
-        </div>
-      </div>
-    </div>
-    <div class="lab-tab-content" data-tab-content="logs">
-      <div class="lab-logs" id="server-logs"></div>
-    </div>
-    <div class="lab-tab-content" data-tab-content="console">
-      <div class="lab-console">
-        <div class="lab-console-output" id="console-output">
-          <div class="c-info">Penumbra Forge Security Lab v1.0</div>
-          <div class="c-info">Target: cloudsnap.io</div>
-          <div class="c-info">Type 'help' for available commands.</div>
-        </div>
-        <div class="lab-console-input-row">
-          <span class="lab-console-prefix">$</span>
-          <input type="text" class="lab-console-input" id="console-input" placeholder="Enter command..." autocomplete="off">
-        </div>
-      </div>
-    </div>
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Rules of Engagement</div>
+    <div class="ws-intel-value">No DoS. Read-only access. Do not modify internal services.</div>
   </div>
 </div>
 
 <script>
 (function() {
-  var LAB_CONFIG = {
+  'use strict';
+
+  var Labs = window.PenumbraLabs;
+
+  // NOTE: Red team procedural randomization (target app content, defenses,
+  // response tokens) will be handled by Worker-side randomization in a
+  // future update. The procedural engine is primarily for blue team
+  // evidence corpora.
+  var workerUrl = '{{ workerUrl }}';
+
+  // ── Scenario Definition ──
+  var scenario = {
     id: 'red-ssrf-cloudsnap',
     type: 'red',
-    title: 'SSRF',
-    target: 'CloudSnap',
+    title: 'SSRF — Cloud Metadata Theft',
     difficulty: 'intermediate',
     estimatedTime: 15,
     xpReward: 150,
-    hintCost: [10, 25, 50],
     skills: ['ssrf-cloud-metadata'],
     unlocks: ['blue-investigate-cloudsnap'],
-    objectives: [
-      { id: 'recon', step: 1, title: 'Reconnaissance' },
-      { id: 'discover', step: 2, title: 'Internal Access' },
-      { id: 'metadata', step: 3, title: 'Metadata Endpoint' },
-      { id: 'credentials', step: 4, title: 'Credential Theft' },
+    optimalActions: 7,
+    techniqueChecks: [
+      { id: 'tested-import', check: function(log) { return log.some(function(a) { return a.type === 'terminal' && a.command === 'curl' && a.url && a.url.indexOf('/import') !== -1; }); }, points: 25 },
+      { id: 'used-repeater', check: function(log) { return log.some(function(a) { return a.type === 'repeater'; }); }, points: 25 },
+      { id: 'reached-metadata', check: function(log) { return log.some(function(a) { return a.type === 'iframe_message' && a.message && a.message.hasMetadata; }); }, points: 25 },
+      { id: 'stole-credentials', check: function(log) { return log.some(function(a) { return a.type === 'iframe_message' && a.message && a.message.hasCredentials; }); }, points: 25 }
     ],
+
+    stateGraph: {
+      states: {
+        'start':              { transitions: { 'recon': 'recon' } },
+        'recon':              { transitions: { 'ssrf_confirmed': 'ssrf_confirmed' } },
+        'ssrf_confirmed':     { transitions: { 'metadata_accessed': 'metadata_accessed' } },
+        'metadata_accessed':  { transitions: { 'credentials_stolen': 'credentials_stolen' } },
+        'credentials_stolen': { transitions: { 'complete': 'complete' } },
+        'complete':           { terminal: true }
+      },
+      initialState: 'start'
+    },
+
+    validationRules: {
+      'recon': {
+        trigger: 'terminal_or_repeater',
+        condition: function(action) {
+          return action.response && action.response.status === 200 &&
+                 action.url && action.url.indexOf('/import') !== -1;
+        }
+      },
+      'ssrf_confirmed': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'ssrf-result' && msg.isInternal === true;
+        }
+      },
+      'metadata_accessed': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'ssrf-result' && msg.hasMetadata === true;
+        }
+      },
+      'credentials_stolen': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'ssrf-result' && msg.hasCredentials === true;
+        }
+      },
+      'complete': {
+        trigger: 'auto',
+        condition: function() { return true; }
+      }
+    },
+
+    nudges: {
+      'start': {
+        delay: 90,
+        text: 'Try importing an external image URL. The server fetches whatever URL you provide — what internal endpoints could the server reach?'
+      },
+      'recon': {
+        delay: 120,
+        text: 'The import works. Now try pointing the URL at an internal address like http://localhost or http://127.0.0.1. Does the server follow it?'
+      },
+      'ssrf_confirmed': {
+        delay: 120,
+        text: 'Internal access confirmed. AWS metadata lives at http://169.254.169.254/. Try reaching the IAM credentials endpoint.'
+      },
+      'metadata_accessed': {
+        delay: 90,
+        text: 'You reached the metadata service. Navigate deeper to /latest/meta-data/iam/security-credentials/ to extract the actual IAM keys.'
+      }
+    },
+
+    objectives: [
+      { id: 'recon', title: 'Reconnaissance' },
+      { id: 'ssrf_confirmed', title: 'SSRF Confirmed' },
+      { id: 'metadata_accessed', title: 'Metadata Accessed' },
+      { id: 'credentials_stolen', title: 'Credentials Stolen' }
+    ]
   };
 
-  var Engine = PenumbraLabs.Engine;
-  var ServerLogs = PenumbraLabs.ServerLogs;
+  // ── Initialize Panel System ──
+  Labs.PanelSystem.init({
+    container: document.getElementById('workspace'),
+    panels: [
+      { id: 'panel-mission', minWidth: 220, defaultWidth: 280 },
+      { id: 'panel-tools', flex: true },
+      { id: 'panel-browser', minWidth: 320, defaultWidth: 480 }
+    ]
+  });
 
-  Engine.init(LAB_CONFIG);
-  ServerLogs.init('server-logs');
-  ServerLogs.add('info', 'CloudSnap application server started on port 3000');
-  ServerLogs.add('info', 'Image import service ready — accepting URLs');
+  // ── Initialize Simulation Engine ──
+  var sim = Labs.Simulation.init({
+    scenario: scenario,
+    bridge: Labs.SimulationBridge,
+    onStateChange: function(fromState, toState, action) {
+      var obj = scenario.objectives.find(function(o) { return o.id === toState; }) ||
+                scenario.objectives.find(function(o) { return o.id === fromState; });
+      var label = obj ? obj.title : toState;
+      Labs.Toast.show(label + ' — confirmed', 'success');
 
-  var iframe = document.getElementById('lab-target');
-  var httpReq = document.getElementById('http-req');
-  var httpResp = document.getElementById('http-resp');
-
-  /* Listen for postMessage from the lab iframe */
-  window.addEventListener('message', function(event) {
-    var data;
-    try {
-      data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-    } catch(e) { return; }
-
-    if (!data || data.type !== 'ssrf-result') return;
-
-    var url = data.url || '';
-    var isInternal = data.isInternal || false;
-    var hasCredentials = data.hasCredentials || false;
-    var hasMetadata = data.hasMetadata || false;
-    var statusCode = data.statusCode || 200;
-
-    /* Update HTTP inspector */
-    httpReq.innerHTML = '<span class="lab-http-method">POST</span> /import HTTP/1.1\n' +
-      '<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">cloudsnap.io</span>\n' +
-      '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n\n' +
-      '{ <span class="lab-http-hname">"url":</span> <span class="lab-http-hval">"' + escHtml(url).substring(0, 80) + '"</span> }';
-
-    httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status">' + statusCode + ' OK</span>\n' +
-      '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n\n' +
-      '<span class="lab-http-hval">' + escHtml(JSON.stringify(data.body || {}).substring(0, 200)) + '</span>';
-
-    ServerLogs.add('info', 'POST /import — fetching ' + url.substring(0, 50));
-
-    /* Objective 1: Recon — any URL import */
-    Engine.tryCompleteObjective('recon');
-
-    /* Objective 2: Discover — internal URL (localhost, 127.0.0.1) */
-    if (isInternal) {
-      Engine.tryCompleteObjective('discover');
-      ServerLogs.add('warn', 'Server-side fetch targeted internal address: ' + url.substring(0, 50));
-    }
-
-    /* Objective 3: Metadata — accessed metadata endpoint */
-    if (hasMetadata) {
-      Engine.tryCompleteObjective('metadata');
-      ServerLogs.add('err', 'Internal metadata endpoint accessed via SSRF');
-    }
-
-    /* Objective 4: Credentials — extracted IAM credentials */
-    if (hasCredentials) {
-      setTimeout(function() {
-        Engine.tryCompleteObjective('credentials');
-        ServerLogs.add('critical', 'IAM credentials extracted — AccessKeyId: AKIA****************');
-      }, 500);
+      updateDetection(toState);
+      updateRequestCount();
+      addIntel(toState, action);
+    },
+    onComplete: function() {
+      var elapsed = Labs.Timer.stop();
+      var scoringData = {
+        actionsLog: sim.getActionsLog(),
+        nudgesShown: sim._nudgeRef ? sim._nudgeRef._shownCount || 0 : 0,
+        nudgesDismissed: sim._nudgeRef ? sim._nudgeRef._dismissCount || 0 : 0,
+        evidenceFound: 4,
+        totalEvidence: 4
+      };
+      var result = Labs.SimulationBridge.onLabComplete(scenario.id, scenario, elapsed, scoringData);
+      showCompletion(result, elapsed);
     }
   });
 
-  /* Hint reveals */
-  document.querySelectorAll('.lab-hint').forEach(function(hint, idx) {
-    hint.addEventListener('click', function() {
-      if (!this.classList.contains('revealed')) {
-        this.classList.add('revealed');
-        Engine.revealHint(idx);
+  // ── Initialize Terminal ──
+  Labs.Terminal.init({
+    container: document.getElementById('tool-terminal'),
+    workerUrl: workerUrl,
+    onAction: function(action) {
+      sim.dispatch(action);
+      requestCount++;
+      updateRequestCount();
+    }
+  });
+
+  // ── Initialize Repeater ──
+  Labs.Repeater.init({
+    container: document.getElementById('tool-repeater'),
+    workerUrl: workerUrl,
+    onAction: function(action) {
+      sim.dispatch(action);
+      requestCount++;
+      updateRequestCount();
+    }
+  });
+
+  // ── Initialize Decoder & Notes ──
+  Labs.Decoder.init({ container: document.getElementById('tool-decoder') });
+  Labs.Notes.init({ container: document.getElementById('tool-notes'), labId: scenario.id });
+
+  // ── Listen for iframe messages ──
+  window.addEventListener('message', function(e) {
+    if (!e.data || !e.data.type) return;
+
+    if (e.data.type === 'ssrf-result') {
+      sim.dispatch({ type: 'iframe_message', message: e.data });
+    }
+
+    if (e.data.type === 'cloudsnap-nav' && e.data.url) {
+      var urlDisplay = document.getElementById('ws-url-display');
+      if (urlDisplay) {
+        var clean = e.data.url.replace(/^https?:\/\//, '');
+        urlDisplay.value = clean;
       }
-    });
-  });
-
-  /* Restore previous progress */
-  var progress = Engine.getProgress();
-  progress.objectivesCompleted.forEach(function(objId) {
-    var el = document.getElementById('obj-' + objId);
-    if (el) {
-      el.classList.remove('current');
-      el.classList.add('completed');
-      el.querySelector('.lab-obj-check').textContent = '\u2713';
     }
   });
 
-  /* Mark current objective */
-  var foundCurrent = false;
-  LAB_CONFIG.objectives.forEach(function(obj) {
-    var el = document.getElementById('obj-' + obj.id);
+  // ── Start Timer ──
+  Labs.Timer.start(function(elapsed) {
+    var el = document.getElementById('lab-timer');
+    if (el) el.textContent = Labs.Timer.format(elapsed);
+  });
+
+  // ── State helpers ──
+  var requestCount = 0;
+
+  function updateRequestCount() {
+    var el = document.getElementById('ws-request-count');
+    if (el) el.textContent = 'Requests: ' + requestCount;
+  }
+
+  function updateDetection(state) {
+    var el = document.getElementById('ws-detection');
     if (!el) return;
-    if (progress.objectivesCompleted.indexOf(obj.id) === -1 && !foundCurrent) {
-      el.classList.add('current');
-      foundCurrent = true;
+    var labels = {
+      'recon': '● Import Endpoint Probed',
+      'ssrf_confirmed': '● Internal Access Confirmed',
+      'metadata_accessed': '● Metadata Endpoint Reached',
+      'credentials_stolen': '● IAM Credentials Stolen',
+      'complete': '● Cloud Account Compromised'
+    };
+    el.textContent = labels[state] || '';
+    el.style.color = state === 'complete' || state === 'credentials_stolen' ? '#ef4444' : '#f59e0b';
+  }
+
+  function addIntel(state, action) {
+    var panel = document.getElementById('intel-panel');
+    if (!panel) return;
+
+    var empty = panel.querySelector('.ws-mission-empty');
+    if (empty) empty.remove();
+
+    var intel = {
+      'recon': { label: 'URL Import Active', value: 'Server fetches arbitrary URLs via POST /import — no URL validation observed' },
+      'ssrf_confirmed': { label: 'SSRF Confirmed', value: 'Server followed request to internal address — localhost/127.0.0.1 accessible' },
+      'metadata_accessed': { label: 'Metadata Reached', value: '169.254.169.254 responded — cloud instance metadata service is accessible via SSRF' },
+      'credentials_stolen': { label: 'Credentials Stolen', value: 'IAM role credentials extracted: AccessKeyId AKIA***, SecretAccessKey, and session Token' }
+    };
+
+    var info = intel[state];
+    if (!info) return;
+
+    var div = document.createElement('div');
+    div.className = 'ws-intel-item';
+    div.innerHTML = '<div class="ws-intel-label">' + info.label + '</div>' +
+                    '<div class="ws-intel-value">' + info.value + '</div>';
+    panel.appendChild(div);
+  }
+
+  function showCompletion(result, elapsed) {
+    document.getElementById('complete-time').textContent = Labs.Timer.format(elapsed);
+    document.getElementById('complete-score').textContent = result.scoring ? result.scoring.composite : 100;
+    document.getElementById('complete-xp').textContent = '+' + (result.scoring ? result.scoring.xp : result.xp);
+    document.getElementById('complete-level').textContent = 'Level ' + result.level + ' — ' + Labs.Xp.titleForLevel(result.level);
+
+    if (scenario.unlocks && scenario.unlocks.length > 0) {
+      var unlockEl = document.getElementById('complete-unlock');
+      if (unlockEl) {
+        unlockEl.style.display = '';
+        unlockEl.textContent = 'Blue Team Investigation →';
+        unlockEl.href = '/labs/blue/investigate-cloudsnap/';
+      }
     }
-  });
 
-  /* Restore revealed hints */
-  progress.hintsUsed.forEach(function(idx) {
-    var hint = document.getElementById('hint-' + idx);
-    if (hint) hint.classList.add('revealed');
-  });
+    document.getElementById('lab-complete-overlay').classList.add('visible');
 
-  function escHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    var debriefPanel = document.getElementById('debrief-panel');
+    if (debriefPanel && Labs.Debrief) {
+      debriefPanel.style.display = '';
+      Labs.Debrief.render({
+        container: debriefPanel,
+        scoring: result.scoring,
+        elapsed: elapsed,
+        scenario: scenario,
+        debriefContent: {
+          analysis: '<div class="debrief-card"><h3>Vulnerability: CWE-918 — Server-Side Request Forgery</h3><p>CloudSnap\'s URL import feature accepts any URL and fetches it server-side using <code>fetch()</code> without validation. Because the request originates from the server — not the user\'s browser — it can reach internal services, cloud metadata endpoints, and other resources not exposed to the internet.</p><p>The stolen IAM credentials grant the attacker direct access to cloud resources (S3 buckets, databases, secrets managers) without needing to compromise the application further.</p></div>',
+
+          framework: '<div class="debrief-card"><h3>MITRE ATT&CK Mapping</h3><p><strong>T1190</strong> — Exploit Public-Facing Application: SSRF via URL import feature</p><p><strong>T1552.005</strong> — Cloud Instance Metadata API: Credential theft from 169.254.169.254</p><p><strong>T1078.004</strong> — Cloud Accounts: Lateral movement using stolen IAM credentials</p></div><div class="debrief-card"><h3>OWASP Top 10</h3><p><strong>A10:2021</strong> — Server-Side Request Forgery: Unvalidated server-side URL fetch</p></div>',
+
+          code: '<div class="debrief-section-title">Vulnerable Code</div><div class="debrief-code"><span class="vuln">const response = await fetch(userUrl);</span>\n// userUrl comes directly from request body\n// No URL validation, no allowlist, no IP blocking</div><div class="debrief-section-title" style="margin-top:16px;">The Fix</div><div class="debrief-code"><span class="fix">const parsed = new URL(userUrl);\nif (!allowedHosts.includes(parsed.hostname)) {\n  return res.status(403).json({ error: \'Host not allowed\' });\n}\nconst ip = await dns.resolve(parsed.hostname);\nif (isPrivateIp(ip)) {\n  return res.status(403).json({ error: \'Internal blocked\' });\n}</span>\n// Also: disable redirects, enforce IMDSv2 on AWS</div>',
+
+          crossPerspective: {
+            title: 'What a Defender Sees',
+            description: 'From the SOC\'s perspective, this attack generates outbound requests from the application server to the metadata endpoint (169.254.169.254) — an address that should never appear in application logs. VPC flow logs show internal traffic from the web tier to the metadata service, and CloudTrail reveals API calls using temporary credentials from an unexpected source IP. The defense: IMDSv2, URL allowlists, and egress filtering.',
+            linkText: 'Try the Blue Team Investigation →',
+            linkHref: '/labs/blue/investigate-cloudsnap/'
+          }
+        }
+      });
+    }
+
+    var statusEl = document.getElementById('ws-mission-status');
+    if (statusEl) {
+      statusEl.textContent = '✓ Mission Complete';
+      statusEl.style.color = '#4ade80';
+    }
   }
 })();
 </script>

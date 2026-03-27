@@ -127,6 +127,18 @@
       return Object.keys(data.labs).filter(function (k) { return data.labs[k].status === 'completed'; });
     },
 
+    getCertificates: function () {
+      var data = this.load();
+      return data.certificates || {};
+    },
+
+    saveCertificate: function (certType, earnedAt, hash) {
+      var data = this.load();
+      if (!data.certificates) data.certificates = {};
+      data.certificates[certType] = { earnedAt: earnedAt, hash: hash };
+      this.save();
+    },
+
     getLabCount: function () {
       var data = this.load();
       var completed = 0;
@@ -726,6 +738,35 @@
     },
   };
 
+  /* ════════════════════════════════════════════════════
+     Simulation Bridge
+     ════════════════════════════════════════════════════ */
+
+  var SimulationBridge = {
+    onStateTransition: function (labId, fromState, toState, action) {
+      ProgressStore.completeObjective(labId, toState);
+    },
+    onLabComplete: function (labId, config, elapsed, scoringData) {
+      var scoreResult;
+      if (window.PenumbraLabs.Scoring && scoringData) {
+        scoreResult = window.PenumbraLabs.Scoring.calculate({
+          actionsLog:      scoringData.actionsLog      || [],
+          scenario:        config,
+          elapsed:         elapsed,
+          nudgesShown:     scoringData.nudgesShown     || 0,
+          nudgesDismissed: scoringData.nudgesDismissed || 0,
+          evidenceFound:   scoringData.evidenceFound   || 0,
+          totalEvidence:   scoringData.totalEvidence   || 1
+        });
+      } else {
+        scoreResult = { composite: 100, xp: config.xpReward || 100, technique: 100, efficiency: 100, thoroughness: 100, independence: 100, bonuses: {} };
+      }
+      var result = ProgressStore.completeLab(labId, scoreResult.composite, elapsed, config);
+      result.scoring = scoreResult;
+      return result;
+    }
+  };
+
   window.PenumbraLabs = {
     Engine: LabEngine,
     Progress: ProgressStore,
@@ -736,5 +777,6 @@
     ForgeKey: ForgeKey,
     Sync: SyncSystem,
     ForgeKeyUI: ForgeKeyUI,
+    SimulationBridge: SimulationBridge,
   };
 })();

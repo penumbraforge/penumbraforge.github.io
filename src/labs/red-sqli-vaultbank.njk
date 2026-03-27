@@ -1,387 +1,323 @@
 ---
-layout: lab-workspace.njk
+layout: lab-workspace-v2.njk
 permalink: /labs/red/sqli-vaultbank/
 labCode: "RED-02"
-labTitle: "SQL Injection — Account Lookup"
+labTitle: "SQL Injection — VaultBank"
 labDifficulty: "intermediate"
-labDescription: "VaultBank's customer lookup page concatenates user input directly into SQL queries. Exploit the injection point to extract admin credentials from the database."
-targetUrl: "https://vaultbank-enterprise.com/lookup"
-targetHost: "vaultbank-enterprise.com"
+labDescription: "VaultBank's customer lookup concatenates user input into SQL queries. Extract admin credentials from the database."
+targetUrl: "https://lab-sqli.penumbraforge.workers.dev"
+targetHost: "vaultbank.lab.penumbraforge.com"
 workerUrl: "https://lab-sqli.penumbraforge.workers.dev"
-targetPath: "lookup"
-labCompletionText: "You successfully demonstrated a SQL injection attack, extracting sensitive data including admin password hashes from the VaultBank database by exploiting unsanitized input in a SQL query."
 ---
 
-<!-- LEFT: Mission Panel -->
-<div class="lab-mission-panel">
-  <div class="lab-panel-tabs">
-    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
-    <button class="lab-panel-tab" data-tab="source">Source</button>
-    <button class="lab-panel-tab" data-tab="hints">Hints</button>
-  </div>
-  <div class="lab-panel-content">
-<!-- ── Mission Tab ── -->
-<div class="lab-tab-content active" data-tab-content="mission">
-  <div class="lab-section-label">Scenario</div>
-  <div class="lab-scenario">
-    <strong>VaultBank</strong> has engaged your team to audit their customer portal. A support engineer noticed that certain search inputs cause "weird database errors" in the account lookup page. Your task: confirm if this is a SQL injection vulnerability and demonstrate its impact by extracting sensitive data from the database.
-  </div>
-
-  <div class="lab-section-label">Objectives</div>
-  <div class="lab-objective current" id="obj-recon">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 1 — Reconnaissance</span>
-      Search for a customer name and observe how the application responds
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-inject">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 2 — Test for injection</span>
-      Submit a single quote (<code>'</code>) and check if the application returns a database error
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-union">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 3 — Determine structure</span>
-      Use <code>UNION SELECT</code> to determine the number of columns returned by the query
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-extract">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 4 — Extract credentials</span>
-      Dump the admin password hash from the <code>users</code> table
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-schema">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 5 — Bonus: Dump schema</span>
-      Extract the full database schema using <code>sqlite_master</code>
-    </div>
-  </div>
-
-  <div class="lab-section-label" style="margin-top:24px;">Security Context</div>
-  <div class="lab-scenario">
-    This lab targets <strong>CWE-89: Improper Neutralization of Special Elements used in an SQL Command</strong> (SQL Injection). The application concatenates user-controlled input directly into a SQL query string, allowing an attacker to modify the query logic, bypass authentication, and extract arbitrary data.
-  </div>
-  <div class="lab-scenario">
-    <strong>MITRE ATT&CK:</strong> T1190 — Exploit Public-Facing Application<br>
-    <strong>OWASP:</strong> A03:2021 — Injection<br>
-    <strong>Real-world precedent:</strong> Equifax (2017) — 143 million records stolen via SQL injection in Apache Struts
-  </div>
+<!-- Mission Brief Content -->
+<div class="ws-mission-header">Operation: Vault Cracker</div>
+<div class="ws-mission-narrative">
+  VaultBank is a financial services platform processing thousands of customer lookups daily. A support engineer reported "weird database errors" when certain inputs are entered into the account search. Your team has been retained to confirm SQL injection and demonstrate real impact.
+  <br><br>
+  The client needs proof that sensitive data can be extracted — not just that the query breaks. Show them an admin password hash from the database.
 </div>
 
-<!-- ── Source Tab ── -->
-<div class="lab-tab-content" data-tab-content="source">
-  <div class="lab-section-label">Vulnerable Code</div>
-  <div class="lab-source-filename">&#x1f4c4; server/routes/lookup.js</div>
-  <pre class="lab-source-pre"><span class="ln"> 1</span><span class="kw">const</span> express = <span class="fn">require</span>(<span class="str">'express'</span>);
-<span class="ln"> 2</span><span class="kw">const</span> router = express.<span class="fn">Router</span>();
-<span class="ln"> 3</span><span class="kw">const</span> db = <span class="fn">require</span>(<span class="str">'../db'</span>);
-<span class="ln"> 4</span>
-<span class="ln"> 5</span><span class="cm">// GET /lookup?name=...</span>
-<span class="ln"> 6</span>router.<span class="fn">get</span>(<span class="str">'/lookup'</span>, (req, res) =&gt; {
-<span class="ln"> 7</span>  <span class="kw">const</span> input = req.query.name || <span class="str">''</span>;
-<span class="ln"> 8</span>
-<span class="vuln"><span class="ln"> 9</span>  <span class="kw">const</span> query = <span class="str">"SELECT * FROM customers WHERE name LIKE '%"</span> + input + <span class="str">"%'"</span>;</span>
-<span class="ln">10</span>  <span class="cm">// &#x26a0; User input concatenated directly into SQL string</span>
-<span class="ln">11</span>  <span class="cm">// No parameterization, no input validation</span>
-<span class="ln">12</span>
-<span class="ln">13</span>  db.<span class="fn">all</span>(query, (err, rows) =&gt; {
-<span class="ln">14</span>    <span class="kw">if</span> (err) {
-<span class="ln">15</span>      res.<span class="fn">status</span>(500).<span class="fn">json</span>({ error: err.message });
-<span class="ln">16</span>    } <span class="kw">else</span> {
-<span class="ln">17</span>      res.<span class="fn">json</span>(rows);
-<span class="ln">18</span>    }
-<span class="ln">19</span>  });
-<span class="ln">20</span>});</pre>
-
-  <div class="lab-section-label">The Fix</div>
-  <div class="lab-source-filename" style="color:var(--sage);">&#x2705; server/routes/lookup-fixed.js</div>
-  <pre class="lab-source-pre"><span class="ln"> 7</span>  <span class="kw">const</span> input = req.query.name || <span class="str">''</span>;
-<span class="ln"> 8</span>
-<span class="ln"> 9</span>  <span class="cm">// Use parameterized query — input is never part of the SQL string</span>
-<span class="ln">10</span>  <span class="kw">const</span> query = <span class="str">"SELECT * FROM customers WHERE name LIKE ?"</span>;
-<span class="ln">11</span>  <span class="kw">const</span> param = <span class="str">'%'</span> + input + <span class="str">'%'</span>;
-<span class="ln">12</span>
-<span class="ln">13</span>  db.<span class="fn">all</span>(query, [param], (err, rows) =&gt; {
-<span class="ln">14</span>    <span class="kw">if</span> (err) {
-<span class="ln">15</span>      res.<span class="fn">status</span>(500).<span class="fn">json</span>({ error: <span class="str">'Internal error'</span> });
-<span class="ln">16</span>    } <span class="kw">else</span> {
-<span class="ln">17</span>      res.<span class="fn">json</span>(rows);
-<span class="ln">18</span>    }
-<span class="ln">19</span>  });
-<span class="ln">20</span>  <span class="cm">// Also: validate input, use an ORM, apply least-privilege DB accounts</span></pre>
+<div class="ws-mission-goal">
+  <div class="ws-mission-goal-label">Primary Objective</div>
+  <div class="ws-mission-goal-text">Extract the admin password hash from the users table via SQL injection in the lookup endpoint</div>
 </div>
 
-<!-- ── Hints Tab ── -->
-<div class="lab-tab-content" data-tab-content="hints">
-  <div class="lab-section-label">Hints</div>
-  <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Each hint costs XP. Try to solve it without them for maximum score.</p>
-
-  <div class="lab-hint" id="hint-0">
-    <div class="lab-hint-header">
-      <span>Hint 1 — General direction</span>
-      <span class="lab-hint-cost">-10 xp</span>
-    </div>
-    <div class="lab-hint-body">Try entering special characters into the search field — a single quote (<code>'</code>), a double dash (<code>--</code>), or a semicolon (<code>;</code>). Watch how the application responds. Database errors are a strong signal that input is being interpreted as SQL.</div>
-  </div>
-
-  <div class="lab-hint" id="hint-1">
-    <div class="lab-hint-header">
-      <span>Hint 2 — Attack vector</span>
-      <span class="lab-hint-cost">-25 xp</span>
-    </div>
-    <div class="lab-hint-body">The query returns multiple columns. Use <code>UNION SELECT</code> to append your own results to the query. Start with <code>' UNION SELECT 1--</code> and increase the column count until the error goes away. Once you know the column count, you can select data from any table.</div>
-  </div>
-
-  <div class="lab-hint" id="hint-2">
-    <div class="lab-hint-header">
-      <span>Hint 3 — Full payload</span>
-      <span class="lab-hint-cost">-50 xp</span>
-    </div>
-    <div class="lab-hint-body">Search for: <code>' UNION SELECT 1,username,password_hash,role,1 FROM users--</code><br><br>This closes the original <code>LIKE</code> clause with the single quote, then appends a <code>UNION SELECT</code> that pulls usernames and password hashes from the <code>users</code> table. The <code>--</code> comments out the trailing <code>%'</code>.</div>
-  </div>
+<div class="ws-mission-goal ws-mission-goal-bonus">
+  <div class="ws-mission-goal-label">Bonus</div>
+  <div class="ws-mission-goal-text">Achieve UNION-based data extraction without using OR 1=1</div>
 </div>
 
-<!-- ── Debrief (shown after completion) ── -->
-<div class="lab-debrief" id="lab-debrief">
-  <div class="lab-debrief-label">Debrief — SQL Injection</div>
-
-  <h3>What happened</h3>
-  <p>VaultBank's customer lookup page takes user input and concatenates it directly into a SQL query string. Because the input is not parameterized, an attacker can inject arbitrary SQL syntax — breaking out of the intended query, appending UNION clauses, and reading data from any table in the database.</p>
-
-  <h3>The vulnerable code</h3>
-  <pre>const query = "SELECT * FROM customers WHERE name LIKE '%" + input + "%'";
-// input comes directly from req.query.name — no parameterization</pre>
-
-  <h3>The fix</h3>
-  <p>Use parameterized queries (prepared statements) so user input is never part of the SQL string itself. The database driver treats parameters as data, not code, making injection impossible regardless of input content.</p>
-  <pre>// Parameterized query — safe from injection
-const query = "SELECT * FROM customers WHERE name LIKE ?";
-const param = '%' + input + '%';
-db.all(query, [param], callback);
-
-// Better yet: use an ORM like Sequelize or Prisma
-// Also: apply least-privilege database accounts
-// Also: use a WAF to detect common injection patterns</pre>
-
-  <h3>Real-world impact</h3>
-  <p>In a real attack, the attacker systematically dumps every table in the database — user credentials, financial records, personal information. With admin password hashes, they attempt offline cracking or use the extracted data for credential stuffing against other services.</p>
-  <p><strong>Equifax (2017):</strong> Attackers exploited a SQL injection vulnerability in Apache Struts to access databases containing 143 million Americans' Social Security numbers, birth dates, and addresses. The breach cost Equifax over $1.4 billion in settlements and remains one of the largest data breaches in history.</p>
-
-  <h3>How to find this in the wild</h3>
-  <p>During a pentest, look for any endpoint that accepts user input and queries a database. Inject a single quote (<code>'</code>) and watch for SQL error messages. Use tools like <code>sqlmap</code> for automated detection. Check for blind SQL injection by comparing response times with <code>SLEEP()</code> or conditional payloads like <code>' OR 1=1--</code> versus <code>' OR 1=2--</code>.</p>
-
-  <div class="lab-debrief-refs">
-    <div class="lab-section-label">References</div>
-    <a href="https://owasp.org/Top10/A03_2021-Injection/" target="_blank" rel="noopener">OWASP A03:2021 — Injection &#x2197;</a>
-    <a href="https://cwe.mitre.org/data/definitions/89.html" target="_blank" rel="noopener">CWE-89: SQL Injection &#x2197;</a>
-    <a href="https://attack.mitre.org/techniques/T1190/" target="_blank" rel="noopener">MITRE ATT&CK T1190 — Exploit Public-Facing Application &#x2197;</a>
+<div class="ws-mission-intel-section">
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Target</div>
+    <div class="ws-intel-value">vaultbank.lab.penumbraforge.com</div>
   </div>
-</div>
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Scope</div>
+    <div class="ws-intel-value">Customer lookup endpoint — /lookup?name=</div>
   </div>
-</div>
-
-<!-- CENTER: Target App -->
-<div class="lab-center">
-  <div class="lab-target-bar">
-    <div class="lab-target-dots"><div class="lab-dot lab-dot-r"></div><div class="lab-dot lab-dot-y"></div><div class="lab-dot lab-dot-g"></div></div>
-    <div class="lab-target-url"><span class="lab-target-lock">&#x1f512;</span> https://vaultbank-enterprise.com/lookup</div>
-  </div>
-  <iframe class="lab-target-frame" id="lab-target" sandbox="allow-scripts allow-forms allow-popups" src="https://lab-sqli.penumbraforge.workers.dev/"></iframe>
-</div>
-
-<!-- RIGHT: Inspector -->
-<div class="lab-inspector">
-  <div class="lab-panel-tabs">
-    <button class="lab-panel-tab active" data-tab="http">HTTP</button>
-    <button class="lab-panel-tab" data-tab="logs">Server Logs</button>
-    <button class="lab-panel-tab" data-tab="console">Console</button>
-  </div>
-  <div class="lab-panel-content" style="padding:0;">
-    <div class="lab-tab-content active" data-tab-content="http">
-      <div class="lab-http">
-        <div class="lab-http-section">
-          <div class="lab-http-label">Request</div>
-          <pre class="lab-http-pre" id="http-req"><span class="lab-http-method">GET</span> /lookup HTTP/1.1
-<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">vaultbank-enterprise.com</span>
-<span class="lab-http-hname">Cookie:</span> <span class="lab-http-hval">session=eyJyb2xlIjoiY3VzdG9tZXIifQ</span></pre>
-        </div>
-        <div class="lab-http-section">
-          <div class="lab-http-label">Response</div>
-          <pre class="lab-http-pre" id="http-resp">HTTP/1.1 <span class="lab-http-status">200 OK</span>
-<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>
-<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span></pre>
-        </div>
-      </div>
-    </div>
-    <div class="lab-tab-content" data-tab-content="logs">
-      <div class="lab-logs" id="server-logs"></div>
-    </div>
-    <div class="lab-tab-content" data-tab-content="console">
-      <div class="lab-console">
-        <div class="lab-console-output" id="console-output">
-          <div class="c-info">Penumbra Forge Security Lab v1.0</div>
-          <div class="c-info">Target: vaultbank-enterprise.com</div>
-          <div class="c-info">Type 'help' for available commands.</div>
-        </div>
-        <div class="lab-console-input-row">
-          <span class="lab-console-prefix">$</span>
-          <input type="text" class="lab-console-input" id="console-input" placeholder="Enter command..." autocomplete="off">
-        </div>
-      </div>
-    </div>
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Rules of Engagement</div>
+    <div class="ws-intel-value">No DoS. No data destruction. Read-only extraction only.</div>
   </div>
 </div>
 
 <script>
 (function() {
-  var LAB_CONFIG = {
+  'use strict';
+
+  var Labs = window.PenumbraLabs;
+
+  // NOTE: Red team procedural randomization (target app content, defenses,
+  // response tokens) will be handled by Worker-side randomization in a
+  // future update. The procedural engine is primarily for blue team
+  // evidence corpora.
+  var workerUrl = '{{ workerUrl }}';
+
+  // ── Scenario Definition ──
+  var scenario = {
     id: 'red-sqli-vaultbank',
     type: 'red',
-    title: 'SQL Injection',
-    target: 'VaultBank',
+    title: 'SQL Injection — VaultBank',
     difficulty: 'intermediate',
     estimatedTime: 15,
     xpReward: 150,
-    hintCost: [10, 25, 50],
     skills: ['injection-sqli'],
     unlocks: ['blue-investigate-vaultbank'],
-    objectives: [
-      { id: 'recon', step: 1, title: 'Reconnaissance' },
-      { id: 'inject', step: 2, title: 'Error-Based Detection' },
-      { id: 'union', step: 3, title: 'UNION Column Count' },
-      { id: 'extract', step: 4, title: 'Credential Extraction' },
-      { id: 'schema', step: 5, title: 'Schema Dump' },
+    optimalActions: 6,
+    techniqueChecks: [
+      { id: 'recon-curl', check: function(log) { return log.some(function(a) { return a.type === 'terminal' && a.command === 'curl' && a.url && a.url.indexOf('/lookup') !== -1; }); }, points: 25 },
+      { id: 'used-repeater', check: function(log) { return log.some(function(a) { return a.type === 'repeater'; }); }, points: 25 },
+      { id: 'union-query', check: function(log) { return log.some(function(a) { return a.type === 'terminal_or_repeater' && a.query && /union\s+select/i.test(a.query); }); }, points: 25 },
+      { id: 'data-extracted', check: function(log) { return log.some(function(a) { return a.type === 'iframe_message' && a.message && a.message.type === 'sql-result' && /password_hash|admin/i.test(JSON.stringify(a.message.rows || [])); }); }, points: 25 }
     ],
+
+    stateGraph: {
+      states: {
+        'start':                { transitions: { 'recon': 'probing' } },
+        'probing':              { transitions: { 'injection_confirmed': 'injection_confirmed' } },
+        'injection_confirmed':  { transitions: { 'data_extracted': 'data_extracted' } },
+        'data_extracted':       { transitions: { 'complete': 'complete' } },
+        'complete':             { terminal: true }
+      },
+      initialState: 'start'
+    },
+
+    validationRules: {
+      'recon': {
+        trigger: 'terminal_or_repeater',
+        condition: function(action) {
+          return action.response && action.response.status === 200 &&
+                 action.url && action.url.indexOf('/lookup') !== -1;
+        }
+      },
+      'injection_confirmed': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return (msg.type === 'sql-error' || msg.type === 'sql-result') &&
+                 msg.rows && msg.rows.length > 1;
+        }
+      },
+      'data_extracted': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'sql-result' &&
+                 /password_hash|admin/i.test(JSON.stringify(msg.rows || []));
+        }
+      },
+      'complete': {
+        trigger: 'auto',
+        condition: function() { return true; }
+      }
+    },
+
+    nudges: {
+      'start': {
+        delay: 90,
+        text: 'Try exploring the lookup page. What happens when you search for a customer name?'
+      },
+      'probing': {
+        delay: 120,
+        text: 'The search works. Now try injecting a single quote (\') into the search. Does the application return a database error?'
+      },
+      'injection_confirmed': {
+        delay: 120,
+        text: 'SQL injection is confirmed. Use UNION SELECT to determine the column count and extract data from the users table.'
+      },
+      'data_extracted': {
+        delay: 60,
+        text: 'You have the admin hash. Mission complete.'
+      }
+    },
+
+    objectives: [
+      { id: 'recon', title: 'Reconnaissance' },
+      { id: 'injection_confirmed', title: 'Injection Confirmed' },
+      { id: 'data_extracted', title: 'Credential Extraction' },
+      { id: 'complete', title: 'Mission Complete' }
+    ]
   };
 
-  var Engine = PenumbraLabs.Engine;
-  var ServerLogs = PenumbraLabs.ServerLogs;
+  // ── Initialize Panel System ──
+  Labs.PanelSystem.init({
+    container: document.getElementById('workspace'),
+    panels: [
+      { id: 'panel-mission', minWidth: 220, defaultWidth: 280 },
+      { id: 'panel-tools', flex: true },
+      { id: 'panel-browser', minWidth: 320, defaultWidth: 480 }
+    ]
+  });
 
-  Engine.init(LAB_CONFIG);
-  ServerLogs.init('server-logs');
-  ServerLogs.add('info', 'VaultBank API server started on port 3000');
-  ServerLogs.add('info', 'SQLite database connected — customers table loaded');
+  // ── Initialize Simulation Engine ──
+  var sim = Labs.Simulation.init({
+    scenario: scenario,
+    bridge: Labs.SimulationBridge,
+    onStateChange: function(fromState, toState, action) {
+      var obj = scenario.objectives.find(function(o) { return o.id === toState; }) ||
+                scenario.objectives.find(function(o) { return o.id === fromState; });
+      var label = obj ? obj.title : toState;
+      Labs.Toast.show(label + ' — confirmed', 'success');
 
-  var iframe = document.getElementById('lab-target');
-  var httpReq = document.getElementById('http-req');
-  var httpResp = document.getElementById('http-resp');
-
-  /* Listen for postMessage from the lab iframe */
-  window.addEventListener('message', function(event) {
-    var data;
-    try {
-      data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-    } catch(e) { return; }
-
-    if (!data || !data.type) return;
-
-    if (data.type === 'sql-result') {
-      var query = data.query || '';
-
-      /* Update HTTP inspector */
-      httpReq.innerHTML = '<span class="lab-http-method">GET</span> /lookup?name=' + escHtml(query).substring(0, 60) + ' HTTP/1.1\n' +
-        '<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">vaultbank-enterprise.com</span>\n' +
-        '<span class="lab-http-hname">Cookie:</span> <span class="lab-http-hval">session=eyJyb2xlIjoiY3VzdG9tZXIifQ</span>\n' +
-        '<span class="lab-http-hname">User-Agent:</span> <span class="lab-http-hval">Mozilla/5.0</span>';
-
-      httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status">200 OK</span>\n' +
-        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n' +
-        '<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span>\n\n' +
-        '<span class="lab-http-hval">' + escHtml(JSON.stringify(data.rows || []).substring(0, 200)) + '</span>';
-
-      ServerLogs.add('info', 'GET /lookup?name=' + query.substring(0, 40) + ' — 200');
-
-      /* Objective 1: Recon — any successful search */
-      Engine.tryCompleteObjective('recon');
-
-      /* Objective 3: UNION — contains UNION SELECT */
-      if (/union\s+select/i.test(query)) {
-        Engine.tryCompleteObjective('union');
-        ServerLogs.add('warn', 'UNION SELECT detected — query structure modified');
-      }
-
-      /* Objective 4: Extract — results contain users table data */
-      var rowStr = JSON.stringify(data.rows || []);
-      if (/password_hash|admin/i.test(rowStr) && /union\s+select/i.test(query)) {
-        Engine.tryCompleteObjective('extract');
-        ServerLogs.add('err', 'Sensitive data extracted from users table — admin credentials exposed');
-      }
-
-      /* Objective 5: Schema — sqlite_master or schema dump */
-      if (/sqlite_master/i.test(query) || /information_schema/i.test(query)) {
-        Engine.tryCompleteObjective('schema');
-        ServerLogs.add('critical', 'Database schema dumped via sqlite_master');
-      }
-    }
-
-    if (data.type === 'sql-error') {
-      var errorQuery = data.query || '';
-
-      httpReq.innerHTML = '<span class="lab-http-method">GET</span> /lookup?name=' + escHtml(errorQuery).substring(0, 60) + ' HTTP/1.1\n' +
-        '<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">vaultbank-enterprise.com</span>\n' +
-        '<span class="lab-http-hname">User-Agent:</span> <span class="lab-http-hval">Mozilla/5.0</span>';
-
-      httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status" style="color:#ff6b6b;">500 Internal Server Error</span>\n' +
-        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n\n' +
-        '<span class="lab-http-hval" style="color:#ff6b6b;">' + escHtml(data.error || 'SQL syntax error') + '</span>';
-
-      ServerLogs.add('err', 'SQL Error: ' + (data.error || 'syntax error').substring(0, 60));
-
-      /* Objective 2: Inject — single quote triggers SQL error */
-      if (/['"]/.test(errorQuery)) {
-        Engine.tryCompleteObjective('inject');
-        ServerLogs.add('warn', 'SQL syntax error triggered by special character injection');
-      }
+      updateDetection(toState);
+      updateRequestCount();
+      addIntel(toState, action);
+    },
+    onComplete: function() {
+      var elapsed = Labs.Timer.stop();
+      var scoringData = {
+        actionsLog: sim.getActionsLog(),
+        nudgesShown: sim._nudgeRef ? sim._nudgeRef._shownCount || 0 : 0,
+        nudgesDismissed: sim._nudgeRef ? sim._nudgeRef._dismissCount || 0 : 0,
+        evidenceFound: 4,
+        totalEvidence: 4
+      };
+      var result = Labs.SimulationBridge.onLabComplete(scenario.id, scenario, elapsed, scoringData);
+      showCompletion(result, elapsed);
     }
   });
 
-  /* Hint reveals */
-  document.querySelectorAll('.lab-hint').forEach(function(hint, idx) {
-    hint.addEventListener('click', function() {
-      if (!this.classList.contains('revealed')) {
-        this.classList.add('revealed');
-        Engine.revealHint(idx);
-      }
-    });
-  });
-
-  /* Restore previous progress */
-  var progress = Engine.getProgress();
-  progress.objectivesCompleted.forEach(function(objId) {
-    var el = document.getElementById('obj-' + objId);
-    if (el) {
-      el.classList.remove('current');
-      el.classList.add('completed');
-      el.querySelector('.lab-obj-check').textContent = '\u2713';
+  // ── Initialize Terminal ──
+  Labs.Terminal.init({
+    container: document.getElementById('tool-terminal'),
+    workerUrl: workerUrl,
+    onAction: function(action) {
+      sim.dispatch(action);
+      requestCount++;
+      updateRequestCount();
     }
   });
 
-  /* Mark current objective */
-  var foundCurrent = false;
-  LAB_CONFIG.objectives.forEach(function(obj) {
-    var el = document.getElementById('obj-' + obj.id);
+  // ── Initialize Repeater ──
+  Labs.Repeater.init({
+    container: document.getElementById('tool-repeater'),
+    workerUrl: workerUrl,
+    onAction: function(action) {
+      sim.dispatch(action);
+      requestCount++;
+      updateRequestCount();
+    }
+  });
+
+  // ── Initialize Decoder & Notes ──
+  Labs.Decoder.init({ container: document.getElementById('tool-decoder') });
+  Labs.Notes.init({ container: document.getElementById('tool-notes'), labId: scenario.id });
+
+  // ── Listen for iframe messages ──
+  window.addEventListener('message', function(e) {
+    if (!e.data || !e.data.type) return;
+
+    if (e.data.type === 'sql-result' || e.data.type === 'sql-error') {
+      sim.dispatch({ type: 'iframe_message', message: e.data });
+    }
+
+    if (e.data.type === 'vaultbank-nav' && e.data.url) {
+      var urlDisplay = document.getElementById('ws-url-display');
+      if (urlDisplay) {
+        var clean = e.data.url.replace(/^https?:\/\//, '');
+        urlDisplay.value = clean;
+      }
+    }
+  });
+
+  // ── Start Timer ──
+  Labs.Timer.start(function(elapsed) {
+    var el = document.getElementById('lab-timer');
+    if (el) el.textContent = Labs.Timer.format(elapsed);
+  });
+
+  // ── State helpers ──
+  var requestCount = 0;
+
+  function updateRequestCount() {
+    var el = document.getElementById('ws-request-count');
+    if (el) el.textContent = 'Requests: ' + requestCount;
+  }
+
+  function updateDetection(state) {
+    var el = document.getElementById('ws-detection');
     if (!el) return;
-    if (progress.objectivesCompleted.indexOf(obj.id) === -1 && !foundCurrent) {
-      el.classList.add('current');
-      foundCurrent = true;
+    var labels = {
+      'probing': '● Search Endpoint Probed',
+      'injection_confirmed': '● SQL Injection Confirmed',
+      'data_extracted': '● Admin Credentials Extracted',
+      'complete': '● Users Table Dumped'
+    };
+    el.textContent = labels[state] || '';
+    el.style.color = state === 'complete' ? '#ef4444' : '#f59e0b';
+  }
+
+  function addIntel(state, action) {
+    var panel = document.getElementById('intel-panel');
+    if (!panel) return;
+
+    var empty = panel.querySelector('.ws-mission-empty');
+    if (empty) empty.remove();
+
+    var intel = {
+      'probing': { label: 'Injection Point', value: 'Customer lookup concatenates input into SQL query without parameterization' },
+      'injection_confirmed': { label: 'Injection Confirmed', value: 'Single quote triggers SQL syntax error — input interpreted as SQL code' },
+      'data_extracted': { label: 'Data Extracted', value: 'UNION SELECT pulled admin password hash from users table' },
+      'complete': { label: 'Mission Complete', value: 'Full credential extraction achieved — admin:$2b$10$kR8...hash exposed' }
+    };
+
+    var info = intel[state];
+    if (!info) return;
+
+    var div = document.createElement('div');
+    div.className = 'ws-intel-item';
+    div.innerHTML = '<div class="ws-intel-label">' + info.label + '</div>' +
+                    '<div class="ws-intel-value">' + info.value + '</div>';
+    panel.appendChild(div);
+  }
+
+  function showCompletion(result, elapsed) {
+    document.getElementById('complete-time').textContent = Labs.Timer.format(elapsed);
+    document.getElementById('complete-score').textContent = result.scoring ? result.scoring.composite : 100;
+    document.getElementById('complete-xp').textContent = '+' + (result.scoring ? result.scoring.xp : result.xp);
+    document.getElementById('complete-level').textContent = 'Level ' + result.level + ' — ' + Labs.Xp.titleForLevel(result.level);
+
+    if (scenario.unlocks && scenario.unlocks.length > 0) {
+      var unlockEl = document.getElementById('complete-unlock');
+      if (unlockEl) {
+        unlockEl.style.display = '';
+        unlockEl.textContent = 'Blue Team Investigation →';
+        unlockEl.href = '/labs/blue/investigate-vaultbank/';
+      }
     }
-  });
 
-  /* Restore revealed hints */
-  progress.hintsUsed.forEach(function(idx) {
-    var hint = document.getElementById('hint-' + idx);
-    if (hint) hint.classList.add('revealed');
-  });
+    document.getElementById('lab-complete-overlay').classList.add('visible');
 
-  function escHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    var debriefPanel = document.getElementById('debrief-panel');
+    if (debriefPanel && Labs.Debrief) {
+      debriefPanel.style.display = '';
+      Labs.Debrief.render({
+        container: debriefPanel,
+        scoring: result.scoring,
+        elapsed: elapsed,
+        scenario: scenario,
+        debriefContent: {
+          analysis: '<div class="debrief-card"><h3>Vulnerability: CWE-89 — SQL Injection</h3><p>VaultBank\'s customer lookup endpoint concatenates user input directly into a SQL query string using string interpolation. The <code>name</code> parameter is inserted into a <code>WHERE LIKE</code> clause without parameterization, allowing an attacker to break out of the intended query, inject arbitrary SQL, and extract data from any table in the database.</p><p>This vulnerability allows full read access to the database — customer records, admin credentials, and schema metadata. With write access, an attacker could modify or delete data entirely.</p></div>',
+
+          framework: '<div class="debrief-card"><h3>MITRE ATT&CK Mapping</h3><p><strong>T1190</strong> — Exploit Public-Facing Application: SQL injection in customer-facing lookup endpoint</p><p><strong>T1005</strong> — Data from Local System: Extraction of credentials and customer data from the database</p></div><div class="debrief-card"><h3>OWASP Top 10</h3><p><strong>A03:2021</strong> — Injection: User input concatenated directly into SQL query without parameterization</p></div>',
+
+          code: '<div class="debrief-section-title">Vulnerable Code</div><div class="debrief-code"><span class="vuln">const query = "SELECT * FROM customers WHERE name LIKE \'%" + input + "%\'";</span>\n// User input concatenated directly into SQL string\n// No parameterization, no input validation</div><div class="debrief-section-title" style="margin-top:16px;">The Fix</div><div class="debrief-code"><span class="fix">const query = "SELECT * FROM customers WHERE name LIKE ?";\nconst param = \'%\' + input + \'%\';\ndb.all(query, [param], callback);</span>\n// Parameterized query — input treated as data, never as code\n// Also: use an ORM, apply least-privilege DB accounts</div>',
+
+          crossPerspective: {
+            title: 'What a Defender Sees',
+            description: 'From the SOC\'s perspective, this attack generates anomalous database query patterns — UNION SELECT keywords in access logs, increased query execution times, and responses containing data from tables not normally queried by the application. A well-tuned WAF would flag SQL keywords in input parameters, and database activity monitoring would alert on cross-table queries from the application service account.',
+            linkText: 'Try the Blue Team Investigation →',
+            linkHref: '/labs/blue/investigate-vaultbank/'
+          }
+        }
+      });
+    }
+
+    var statusEl = document.getElementById('ws-mission-status');
+    if (statusEl) {
+      statusEl.textContent = '✓ Mission Complete';
+      statusEl.style.color = '#4ade80';
+    }
   }
 })();
 </script>
