@@ -274,9 +274,44 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // ── Initialize SIEM ──
-  Labs.SIEM.init({
+  // ── Rename center tabs: SIEM -> Playbook Builder, Firewall -> SIEM ──
+  var siemTabBtn = document.querySelector('#siem-tabs .soc-tool-tab[data-tool="siem"]');
+  if (siemTabBtn) siemTabBtn.textContent = 'Playbook Builder';
+  var fwTabBtn = document.querySelector('#siem-tabs .soc-tool-tab[data-tool="firewall"]');
+  if (fwTabBtn) fwTabBtn.textContent = 'SIEM';
+
+  // ── Initialize Playbook Builder as primary center tool ──
+  Labs.PlaybookBuilder.init({
     container: document.getElementById('tool-siem'),
+    onPlaybookSubmit: function(playbook) {
+      // Score the playbook
+      var hasTrigger = false, hasCondition = false, hasAction = false, hasEnrich = false;
+      playbook.forEach(function(step) {
+        if (step.category === 'Triggers')   hasTrigger = true;
+        if (step.category === 'Conditions') hasCondition = true;
+        if (step.category === 'Actions')    hasAction = true;
+        if (step.category === 'Enrichment') hasEnrich = true;
+      });
+      var score = 0;
+      if (hasTrigger)   score += 25;
+      if (hasCondition) score += 25;
+      if (hasAction)    score += 25;
+      if (hasEnrich)    score += 25;
+
+      sim.dispatch({ type: 'containment_action', type: 'containment_submit', score: score, selected: playbook.map(function(s) { return s.actionId; }) });
+
+      if (score >= 60) {
+        updateEvidenceTracker('playbook-design');
+        Labs.Toast.show('Playbook submitted (' + score + '/100)', 'success');
+      } else {
+        Labs.Toast.show('Playbook needs improvement (' + score + '/100)', 'warning');
+      }
+    }
+  });
+
+  // ── Initialize SIEM on the Firewall tab as secondary log view ──
+  Labs.SIEM.init({
+    container: document.getElementById('tool-firewall'),
     evidenceCorpus: corpus,
     onAction: function(action) {
       sim.dispatch({ type: 'siem_action', action: action.action, entry: action.entry });
@@ -302,11 +337,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // ── Initialize source-filtered SIEM views ──
-  ['firewall', 'auth', 'dns'].forEach(function(source) {
+  // ── Initialize source-filtered SIEM views (auth, dns) ──
+  ['auth', 'dns'].forEach(function(source) {
     var container = document.getElementById('tool-' + source);
     if (container) {
-      var sourceMap = { firewall: 'fw', auth: 'auth', dns: 'dns' };
+      var sourceMap = { auth: 'auth', dns: 'dns' };
       var filtered = corpus.filter(function(e) { return e.source === sourceMap[source]; });
       Labs.SIEM.init({
         container: container,

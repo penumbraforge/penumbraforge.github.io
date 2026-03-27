@@ -376,6 +376,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // ── Initialize Network Map ──
+  var networkHosts = [
+    { id: 'ws-mkt-042', name: 'WS-MKT-042', ip: '10.20.3.42', role: 'Workstation', status: 'compromised', connections: ['srv-file-01', 'srv-dc-01'] },
+    { id: 'ws-fin-017', name: 'WS-FIN-017', ip: '10.20.3.17', role: 'Workstation', status: 'compromised', connections: ['srv-file-01', 'srv-dc-01'] },
+    { id: 'ws-hr-008', name: 'WS-HR-008', ip: '10.20.3.8', role: 'Workstation', status: 'online', connections: ['srv-dc-01'] },
+    { id: 'srv-file-01', name: 'SRV-FILE-01', ip: '10.20.5.10', role: 'File Server', status: 'compromised', connections: ['ws-mkt-042', 'ws-fin-017', 'srv-dc-01'] },
+    { id: 'srv-web-01', name: 'SRV-WEB-01', ip: '10.20.5.44', role: 'Web Server', status: 'online', connections: ['srv-db-01', 'srv-dc-01'] },
+    { id: 'srv-db-01', name: 'SRV-DB-01', ip: '10.20.5.50', role: 'Database', status: 'online', connections: ['srv-web-01'] },
+    { id: 'srv-dc-01', name: 'SRV-DC-01', ip: '10.20.1.10', role: 'Domain Controller', status: 'online', connections: ['ws-mkt-042', 'ws-fin-017', 'ws-hr-008', 'srv-file-01', 'srv-web-01'] },
+    { id: 'srv-backup-01', name: 'SRV-BACKUP-01', ip: '10.20.6.5', role: 'Backup Server', status: 'online', connections: ['srv-file-01', 'srv-dc-01'] }
+  ];
+
+  Labs.NetworkMap.init({
+    container: document.getElementById('tool-network'),
+    hosts: networkHosts,
+    onIsolate: function(hostId) {
+      sim.dispatch({ type: 'containment_action', type: 'host_isolated', hostId: hostId });
+      Labs.Toast.show('Host isolated: ' + hostId, 'success');
+    }
+  });
+
   // ── Initialize Actions ──
   Labs.SOCActions.init({
     container: document.getElementById('tool-actions'),

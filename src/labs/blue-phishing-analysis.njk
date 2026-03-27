@@ -291,9 +291,103 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // ── Initialize SIEM ──
-  Labs.SIEM.init({
+  // ── Rename center tabs: SIEM -> Email Inbox, Firewall -> SIEM ──
+  var siemTabBtn = document.querySelector('#siem-tabs .soc-tool-tab[data-tool="siem"]');
+  if (siemTabBtn) siemTabBtn.textContent = 'Email Inbox';
+  var fwTabBtn = document.querySelector('#siem-tabs .soc-tool-tab[data-tool="firewall"]');
+  if (fwTabBtn) fwTabBtn.textContent = 'SIEM';
+
+  // ── Build phishing email data ──
+  var phishingEmails = [
+    {
+      id: 'email-001',
+      from: 'security@acmecorp-login.xyz',
+      fromDisplay: 'IT Security Team <security@acmecorp.com>',
+      to: 'j.martinez@acme.com',
+      subject: 'Urgent: Password Reset Required',
+      date: '2024-04-05 08:32:00',
+      reportedBy: 'Jennifer Martinez',
+      headers: {
+        'Return-Path': 'bounce-1847@evil-phish.ru',
+        'Received': 'from mail.evil-phish.ru (91.234.56.78) by mx.acme.com',
+        'X-Mailer': 'GoPhish v0.12.1',
+        'SPF': 'FAIL (domain acmecorp-login.xyz does not designate 91.234.56.78)',
+        'DKIM': 'NONE',
+        'DMARC': 'FAIL (p=none)'
+      },
+      body: '<p>Dear Employee,</p><p>Your password will expire in <strong>24 hours</strong>. Please <a href="https://acmecorp-login.xyz/reset">click here to reset your password</a> immediately to avoid account lockout.</p><p>Failure to reset will result in temporary suspension of your account access.</p><p>Best regards,<br>IT Security Team</p>',
+      links: [{ text: 'click here to reset your password', url: 'https://acmecorp-login.xyz/reset', suspicious: true }],
+      attachments: [],
+      isPhishing: true,
+      iocs: ['acmecorp-login.xyz', '91.234.56.78', 'evil-phish.ru']
+    },
+    {
+      id: 'email-002',
+      from: 'hr-notify@acme-benefits.xyz',
+      fromDisplay: 'ACME HR Department <hr@acme.com>',
+      to: 'l.park@acme.com',
+      subject: 'Action Required: Benefits Enrollment Update',
+      date: '2024-04-05 08:45:00',
+      reportedBy: 'Linda Park',
+      headers: {
+        'Return-Path': 'bounce-1848@evil-phish.ru',
+        'Received': 'from mail.evil-phish.ru (91.234.56.78) by mx.acme.com',
+        'X-Mailer': 'GoPhish v0.12.1',
+        'SPF': 'FAIL (domain acme-benefits.xyz does not designate 91.234.56.78)',
+        'DKIM': 'NONE',
+        'DMARC': 'FAIL (p=none)'
+      },
+      body: '<p>Hi Team,</p><p>Open enrollment for Q2 benefits closes tomorrow. Please review and confirm your selections by visiting our <a href="https://acme-benefits.xyz/enroll">benefits portal</a>.</p><p>If you do not confirm, your current elections will be cancelled.</p><p>HR Department</p>',
+      links: [{ text: 'benefits portal', url: 'https://acme-benefits.xyz/enroll', suspicious: true }],
+      attachments: [{ name: 'Benefits_Summary_2024.pdf', type: 'application/pdf', size: '847 KB', hash: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2' }],
+      isPhishing: true,
+      iocs: ['acme-benefits.xyz', '91.234.56.78', 'evil-phish.ru']
+    },
+    {
+      id: 'email-003',
+      from: 'noreply@acme.com',
+      fromDisplay: 'ACME IT Helpdesk <noreply@acme.com>',
+      to: 'all-staff@acme.com',
+      subject: 'Scheduled Maintenance: VPN Gateway Update',
+      date: '2024-04-05 07:00:00',
+      reportedBy: 'David Chen',
+      headers: {
+        'Return-Path': 'noreply@acme.com',
+        'Received': 'from mail.acme.com (10.20.1.5) by mx.acme.com',
+        'SPF': 'PASS',
+        'DKIM': 'PASS (selector: acme2024)',
+        'DMARC': 'PASS'
+      },
+      body: '<p>Hello,</p><p>The VPN gateway will undergo scheduled maintenance this Saturday (April 6) from 02:00 to 06:00 UTC. Remote access may be intermittently unavailable during this window.</p><p>No action is required on your part. If you experience issues after the maintenance window, please contact the helpdesk.</p><p>Thank you,<br>IT Operations</p>',
+      links: [],
+      attachments: [],
+      isPhishing: false,
+      iocs: []
+    }
+  ];
+
+  // ── Initialize Phishing Viewer as primary center tool ──
+  Labs.PhishingViewer.init({
     container: document.getElementById('tool-siem'),
+    emails: phishingEmails,
+    onAnalysis: function(analysis) {
+      if (analysis.type === 'classify' && analysis.classification === 'phishing' && analysis.isCorrect) {
+        sim.dispatch({ type: 'siem_action', action: 'evidence', entry: { evidenceId: 'phishing-domain' } });
+        updateEvidenceTracker('phishing-domain');
+      }
+      if (analysis.type === 'extract_iocs') {
+        analysis.iocs.forEach(function(ioc) {
+          Labs.IOCLookup.lookup(ioc);
+        });
+        sim.dispatch({ type: 'siem_action', action: 'evidence', entry: { evidenceId: 'sending-server' } });
+        updateEvidenceTracker('sending-server');
+      }
+    }
+  });
+
+  // ── Initialize SIEM on the Firewall tab as secondary log view ──
+  Labs.SIEM.init({
+    container: document.getElementById('tool-firewall'),
     evidenceCorpus: corpus,
     onAction: function(action) {
       sim.dispatch({ type: 'siem_action', action: action.action, entry: action.entry });
@@ -319,11 +413,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // ── Initialize source-filtered SIEM views ──
-  ['firewall', 'auth', 'dns'].forEach(function(source) {
+  // ── Initialize source-filtered SIEM views (auth, dns — firewall has full SIEM) ──
+  ['auth', 'dns'].forEach(function(source) {
     var container = document.getElementById('tool-' + source);
     if (container) {
-      var sourceMap = { firewall: 'fw', auth: 'auth', dns: 'dns' };
+      var sourceMap = { auth: 'auth', dns: 'dns' };
       var filtered = corpus.filter(function(e) { return e.source === sourceMap[source]; });
       Labs.SIEM.init({
         container: container,
