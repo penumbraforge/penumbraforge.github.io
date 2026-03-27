@@ -472,3 +472,216 @@
 .triage-result { margin-top:8px; padding:10px; background:var(--surface-0); border:1px solid var(--border); border-radius:4px; font-size:11px; }
 .triage-result-correct { color:var(--soc-success); }
 .triage-result-wrong { color:var(--soc-error); }
+
+/* ═══════════════════════════════════════════════════════
+   SOAR Playbook Builder
+   ═══════════════════════════════════════════════════════ */
+
+.pb-container { display:flex; height:100%; overflow:hidden; }
+
+/* Palette (left) */
+.pb-palette { width:220px; min-width:180px; border-right:1px solid var(--border); overflow-y:auto; padding:0; background:var(--surface-0); flex-shrink:0; }
+.pb-palette-title { font-size:11px; font-weight:600; color:var(--text-1); padding:10px 12px 6px; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); }
+.pb-palette-category { padding:6px 0; }
+.pb-palette-label { font-size:10px; color:var(--soc-accent); text-transform:uppercase; letter-spacing:0.5px; padding:4px 12px 2px; font-weight:600; }
+.pb-action-card { display:flex; align-items:center; gap:8px; padding:6px 12px; cursor:pointer; font-size:11px; color:var(--text-2); transition:background 0.1s, color 0.1s; }
+.pb-action-card:hover { background:var(--surface-2); color:var(--text-1); }
+.pb-action-icon { font-size:14px; width:20px; text-align:center; flex-shrink:0; }
+.pb-action-name { font-size:11px; }
+
+/* Flow (right) */
+.pb-flow-wrap { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.pb-flow-title { font-size:11px; font-weight:600; color:var(--text-1); padding:10px 16px 6px; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); background:var(--surface-0); }
+.pb-flow { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; align-items:center; }
+.pb-empty { color:var(--text-3); font-size:12px; text-align:center; padding:40px 20px; line-height:1.8; }
+
+/* Nodes */
+.pb-node { background:var(--surface-1); border:1px solid var(--border-active); border-radius:6px; padding:10px 12px; width:100%; max-width:420px; display:flex; align-items:center; gap:8px; position:relative; transition:border-color 0.15s; }
+.pb-node:hover { border-color:var(--soc-accent); }
+.pb-node-move { display:flex; flex-direction:column; gap:2px; }
+.pb-move-btn { background:none; border:1px solid var(--border); color:var(--text-3); width:18px; height:18px; border-radius:3px; cursor:pointer; font-size:10px; display:flex; align-items:center; justify-content:center; padding:0; font-family:inherit; }
+.pb-move-btn:hover { border-color:var(--soc-accent); color:var(--soc-accent); }
+.pb-node-content { flex:1; display:flex; align-items:center; gap:10px; min-width:0; }
+.pb-node-icon { font-size:18px; flex-shrink:0; }
+.pb-node-info { flex:1; min-width:0; }
+.pb-node-name { font-size:12px; font-weight:600; color:var(--text-1); display:block; }
+.pb-node-param { display:flex; align-items:center; gap:6px; margin-top:4px; }
+.pb-node-param-label { font-size:10px; color:var(--text-3); flex-shrink:0; }
+.pb-node-param-input { background:var(--surface-0); border:1px solid var(--border); border-radius:3px; color:var(--text-2); padding:3px 8px; font-size:10px; font-family:var(--font-mono); flex:1; min-width:0; }
+.pb-node-param-input:focus { border-color:var(--soc-accent); outline:none; color:var(--text-1); }
+.pb-remove-btn { background:none; border:none; color:var(--text-3); font-size:16px; cursor:pointer; padding:0 4px; line-height:1; position:absolute; top:4px; right:6px; }
+.pb-remove-btn:hover { color:var(--soc-error); }
+
+/* Arrows */
+.pb-node-arrow { display:flex; align-items:center; justify-content:center; height:28px; position:relative; }
+.pb-node-arrow::before { content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; background:var(--border); transform:translateX(-50%); }
+.pb-node-arrow::after { content:''; position:absolute; left:50%; bottom:0; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:5px solid var(--border); transform:translateX(-50%); }
+.pb-node-arrow-end { height:20px; }
+.pb-node-arrow-end::after { display:none; }
+.pb-add-btn { background:var(--surface-2); border:1px solid var(--border); color:var(--text-3); width:22px; height:22px; border-radius:50%; cursor:pointer; font-size:12px; z-index:1; display:flex; align-items:center; justify-content:center; padding:0; font-family:inherit; }
+.pb-add-btn:hover { border-color:var(--soc-accent); color:var(--soc-accent); }
+.pb-add-btn-end { width:auto; border-radius:4px; padding:4px 12px; font-size:11px; }
+
+/* Insert menu */
+.pb-insert-menu { position:absolute; top:100%; left:50%; transform:translateX(-50%); background:var(--surface-1); border:1px solid var(--border-active); border-radius:6px; padding:4px 0; z-index:50; width:220px; max-height:280px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+.pb-insert-item { display:flex; align-items:center; gap:8px; padding:6px 12px; cursor:pointer; font-size:11px; color:var(--text-2); }
+.pb-insert-item:hover { background:var(--surface-2); color:var(--text-1); }
+
+/* Controls */
+.pb-controls { display:flex; gap:8px; padding:12px 16px; background:var(--surface-0); border-top:1px solid var(--border); }
+.pb-ctrl-btn { padding:7px 18px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; border:none; }
+.pb-ctrl-test { background:var(--surface-2); border:1px solid var(--border); color:var(--text-2); }
+.pb-ctrl-test:hover { border-color:var(--soc-accent); color:var(--soc-accent); }
+.pb-ctrl-submit { background:var(--soc-accent); color:white; }
+.pb-ctrl-submit:hover { background:var(--soc-accent-hover); }
+
+/* Test results */
+.pb-test-result { padding:0 16px 12px; }
+.pb-test-header { font-size:11px; font-weight:600; color:var(--text-1); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; }
+.pb-test-steps { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+.pb-test-step { display:flex; align-items:center; gap:8px; font-size:11px; padding:4px 8px; background:var(--surface-1); border-radius:3px; }
+.pb-test-step-num { color:var(--text-3); font-family:var(--font-mono); width:18px; text-align:center; font-size:10px; }
+.pb-test-step-cat { color:var(--soc-accent); font-size:9px; text-transform:uppercase; width:70px; flex-shrink:0; }
+.pb-test-step-name { color:var(--text-1); flex:1; }
+.pb-test-step-status { font-size:9px; font-weight:700; }
+.pb-test-ok { color:var(--soc-success); }
+.pb-test-issues { margin-bottom:8px; }
+.pb-test-issue { font-size:11px; color:var(--soc-warning); padding:3px 0; }
+.pb-test-issue::before { content:'\26A0  '; }
+.pb-test-score { font-size:12px; font-weight:700; padding:6px 10px; border-radius:4px; text-align:center; }
+.pb-test-good { color:var(--soc-success); background:rgba(74,222,128,0.1); }
+.pb-test-warn { color:var(--soc-warning); background:rgba(245,158,11,0.1); }
+.pb-test-bad { color:var(--soc-error); background:rgba(239,68,68,0.1); }
+.pb-test-msg { font-size:11px; margin-top:6px; text-align:center; }
+
+/* ═══════════════════════════════════════════════════════
+   Phishing Email Viewer
+   ═══════════════════════════════════════════════════════ */
+
+.phish-container { display:flex; height:100%; overflow:hidden; }
+
+/* Email list (left) */
+.phish-list { width:280px; min-width:220px; border-right:1px solid var(--border); overflow-y:auto; background:var(--surface-0); flex-shrink:0; }
+.phish-list-title { font-size:11px; font-weight:600; color:var(--text-1); padding:10px 12px 6px; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); }
+.phish-email { padding:10px 12px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; }
+.phish-email:hover { background:var(--surface-1); }
+.phish-email.selected { background:var(--surface-2); border-left:3px solid var(--soc-accent); }
+.phish-email-from { font-size:11px; color:var(--text-1); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.phish-email-subject { font-size:11px; color:var(--text-2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px; }
+.phish-email-meta { display:flex; gap:12px; font-size:10px; color:var(--text-3); margin-top:4px; }
+.phish-badge { font-size:9px; padding:1px 6px; border-radius:3px; font-weight:700; text-transform:uppercase; flex-shrink:0; }
+.phish-badge-phishing { background:rgba(239,68,68,0.15); color:var(--soc-error); }
+.phish-badge-legit { background:rgba(74,222,128,0.15); color:var(--soc-success); }
+
+/* Detail pane (right) */
+.phish-detail { flex:1; overflow-y:auto; padding:0; }
+.phish-detail-empty { color:var(--text-3); font-size:12px; text-align:center; padding:40px 20px; }
+.phish-detail-subject { padding:12px 16px; background:var(--surface-1); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.phish-detail-subject strong { font-size:13px; color:var(--text-1); }
+.phish-detail-date { font-size:10px; color:var(--text-3); }
+.phish-detail-fromto { padding:10px 16px; font-size:11px; border-bottom:1px solid var(--border); }
+.phish-field-label { color:var(--text-3); font-size:10px; display:inline-block; width:50px; }
+.phish-field-val { color:var(--text-1); }
+.phish-mismatch-warn { color:var(--soc-warning); font-size:10px; margin-top:4px; font-weight:600; }
+.phish-mismatch-warn::before { content:'\26A0  '; }
+
+/* Headers */
+.phish-headers { border-bottom:1px solid var(--border); }
+.phish-headers-toggle { width:100%; background:var(--surface-0); border:none; color:var(--soc-accent); padding:8px 16px; text-align:left; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; }
+.phish-headers-toggle:hover { background:var(--surface-1); }
+.phish-headers-content { padding:0 16px 10px; }
+.phish-headers-grid { display:grid; grid-template-columns:100px 1fr; gap:4px 12px; font-size:10px; }
+.phish-header-key { color:var(--soc-accent); text-transform:uppercase; font-weight:600; }
+.phish-header-val { color:var(--text-2); word-break:break-all; font-family:var(--font-mono); }
+.phish-header-fail { color:var(--soc-error); font-weight:600; }
+
+/* Body */
+.phish-body { padding:12px 16px; border-bottom:1px solid var(--border); }
+.phish-section-title { font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; font-weight:600; }
+.phish-body-content { font-size:12px; color:var(--text-1); line-height:1.7; background:var(--surface-1); border:1px solid var(--border); border-radius:4px; padding:12px 16px; }
+.phish-body-link { color:var(--soc-accent); text-decoration:underline; cursor:help; }
+.phish-body-link-suspicious { color:var(--soc-error); text-decoration:underline wavy; }
+
+/* Links */
+.phish-links { padding:12px 16px; border-bottom:1px solid var(--border); }
+.phish-link { padding:8px 10px; background:var(--surface-1); border:1px solid var(--border); border-radius:4px; margin-bottom:6px; font-size:11px; }
+.phish-link.suspicious { border-color:rgba(239,68,68,0.4); background:rgba(239,68,68,0.05); }
+.phish-link-text { color:var(--text-2); margin-bottom:2px; }
+.phish-link-url { font-family:var(--font-mono); font-size:10px; color:var(--text-1); word-break:break-all; }
+.phish-link-warn { display:inline-block; margin-top:4px; font-size:9px; font-weight:700; color:var(--soc-error); text-transform:uppercase; padding:1px 6px; background:rgba(239,68,68,0.15); border-radius:3px; }
+
+/* Attachments */
+.phish-attachments { padding:12px 16px; border-bottom:1px solid var(--border); }
+.phish-attachment { display:flex; align-items:center; gap:8px; padding:6px 0; font-size:11px; flex-wrap:wrap; }
+.phish-att-icon { font-size:16px; }
+.phish-att-name { color:var(--text-1); font-weight:500; }
+.phish-att-meta { color:var(--text-3); font-size:10px; }
+.phish-att-hash { width:100%; font-family:var(--font-mono); font-size:9px; color:var(--text-3); margin-top:2px; word-break:break-all; }
+
+/* Actions */
+.phish-actions { padding:12px 16px; display:flex; gap:8px; flex-wrap:wrap; }
+.phish-action-btn { padding:6px 14px; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; border:1px solid var(--border); background:var(--surface-2); color:var(--text-2); transition:all 0.15s; }
+.phish-btn-phishing { border-color:var(--soc-error); color:var(--soc-error); }
+.phish-btn-phishing:hover { background:rgba(239,68,68,0.15); }
+.phish-btn-legit { border-color:var(--soc-success); color:var(--soc-success); }
+.phish-btn-legit:hover { background:rgba(74,222,128,0.15); }
+.phish-btn-ioc { border-color:var(--soc-accent); color:var(--soc-accent); }
+.phish-btn-ioc:hover { background:var(--soc-accent-dim); }
+
+/* ═══════════════════════════════════════════════════════
+   Network Containment Map
+   ═══════════════════════════════════════════════════════ */
+
+.netmap-container { padding:12px; overflow-y:auto; height:100%; }
+.netmap-title { font-size:12px; font-weight:600; color:var(--text-1); margin-bottom:2px; }
+.netmap-subtitle { font-size:10px; color:var(--text-3); margin-bottom:10px; }
+
+/* Legend */
+.netmap-legend { display:flex; gap:14px; margin-bottom:12px; padding:6px 10px; background:var(--surface-1); border-radius:4px; border:1px solid var(--border); }
+.netmap-legend-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--text-2); }
+.netmap-legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.netmap-dot-online { background:var(--soc-success); }
+.netmap-dot-compromised { background:var(--soc-error); }
+.netmap-dot-isolated { background:var(--text-3); }
+
+/* Segments */
+.netmap-segment { margin-bottom:14px; }
+.netmap-segment-label { font-size:10px; color:var(--soc-accent); text-transform:uppercase; letter-spacing:0.5px; font-weight:600; margin-bottom:6px; padding:4px 8px; background:var(--soc-accent-dim); border-radius:3px; display:inline-block; }
+
+/* Grid */
+.netmap-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; }
+
+/* Host cards */
+.netmap-host { background:var(--surface-1); border:1px solid var(--border); border-radius:6px; padding:10px; transition:all 0.2s; }
+.netmap-host:hover { border-color:var(--border-active); }
+.netmap-host.online { border-left:3px solid var(--soc-success); }
+.netmap-host.compromised { border-left:3px solid var(--soc-error); animation:netmapPulse 2s ease-in-out infinite; }
+.netmap-host.isolated { border-left:3px solid var(--text-3); opacity:0.6; background:repeating-linear-gradient(45deg, var(--surface-1), var(--surface-1) 4px, var(--surface-0) 4px, var(--surface-0) 8px); }
+
+@keyframes netmapPulse {
+  0%, 100% { box-shadow:0 0 0 0 rgba(239,68,68,0); }
+  50% { box-shadow:0 0 8px 2px rgba(239,68,68,0.2); }
+}
+
+.netmap-host-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.netmap-host-icon { font-size:18px; }
+.netmap-host-status-dot { width:8px; height:8px; border-radius:50%; }
+.netmap-host.online .netmap-host-status-dot { background:var(--soc-success); }
+.netmap-host.compromised .netmap-host-status-dot { background:var(--soc-error); animation:netmapDotPulse 1s ease-in-out infinite; }
+.netmap-host.isolated .netmap-host-status-dot { background:var(--text-3); }
+
+@keyframes netmapDotPulse {
+  0%, 100% { opacity:1; }
+  50% { opacity:0.4; }
+}
+
+.netmap-host-name { font-size:12px; font-weight:600; color:var(--text-1); font-family:var(--font-mono); }
+.netmap-host-ip { font-size:10px; color:var(--text-3); font-family:var(--font-mono); margin-top:1px; }
+.netmap-host-role { font-size:10px; color:var(--text-2); margin-top:2px; }
+.netmap-host-conns { font-size:9px; color:var(--text-3); margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.netmap-host-actions { margin-top:6px; }
+
+.netmap-isolate-btn { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.4); color:var(--soc-error); padding:3px 10px; border-radius:3px; font-size:10px; font-weight:600; cursor:pointer; font-family:inherit; width:100%; }
+.netmap-isolate-btn:hover { background:rgba(239,68,68,0.2); }
+.netmap-restore-btn { background:rgba(74,222,128,0.1); border:1px solid rgba(74,222,128,0.4); color:var(--soc-success); padding:3px 10px; border-radius:3px; font-size:10px; font-weight:600; cursor:pointer; font-family:inherit; width:100%; }
+.netmap-restore-btn:hover { background:rgba(74,222,128,0.2); }
