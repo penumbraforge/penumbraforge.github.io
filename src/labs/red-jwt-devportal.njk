@@ -1,362 +1,323 @@
 ---
-layout: lab-workspace.njk
+layout: lab-workspace-v2.njk
 permalink: /labs/red/jwt-devportal/
 labCode: "RED-04"
 labTitle: "JWT Algorithm Confusion"
 labDifficulty: "beginner"
-labDescription: "DevPortal's authentication system accepts JWTs without enforcing the signing algorithm. Exploit the alg:none vulnerability to forge an admin token and access restricted resources."
-targetUrl: "https://api.devportal.io/auth"
-targetHost: "api.devportal.io"
+labDescription: "DevPortal accepts JWTs without enforcing the signing algorithm. Forge an admin token to access restricted resources."
+targetUrl: "https://lab-jwt.penumbraforge.workers.dev"
+targetHost: "devportal.lab.penumbraforge.com"
 workerUrl: "https://lab-jwt.penumbraforge.workers.dev"
-targetPath: "auth"
-labCompletionText: "You successfully demonstrated a JWT algorithm confusion attack, forging an unsigned admin token by exploiting the server's failure to enforce the signing algorithm, gaining full administrative access to the DevPortal API."
 ---
 
-<!-- LEFT: Mission Panel -->
-<div class="lab-mission-panel">
-  <div class="lab-panel-tabs">
-    <button class="lab-panel-tab active" data-tab="mission">Mission</button>
-    <button class="lab-panel-tab" data-tab="source">Source</button>
-    <button class="lab-panel-tab" data-tab="hints">Hints</button>
-  </div>
-  <div class="lab-panel-content">
-<!-- ── Mission Tab ── -->
-<div class="lab-tab-content active" data-tab-content="mission">
-  <div class="lab-section-label">Scenario</div>
-  <div class="lab-scenario">
-    <strong>DevPortal</strong> provides a developer API platform with role-based access control. Authentication is handled via JSON Web Tokens (JWT). A code review flagged that the JWT verification logic may not properly enforce the signing algorithm. Your task: confirm the vulnerability, forge an admin token, and access the admin panel.
-  </div>
-
-  <div class="lab-section-label">Objectives</div>
-  <div class="lab-objective current" id="obj-authenticate">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 1 — Authenticate</span>
-      Log in with valid credentials to receive a JWT
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-decode">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 2 — Decode the token</span>
-      Inspect the JWT header and observe the <code>RS256</code> algorithm
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-forge">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 3 — Forge a token</span>
-      Create a new JWT with <code>alg: "none"</code> and <code>role: "admin"</code> in the payload
-    </div>
-  </div>
-  <div class="lab-objective" id="obj-access">
-    <div class="lab-obj-check"></div>
-    <div class="lab-obj-text">
-      <span class="lab-obj-step">Step 4 — Access admin panel</span>
-      Use the forged token to access the admin-restricted endpoint
-    </div>
-  </div>
-
-  <div class="lab-section-label" style="margin-top:24px;">Security Context</div>
-  <div class="lab-scenario">
-    This lab targets <strong>CWE-327: Use of a Broken or Risky Cryptographic Algorithm</strong>. The application's JWT verification code does not enforce the expected signing algorithm, allowing an attacker to set <code>alg: "none"</code> in the token header — effectively creating an unsigned token that the server accepts as valid.
-  </div>
-  <div class="lab-scenario">
-    <strong>CVE:</strong> CVE-2015-9235 — JWT alg:none signature bypass<br>
-    <strong>OWASP:</strong> A02:2021 — Cryptographic Failures<br>
-    <strong>Real-world precedent:</strong> Auth0 jsonwebtoken library — accepted <code>alg: "none"</code> tokens, allowing unauthenticated access to any account
-  </div>
+<!-- Mission Brief Content -->
+<div class="ws-mission-header">Operation: Token Forge</div>
+<div class="ws-mission-narrative">
+  DevPortal provides a developer API platform with role-based access control via JSON Web Tokens. A code review flagged that the JWT verification logic may not properly enforce the signing algorithm — it trusts whatever <code>alg</code> the token header specifies.
+  <br><br>
+  Your objective: obtain a valid JWT, decode it, forge a new token with admin privileges using the <code>alg:none</code> bypass, and access the admin panel.
 </div>
 
-<!-- ── Source Tab ── -->
-<div class="lab-tab-content" data-tab-content="source">
-  <div class="lab-section-label">Vulnerable Code</div>
-  <div class="lab-source-filename">&#x1f4c4; server/middleware/auth.js</div>
-  <pre class="lab-source-pre"><span class="ln"> 1</span><span class="kw">const</span> jwt = <span class="fn">require</span>(<span class="str">'jsonwebtoken'</span>);
-<span class="ln"> 2</span><span class="kw">const</span> publicKey = fs.<span class="fn">readFileSync</span>(<span class="str">'./keys/public.pem'</span>);
-<span class="ln"> 3</span>
-<span class="ln"> 4</span><span class="kw">function</span> <span class="fn">verifyToken</span>(req, res, next) {
-<span class="ln"> 5</span>  <span class="kw">const</span> token = req.headers.authorization;
-<span class="ln"> 6</span>
-<span class="vuln"><span class="ln"> 7</span>  <span class="kw">const</span> decoded = jwt.<span class="fn">verify</span>(token, publicKey);</span>
-<span class="ln"> 8</span>  <span class="cm">// &#x26a0; No algorithm enforcement — server trusts the alg header</span>
-<span class="ln"> 9</span>  <span class="cm">// If alg is "none", the signature is not checked at all</span>
-<span class="ln">10</span>
-<span class="ln">11</span>  req.user = decoded;
-<span class="ln">12</span>  <span class="fn">next</span>();
-<span class="ln">13</span>}</pre>
-
-  <div class="lab-section-label">The Fix</div>
-  <div class="lab-source-filename" style="color:var(--sage);">&#x2705; server/middleware/auth-fixed.js</div>
-  <pre class="lab-source-pre"><span class="ln"> 5</span>  <span class="kw">const</span> token = req.headers.authorization;
-<span class="ln"> 6</span>
-<span class="ln"> 7</span>  <span class="cm">// Enforce the expected algorithm — reject anything else</span>
-<span class="ln"> 8</span>  <span class="kw">const</span> decoded = jwt.<span class="fn">verify</span>(token, publicKey, {
-<span class="ln"> 9</span>    algorithms: [<span class="str">'RS256'</span>],   <span class="cm">// Only accept RS256</span>
-<span class="ln">10</span>  });
-<span class="ln">11</span>
-<span class="ln">12</span>  <span class="cm">// "none", "HS256" with the public key, etc. are all rejected</span>
-<span class="ln">13</span>  <span class="cm">// Also: validate issuer, audience, and expiration claims</span>
-<span class="ln">14</span>  req.user = decoded;
-<span class="ln">15</span>  <span class="fn">next</span>();</pre>
+<div class="ws-mission-goal">
+  <div class="ws-mission-goal-label">Primary Objective</div>
+  <div class="ws-mission-goal-text">Forge a JWT with admin privileges and access the admin-restricted endpoint</div>
 </div>
 
-<!-- ── Hints Tab ── -->
-<div class="lab-tab-content" data-tab-content="hints">
-  <div class="lab-section-label">Hints</div>
-  <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Each hint costs XP. Try to solve it without them for maximum score.</p>
-
-  <div class="lab-hint" id="hint-0">
-    <div class="lab-hint-header">
-      <span>Hint 1 — General direction</span>
-      <span class="lab-hint-cost">-10 xp</span>
-    </div>
-    <div class="lab-hint-body">After logging in, look at the JWT you receive. It has three Base64-encoded parts separated by dots. Decode the header (first part) — what algorithm does it specify? The <code>alg</code> field tells the server how to verify the signature.</div>
-  </div>
-
-  <div class="lab-hint" id="hint-1">
-    <div class="lab-hint-header">
-      <span>Hint 2 — Attack vector</span>
-      <span class="lab-hint-cost">-25 xp</span>
-    </div>
-    <div class="lab-hint-body">The JWT spec includes an algorithm called <code>"none"</code> which means "no signature." If the server doesn't enforce a specific algorithm, you can change the header to <code>{"alg":"none","typ":"JWT"}</code>, modify the payload to give yourself admin privileges, and remove the signature entirely. The token format is: <code>header.payload.</code> (with an empty signature).</div>
-  </div>
-
-  <div class="lab-hint" id="hint-2">
-    <div class="lab-hint-header">
-      <span>Hint 3 — Full payload</span>
-      <span class="lab-hint-cost">-50 xp</span>
-    </div>
-    <div class="lab-hint-body">Forge a token with:<br>Header: <code>{"alg":"none","typ":"JWT"}</code><br>Payload: <code>{"sub":"1","username":"admin","role":"admin"}</code><br><br>Base64url-encode both parts and concatenate with dots, leaving the signature empty:<br><code>eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9.</code></div>
-  </div>
+<div class="ws-mission-goal ws-mission-goal-bonus">
+  <div class="ws-mission-goal-label">Bonus</div>
+  <div class="ws-mission-goal-text">Use alg:none with a completely empty signature</div>
 </div>
 
-<!-- ── Debrief (shown after completion) ── -->
-<div class="lab-debrief" id="lab-debrief">
-  <div class="lab-debrief-label">Debrief — JWT Algorithm Confusion</div>
-
-  <h3>What happened</h3>
-  <p>DevPortal's JWT verification code calls <code>jwt.verify()</code> without specifying which algorithms are acceptable. This allows the attacker to set the <code>alg</code> header to <code>"none"</code>, which tells the library to skip signature verification entirely. The attacker can then modify the payload (changing their role to admin) and the server accepts the forged token as valid.</p>
-
-  <h3>The vulnerable code</h3>
-  <pre>const decoded = jwt.verify(token, publicKey);
-// No algorithms option — trusts whatever alg the token header specifies
-// alg:"none" = no signature required</pre>
-
-  <h3>The fix</h3>
-  <p>Always specify the expected algorithm when verifying JWTs. Pass an <code>algorithms</code> allowlist to the verification function. Never allow <code>"none"</code> in production. Additionally, validate the <code>iss</code> (issuer), <code>aud</code> (audience), and <code>exp</code> (expiration) claims.</p>
-  <pre>// Enforce algorithm — only accept RS256
-const decoded = jwt.verify(token, publicKey, {
-  algorithms: ['RS256'],
-  issuer: 'devportal.io',
-  audience: 'api.devportal.io',
-});
-
-// Reject: alg:"none", alg:"HS256" (symmetric with public key)
-// Also: rotate signing keys, use short expiration times</pre>
-
-  <h3>Real-world impact</h3>
-  <p>JWT algorithm confusion allows an attacker to forge tokens for any user or role. With an admin token, they can access any account, modify data, create backdoor accounts, or exfiltrate the entire database. This attack requires no knowledge of the server's private key.</p>
-  <p><strong>Auth0 jsonwebtoken (CVE-2015-9235):</strong> The popular Node.js JWT library accepted tokens with <code>alg: "none"</code> by default, allowing attackers to forge valid tokens without any cryptographic key. The vulnerability affected thousands of applications before the library was patched to reject <code>"none"</code> unless explicitly opted in.</p>
-
-  <h3>How to find this in the wild</h3>
-  <p>Intercept a valid JWT (from login or API calls), decode the header, and change <code>alg</code> to <code>"none"</code>. Remove the signature (everything after the second dot) and replay the request. If the server accepts it, the vulnerability is confirmed. Also test <code>alg: "HS256"</code> with the public key as the HMAC secret — another common JWT confusion attack.</p>
-
-  <div class="lab-debrief-refs">
-    <div class="lab-section-label">References</div>
-    <a href="https://owasp.org/Top10/A02_2021-Cryptographic_Failures/" target="_blank" rel="noopener">OWASP A02:2021 — Cryptographic Failures &#x2197;</a>
-    <a href="https://cwe.mitre.org/data/definitions/327.html" target="_blank" rel="noopener">CWE-327: Use of Broken Crypto Algorithm &#x2197;</a>
-    <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2015-9235" target="_blank" rel="noopener">CVE-2015-9235 — JWT alg:none bypass &#x2197;</a>
+<div class="ws-mission-intel-section">
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Target</div>
+    <div class="ws-intel-value">devportal.lab.penumbraforge.com</div>
   </div>
-</div>
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Scope</div>
+    <div class="ws-intel-value">Auth endpoints — /auth/login, /admin</div>
   </div>
-</div>
-
-<!-- CENTER: Target App -->
-<div class="lab-center">
-  <div class="lab-target-bar">
-    <div class="lab-target-dots"><div class="lab-dot lab-dot-r"></div><div class="lab-dot lab-dot-y"></div><div class="lab-dot lab-dot-g"></div></div>
-    <div class="lab-target-url"><span class="lab-target-lock">&#x1f512;</span> https://api.devportal.io/auth</div>
-  </div>
-  <iframe class="lab-target-frame" id="lab-target" sandbox="allow-scripts allow-forms allow-popups" src="https://lab-jwt.penumbraforge.workers.dev/"></iframe>
-</div>
-
-<!-- RIGHT: Inspector -->
-<div class="lab-inspector">
-  <div class="lab-panel-tabs">
-    <button class="lab-panel-tab active" data-tab="http">HTTP</button>
-    <button class="lab-panel-tab" data-tab="logs">Server Logs</button>
-    <button class="lab-panel-tab" data-tab="console">Console</button>
-  </div>
-  <div class="lab-panel-content" style="padding:0;">
-    <div class="lab-tab-content active" data-tab-content="http">
-      <div class="lab-http">
-        <div class="lab-http-section">
-          <div class="lab-http-label">Request</div>
-          <pre class="lab-http-pre" id="http-req"><span class="lab-http-method">GET</span> /auth HTTP/1.1
-<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">api.devportal.io</span>
-<span class="lab-http-hname">Authorization:</span> <span class="lab-http-hval">Bearer &lt;token&gt;</span></pre>
-        </div>
-        <div class="lab-http-section">
-          <div class="lab-http-label">Response</div>
-          <pre class="lab-http-pre" id="http-resp">HTTP/1.1 <span class="lab-http-status">200 OK</span>
-<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>
-<span class="lab-http-hname">X-Powered-By:</span> <span class="lab-http-hval">Express</span></pre>
-        </div>
-      </div>
-    </div>
-    <div class="lab-tab-content" data-tab-content="logs">
-      <div class="lab-logs" id="server-logs"></div>
-    </div>
-    <div class="lab-tab-content" data-tab-content="console">
-      <div class="lab-console">
-        <div class="lab-console-output" id="console-output">
-          <div class="c-info">Penumbra Forge Security Lab v1.0</div>
-          <div class="c-info">Target: api.devportal.io</div>
-          <div class="c-info">Type 'help' for available commands.</div>
-        </div>
-        <div class="lab-console-input-row">
-          <span class="lab-console-prefix">$</span>
-          <input type="text" class="lab-console-input" id="console-input" placeholder="Enter command..." autocomplete="off">
-        </div>
-      </div>
-    </div>
+  <div class="ws-intel-item">
+    <div class="ws-intel-label">Rules of Engagement</div>
+    <div class="ws-intel-value">No DoS. No brute force. Token manipulation only.</div>
   </div>
 </div>
 
 <script>
 (function() {
-  var LAB_CONFIG = {
+  'use strict';
+
+  var Labs = window.PenumbraLabs;
+  var workerUrl = '{{ workerUrl }}';
+
+  // ── Scenario Definition ──
+  var scenario = {
     id: 'red-jwt-devportal',
     type: 'red',
     title: 'JWT Algorithm Confusion',
-    target: 'DevPortal',
     difficulty: 'beginner',
     estimatedTime: 10,
     xpReward: 100,
-    hintCost: [10, 25, 50],
     skills: ['auth-jwt-bypass'],
     unlocks: ['blue-investigate-devportal'],
-    objectives: [
-      { id: 'authenticate', step: 1, title: 'Authentication' },
-      { id: 'decode', step: 2, title: 'Token Inspection' },
-      { id: 'forge', step: 3, title: 'Token Forgery' },
-      { id: 'access', step: 4, title: 'Admin Access' },
+    optimalActions: 5,
+    techniqueChecks: [
+      { id: 'decoded-jwt', check: function(log) { return log.some(function(a) { return a.type === 'decoder' || (a.type === 'iframe_message' && a.message && a.message.action === 'decode'); }); }, points: 25 },
+      { id: 'modified-alg', check: function(log) { return log.some(function(a) { return a.type === 'iframe_message' && a.message && a.message.algNone === true; }); }, points: 25 },
+      { id: 'forged-admin', check: function(log) { return log.some(function(a) { return a.type === 'iframe_message' && a.message && a.message.isAdmin === true; }); }, points: 25 },
+      { id: 'accessed-admin', check: function(log) { return log.some(function(a) { return a.type === 'iframe_message' && a.message && a.message.action === 'access' && a.message.isAdmin === true; }); }, points: 25 }
     ],
+
+    stateGraph: {
+      states: {
+        'start':          { transitions: { 'token_obtained': 'token_obtained' } },
+        'token_obtained': { transitions: { 'token_decoded': 'token_decoded' } },
+        'token_decoded':  { transitions: { 'token_forged': 'token_forged' } },
+        'token_forged':   { transitions: { 'admin_access': 'admin_access' } },
+        'admin_access':   { transitions: { 'complete': 'complete' } },
+        'complete':       { terminal: true }
+      },
+      initialState: 'start'
+    },
+
+    validationRules: {
+      'token_obtained': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'jwt-result' && msg.action === 'login' && msg.token;
+        }
+      },
+      'token_decoded': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'jwt-result' && msg.action === 'decode';
+        }
+      },
+      'token_forged': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'jwt-result' && msg.algNone === true;
+        }
+      },
+      'admin_access': {
+        trigger: 'iframe_message',
+        condition: function(msg) {
+          return msg.type === 'jwt-result' && msg.isAdmin === true;
+        }
+      },
+      'complete': {
+        trigger: 'auto',
+        condition: function() { return true; }
+      }
+    },
+
+    nudges: {
+      'start': {
+        delay: 90,
+        text: 'Start by logging in with valid credentials to receive a JWT. Check the login form in the browser view.'
+      },
+      'token_obtained': {
+        delay: 120,
+        text: 'You have a JWT. It has three Base64-encoded parts separated by dots. Use the Decoder tool to inspect the header — what algorithm does it specify?'
+      },
+      'token_decoded': {
+        delay: 120,
+        text: 'The header says RS256. The JWT spec includes an algorithm called "none" which means no signature. Can you change the alg claim and forge a new token?'
+      },
+      'token_forged': {
+        delay: 90,
+        text: 'Token forged with alg:none. Now modify the payload to set role:"admin" and use it to access the /admin endpoint.'
+      }
+    },
+
+    objectives: [
+      { id: 'token_obtained', title: 'Token Obtained' },
+      { id: 'token_decoded', title: 'Token Decoded' },
+      { id: 'token_forged', title: 'Token Forged' },
+      { id: 'admin_access', title: 'Admin Access' }
+    ]
   };
 
-  var Engine = PenumbraLabs.Engine;
-  var ServerLogs = PenumbraLabs.ServerLogs;
+  // ── Initialize Panel System ──
+  Labs.PanelSystem.init({
+    container: document.getElementById('workspace'),
+    panels: [
+      { id: 'panel-mission', minWidth: 220, defaultWidth: 280 },
+      { id: 'panel-tools', flex: true },
+      { id: 'panel-browser', minWidth: 320, defaultWidth: 480 }
+    ]
+  });
 
-  Engine.init(LAB_CONFIG);
-  ServerLogs.init('server-logs');
-  ServerLogs.add('info', 'DevPortal API server started on port 3000');
-  ServerLogs.add('info', 'JWT verification middleware loaded — RS256 public key ready');
+  // ── Initialize Simulation Engine ──
+  var sim = Labs.Simulation.init({
+    scenario: scenario,
+    bridge: Labs.SimulationBridge,
+    onStateChange: function(fromState, toState, action) {
+      var obj = scenario.objectives.find(function(o) { return o.id === toState; }) ||
+                scenario.objectives.find(function(o) { return o.id === fromState; });
+      var label = obj ? obj.title : toState;
+      Labs.Toast.show(label + ' — confirmed', 'success');
 
-  var iframe = document.getElementById('lab-target');
-  var httpReq = document.getElementById('http-req');
-  var httpResp = document.getElementById('http-resp');
+      updateDetection(toState);
+      updateRequestCount();
+      addIntel(toState, action);
+    },
+    onComplete: function() {
+      var elapsed = Labs.Timer.stop();
+      var scoringData = {
+        actionsLog: sim.getActionsLog(),
+        nudgesShown: sim._nudgeRef ? sim._nudgeRef._shownCount || 0 : 0,
+        nudgesDismissed: sim._nudgeRef ? sim._nudgeRef._dismissCount || 0 : 0,
+        evidenceFound: 4,
+        totalEvidence: 4
+      };
+      var result = Labs.SimulationBridge.onLabComplete(scenario.id, scenario, elapsed, scoringData);
+      showCompletion(result, elapsed);
+    }
+  });
 
-  /* Listen for postMessage from the lab iframe */
-  window.addEventListener('message', function(event) {
-    var data;
-    try {
-      data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-    } catch(e) { return; }
+  // ── Initialize Terminal ──
+  Labs.Terminal.init({
+    container: document.getElementById('tool-terminal'),
+    workerUrl: workerUrl,
+    onAction: function(action) {
+      sim.dispatch(action);
+      requestCount++;
+      updateRequestCount();
+    }
+  });
 
-    if (!data || data.type !== 'jwt-result') return;
+  // ── Initialize Repeater ──
+  Labs.Repeater.init({
+    container: document.getElementById('tool-repeater'),
+    workerUrl: workerUrl,
+    onAction: function(action) {
+      sim.dispatch(action);
+      requestCount++;
+      updateRequestCount();
+    }
+  });
 
-    var action = data.action || '';
-    var algNone = data.algNone || false;
-    var isAdmin = data.isAdmin || false;
-    var token = data.token || '';
-    var statusCode = data.statusCode || 200;
+  // ── Initialize Decoder & Notes ──
+  Labs.Decoder.init({ container: document.getElementById('tool-decoder') });
+  Labs.Notes.init({ container: document.getElementById('tool-notes'), labId: scenario.id });
 
-    /* Update HTTP inspector */
-    if (action === 'login') {
-      httpReq.innerHTML = '<span class="lab-http-method">POST</span> /auth/login HTTP/1.1\n' +
-        '<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">api.devportal.io</span>\n' +
-        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n\n' +
-        '{ <span class="lab-http-hname">"username":</span> <span class="lab-http-hval">"' + escHtml(data.username || '') + '"</span> }';
+  // ── Listen for iframe messages ──
+  window.addEventListener('message', function(e) {
+    if (!e.data || !e.data.type) return;
 
-      httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status">200 OK</span>\n' +
-        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n\n' +
-        '{ <span class="lab-http-hname">"token":</span> <span class="lab-http-hval">"' + escHtml(token).substring(0, 80) + '..."</span> }';
-
-      ServerLogs.add('info', 'POST /auth/login — user authenticated, JWT issued (RS256)');
-      Engine.tryCompleteObjective('authenticate');
+    if (e.data.type === 'jwt-result') {
+      sim.dispatch({ type: 'iframe_message', message: e.data });
     }
 
-    if (action === 'decode') {
-      ServerLogs.add('info', 'JWT decoded — algorithm: ' + (data.algorithm || 'RS256'));
-      Engine.tryCompleteObjective('decode');
-    }
-
-    if (action === 'verify' || action === 'access') {
-      httpReq.innerHTML = '<span class="lab-http-method">GET</span> /admin HTTP/1.1\n' +
-        '<span class="lab-http-hname">Host:</span> <span class="lab-http-hval">api.devportal.io</span>\n' +
-        '<span class="lab-http-hname">Authorization:</span> <span class="lab-http-hval">' + escHtml(token).substring(0, 60) + '...</span>';
-
-      httpResp.innerHTML = 'HTTP/1.1 <span class="lab-http-status">' + statusCode + (statusCode === 200 ? ' OK' : ' Forbidden') + '</span>\n' +
-        '<span class="lab-http-hname">Content-Type:</span> <span class="lab-http-hval">application/json</span>\n\n' +
-        '<span class="lab-http-hval">' + escHtml(JSON.stringify(data.body || {}).substring(0, 200)) + '</span>';
-
-      /* Objective 3: Forge — alg:none token */
-      if (algNone) {
-        Engine.tryCompleteObjective('forge');
-        ServerLogs.add('warn', 'JWT received with alg:"none" — signature verification skipped');
-      }
-
-      /* Objective 4: Access — admin panel with forged token */
-      if (isAdmin) {
-        setTimeout(function() {
-          Engine.tryCompleteObjective('access');
-          ServerLogs.add('critical', 'Admin panel accessed with forged JWT — role escalation confirmed');
-        }, 500);
+    if (e.data.type === 'devportal-nav' && e.data.url) {
+      var urlDisplay = document.getElementById('ws-url-display');
+      if (urlDisplay) {
+        var clean = e.data.url.replace(/^https?:\/\//, '');
+        urlDisplay.value = clean;
       }
     }
   });
 
-  /* Hint reveals */
-  document.querySelectorAll('.lab-hint').forEach(function(hint, idx) {
-    hint.addEventListener('click', function() {
-      if (!this.classList.contains('revealed')) {
-        this.classList.add('revealed');
-        Engine.revealHint(idx);
-      }
-    });
+  // ── Start Timer ──
+  Labs.Timer.start(function(elapsed) {
+    var el = document.getElementById('lab-timer');
+    if (el) el.textContent = Labs.Timer.format(elapsed);
   });
 
-  /* Restore previous progress */
-  var progress = Engine.getProgress();
-  progress.objectivesCompleted.forEach(function(objId) {
-    var el = document.getElementById('obj-' + objId);
-    if (el) {
-      el.classList.remove('current');
-      el.classList.add('completed');
-      el.querySelector('.lab-obj-check').textContent = '\u2713';
-    }
-  });
+  // ── State helpers ──
+  var requestCount = 0;
 
-  /* Mark current objective */
-  var foundCurrent = false;
-  LAB_CONFIG.objectives.forEach(function(obj) {
-    var el = document.getElementById('obj-' + obj.id);
+  function updateRequestCount() {
+    var el = document.getElementById('ws-request-count');
+    if (el) el.textContent = 'Requests: ' + requestCount;
+  }
+
+  function updateDetection(state) {
+    var el = document.getElementById('ws-detection');
     if (!el) return;
-    if (progress.objectivesCompleted.indexOf(obj.id) === -1 && !foundCurrent) {
-      el.classList.add('current');
-      foundCurrent = true;
+    var labels = {
+      'token_obtained': '● JWT Obtained',
+      'token_decoded': '● Token Structure Analyzed',
+      'token_forged': '● alg:none Token Forged',
+      'admin_access': '● Admin Panel Breached',
+      'complete': '● Privilege Escalation Complete'
+    };
+    el.textContent = labels[state] || '';
+    el.style.color = state === 'complete' || state === 'admin_access' ? '#ef4444' : '#f59e0b';
+  }
+
+  function addIntel(state, action) {
+    var panel = document.getElementById('intel-panel');
+    if (!panel) return;
+
+    var empty = panel.querySelector('.ws-mission-empty');
+    if (empty) empty.remove();
+
+    var intel = {
+      'token_obtained': { label: 'JWT Issued', value: 'Login returned RS256-signed JWT with user role in payload' },
+      'token_decoded': { label: 'Token Analyzed', value: 'Header specifies alg:RS256, payload contains sub, username, and role claims' },
+      'token_forged': { label: 'Token Forged', value: 'Server accepted JWT with alg:none — signature verification bypassed entirely' },
+      'admin_access': { label: 'Admin Access', value: 'Forged token with role:admin granted access to restricted /admin endpoint' }
+    };
+
+    var info = intel[state];
+    if (!info) return;
+
+    var div = document.createElement('div');
+    div.className = 'ws-intel-item';
+    div.innerHTML = '<div class="ws-intel-label">' + info.label + '</div>' +
+                    '<div class="ws-intel-value">' + info.value + '</div>';
+    panel.appendChild(div);
+  }
+
+  function showCompletion(result, elapsed) {
+    document.getElementById('complete-time').textContent = Labs.Timer.format(elapsed);
+    document.getElementById('complete-score').textContent = result.scoring ? result.scoring.composite : 100;
+    document.getElementById('complete-xp').textContent = '+' + (result.scoring ? result.scoring.xp : result.xp);
+    document.getElementById('complete-level').textContent = 'Level ' + result.level + ' — ' + Labs.Xp.titleForLevel(result.level);
+
+    if (scenario.unlocks && scenario.unlocks.length > 0) {
+      var unlockEl = document.getElementById('complete-unlock');
+      if (unlockEl) {
+        unlockEl.style.display = '';
+        unlockEl.textContent = 'Blue Team Investigation →';
+        unlockEl.href = '/labs/blue/investigate-devportal/';
+      }
     }
-  });
 
-  /* Restore revealed hints */
-  progress.hintsUsed.forEach(function(idx) {
-    var hint = document.getElementById('hint-' + idx);
-    if (hint) hint.classList.add('revealed');
-  });
+    document.getElementById('lab-complete-overlay').classList.add('visible');
 
-  function escHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    var debriefPanel = document.getElementById('debrief-panel');
+    if (debriefPanel && Labs.Debrief) {
+      debriefPanel.style.display = '';
+      Labs.Debrief.render({
+        container: debriefPanel,
+        scoring: result.scoring,
+        elapsed: elapsed,
+        scenario: scenario,
+        debriefContent: {
+          analysis: '<div class="debrief-card"><h3>Vulnerability: CWE-327 — Use of Broken Cryptographic Algorithm</h3><p>DevPortal\'s JWT verification calls <code>jwt.verify(token, publicKey)</code> without specifying which algorithms are acceptable. The server trusts the <code>alg</code> header in the token itself, so an attacker can set it to <code>"none"</code> — which tells the library to skip signature verification entirely.</p><p>With no signature check, the attacker can modify the payload (changing role to admin) and the server accepts the forged token as valid. No private key knowledge required.</p></div>',
+
+          framework: '<div class="debrief-card"><h3>MITRE ATT&CK Mapping</h3><p><strong>T1548</strong> — Abuse Elevation Control Mechanism: Forged JWT bypasses role-based access control</p><p><strong>T1078</strong> — Valid Accounts: Attacker assumes admin identity via forged token</p></div><div class="debrief-card"><h3>OWASP Top 10</h3><p><strong>A02:2021</strong> — Cryptographic Failures: JWT verification does not enforce signing algorithm</p></div><div class="debrief-card"><h3>CVE Reference</h3><p><strong>CVE-2015-9235</strong> — JWT alg:none signature bypass in jsonwebtoken library</p></div>',
+
+          code: '<div class="debrief-section-title">Vulnerable Code</div><div class="debrief-code"><span class="vuln">const decoded = jwt.verify(token, publicKey);</span>\n// No algorithms option — trusts whatever alg the token specifies\n// alg:"none" = no signature required</div><div class="debrief-section-title" style="margin-top:16px;">The Fix</div><div class="debrief-code"><span class="fix">const decoded = jwt.verify(token, publicKey, {\n  algorithms: [\'RS256\'],  // Only accept RS256\n  issuer: \'devportal.io\',\n  audience: \'api.devportal.io\',\n});</span>\n// Rejects: alg:"none", alg:"HS256" with public key\n// Also: rotate signing keys, use short expiration</div>',
+
+          crossPerspective: {
+            title: 'What a Defender Sees',
+            description: 'From the SOC\'s perspective, this attack appears as admin-level API calls originating from a user session that was never granted admin privileges. The JWT audit log shows a token with alg:none being accepted — something that should never happen in production. Auth logs reveal a role claim mismatch between the issued token and the one being presented. The defense: algorithm whitelist in jwt.verify(), plus anomaly detection on role escalation patterns.',
+            linkText: 'Try the Blue Team Investigation →',
+            linkHref: '/labs/blue/investigate-devportal/'
+          }
+        }
+      });
+    }
+
+    var statusEl = document.getElementById('ws-mission-status');
+    if (statusEl) {
+      statusEl.textContent = '✓ Mission Complete';
+      statusEl.style.color = '#4ade80';
+    }
   }
 })();
 </script>
