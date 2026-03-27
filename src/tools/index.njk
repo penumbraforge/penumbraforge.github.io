@@ -107,7 +107,15 @@ permalink: /tools/
 
 <script>
 (function() {
-  var isMobile = window.innerWidth <= 768;
+  var isMobile = window.innerWidth <= 900;
+
+  // Position search bar below the actual header
+  var searchBar = document.getElementById('tools-mobile-search');
+  var siteHeader = document.getElementById('site-header');
+  if (searchBar && siteHeader && isMobile) {
+    var headerH = siteHeader.offsetHeight;
+    searchBar.style.top = headerH + 'px';
+  }
 
   // Collapsible categories on mobile
   document.querySelectorAll('.category-header').forEach(function(header) {
