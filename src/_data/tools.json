@@ -731,5 +731,17 @@
     "isNew": true,
     "relatedTools": ["log-parser", "regex-tester", "ioc-workbench"],
     "status": "live"
+  },
+  {
+    "name": "Email Header Forensics",
+    "slug": "email-header-forensics",
+    "description": "Analyze email headers for phishing indicators, authentication results, and routing anomalies.",
+    "longDescription": "Paste raw email headers and get a visual hop-by-hop timeline, SPF/DKIM/DMARC authentication verdicts, delay analysis, phishing assessment score, and one-click IOC extraction. Built for SOC analysts investigating suspicious emails. 100% client-side.",
+    "category": "security",
+    "keywords": ["email header", "phishing", "spf", "dkim", "dmarc", "email forensics", "email analyzer", "phishing detection", "email authentication", "header analyzer"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["ioc-workbench", "header-analyzer", "dmarc-builder"],
+    "status": "live"
   }
 ]

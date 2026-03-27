@@ -1,0 +1,998 @@
+---
+toolSlug: email-header-forensics
+permalink: /tools/email-header-forensics/
+---
+
+<div class="tool-group">
+  <label for="ehf-input">Paste raw email headers</label>
+  <p class="tool-hint">Copy from your email client: Gmail (Show Original), Outlook (View Message Source), or Thunderbird (View Source)</p>
+  <textarea id="ehf-input" rows="14" placeholder="Received: from mail-sor-f41.google.com (mail-sor-f41.google.com [209.85.220.41])
+        by mx.example.com with ESMTPS id abc123
+        for <user@example.com>;
+        Thu, 27 Mar 2026 10:15:30 -0700 (PDT)
+Authentication-Results: mx.example.com;
+       dkim=pass header.i=@example.com;
+       spf=pass (google.com: ...)
+From: John Doe <john@example.com>
+To: user@example.com
+Subject: Meeting Tomorrow
+..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+</div>
+
+<div class="tool-row">
+  <button class="btn btn--primary" id="ehf-analyze-btn">Analyze Headers</button>
+  <button class="btn" id="ehf-example-btn">Try Example</button>
+  <button class="btn" id="ehf-clear-btn">Clear</button>
+</div>
+
+<div id="ehf-empty" class="ehf-empty-msg">Paste email headers above and click "Analyze Headers".</div>
+
+<div id="ehf-results" style="display:none;">
+
+  <!-- Phishing Assessment -->
+  <div id="ehf-assessment" class="ehf-section"></div>
+
+  <!-- Authentication Results -->
+  <div id="ehf-auth" class="ehf-section"></div>
+
+  <!-- Hop Timeline -->
+  <div id="ehf-timeline" class="ehf-section"></div>
+
+  <!-- IOC Extraction -->
+  <div id="ehf-iocs" class="ehf-section"></div>
+
+  <!-- Raw Parsed View -->
+  <div id="ehf-raw" class="ehf-section"></div>
+
+</div>
+
+<style>
+  .ehf-empty-msg { text-align: center; padding: 2.5rem; color: var(--text-3,#888); font-size: 0.9rem; }
+
+  .ehf-section {
+    margin-bottom: 1.25rem;
+  }
+  .ehf-section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-1,#e2e8f0);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border,#2a2a3a);
+  }
+
+  /* Assessment card */
+  .ehf-verdict {
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border,#2a2a3a);
+  }
+  .ehf-verdict--safe {
+    background: rgba(34,197,94,0.07);
+    border-color: rgba(34,197,94,0.25);
+  }
+  .ehf-verdict--suspicious {
+    background: rgba(234,179,8,0.07);
+    border-color: rgba(234,179,8,0.25);
+  }
+  .ehf-verdict--phishing {
+    background: rgba(239,68,68,0.07);
+    border-color: rgba(239,68,68,0.25);
+  }
+  .ehf-verdict-label {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+  }
+  .ehf-verdict--safe .ehf-verdict-label { color: #4ade80; }
+  .ehf-verdict--suspicious .ehf-verdict-label { color: #fbbf24; }
+  .ehf-verdict--phishing .ehf-verdict-label { color: #f87171; }
+  .ehf-verdict-score {
+    font-size: 0.8125rem;
+    color: var(--text-2,#94a3b8);
+    margin-bottom: 0.75rem;
+  }
+  .ehf-verdict-reasons {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .ehf-verdict-reasons li {
+    font-size: 0.8125rem;
+    color: var(--text-2,#94a3b8);
+    padding: 0.2rem 0;
+    padding-left: 1.25rem;
+    position: relative;
+  }
+  .ehf-verdict-reasons li::before {
+    position: absolute;
+    left: 0;
+    font-weight: 700;
+  }
+  .ehf-reason-bad::before { content: '\2717'; color: #f87171; }
+  .ehf-reason-warn::before { content: '\26A0'; color: #fbbf24; }
+  .ehf-reason-ok::before { content: '\2713'; color: #4ade80; }
+
+  /* Auth cards */
+  .ehf-auth-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+  }
+  .ehf-auth-card {
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+    background: var(--surface-1,#1a1a2e);
+  }
+  .ehf-auth-proto {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-3,#888);
+    margin-bottom: 0.25rem;
+  }
+  .ehf-auth-result {
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+  }
+  .ehf-auth-pass { color: #4ade80; }
+  .ehf-auth-fail { color: #f87171; }
+  .ehf-auth-softfail { color: #fbbf24; }
+  .ehf-auth-none { color: var(--text-3,#888); }
+  .ehf-auth-neutral { color: var(--text-3,#888); }
+  .ehf-auth-detail {
+    font-size: 0.75rem;
+    color: var(--text-3,#888);
+    line-height: 1.4;
+  }
+
+  /* Hop timeline */
+  .ehf-timeline-list {
+    position: relative;
+    padding-left: 1.5rem;
+  }
+  .ehf-timeline-list::before {
+    content: '';
+    position: absolute;
+    left: 0.45rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 2px;
+    background: var(--border,#2a2a3a);
+  }
+  .ehf-hop {
+    position: relative;
+    padding: 0.625rem 0.875rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    background: var(--surface-1,#1a1a2e);
+  }
+  .ehf-hop::before {
+    content: '';
+    position: absolute;
+    left: -1.35rem;
+    top: 1rem;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border,#2a2a3a);
+    border: 2px solid var(--surface-0,#0f0f1a);
+  }
+  .ehf-hop--fast::before { background: #4ade80; }
+  .ehf-hop--medium::before { background: #fbbf24; }
+  .ehf-hop--slow::before { background: #f87171; }
+  .ehf-hop-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.3rem;
+  }
+  .ehf-hop-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(129,140,248,0.12);
+    color: #818cf8;
+    border: 1px solid rgba(129,140,248,0.25);
+    flex-shrink: 0;
+  }
+  .ehf-hop-server {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-1,#e2e8f0);
+    word-break: break-all;
+  }
+  .ehf-hop-delay {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .ehf-delay-fast { background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+  .ehf-delay-medium { background: rgba(234,179,8,0.1); color: #fbbf24; border: 1px solid rgba(234,179,8,0.25); }
+  .ehf-delay-slow { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+  .ehf-hop-details {
+    font-size: 0.75rem;
+    color: var(--text-3,#888);
+    line-height: 1.5;
+  }
+  .ehf-hop-details span { margin-right: 0.75rem; }
+  .ehf-hop-details code {
+    font-family: var(--font-mono,monospace);
+    font-size: 0.7rem;
+    background: var(--surface-0,#0f0f1a);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  /* IOC section */
+  .ehf-ioc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .ehf-ioc-group {
+    border: 1px solid var(--border,#2a2a3a);
+    border-radius: 8px;
+    padding: 0.75rem 0.875rem;
+    background: var(--surface-1,#1a1a2e);
+  }
+  .ehf-ioc-group-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-3,#888);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+  }
+  .ehf-ioc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .ehf-ioc-list li {
+    font-size: 0.8125rem;
+    font-family: var(--font-mono,monospace);
+    color: var(--text-1,#e2e8f0);
+    padding: 0.15rem 0;
+    word-break: break-all;
+  }
+  .ehf-copy-iocs {
+    margin-top: 0.5rem;
+  }
+
+  /* Raw parsed headers */
+  .ehf-raw-toggle {
+    font-size: 0.8125rem;
+    color: #818cf8;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.4rem 0;
+    font-weight: 600;
+  }
+  .ehf-raw-toggle:hover { text-decoration: underline; }
+  .ehf-raw-table-wrap {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+  }
+  .ehf-raw-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+  .ehf-raw-table th,
+  .ehf-raw-table td {
+    padding: 0.4rem 0.625rem;
+    border: 1px solid var(--border,#2a2a3a);
+    text-align: left;
+    vertical-align: top;
+  }
+  .ehf-raw-table th {
+    background: var(--surface-1,#1a1a2e);
+    color: var(--text-2,#94a3b8);
+    font-weight: 700;
+    white-space: nowrap;
+    width: 200px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .ehf-raw-table td {
+    font-family: var(--font-mono,monospace);
+    font-size: 0.75rem;
+    color: var(--text-1,#e2e8f0);
+    word-break: break-all;
+  }
+</style>
+
+<script>
+(function () {
+  var inputEl   = document.getElementById('ehf-input');
+  var analyzeBtn = document.getElementById('ehf-analyze-btn');
+  var exampleBtn = document.getElementById('ehf-example-btn');
+  var clearBtn  = document.getElementById('ehf-clear-btn');
+  var resultsEl = document.getElementById('ehf-results');
+  var emptyEl   = document.getElementById('ehf-empty');
+  var assessEl  = document.getElementById('ehf-assessment');
+  var authEl    = document.getElementById('ehf-auth');
+  var timelineEl= document.getElementById('ehf-timeline');
+  var iocsEl    = document.getElementById('ehf-iocs');
+  var rawEl     = document.getElementById('ehf-raw');
+
+  /* ── Example phishing email headers ── */
+  var EXAMPLE_HEADERS = [
+    'Return-Path: <bounce-9283742@promo-deals-store.xyz>',
+    'Received: from mx.victim-corp.com (mx.victim-corp.com [198.51.100.25])',
+    '        by internal-mail.victim-corp.com with ESMTPS id j7si9283742;',
+    '        Thu, 27 Mar 2026 10:15:45 -0700 (PDT)',
+    'Received: from smtp-out.suspicio.us (unknown [45.33.32.156])',
+    '        by mx.victim-corp.com with ESMTP id a1b2c3d4',
+    '        for <cfo@victim-corp.com>;',
+    '        Thu, 27 Mar 2026 10:15:30 -0700 (PDT)',
+    'Received: from localhost (ip-185-42-170-99.hosted.example [185.42.170.99])',
+    '        by smtp-out.suspicio.us with ESMTP id xyz789',
+    '        for <cfo@victim-corp.com>;',
+    '        Thu, 27 Mar 2026 10:14:18 -0700 (PDT)',
+    'Received: from [10.0.0.5] (unknown [192.168.1.100])',
+    '        by localhost with SMTP id local001;',
+    '        Thu, 27 Mar 2026 10:14:15 -0700 (PDT)',
+    'Authentication-Results: mx.victim-corp.com;',
+    '       dkim=fail (signature verification failed) header.d=paypa1-security.com header.s=sel1;',
+    '       spf=fail (mx.victim-corp.com: domain of bounce-9283742@promo-deals-store.xyz does not designate 45.33.32.156 as permitted sender) smtp.mailfrom=bounce-9283742@promo-deals-store.xyz;',
+    '       dmarc=fail (p=NONE dis=NONE) header.from=paypal.com',
+    'Received-SPF: fail (mx.victim-corp.com: domain of bounce-9283742@promo-deals-store.xyz does not designate 45.33.32.156 as permitted sender)',
+    'DKIM-Signature: v=1; a=rsa-sha256; d=paypa1-security.com; s=sel1; c=relaxed/relaxed;',
+    '        h=from:to:subject:date:message-id;',
+    '        bh=abc123def456ghi789jkl012mno345pqr678stu=;',
+    '        b=FAKESIGNATUREDATA1234567890',
+    'From: "PayPal Security Team" <security@paypal.com>',
+    'Reply-To: verify-account-now@promo-deals-store.xyz',
+    'To: cfo@victim-corp.com',
+    'Subject: =?UTF-8?B?VXJnZW50OiBZb3VyIGFjY291bnQgaGFzIGJlZW4gbGltaXRlZA==?=',
+    'Date: Thu, 27 Mar 2026 10:14:10 -0700',
+    'Message-ID: <fake-' + 'msg-92837' + '@promo-deals-store.xyz>',
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/alternative; boundary="000000000000abc123def456"',
+    'X-Mailer: PHPMailer 5.2.27',
+    'X-Originating-IP: 185.42.170.99',
+    'X-Spam-Status: Yes, score=9.8 required=5.0',
+    'X-Spam-Score: 98'
+  ].join('\n');
+
+  /* ── Header parser ── */
+  function parseHeaders(raw) {
+    // Unfold continuation lines (lines starting with whitespace)
+    var unfolded = raw.replace(/\r\n/g, '\n').replace(/\n([ \t]+)/g, ' ');
+    var lines = unfolded.split('\n');
+    var headers = [];
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (!line.trim()) continue;
+      var colonIdx = line.indexOf(':');
+      if (colonIdx > 0 && /^[A-Za-z0-9\-]+$/.test(line.substring(0, colonIdx))) {
+        headers.push({
+          key: line.substring(0, colonIdx).trim(),
+          value: line.substring(colonIdx + 1).trim()
+        });
+      }
+    }
+    return headers;
+  }
+
+  /* ── Parse Received headers into hops ── */
+  function parseHops(headers) {
+    var receivedHeaders = [];
+    for (var i = 0; i < headers.length; i++) {
+      if (headers[i].key.toLowerCase() === 'received') {
+        receivedHeaders.push(headers[i].value);
+      }
+    }
+    // Received headers are in reverse order (most recent first)
+    receivedHeaders.reverse();
+    var hops = [];
+    for (var r = 0; r < receivedHeaders.length; r++) {
+      var val = receivedHeaders[r];
+      var hop = { raw: val, index: r + 1 };
+
+      // Parse "from X"
+      var fromMatch = val.match(/from\s+([^\s(]+)/i);
+      hop.from = fromMatch ? fromMatch[1] : 'unknown';
+
+      // Parse "by Y"
+      var byMatch = val.match(/by\s+([^\s(]+)/i);
+      hop.by = byMatch ? byMatch[1] : 'unknown';
+
+      // Parse IP in brackets or parens
+      var ipMatches = val.match(/\[(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\]/g);
+      hop.ips = [];
+      if (ipMatches) {
+        for (var im = 0; im < ipMatches.length; im++) {
+          hop.ips.push(ipMatches[im].replace(/[\[\]]/g, ''));
+        }
+      }
+
+      // Parse protocol (with ESMTP, ESMTPS, SMTP, etc.)
+      var protoMatch = val.match(/with\s+(E?SMTPS?A?|LMTP|HTTP|IMAP)/i);
+      hop.protocol = protoMatch ? protoMatch[1].toUpperCase() : '';
+
+      // Parse timestamp - look for semicolon then date
+      var semiIdx = val.lastIndexOf(';');
+      hop.timestamp = null;
+      hop.dateObj = null;
+      if (semiIdx !== -1) {
+        var dateStr = val.substring(semiIdx + 1).trim();
+        var d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+          hop.timestamp = dateStr;
+          hop.dateObj = d;
+        }
+      }
+
+      hops.push(hop);
+    }
+
+    // Calculate delays between hops
+    for (var h = 1; h < hops.length; h++) {
+      if (hops[h].dateObj && hops[h - 1].dateObj) {
+        hops[h].delaySec = (hops[h].dateObj.getTime() - hops[h - 1].dateObj.getTime()) / 1000;
+      }
+    }
+
+    return hops;
+  }
+
+  /* ── Parse authentication results ── */
+  function parseAuth(headers) {
+    var auth = { spf: null, dkim: null, dmarc: null, raw: '' };
+
+    for (var i = 0; i < headers.length; i++) {
+      var key = headers[i].key.toLowerCase();
+      var val = headers[i].value;
+
+      if (key === 'authentication-results') {
+        auth.raw = val;
+
+        var spfMatch = val.match(/spf\s*=\s*(pass|fail|softfail|neutral|none|temperror|permerror)/i);
+        if (spfMatch) {
+          auth.spf = { result: spfMatch[1].toLowerCase() };
+          var spfDetail = val.match(/spf\s*=\s*\w+\s*\(([^)]*)\)/i);
+          auth.spf.detail = spfDetail ? spfDetail[1] : '';
+        }
+
+        var dkimMatch = val.match(/dkim\s*=\s*(pass|fail|none|neutral|temperror|permerror)/i);
+        if (dkimMatch) {
+          auth.dkim = { result: dkimMatch[1].toLowerCase() };
+          var dkimDetail = val.match(/dkim\s*=\s*\w+\s*\(([^)]*)\)/i);
+          auth.dkim.detail = dkimDetail ? dkimDetail[1] : '';
+          var dkimDomain = val.match(/header\.d=([^\s;]+)/i);
+          auth.dkim.domain = dkimDomain ? dkimDomain[1] : '';
+        }
+
+        var dmarcMatch = val.match(/dmarc\s*=\s*(pass|fail|none|bestguesspass)/i);
+        if (dmarcMatch) {
+          auth.dmarc = { result: dmarcMatch[1].toLowerCase() };
+          var dmarcDetail = val.match(/dmarc\s*=\s*\w+\s*\(([^)]*)\)/i);
+          auth.dmarc.detail = dmarcDetail ? dmarcDetail[1] : '';
+        }
+      }
+
+      // Fallback: Received-SPF header
+      if (key === 'received-spf' && !auth.spf) {
+        var rspf = val.match(/^(pass|fail|softfail|neutral|none|temperror|permerror)/i);
+        if (rspf) {
+          auth.spf = { result: rspf[1].toLowerCase() };
+          var rspfDetail = val.match(/\(([^)]*)\)/);
+          auth.spf.detail = rspfDetail ? rspfDetail[1] : '';
+        }
+      }
+    }
+
+    return auth;
+  }
+
+  /* ── Extract IOCs ── */
+  function extractIOCs(raw) {
+    var ips = [];
+    var domains = [];
+    var emails = [];
+
+    // IPs (IPv4)
+    var ipRe = /\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g;
+    var m;
+    var ipSet = {};
+    while ((m = ipRe.exec(raw)) !== null) {
+      var ip = m[1];
+      // Skip private ranges for highlighting but include in extraction
+      if (!ipSet[ip]) {
+        ipSet[ip] = true;
+        ips.push(ip);
+      }
+    }
+
+    // Email addresses
+    var emailRe = /\b([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})\b/g;
+    var emailSet = {};
+    while ((m = emailRe.exec(raw)) !== null) {
+      if (!emailSet[m[1].toLowerCase()]) {
+        emailSet[m[1].toLowerCase()] = true;
+        emails.push(m[1]);
+      }
+    }
+
+    // Domains from hostnames in Received headers and other fields
+    var domainRe = /\b([a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?)*\.[a-z]{2,})\b/gi;
+    var domainSet = {};
+    while ((m = domainRe.exec(raw)) !== null) {
+      var d = m[1].toLowerCase();
+      // Filter out known noise
+      if (d.length > 4 && !domainSet[d] && !/^\d+\.\d+\.\d+\.\d+$/.test(d)) {
+        domainSet[d] = true;
+        domains.push(d);
+      }
+    }
+
+    return { ips: ips, domains: domains, emails: emails };
+  }
+
+  /* ── Phishing assessment ── */
+  function assessPhishing(headers, auth, hops, iocs) {
+    var score = 0;
+    var reasons = [];
+
+    // 1. SPF fail
+    if (auth.spf) {
+      if (auth.spf.result === 'fail') {
+        score += 25;
+        reasons.push({ type: 'bad', text: 'SPF authentication failed \u2014 sending server is not authorized for the sender domain' });
+      } else if (auth.spf.result === 'softfail') {
+        score += 15;
+        reasons.push({ type: 'warn', text: 'SPF soft fail \u2014 sending server is not explicitly authorized' });
+      } else if (auth.spf.result === 'pass') {
+        reasons.push({ type: 'ok', text: 'SPF passed \u2014 sending server is authorized' });
+      }
+    } else {
+      score += 10;
+      reasons.push({ type: 'warn', text: 'No SPF authentication result found in headers' });
+    }
+
+    // 2. DKIM fail
+    if (auth.dkim) {
+      if (auth.dkim.result === 'fail') {
+        score += 25;
+        reasons.push({ type: 'bad', text: 'DKIM signature verification failed \u2014 message may have been tampered with' });
+      } else if (auth.dkim.result === 'none') {
+        score += 10;
+        reasons.push({ type: 'warn', text: 'No DKIM signature present' });
+      } else if (auth.dkim.result === 'pass') {
+        reasons.push({ type: 'ok', text: 'DKIM signature verified successfully' });
+      }
+    } else {
+      score += 5;
+      reasons.push({ type: 'warn', text: 'No DKIM authentication result found' });
+    }
+
+    // 3. DMARC fail
+    if (auth.dmarc) {
+      if (auth.dmarc.result === 'fail') {
+        score += 20;
+        reasons.push({ type: 'bad', text: 'DMARC authentication failed \u2014 message does not align with sender\u2019s domain policy' });
+      } else if (auth.dmarc.result === 'none') {
+        score += 5;
+        reasons.push({ type: 'warn', text: 'No DMARC policy found for sender domain' });
+      } else if (auth.dmarc.result === 'pass') {
+        reasons.push({ type: 'ok', text: 'DMARC passed \u2014 message aligns with domain policy' });
+      }
+    }
+
+    // 4. Display name vs actual sender mismatch
+    var fromHeader = '';
+    var replyToHeader = '';
+    var returnPath = '';
+    for (var i = 0; i < headers.length; i++) {
+      var k = headers[i].key.toLowerCase();
+      if (k === 'from') fromHeader = headers[i].value;
+      if (k === 'reply-to') replyToHeader = headers[i].value;
+      if (k === 'return-path') returnPath = headers[i].value;
+    }
+
+    // Check display name vs email domain mismatch
+    var fromDisplayMatch = fromHeader.match(/^"?([^"<]+)"?\s*<([^>]+)>/);
+    if (fromDisplayMatch) {
+      var displayName = fromDisplayMatch[1].trim().toLowerCase();
+      var fromEmail = fromDisplayMatch[2].trim().toLowerCase();
+      var fromDomain = fromEmail.split('@')[1] || '';
+
+      // Check for known brand names in display that don't match domain
+      var brandNames = ['paypal', 'amazon', 'microsoft', 'apple', 'google', 'netflix', 'bank', 'wells fargo', 'chase', 'citibank'];
+      for (var b = 0; b < brandNames.length; b++) {
+        if (displayName.indexOf(brandNames[b]) !== -1 && fromDomain.indexOf(brandNames[b]) === -1) {
+          // Also check for typosquatting (e.g. paypa1 vs paypal)
+          score += 15;
+          reasons.push({ type: 'bad', text: 'Display name mentions "' + brandNames[b] + '" but sender domain is ' + fromDomain });
+          break;
+        }
+      }
+
+      // Check DKIM domain vs From domain mismatch
+      if (auth.dkim && auth.dkim.domain && auth.dkim.domain.toLowerCase() !== fromDomain) {
+        score += 10;
+        reasons.push({ type: 'warn', text: 'DKIM signing domain (' + auth.dkim.domain + ') differs from From domain (' + fromDomain + ')' });
+      }
+    }
+
+    // 5. Reply-To differs from From
+    if (replyToHeader) {
+      var replyEmail = replyToHeader.match(/<([^>]+)>/) || replyToHeader.match(/([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+)/);
+      var fromEmail2 = fromHeader.match(/<([^>]+)>/) || fromHeader.match(/([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+)/);
+      if (replyEmail && fromEmail2) {
+        var replyDomain = (replyEmail[1] || '').split('@')[1] || '';
+        var fromDomain2 = (fromEmail2[1] || '').split('@')[1] || '';
+        if (replyDomain && fromDomain2 && replyDomain.toLowerCase() !== fromDomain2.toLowerCase()) {
+          score += 15;
+          reasons.push({ type: 'bad', text: 'Reply-To domain (' + replyDomain + ') differs from From domain (' + fromDomain2 + ') \u2014 common phishing tactic' });
+        }
+      }
+    }
+
+    // 6. Return-Path differs from From
+    if (returnPath) {
+      var rpEmail = returnPath.match(/<([^>]+)>/) || returnPath.match(/([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+)/);
+      var fromEmail3 = fromHeader.match(/<([^>]+)>/) || fromHeader.match(/([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+)/);
+      if (rpEmail && fromEmail3) {
+        var rpDomain = (rpEmail[1] || '').split('@')[1] || '';
+        var fromDomain3 = (fromEmail3[1] || '').split('@')[1] || '';
+        if (rpDomain && fromDomain3 && rpDomain.toLowerCase() !== fromDomain3.toLowerCase()) {
+          score += 10;
+          reasons.push({ type: 'bad', text: 'Return-Path domain (' + rpDomain + ') differs from From domain (' + fromDomain3 + ')' });
+        }
+      }
+    }
+
+    // 7. Encoded subject (base64 encoded subjects can hide intent)
+    for (var j = 0; j < headers.length; j++) {
+      if (headers[j].key.toLowerCase() === 'subject') {
+        if (/=\?.*\?[Bb]\?/.test(headers[j].value)) {
+          score += 5;
+          var decoded = decodeEncodedSubject(headers[j].value);
+          reasons.push({ type: 'warn', text: 'Subject line is Base64 encoded: "' + decoded + '"' });
+        }
+        // Check for urgency keywords
+        var subjectLower = headers[j].value.toLowerCase();
+        var decoded2 = decodeEncodedSubject(headers[j].value).toLowerCase();
+        var checkSubject = subjectLower + ' ' + decoded2;
+        var urgentWords = ['urgent', 'immediate', 'suspended', 'limited', 'verify', 'confirm your', 'unusual activity', 'unauthorized'];
+        for (var u = 0; u < urgentWords.length; u++) {
+          if (checkSubject.indexOf(urgentWords[u]) !== -1) {
+            score += 5;
+            reasons.push({ type: 'warn', text: 'Subject contains urgency keyword: "' + urgentWords[u] + '"' });
+            break;
+          }
+        }
+        break;
+      }
+    }
+
+    // 8. Unusual routing (too many hops or suspicious hostnames)
+    if (hops.length > 6) {
+      score += 5;
+      reasons.push({ type: 'warn', text: 'Unusually high number of mail hops (' + hops.length + ')' });
+    }
+
+    // Check for suspicious TLDs in routing
+    var suspiciousTLDs = ['.xyz', '.top', '.buzz', '.club', '.icu', '.work', '.click'];
+    for (var t = 0; t < hops.length; t++) {
+      var hopFrom = (hops[t].from || '').toLowerCase();
+      for (var s = 0; s < suspiciousTLDs.length; s++) {
+        if (hopFrom.indexOf(suspiciousTLDs[s]) !== -1) {
+          score += 5;
+          reasons.push({ type: 'warn', text: 'Mail routed through server with suspicious TLD: ' + hops[t].from });
+          break;
+        }
+      }
+    }
+
+    // 9. X-Spam headers
+    for (var x = 0; x < headers.length; x++) {
+      var xk = headers[x].key.toLowerCase();
+      if (xk === 'x-spam-status' && /yes/i.test(headers[x].value)) {
+        score += 10;
+        reasons.push({ type: 'bad', text: 'Spam filter flagged this message (X-Spam-Status: Yes)' });
+      }
+      if (xk === 'x-mailer') {
+        var mailer = headers[x].value.toLowerCase();
+        if (mailer.indexOf('phpmailer') !== -1 || mailer.indexOf('swiftmailer') !== -1) {
+          score += 5;
+          reasons.push({ type: 'warn', text: 'Sent via ' + headers[x].value + ' \u2014 commonly used in phishing campaigns' });
+        }
+      }
+    }
+
+    // Cap score at 100
+    if (score > 100) score = 100;
+
+    var verdict;
+    if (score >= 60) verdict = 'phishing';
+    else if (score >= 30) verdict = 'suspicious';
+    else verdict = 'safe';
+
+    return { score: score, verdict: verdict, reasons: reasons };
+  }
+
+  function decodeEncodedSubject(s) {
+    return s.replace(/=\?([^?]+)\?([BbQq])\?([^?]+)\?=/g, function (_, charset, encoding, data) {
+      if (encoding.toUpperCase() === 'B') {
+        try { return atob(data); } catch (e) { return data; }
+      }
+      if (encoding.toUpperCase() === 'Q') {
+        return data.replace(/_/g, ' ').replace(/=([0-9A-Fa-f]{2})/g, function (__, hex) {
+          return String.fromCharCode(parseInt(hex, 16));
+        });
+      }
+      return data;
+    });
+  }
+
+  /* ── Format delay ── */
+  function formatDelay(sec) {
+    if (sec === undefined || sec === null) return '';
+    var abs = Math.abs(sec);
+    if (abs < 1) return '<1s';
+    if (abs < 60) return Math.round(abs) + 's';
+    if (abs < 3600) return Math.round(abs / 60) + 'm ' + Math.round(abs % 60) + 's';
+    return Math.round(abs / 3600) + 'h ' + Math.round((abs % 3600) / 60) + 'm';
+  }
+
+  function delayClass(sec) {
+    if (sec === undefined || sec === null) return 'fast';
+    var abs = Math.abs(sec);
+    if (abs <= 2) return 'fast';
+    if (abs <= 30) return 'medium';
+    return 'slow';
+  }
+
+  /* ── Render functions ── */
+  function renderAssessment(assessment) {
+    var verdictLabel = { safe: 'LIKELY SAFE', suspicious: 'SUSPICIOUS', phishing: 'LIKELY PHISHING' };
+    var html = '<div class="ehf-section-title">Phishing Assessment</div>';
+    html += '<div class="ehf-verdict ehf-verdict--' + assessment.verdict + '">';
+    html += '<div class="ehf-verdict-label">' + verdictLabel[assessment.verdict] + '</div>';
+    html += '<div class="ehf-verdict-score">Risk score: ' + assessment.score + ' / 100</div>';
+    html += '<ul class="ehf-verdict-reasons">';
+    for (var i = 0; i < assessment.reasons.length; i++) {
+      var r = assessment.reasons[i];
+      html += '<li class="ehf-reason-' + r.type + '">' + escHtml(r.text) + '</li>';
+    }
+    html += '</ul></div>';
+    assessEl.innerHTML = html;
+  }
+
+  function renderAuth(auth) {
+    var html = '<div class="ehf-section-title">Authentication Results</div>';
+    html += '<div class="ehf-auth-grid">';
+
+    var protocols = [
+      { key: 'spf', label: 'SPF', explain: { pass: 'Sending server is authorized by the domain\'s SPF record', fail: 'Sending server is NOT authorized \u2014 likely spoofed sender', softfail: 'Server is not explicitly authorized but not strictly rejected', none: 'No SPF record found for the sender domain', neutral: 'SPF record found but makes no assertion', temperror: 'Temporary DNS error during SPF lookup', permerror: 'Permanent error in SPF record (misconfigured)' } },
+      { key: 'dkim', label: 'DKIM', explain: { pass: 'Email signature verified \u2014 message has not been altered in transit', fail: 'Signature verification FAILED \u2014 message may have been tampered with or forged', none: 'No DKIM signature present on this message', neutral: 'DKIM present but could not be verified', temperror: 'Temporary error during DKIM verification', permerror: 'Permanent error in DKIM configuration' } },
+      { key: 'dmarc', label: 'DMARC', explain: { pass: 'Message aligns with the domain\'s DMARC policy (SPF or DKIM aligned)', fail: 'Message FAILS DMARC \u2014 neither SPF nor DKIM aligned with the From domain', none: 'No DMARC policy published for this domain', bestguesspass: 'No DMARC record but would pass based on SPF/DKIM alignment' } }
+    ];
+
+    for (var p = 0; p < protocols.length; p++) {
+      var proto = protocols[p];
+      var data = auth[proto.key];
+      var result = data ? data.result : 'not found';
+      var cssClass = 'ehf-auth-none';
+      if (result === 'pass') cssClass = 'ehf-auth-pass';
+      else if (result === 'fail') cssClass = 'ehf-auth-fail';
+      else if (result === 'softfail') cssClass = 'ehf-auth-softfail';
+      else if (result === 'neutral') cssClass = 'ehf-auth-neutral';
+
+      var explain = '';
+      if (data && proto.explain[data.result]) {
+        explain = proto.explain[data.result];
+      } else if (!data) {
+        explain = 'No ' + proto.label + ' result found in Authentication-Results header';
+      }
+
+      html += '<div class="ehf-auth-card">';
+      html += '<div class="ehf-auth-proto">' + proto.label + '</div>';
+      html += '<div class="ehf-auth-result ' + cssClass + '">' + escHtml(result.toUpperCase()) + '</div>';
+      if (data && data.detail) {
+        html += '<div class="ehf-auth-detail" style="margin-bottom:0.25rem;font-style:italic;">' + escHtml(data.detail) + '</div>';
+      }
+      html += '<div class="ehf-auth-detail">' + escHtml(explain) + '</div>';
+      html += '</div>';
+    }
+
+    html += '</div>';
+    authEl.innerHTML = html;
+  }
+
+  function renderTimeline(hops) {
+    var html = '<div class="ehf-section-title">Hop-by-Hop Timeline (' + hops.length + ' hops)</div>';
+    if (hops.length === 0) {
+      html += '<div style="color:var(--text-3,#888);font-size:0.875rem;">No Received headers found.</div>';
+      timelineEl.innerHTML = html;
+      return;
+    }
+
+    html += '<div class="ehf-timeline-list">';
+    for (var i = 0; i < hops.length; i++) {
+      var hop = hops[i];
+      var dc = hop.delaySec !== undefined ? delayClass(hop.delaySec) : 'fast';
+      html += '<div class="ehf-hop ehf-hop--' + dc + '">';
+      html += '<div class="ehf-hop-header">';
+      html += '<span class="ehf-hop-num">Hop ' + hop.index + '</span>';
+      html += '<span class="ehf-hop-server">' + escHtml(hop.by) + '</span>';
+      if (hop.delaySec !== undefined) {
+        html += '<span class="ehf-hop-delay ehf-delay-' + dc + '">';
+        if (hop.delaySec < 0) html += '-';
+        html += formatDelay(hop.delaySec) + '</span>';
+      }
+      html += '</div>';
+      html += '<div class="ehf-hop-details">';
+      html += '<span>From: <code>' + escHtml(hop.from) + '</code></span>';
+      if (hop.ips.length > 0) {
+        html += '<span>IP: <code>' + escHtml(hop.ips.join(', ')) + '</code></span>';
+      }
+      if (hop.protocol) {
+        html += '<span>Protocol: <code>' + escHtml(hop.protocol) + '</code></span>';
+      }
+      if (hop.timestamp) {
+        html += '<br><span>Time: ' + escHtml(hop.timestamp) + '</span>';
+      }
+      html += '</div></div>';
+    }
+    html += '</div>';
+    timelineEl.innerHTML = html;
+  }
+
+  function renderIOCs(iocs) {
+    var html = '<div class="ehf-section-title">Extracted IOCs</div>';
+    var hasAny = iocs.ips.length > 0 || iocs.domains.length > 0 || iocs.emails.length > 0;
+
+    if (!hasAny) {
+      html += '<div style="color:var(--text-3,#888);font-size:0.875rem;">No IOCs extracted.</div>';
+      iocsEl.innerHTML = html;
+      return;
+    }
+
+    html += '<div class="ehf-ioc-grid">';
+    if (iocs.ips.length > 0) {
+      html += '<div class="ehf-ioc-group"><div class="ehf-ioc-group-title">IP Addresses (' + iocs.ips.length + ')</div><ul class="ehf-ioc-list">';
+      for (var i = 0; i < iocs.ips.length; i++) html += '<li>' + escHtml(iocs.ips[i]) + '</li>';
+      html += '</ul></div>';
+    }
+    if (iocs.domains.length > 0) {
+      html += '<div class="ehf-ioc-group"><div class="ehf-ioc-group-title">Domains (' + iocs.domains.length + ')</div><ul class="ehf-ioc-list">';
+      for (var d = 0; d < iocs.domains.length; d++) html += '<li>' + escHtml(iocs.domains[d]) + '</li>';
+      html += '</ul></div>';
+    }
+    if (iocs.emails.length > 0) {
+      html += '<div class="ehf-ioc-group"><div class="ehf-ioc-group-title">Email Addresses (' + iocs.emails.length + ')</div><ul class="ehf-ioc-list">';
+      for (var e = 0; e < iocs.emails.length; e++) html += '<li>' + escHtml(iocs.emails[e]) + '</li>';
+      html += '</ul></div>';
+    }
+    html += '</div>';
+
+    // Compile all IOCs for copy
+    var allIOCs = [];
+    for (var ci = 0; ci < iocs.ips.length; ci++) allIOCs.push(iocs.ips[ci]);
+    for (var cd = 0; cd < iocs.domains.length; cd++) allIOCs.push(iocs.domains[cd]);
+    for (var ce = 0; ce < iocs.emails.length; ce++) allIOCs.push(iocs.emails[ce]);
+
+    html += '<button class="btn ehf-copy-iocs" id="ehf-copy-iocs-btn">Copy All IOCs</button>';
+    iocsEl.innerHTML = html;
+
+    document.getElementById('ehf-copy-iocs-btn').addEventListener('click', function () {
+      var text = allIOCs.join('\n');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          var btn = document.getElementById('ehf-copy-iocs-btn');
+          btn.textContent = 'Copied!';
+          setTimeout(function () { btn.textContent = 'Copy All IOCs'; }, 2000);
+        });
+      } else {
+        // Fallback
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        var btn = document.getElementById('ehf-copy-iocs-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = 'Copy All IOCs'; }, 2000);
+      }
+    });
+  }
+
+  function renderRaw(headers) {
+    var html = '<div class="ehf-section-title">Raw Parsed Headers</div>';
+    html += '<button class="ehf-raw-toggle" id="ehf-raw-toggle">Show parsed headers (' + headers.length + ' fields)</button>';
+    html += '<div id="ehf-raw-content" style="display:none;">';
+    html += '<div class="ehf-raw-table-wrap"><table class="ehf-raw-table">';
+    html += '<thead><tr><th>Header</th><th>Value</th></tr></thead><tbody>';
+    for (var i = 0; i < headers.length; i++) {
+      html += '<tr><th>' + escHtml(headers[i].key) + '</th><td>' + escHtml(headers[i].value) + '</td></tr>';
+    }
+    html += '</tbody></table></div></div>';
+    rawEl.innerHTML = html;
+
+    document.getElementById('ehf-raw-toggle').addEventListener('click', function () {
+      var content = document.getElementById('ehf-raw-content');
+      var btn = document.getElementById('ehf-raw-toggle');
+      if (content.style.display === 'none') {
+        content.style.display = '';
+        btn.textContent = 'Hide parsed headers';
+      } else {
+        content.style.display = 'none';
+        btn.textContent = 'Show parsed headers (' + headers.length + ' fields)';
+      }
+    });
+  }
+
+  function escHtml(s) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(s));
+    return div.innerHTML;
+  }
+
+  /* ── Main analyze function ── */
+  function analyze() {
+    var raw = inputEl.value;
+    if (!raw.trim()) {
+      resultsEl.style.display = 'none';
+      emptyEl.style.display = '';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+    resultsEl.style.display = '';
+
+    var headers = parseHeaders(raw);
+    var hops = parseHops(headers);
+    var auth = parseAuth(headers);
+    var iocs = extractIOCs(raw);
+    var assessment = assessPhishing(headers, auth, hops, iocs);
+
+    renderAssessment(assessment);
+    renderAuth(auth);
+    renderTimeline(hops);
+    renderIOCs(iocs);
+    renderRaw(headers);
+  }
+
+  /* ── Event listeners ── */
+  analyzeBtn.addEventListener('click', analyze);
+
+  exampleBtn.addEventListener('click', function () {
+    inputEl.value = EXAMPLE_HEADERS;
+    analyze();
+  });
+
+  clearBtn.addEventListener('click', function () {
+    inputEl.value = '';
+    resultsEl.style.display = 'none';
+    emptyEl.style.display = '';
+    assessEl.innerHTML = '';
+    authEl.innerHTML = '';
+    timelineEl.innerHTML = '';
+    iocsEl.innerHTML = '';
+    rawEl.innerHTML = '';
+  });
+})();
+</script>
