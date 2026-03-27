@@ -791,5 +791,18 @@
     "isNew": true,
     "relatedTools": ["regex-tester", "redos-tester", "security-headers"],
     "status": "live"
+  },
+  {
+    "name": "Agent Security Audit",
+    "slug": "agent-security-audit",
+    "description": "Audit AI agent tool configurations for over-permissions, injection risks, and data exfiltration paths.",
+    "longDescription": "Paste your AI agent's tool definitions — MCP servers, function calling schemas, or tool configs — and get a comprehensive security audit. Detects over-permissioned tools, prompt injection surfaces, data exfiltration paths, and unsafe tool combinations. The first tool of its kind for 2026-era agentic AI security.",
+    "category": "security",
+    "keywords": ["ai agent", "mcp security", "function calling", "tool use", "agent audit", "ai security", "mcp server", "prompt injection", "agentic ai", "tool permissions", "ai safety"],
+    "badge": "local",
+    "featured": true,
+    "isNew": true,
+    "relatedTools": ["prompt-injection-tester", "secrets-scanner", "jwt-attack"],
+    "status": "live"
   }
 ]
