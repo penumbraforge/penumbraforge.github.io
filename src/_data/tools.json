@@ -755,5 +755,17 @@
     "isNew": true,
     "relatedTools": ["prompt-injection-tester", "json-formatter", "curl-converter"],
     "status": "live"
+  },
+  {
+    "name": "PII & Secrets Redactor",
+    "slug": "pii-secrets-redactor",
+    "description": "Detect and redact PII and secrets from logs, configs, and text with consistent pseudonymization.",
+    "longDescription": "Paste logs, configs, or error reports and instantly detect and redact all PII (emails, SSNs, phones, credit cards) and secrets (API keys, tokens, connection strings). Consistent pseudonymization preserves log correlation. 200+ detection patterns. 100% client-side, no data leaves your browser.",
+    "category": "security",
+    "keywords": ["pii", "redact", "anonymize", "mask", "secrets", "api key", "remove pii", "log anonymizer", "data masking", "pseudonymize", "gdpr"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["secrets-scanner", "env-analyzer", "ioc-workbench"],
+    "status": "live"
   }
 ]
