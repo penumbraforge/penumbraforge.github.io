@@ -864,5 +864,29 @@
     "isNew": true,
     "relatedTools": ["ct-monitor", "security-headers-analyzer", "ssh-key-generator"],
     "status": "live"
+  },
+  {
+    "name": "YARA Playground",
+    "slug": "yara-playground",
+    "description": "Write, validate, and test YARA detection rules with templates and analysis.",
+    "longDescription": "YARA rule editor with syntax validation, 10+ rule templates (malware, webshells, packers, crypto miners), performance analysis, hex string builder, and approximate pattern matching. The regex101 for threat detection. 100% client-side.",
+    "category": "security",
+    "keywords": ["yara", "yara rule", "malware detection", "threat hunting", "yara editor", "yara playground", "detection engineering", "malware analysis", "yara template"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["regex-tester", "ioc-workbench", "siem-query-translator"],
+    "status": "live"
+  },
+  {
+    "name": "Sigma Rule Builder",
+    "slug": "sigma-rule-builder",
+    "description": "Visual builder for Sigma detection rules with YAML preview and SIEM export.",
+    "longDescription": "Build Sigma detection rules through a guided form — define logsource, detection logic with modifiers, MITRE ATT&CK tags, and metadata. Get live YAML preview and one-click export to Splunk SPL, KQL, or ES|QL. No more hand-writing YAML. 100% client-side.",
+    "category": "security",
+    "keywords": ["sigma", "sigma rule", "detection engineering", "siem", "yaml", "splunk", "kql", "elastic", "threat detection", "sigma builder", "sigma generator"],
+    "badge": "local",
+    "isNew": true,
+    "relatedTools": ["siem-query-translator", "yara-playground", "ioc-workbench"],
+    "status": "live"
   }
 ]
