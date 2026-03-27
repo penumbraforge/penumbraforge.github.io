@@ -1,0 +1,146 @@
+---
+layout: base.njk
+title: "I got a 397B parameter model running on my MacBook — Penumbra Forge"
+description: "The engineering story behind running Qwen3.5-397B-A17B locally on a MacBook Pro M5 with 32GB of RAM — Metal shader debugging, SSD expert streaming, and the bugs that almost stopped it."
+permalink: /blog/397b-on-a-macbook/
+---
+
+<link rel="stylesheet" href="/css/blog.css">
+
+<header class="site-header" id="site-header">
+  <a href="/" class="site-header-brand" title="Penumbra Forge">
+    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
+  </a>
+  <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
+  <nav class="site-header-nav">
+    <a href="/">Home</a>
+    <a href="/tools/">Tools</a>
+    <a href="/labs/">Labs</a>
+    <a href="/blog/" class="active">Blog</a>
+    <a href="/gate/">Gate</a>
+    <a href="/librarian/">Librarian</a>
+    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<div class="blog-page">
+  <article class="blog-article">
+    <div class="blog-article-header">
+      <h1>I got a 397B parameter model running on my MacBook</h1>
+      <div class="blog-post-meta">
+        <span class="blog-post-date">March 26, 2026</span>
+        <span class="blog-post-tag">local inference</span>
+        <span class="blog-post-tag">Metal</span>
+        <span class="blog-post-tag">MoE</span>
+        <span class="blog-post-read">8 min read</span>
+      </div>
+    </div>
+
+    <p class="blog-article-lede">So I did a thing today. I got Qwen3.5-397B-A17B running locally on my MacBook Pro M5 with 32GB of RAM. Not a distillation. Not an API. The full 397 billion parameter model, 512 experts, streaming off my SSD through Metal shaders I wrote by hand. Here's how it went down.</p>
+
+    <div class="blog-body">
+      <h2>The model</h2>
+      <p>Qwen3.5-397B is a Mixture-of-Experts model. 397B total parameters split across 512 experts in 60 layers, but only 10 experts fire per token — about 17B active compute. The rest sit on disk until the router calls them. <a href="https://github.com/Alexintosh/flash-moe">Flash-MoE</a> handles the SSD streaming using parallel <code>pread()</code> with GCD dispatch groups.</p>
+      <p>The catch: Flash-MoE was built and benchmarked on M3 Max. I'm on M5. Different GPU, different Metal behavior. It did not just work.</p>
+
+      <h2>Everything was broken</h2>
+      <p>First problem: the model loaded, shaders compiled, expert weights streamed from SSD fine, and every single token it generated was <code>!</code>. Every. Single. One.</p>
+
+      <pre><code>[debug] Top 5 logits (next_token=0):
+  token 0 ("!") logit=-1000000015047466219876688855040.0000
+  token 0 ("!") logit=-1000000015047466219876688855040.0000
+[debug] hidden rms after final_norm=nan, logits rms=nan</code></pre>
+
+      <p>NaN. The hidden state was exploding to infinity somewhere in 60 layers of forward pass and I had no idea where.</p>
+
+      <h2>Finding it</h2>
+      <p>I git bisected 30 commits. Took 5 iterations to nail the exact one:</p>
+
+      <pre><code>119672b is the first bad commit
+
+    perf: half-precision multiply in v3 matvec kernel
+
+    Switch inner loop from float to half for multiplies
+    and FMA, keeping float accumulator for precision.</code></pre>
+
+      <p>The optimization switched the dequant kernel's inner multiply from float32 to float16 for a 13% speed boost. Works great on M3. On M5, the 4096-dimensional hidden states in the 397B produce intermediate values that blow past FP16 range during dequantization. The float accumulator catches overflow — but the overflow already happened in the multiply before it gets there.</p>
+      <p>Reverted the shader. Kept everything else. First coherent output from a 397B on M5:</p>
+
+      <pre><code>[debug] hidden rms after final_norm=1.6664, logits rms=2.7021
+
+--- Output ---
+, I am a 22 year old male</code></pre>
+
+      <p>I'll take it.</p>
+
+      <h2>The weight prep was its own nightmare</h2>
+      <p>The 397B weights from HuggingFace are in MLX safetensors format. Flash-MoE needs them repacked into per-layer binary files. 512 experts &times; 60 layers &times; ~7MB each. About 200GB of disk I/O.</p>
+      <p>First attempt: all zeros. Every layer file, perfectly sized, completely empty. My prep script had different byte-offset math than the original repack tool. Wasted an hour on that before I went back to the source:</p>
+
+      <pre><code>  Layer  0: 3.38 GB in 1.7s (2.0 GB/s)
+  Layer 0: verification PASSED (experts 0, 1, 255, 511)
+  Layer  1: 3.38 GB in 2.0s (1.7 GB/s)
+  Layer 1: verification PASSED (experts 0, 1, 255, 511)</code></pre>
+
+      <p>60 layers repacked and verified in 245 seconds.</p>
+
+      <h2>Three crashes, three fixes</h2>
+      <p>Getting the HTTP serve mode stable was its own journey.</p>
+
+      <p><strong>Crash 1 — SIGPIPE.</strong> Binary writes SSE chunks to the client. Client disconnects mid-stream. <code>write()</code> triggers SIGPIPE. Process dies. One line of C:</p>
+      <pre><code>signal(SIGPIPE, SIG_IGN);</code></pre>
+
+      <p><strong>Crash 2 — Pipe buffer.</strong> When spawned from Python with <code>subprocess.PIPE</code>, the binary dumps debug output to stderr. Pipe fills at 64KB. Process blocks, corrupts its own state, segfaults. Fixed with daemon drain threads reading the pipe in the background.</p>
+
+      <p><strong>Crash 3 — Speculative decode.</strong> The <code>--predict --speculative</code> flags enable self-speculative decoding. That code path has a memory bug in multi-request serve mode that causes SIGSEGV on the second request. Disabled for now. Base inference is stable.</p>
+
+      <h2>It works</h2>
+      <p>397B answering questions through an HTTP API. On my MacBook. With 32GB of RAM:</p>
+
+      <pre><code>[1] 2+2 equals 4.
+[2] The capital of France is Paris.
+[3] Red, blue, and green.
+[4] World War II ended in 1945.
+[5] The largest planet in our solar system is Jupiter.
+[6] The speed of light in a vacuum is exactly 299,792,458 meters per second.
+[7] Hello! How can I help you today?
+[8] DNA stands for Deoxyribonucleic Acid.</code></pre>
+
+      <p>Eight requests. No crashes. Correct answers. Same binary instance the whole time.</p>
+
+      <pre><code>[serve] chatcmpl-1 generated=13 tokens in 6542ms (1.99 tok/s)
+[serve] chatcmpl-2 generated=10 tokens in 5700ms (1.75 tok/s)
+[serve] chatcmpl-3 generated=20 tokens in 9850ms (2.03 tok/s)
+[serve] chatcmpl-4 generated=12 tokens in 6932ms (1.73 tok/s)
+[serve] chatcmpl-5 generated=13 tokens in 7276ms (1.79 tok/s)</code></pre>
+
+      <p>~2 tok/s on a cold cache. The OS page cache warms over subsequent requests — I measured 54% hit rate after 10 prompts. The math says 6-18 tok/s is reachable once it warms up to the 70-90% range.</p>
+
+      <h2>KV cache compression</h2>
+      <p>Running a 397B means the KV cache gets big fast. At 64k context it's 8.6GB — which would blow the RAM budget. So I wrote TurboQuant, a two-stage KV cache compressor:</p>
+
+      <pre><code> 64k context: 8589.9MB baseline -> 1879.0MB TQ (6710.9MB saved, 78.1%)
+
+  PolarQuant (b=3): 253,788 vectors/sec</code></pre>
+
+      <p>78% compression at 253K vectors/sec. Runs faster than the model generates tokens so the overhead is basically zero.</p>
+
+      <div class="blog-callout blog-callout-insight">
+        <strong>Why this matters.</strong> Without KV cache compression, you can run the 397B for short prompts but you'll OOM on anything resembling a real conversation. TurboQuant takes 8.6GB down to 1.9GB. That's the difference between a demo and something you can actually use.
+      </div>
+
+      <h2>What's under the hood</h2>
+      <p>The working binary includes fused GPU delta-net for the linear attention layers, per-layer K-reduction that drops from K=10 in early layers to K=6 in late layers, expert I/O dedup across prefill tokens, cache-aware routing, and a bunch of other stuff I'm not going to get into here. There's more going on that's part of what I'm building at Penumbra Forge.</p>
+
+      <h2>What's next</h2>
+      <p>The half-precision kernel gave +13% on M3. The fix isn't to give up on it — it's to handle the overflow for 4096-dim hidden states specifically on M5. That plus the speculative decode path would push this into the 10-20 tok/s range.</p>
+
+      <p>397 billion parameters. Your laptop. No cloud. No API key. No data leaving your machine.</p>
+
+      <p>This is what I'm building.</p>
+      <div class="blog-nav">
+        <a href="/blog/" class="blog-nav-link">&larr; All posts</a>
+      </div>
+    </div>
+  </article>
+</div>
