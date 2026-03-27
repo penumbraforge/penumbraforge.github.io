@@ -43,7 +43,7 @@
 .siem-count { font-size:10px; color:var(--text-3); margin-left:auto; }
 
 /* ═══ Log Stream ═══ */
-.soc-log-stream { flex:1; overflow-y:auto; }
+.soc-log-stream { flex:1; overflow-y:auto; min-height:0; overscroll-behavior: contain; }
 .soc-log-entry { display:flex; align-items:flex-start; padding:6px 12px; border-bottom:1px solid var(--surface-2); font-size:11px; cursor:pointer; transition:background 0.1s; }
 .soc-log-entry:hover { background:var(--surface-2); }
 .soc-log-entry.expanded { background:#0e1525; border-left:3px solid var(--soc-accent); }

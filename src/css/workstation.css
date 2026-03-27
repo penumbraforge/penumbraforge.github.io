@@ -22,10 +22,11 @@
 /* ── Panel Workspace Container ── */
 .ws-workspace {
   display: flex;
-  height: calc(100vh - 48px);
+  height: calc(100vh - 40px);
   overflow: hidden;
   background: var(--surface-0);
   position: relative;
+  overscroll-behavior: contain;
 }
 
 /* ── Panel Base ── */
@@ -35,6 +36,7 @@
   overflow: hidden;
   position: relative;
   min-width: 0;
+  min-height: 0;
 }
 
 /* ── Panel Scroll Region ── */
@@ -43,6 +45,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  overscroll-behavior: contain;
 }
 
 /* Subtle scrollbar styling consistent with dark theme */
@@ -103,6 +106,9 @@
   right: -4px;
 }
 
+/* ── Prevent scroll bleed to parent page ── */
+body { overscroll-behavior: none; }
+
 /* ── Prevent text selection and pointer flicker during drag ── */
 body.ws-dragging {
   cursor: col-resize !important;
@@ -121,7 +127,7 @@ body.ws-dragging iframe {
 
 /* ═══ Terminal ═══ */
 .term-container { display:flex; flex-direction:column; height:100%; background:var(--surface-0); }
-.term-output { flex:1; overflow-y:auto; padding:12px 16px; font-size:12px; line-height:1.8; font-family:var(--font-mono); }
+.term-output { flex:1; overflow-y:auto; padding:12px 16px; font-size:12px; line-height:1.8; font-family:var(--font-mono); min-height:0; overscroll-behavior: contain; }
 .term-prompt { color:var(--ws-tool-active); }
 .term-command { color:var(--text-1); }
 .term-output-text { color:var(--text-2); }
@@ -146,7 +152,7 @@ body.ws-dragging iframe {
 .rep-panes { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 .rep-pane { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 .rep-pane-header { padding:6px 12px; font-size:10px; color:var(--ws-label); text-transform:uppercase; letter-spacing:1px; background:var(--surface-0); border-bottom:1px solid var(--border); }
-.rep-pane-body { flex:1; overflow-y:auto; padding:12px; font-size:11px; line-height:1.7; white-space:pre-wrap; color:var(--text-2); font-family:var(--font-mono); }
+.rep-pane-body { flex:1; overflow-y:auto; padding:12px; font-size:11px; line-height:1.7; white-space:pre-wrap; color:var(--text-2); font-family:var(--font-mono); min-height:0; overscroll-behavior: contain; }
 .rep-textarea { width:100%; background:var(--surface-0); border:1px solid var(--border); color:var(--text-1); padding:8px; font-family:inherit; font-size:11px; line-height:1.6; resize:none; outline:none; border-radius:3px; }
 .rep-textarea:focus { border-color:var(--ws-info); }
 .rep-divider { height:1px; background:var(--border); flex-shrink:0; }
@@ -223,8 +229,8 @@ body.ws-dragging iframe {
 .ws-browser-url-bar { display:flex; align-items:center; background:var(--surface-1); padding:4px 8px; border-bottom:1px solid var(--border); gap:6px; }
 .ws-lock { font-size:11px; }
 .ws-url-display { flex:1; background:var(--surface-0); border:1px solid var(--border); color:var(--text-2); padding:5px 10px; border-radius:4px; font-size:11px; font-family:var(--font-sans); }
-.ws-browser-viewport { flex:1; overflow:hidden; }
-.ws-target-iframe { width:100%; height:100%; border:none; background:#fff; }
+.ws-browser-viewport { flex:1; overflow:hidden; position:relative; min-height:0; overscroll-behavior: contain; }
+.ws-target-iframe { width:100%; height:100%; border:none; background:#fff; display:block; overscroll-behavior: contain; }
 
 /* ═══ Status Bar ═══ */
 .ws-status-bar { height:24px; background:var(--surface-1); border-top:1px solid var(--border); display:flex; align-items:center; padding:0 12px; gap:16px; font-size:10px; color:var(--text-3); }
