@@ -854,18 +854,6 @@
     "status": "live"
   },
   {
-    "name": "SSL Chain Debugger",
-    "slug": "ssl-chain-debugger",
-    "description": "Parse, visualize, and fix SSL/TLS certificate chain ordering issues.",
-    "longDescription": "Paste PEM certificates and get a visual chain diagram, validation results, and automatic chain reordering. Detects missing intermediates, wrong order, expired certs, and weak cryptography. 100% client-side.",
-    "category": "security",
-    "keywords": ["ssl", "tls", "certificate", "chain", "intermediate", "pem", "x509", "ssl debug", "openssl", "cert chain"],
-    "badge": "local",
-    "isNew": true,
-    "relatedTools": ["ct-monitor", "security-headers-analyzer", "ssh-key-generator"],
-    "status": "live"
-  },
-  {
     "name": "YARA Playground",
     "slug": "yara-playground",
     "description": "Write, validate, and test YARA detection rules with templates and analysis.",
