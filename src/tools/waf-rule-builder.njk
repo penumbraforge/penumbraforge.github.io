@@ -754,7 +754,7 @@ permalink: /tools/waf-rule-builder/
   /* ── Example button ──────────────────────────────────────── */
   exampleBtn.addEventListener('click', function() {
     ruleNameEl.value = 'block-sqli-basic';
-    regexEl.value = "(?i)(?:union\\s+(?:all\\s+)?select|select\\s+.+\\s+from\\s+|insert\\s+into\\s+|delete\\s+from\\s+|drop\\s+(?:table|database)|exec(?:ute)?\\s*\\(|xp_cmdshell|information_schema|'\\s*(?:or|and)\\s+['\"]?\\d)";
+    regexEl.value = "(?:union\\s+(?:all\\s+)?select|select\\s+.+\\s+from\\s+|insert\\s+into\\s+|delete\\s+from\\s+|drop\\s+(?:table|database)|exec(?:ute)?\\s*\\(|xp_cmdshell|information_schema|'\\s*(?:or|and)\\s+['\"]?\\d)";
     actionEl.value = 'block';
     metaEl.textContent = 'Valid pattern — flags: g, i (case-insensitive)';
     metaEl.className = 'waf-regex-meta';
