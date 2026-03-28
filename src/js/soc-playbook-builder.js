@@ -1,638 +1,437 @@
 /**
  * Penumbra Forge — SOAR Playbook Builder
  *
- * XSOAR-style visual workflow editor. Left sidebar with categorised task
- * palette, center canvas with SVG-connected flowchart nodes, inline
- * config panels. Vanilla JS, no dependencies.
+ * Visual workflow builder modelled after XSOAR/Tines playbook editors.
+ * Left palette panel with draggable task cards, center canvas showing
+ * a top-down flowchart with Start → Tasks → End, connected by lines.
+ * Click nodes to configure, hover between to insert.
  */
 
 (function () {
   'use strict';
 
   var DEFAULT_ACTIONS = [
-    { category: 'Triggers',    id: 'trigger-alert',      name: 'On Alert',            param: 'Rule name',    paramDefault: 'Port Scan Detected' },
-    { category: 'Triggers',    id: 'trigger-threshold',   name: 'On Threshold',        param: 'Threshold',    paramDefault: '500 ports / 5 min' },
-    { category: 'Triggers',    id: 'trigger-schedule',    name: 'On Schedule',         param: 'Cron',         paramDefault: '0 3 * * 2' },
-    { category: 'Triggers',    id: 'trigger-webhook',     name: 'On Webhook',          param: 'Endpoint',     paramDefault: '/api/hooks/soc' },
-    { category: 'Conditions',  id: 'cond-ip-rep',         name: 'IP Reputation',       param: 'Source',       paramDefault: 'src_ip' },
-    { category: 'Conditions',  id: 'cond-alert-count',    name: 'Alert Count > N',     param: 'Threshold',    paramDefault: '> 10 in 1h' },
-    { category: 'Conditions',  id: 'cond-source-match',   name: 'Source Match',        param: 'Match list',   paramDefault: 'known_scanner_list' },
-    { category: 'Conditions',  id: 'cond-severity-gate',  name: 'Severity Gate',       param: 'Min severity', paramDefault: 'high' },
-    { category: 'Conditions',  id: 'cond-geo-check',      name: 'GeoIP Gate',          param: 'Block list',   paramDefault: 'RU, CN, KP' },
-    { category: 'Actions',     id: 'act-block-ip',        name: 'Block IP',            param: 'Target',       paramDefault: 'src_ip' },
-    { category: 'Actions',     id: 'act-slack-notify',    name: 'Notify Slack',        param: 'Channel',      paramDefault: '#soc-alerts' },
-    { category: 'Actions',     id: 'act-create-ticket',   name: 'Create Ticket',       param: 'Priority',     paramDefault: 'P2' },
-    { category: 'Actions',     id: 'act-quarantine',      name: 'Quarantine Host',     param: 'Target',       paramDefault: 'src_host' },
-    { category: 'Actions',     id: 'act-enable-waf',      name: 'Enable WAF Rule',     param: 'Rule ID',      paramDefault: 'block-scanner' },
-    { category: 'Actions',     id: 'act-revoke-session',  name: 'Revoke Sessions',     param: 'User',         paramDefault: 'affected_user' },
-    { category: 'Actions',     id: 'act-log-close',       name: 'Log and Close',       param: 'Reason',       paramDefault: 'Benign scanner — auto-closed' },
-    { category: 'Enrichment',  id: 'enrich-geoip',        name: 'GeoIP Lookup',        param: 'Target',       paramDefault: 'src_ip' },
-    { category: 'Enrichment',  id: 'enrich-virustotal',   name: 'VirusTotal',          param: 'Hash/URL',     paramDefault: 'file_hash' },
-    { category: 'Enrichment',  id: 'enrich-whois',        name: 'WHOIS Query',         param: 'Domain',       paramDefault: 'src_domain' },
-    { category: 'Enrichment',  id: 'enrich-shodan',       name: 'Shodan Lookup',       param: 'IP',           paramDefault: 'src_ip' }
+    { category: 'Triggers',    id: 'trigger-alert',      name: 'On Alert',            param: 'Rule name',    paramDefault: 'Port Scan Detected', desc: 'Fires when a matching alert is created' },
+    { category: 'Triggers',    id: 'trigger-threshold',   name: 'On Threshold',        param: 'Threshold',    paramDefault: '500 ports / 5 min', desc: 'Fires when metric exceeds threshold' },
+    { category: 'Triggers',    id: 'trigger-schedule',    name: 'On Schedule',         param: 'Cron',         paramDefault: '0 3 * * 2', desc: 'Runs on a cron schedule' },
+    { category: 'Triggers',    id: 'trigger-webhook',     name: 'On Webhook',          param: 'Endpoint',     paramDefault: '/api/hooks/soc', desc: 'Fires on incoming webhook' },
+    { category: 'Conditions',  id: 'cond-ip-rep',         name: 'IP Reputation',       param: 'Source',       paramDefault: 'src_ip', desc: 'Branch based on IP threat score' },
+    { category: 'Conditions',  id: 'cond-alert-count',    name: 'Alert Count',         param: 'Threshold',    paramDefault: '> 10 in 1h', desc: 'Branch if alert count exceeds N' },
+    { category: 'Conditions',  id: 'cond-source-match',   name: 'Source Match',        param: 'Match list',   paramDefault: 'known_scanner_list', desc: 'Branch if source matches list' },
+    { category: 'Conditions',  id: 'cond-severity-gate',  name: 'Severity Gate',       param: 'Min severity', paramDefault: 'high', desc: 'Branch if severity >= threshold' },
+    { category: 'Conditions',  id: 'cond-geo-check',      name: 'GeoIP Gate',          param: 'Block list',   paramDefault: 'RU, CN, KP', desc: 'Branch based on geolocation' },
+    { category: 'Actions',     id: 'act-block-ip',        name: 'Block IP',            param: 'Target',       paramDefault: 'src_ip', desc: 'Add IP to firewall blocklist' },
+    { category: 'Actions',     id: 'act-slack-notify',    name: 'Notify Slack',        param: 'Channel',      paramDefault: '#soc-alerts', desc: 'Send notification to channel' },
+    { category: 'Actions',     id: 'act-create-ticket',   name: 'Create Ticket',       param: 'Priority',     paramDefault: 'P2', desc: 'Open incident ticket' },
+    { category: 'Actions',     id: 'act-quarantine',      name: 'Quarantine Host',     param: 'Target',       paramDefault: 'src_host', desc: 'Isolate host from network' },
+    { category: 'Actions',     id: 'act-enable-waf',      name: 'Enable WAF Rule',     param: 'Rule ID',      paramDefault: 'block-scanner', desc: 'Activate WAF protection rule' },
+    { category: 'Actions',     id: 'act-revoke-session',  name: 'Revoke Sessions',     param: 'User',         paramDefault: 'affected_user', desc: 'Terminate all user sessions' },
+    { category: 'Actions',     id: 'act-log-close',       name: 'Log and Close',       param: 'Reason',       paramDefault: 'Benign scanner — auto-closed', desc: 'Close alert with reason' },
+    { category: 'Enrichment',  id: 'enrich-geoip',        name: 'GeoIP Lookup',        param: 'Target',       paramDefault: 'src_ip', desc: 'Resolve IP to country/city/ASN' },
+    { category: 'Enrichment',  id: 'enrich-virustotal',   name: 'VirusTotal',          param: 'Hash/URL',     paramDefault: 'file_hash', desc: 'Check hash/URL reputation' },
+    { category: 'Enrichment',  id: 'enrich-whois',        name: 'WHOIS Query',         param: 'Domain',       paramDefault: 'src_domain', desc: 'Domain registration lookup' },
+    { category: 'Enrichment',  id: 'enrich-shodan',       name: 'Shodan Lookup',       param: 'IP',           paramDefault: 'src_ip', desc: 'Scan for open ports/services' }
   ];
 
-  var CATEGORY_ORDER = ['Triggers', 'Conditions', 'Enrichment', 'Actions'];
+  var CATS = ['Triggers', 'Conditions', 'Enrichment', 'Actions'];
+  var CAT_COLORS = { Triggers: '#f59e0b', Conditions: '#6366f1', Enrichment: '#06b6d4', Actions: '#4ade80' };
 
-  var CATEGORY_COLORS = {
-    'Triggers':   '#f59e0b',
-    'Conditions': '#6366f1',
-    'Enrichment': '#06b6d4',
-    'Actions':    '#4ade80'
-  };
+  var _container, _actions, _flow, _onSubmit, _uid, _selected, _canvasEl, _svgEl, _countEl, _resultEl;
 
-  var _container = null;
-  var _actions = [];
-  var _flow = [];
-  var _onSubmit = null;
-  var _uidCounter = 0;
-  var _selectedUid = null;
+  function id() { return 'n' + (++_uid); }
+  function h(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  function esc(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+  function findAct(aid) { for (var i = 0; i < _actions.length; i++) { if (_actions[i].id === aid) return _actions[i]; } return null; }
 
-  /* DOM references */
-  var _canvasEl = null;
-  var _svgEl = null;
-  var _countEl = null;
-  var _resultEl = null;
-  var _sidebarSections = null;
-
-  function uid() { return 'pb-' + (++_uidCounter); }
-
-  function el(tag, cls, html) {
-    var e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (html !== undefined) e.innerHTML = html;
-    return e;
-  }
-
-  function svgEl(tag) {
-    return document.createElementNS('http://www.w3.org/2000/svg', tag);
-  }
-
-  function findAction(id) {
-    for (var i = 0; i < _actions.length; i++) {
-      if (_actions[i].id === id) return _actions[i];
-    }
-    return null;
-  }
-
-  function findNode(u) {
-    for (var i = 0; i < _flow.length; i++) {
-      if (_flow[i].uid === u) return _flow[i];
-    }
-    return null;
-  }
-
-  function findNodeIndex(u) {
-    for (var i = 0; i < _flow.length; i++) {
-      if (_flow[i].uid === u) return i;
-    }
-    return -1;
-  }
-
-  function escAttr(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
-
-  function updateCount() {
-    if (_countEl) _countEl.textContent = _flow.length + ' step' + (_flow.length !== 1 ? 's' : '');
-  }
-
-  /* ════════════════════════════════════════════════════
-     Sidebar — categorised task palette with search
-     ════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════
+     Sidebar — task palette
+     ═══════════════════════════════════════════════════ */
 
   function buildSidebar() {
-    var sidebar = el('div', 'pb-sidebar');
+    var sb = h('div', 'xpb-sidebar');
 
-    /* Search */
-    var searchWrap = el('div', 'pb-sidebar-search');
-    var searchInput = el('input');
-    searchInput.type = 'text';
-    searchInput.placeholder = 'Search tasks...';
-    searchInput.addEventListener('input', function () {
-      filterSidebar(this.value.toLowerCase());
-    });
-    searchWrap.appendChild(searchInput);
-    sidebar.appendChild(searchWrap);
-
-    /* Categories */
-    _sidebarSections = el('div', 'pb-sidebar-sections');
-
-    CATEGORY_ORDER.forEach(function (cat) {
-      var catEl = el('div', 'pb-sidebar-cat');
-      catEl.setAttribute('data-category', cat);
-
-      var header = el('div', 'pb-sidebar-cat-header');
-      header.textContent = cat;
-      header.style.color = CATEGORY_COLORS[cat] || 'var(--text-3)';
-      catEl.appendChild(header);
-
-      var items = _actions.filter(function (a) { return a.category === cat; });
-      items.forEach(function (action) {
-        var task = el('div', 'pb-sidebar-task');
-        task.setAttribute('data-action-id', action.id);
-        task.setAttribute('data-name', action.name.toLowerCase());
-
-        var dot = el('span', 'pb-sidebar-dot');
-        dot.style.background = CATEGORY_COLORS[cat];
-        task.appendChild(dot);
-
-        var label = el('span');
-        label.textContent = action.name;
-        task.appendChild(label);
-
-        task.addEventListener('click', function () { addNode(action.id); });
-        catEl.appendChild(task);
+    var search = h('div', 'xpb-search');
+    var input = h('input');
+    input.type = 'text';
+    input.placeholder = 'Search tasks...';
+    input.addEventListener('input', function () {
+      var q = this.value.toLowerCase();
+      sb.querySelectorAll('.xpb-task').forEach(function (t) {
+        t.style.display = t.textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
       });
-
-      _sidebarSections.appendChild(catEl);
     });
+    search.appendChild(input);
+    sb.appendChild(search);
 
-    sidebar.appendChild(_sidebarSections);
-    return sidebar;
+    var list = h('div', 'xpb-task-list');
+    CATS.forEach(function (cat) {
+      var sec = h('div', 'xpb-cat');
+      var hdr = h('div', 'xpb-cat-label');
+      hdr.style.color = CAT_COLORS[cat];
+      hdr.textContent = cat;
+      sec.appendChild(hdr);
+
+      _actions.filter(function (a) { return a.category === cat; }).forEach(function (act) {
+        var card = h('div', 'xpb-task');
+        var dot = h('span', 'xpb-dot');
+        dot.style.background = CAT_COLORS[cat];
+        card.appendChild(dot);
+
+        var info = h('div', 'xpb-task-info');
+        info.innerHTML = '<div class="xpb-task-name">' + esc(act.name) + '</div>' +
+                         '<div class="xpb-task-desc">' + esc(act.desc || '') + '</div>';
+        card.appendChild(info);
+
+        card.addEventListener('click', function () { addNode(act.id); });
+        sec.appendChild(card);
+      });
+      list.appendChild(sec);
+    });
+    sb.appendChild(list);
+    return sb;
   }
 
-  function filterSidebar(query) {
-    if (!_sidebarSections) return;
-    var cats = _sidebarSections.querySelectorAll('.pb-sidebar-cat');
-    for (var c = 0; c < cats.length; c++) {
-      var tasks = cats[c].querySelectorAll('.pb-sidebar-task');
-      var anyVisible = false;
-      for (var t = 0; t < tasks.length; t++) {
-        var name = tasks[t].getAttribute('data-name') || '';
-        var show = !query || name.indexOf(query) !== -1;
-        tasks[t].style.display = show ? '' : 'none';
-        if (show) anyVisible = true;
-      }
-      cats[c].style.display = anyVisible ? '' : 'none';
-    }
-  }
-
-  /* ════════════════════════════════════════════════════
-     Canvas — visual workflow graph
-     ════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════
+     Canvas — flowchart
+     ═══════════════════════════════════════════════════ */
 
   function renderCanvas() {
-    if (!_canvasEl) return;
-
-    /* Preserve scroll position */
-    var scrollTop = _canvasEl.scrollTop;
-
     _canvasEl.innerHTML = '';
-    updateCount();
 
-    /* SVG overlay for connections */
-    _svgEl = svgEl('svg');
-    _svgEl.setAttribute('class', 'pb-connections');
+    // SVG layer for connection lines
+    _svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    _svgEl.setAttribute('class', 'xpb-svg');
+    _svgEl.innerHTML = '<defs><marker id="xpb-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="none" stroke="var(--border-active)" stroke-width="1"/></marker></defs>';
     _canvasEl.appendChild(_svgEl);
 
-    /* Arrowhead marker */
-    var defs = svgEl('defs');
-    var marker = svgEl('marker');
-    marker.setAttribute('id', 'pb-arrowhead');
-    marker.setAttribute('markerWidth', '6');
-    marker.setAttribute('markerHeight', '4');
-    marker.setAttribute('refX', '6');
-    marker.setAttribute('refY', '2');
-    marker.setAttribute('orient', 'auto');
-    var markerPath = svgEl('polygon');
-    markerPath.setAttribute('points', '0 0, 6 2, 0 4');
-    markerPath.setAttribute('class', 'pb-arrow-fill');
-    marker.appendChild(markerPath);
-    defs.appendChild(marker);
-    _svgEl.appendChild(defs);
+    // Start node
+    var start = h('div', 'xpb-pill xpb-pill-start', 'START');
+    _canvasEl.appendChild(start);
 
-    /* Start node */
-    var startNode = el('div', 'pb-start-node');
-    startNode.textContent = 'Start';
-    _canvasEl.appendChild(startNode);
-
-    /* Task nodes with insert buttons between them */
+    // Task nodes
     _flow.forEach(function (node, idx) {
-      /* Insert button before this node */
-      var insertBtn = el('button', 'pb-insert-btn');
-      insertBtn.textContent = '+';
-      insertBtn.title = 'Insert task here';
-      insertBtn.setAttribute('data-insert-at', String(idx));
-      insertBtn.addEventListener('click', function (e) {
+      // Insert button
+      var ins = h('div', 'xpb-insert');
+      ins.innerHTML = '<button class="xpb-insert-btn">+</button>';
+      ins.querySelector('button').addEventListener('click', function (e) {
         e.stopPropagation();
-        _insertAt = idx;
-        highlightSidebar();
+        showInsertMenu(idx, ins);
       });
-      _canvasEl.appendChild(insertBtn);
+      _canvasEl.appendChild(ins);
 
-      /* Node element */
-      var action = findAction(node.actionId);
-      var cat = action ? action.category : 'Unknown';
-      var color = CATEGORY_COLORS[cat] || 'var(--text-3)';
-      var isCondition = cat === 'Conditions';
-      var isSelected = node.uid === _selectedUid;
+      // Node
+      var act = findAct(node.actionId);
+      var cat = act ? act.category : 'Unknown';
+      var color = CAT_COLORS[cat] || '#888';
+      var isSelected = _selected === node.uid;
 
-      var nodeEl = el('div', 'pb-node' + (isCondition ? ' pb-node-condition' : '') + (isSelected ? ' pb-node-selected' : ''));
-      nodeEl.setAttribute('data-uid', node.uid);
+      var el = h('div', 'xpb-node' + (isSelected ? ' xpb-node-sel' : ''));
+      el.setAttribute('data-uid', node.uid);
 
-      /* Click to select */
-      nodeEl.addEventListener('click', function (e) {
-        if (e.target.classList.contains('pb-node-delete') || e.target.tagName === 'INPUT') return;
-        selectNode(node.uid);
-      });
-
-      /* Accent bar */
-      var accent = el('div', 'pb-node-accent');
+      // Accent bar
+      var accent = h('div', 'xpb-accent');
       accent.style.background = color;
-      nodeEl.appendChild(accent);
+      el.appendChild(accent);
 
-      /* Content area */
-      var content = el('div', 'pb-node-content');
+      // Content
+      var content = h('div', 'xpb-node-body');
 
-      /* Header: badge + title + delete */
-      var header = el('div', 'pb-node-header');
+      // Row 1: badge + name + step # + delete
+      var row1 = h('div', 'xpb-row1');
+      row1.innerHTML =
+        '<span class="xpb-badge" style="color:' + color + ';border-color:' + color + ';">' + cat.substring(0, 4).toUpperCase() + '</span>' +
+        '<span class="xpb-name">' + esc(node.name) + '</span>' +
+        '<span class="xpb-step">#' + (idx + 1) + '</span>';
 
-      var badge = el('span', 'pb-node-type-badge');
-      badge.textContent = cat.toUpperCase();
-      badge.style.color = color;
-      badge.style.borderColor = color;
-      header.appendChild(badge);
+      var del = h('button', 'xpb-del', '&times;');
+      del.addEventListener('click', function (e) { e.stopPropagation(); removeNode(idx); });
+      row1.appendChild(del);
+      content.appendChild(row1);
 
-      var title = el('span', 'pb-node-title');
-      title.textContent = node.name;
-      header.appendChild(title);
+      // Row 2: parameter preview
+      var row2 = h('div', 'xpb-preview');
+      row2.textContent = node.paramLabel + ': ' + node.paramValue;
+      content.appendChild(row2);
 
-      var delBtn = el('button', 'pb-node-delete');
-      delBtn.innerHTML = '&#x00D7;';
-      delBtn.title = 'Remove';
-      delBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        removeNode(node.uid);
-      });
-      header.appendChild(delBtn);
+      // Config panel (shown when selected)
+      if (isSelected) {
+        var cfg = h('div', 'xpb-config');
 
-      content.appendChild(header);
+        var paramGroup = h('div', 'xpb-cfg-group');
+        paramGroup.innerHTML = '<label>' + esc(node.paramLabel) + '</label>';
+        var paramIn = h('input');
+        paramIn.type = 'text';
+        paramIn.value = node.paramValue;
+        paramIn.addEventListener('change', function () { node.paramValue = this.value; renderCanvas(); });
+        paramGroup.appendChild(paramIn);
+        cfg.appendChild(paramGroup);
 
-      /* Param preview (shown when not selected) */
-      if (!isSelected && node.paramValue) {
-        var preview = el('div', 'pb-node-param-preview');
-        preview.textContent = node.paramLabel + ': ' + node.paramValue;
-        content.appendChild(preview);
+        if (act && act.desc) {
+          var descEl = h('div', 'xpb-cfg-desc');
+          descEl.textContent = act.desc;
+          cfg.appendChild(descEl);
+        }
+
+        // Move buttons
+        var moveRow = h('div', 'xpb-cfg-moves');
+        if (idx > 0) {
+          var upBtn = h('button', 'xpb-cfg-btn', 'Move Up');
+          upBtn.addEventListener('click', function () { moveNode(idx, idx - 1); });
+          moveRow.appendChild(upBtn);
+        }
+        if (idx < _flow.length - 1) {
+          var downBtn = h('button', 'xpb-cfg-btn', 'Move Down');
+          downBtn.addEventListener('click', function () { moveNode(idx, idx + 1); });
+          moveRow.appendChild(downBtn);
+        }
+        cfg.appendChild(moveRow);
+        content.appendChild(cfg);
       }
 
-      /* Condition diamond indicator */
-      if (isCondition) {
-        var diamond = el('div', 'pb-node-diamond');
-        diamond.style.borderColor = color;
-        nodeEl.appendChild(diamond);
-      }
+      el.appendChild(content);
 
-      /* Config panel (shown when selected) */
-      var config = el('div', 'pb-node-config');
-
-      /* Task name row */
-      var nameRow = el('div', 'pb-config-row');
-      var nameLabel = el('label');
-      nameLabel.textContent = 'Task name';
-      nameRow.appendChild(nameLabel);
-      var nameInput = el('input');
-      nameInput.type = 'text';
-      nameInput.value = node.name;
-      nameInput.setAttribute('data-uid', node.uid);
-      nameInput.setAttribute('data-field', 'name');
-      nameInput.addEventListener('change', function () {
-        var n = findNode(this.getAttribute('data-uid'));
-        if (n) { n.name = this.value; renderCanvas(); }
+      // Click to select/deselect
+      el.addEventListener('click', function () {
+        _selected = _selected === node.uid ? null : node.uid;
+        renderCanvas();
       });
-      nameRow.appendChild(nameInput);
-      config.appendChild(nameRow);
 
-      /* Param row */
-      var paramRow = el('div', 'pb-config-row');
-      var paramLabel = el('label');
-      paramLabel.textContent = node.paramLabel;
-      paramRow.appendChild(paramLabel);
-      var paramInput = el('input');
-      paramInput.type = 'text';
-      paramInput.value = node.paramValue;
-      paramInput.setAttribute('data-uid', node.uid);
-      paramInput.setAttribute('data-field', 'paramValue');
-      paramInput.addEventListener('change', function () {
-        var n = findNode(this.getAttribute('data-uid'));
-        if (n) { n.paramValue = this.value; }
-      });
-      paramRow.appendChild(paramInput);
-      config.appendChild(paramRow);
-
-      /* Description row */
-      var descRow = el('div', 'pb-config-row');
-      var descLabel = el('label');
-      descLabel.textContent = 'Description';
-      descRow.appendChild(descLabel);
-      var descInput = el('input');
-      descInput.type = 'text';
-      descInput.value = node.description || '';
-      descInput.placeholder = 'Optional...';
-      descInput.setAttribute('data-uid', node.uid);
-      descInput.addEventListener('change', function () {
-        var n = findNode(this.getAttribute('data-uid'));
-        if (n) { n.description = this.value; }
-      });
-      descRow.appendChild(descInput);
-      config.appendChild(descRow);
-
-      content.appendChild(config);
-      nodeEl.appendChild(content);
-      _canvasEl.appendChild(nodeEl);
+      _canvasEl.appendChild(el);
     });
 
-    /* Insert button after last node (before End) */
-    var lastInsert = el('button', 'pb-insert-btn');
-    lastInsert.textContent = '+';
-    lastInsert.title = 'Insert task here';
-    lastInsert.setAttribute('data-insert-at', String(_flow.length));
-    lastInsert.addEventListener('click', function (e) {
+    // Final insert button
+    var lastIns = h('div', 'xpb-insert');
+    lastIns.innerHTML = '<button class="xpb-insert-btn">+</button>';
+    lastIns.querySelector('button').addEventListener('click', function (e) {
       e.stopPropagation();
-      _insertAt = _flow.length;
-      highlightSidebar();
+      showInsertMenu(_flow.length, lastIns);
     });
-    _canvasEl.appendChild(lastInsert);
+    _canvasEl.appendChild(lastIns);
 
-    /* End node */
-    var endNode = el('div', 'pb-end-node');
-    endNode.textContent = 'End';
-    _canvasEl.appendChild(endNode);
+    // End node
+    var end = h('div', 'xpb-pill xpb-pill-end', 'END');
+    _canvasEl.appendChild(end);
 
-    /* Draw SVG connections after layout settles */
-    requestAnimationFrame(function () {
-      drawConnections();
-      _canvasEl.scrollTop = scrollTop;
-    });
+    updateCount();
+
+    // Draw SVG connections after DOM settles
+    requestAnimationFrame(function () { drawConnections(); });
   }
 
-  var _insertAt = -1;
-
-  function highlightSidebar() {
-    /* Brief flash on sidebar to hint user should pick a task */
-    if (_sidebarSections) {
-      _sidebarSections.classList.add('pb-sidebar-highlight');
-      setTimeout(function () {
-        _sidebarSections.classList.remove('pb-sidebar-highlight');
-      }, 600);
-    }
-  }
-
-  /* ════════════════════════════════════════════════════
-     SVG Connection Drawing
-     ════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════
+     SVG connections
+     ═══════════════════════════════════════════════════ */
 
   function drawConnections() {
     if (!_svgEl || !_canvasEl) return;
 
-    _svgEl.querySelectorAll('.pb-connection-path').forEach(function (p) { p.remove(); });
-
-    /* Collect all nodes in visual order (start, tasks, end) */
-    var allNodes = _canvasEl.querySelectorAll('.pb-start-node, .pb-node, .pb-end-node');
-    if (allNodes.length < 2) return;
+    // Remove old paths (keep defs)
+    var old = _svgEl.querySelectorAll('.xpb-line');
+    for (var i = 0; i < old.length; i++) old[i].remove();
 
     var canvasRect = _canvasEl.getBoundingClientRect();
-    var scrollLeft = _canvasEl.scrollLeft;
     var scrollTop = _canvasEl.scrollTop;
 
-    /* Size the SVG to cover entire scrollable area */
-    _svgEl.setAttribute('width', _canvasEl.scrollWidth);
-    _svgEl.setAttribute('height', _canvasEl.scrollHeight);
-    _svgEl.style.width = _canvasEl.scrollWidth + 'px';
+    // Collect all connectable elements in order
+    var nodes = _canvasEl.querySelectorAll('.xpb-pill, .xpb-node');
+    if (nodes.length < 2) return;
+
+    // Size SVG to canvas scroll height
     _svgEl.style.height = _canvasEl.scrollHeight + 'px';
 
-    for (var i = 0; i < allNodes.length - 1; i++) {
-      var from = allNodes[i];
-      var to = allNodes[i + 1];
+    for (var n = 0; n < nodes.length - 1; n++) {
+      var from = nodes[n];
+      var to = nodes[n + 1];
+      var fRect = from.getBoundingClientRect();
+      var tRect = to.getBoundingClientRect();
 
-      /* Skip insert buttons — only connect actual nodes */
-      if (from.classList.contains('pb-insert-btn') || to.classList.contains('pb-insert-btn')) continue;
+      var x1 = fRect.left + fRect.width / 2 - canvasRect.left;
+      var y1 = fRect.bottom - canvasRect.top + scrollTop;
+      var x2 = tRect.left + tRect.width / 2 - canvasRect.left;
+      var y2 = tRect.top - canvasRect.top + scrollTop;
 
-      var fromRect = from.getBoundingClientRect();
-      var toRect = to.getBoundingClientRect();
-
-      var x1 = fromRect.left + fromRect.width / 2 - canvasRect.left + scrollLeft;
-      var y1 = fromRect.bottom - canvasRect.top + scrollTop;
-      var x2 = toRect.left + toRect.width / 2 - canvasRect.left + scrollLeft;
-      var y2 = toRect.top - canvasRect.top + scrollTop;
-
-      var path = svgEl('path');
       var midY = (y1 + y2) / 2;
+
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', 'M' + x1 + ',' + y1 + ' C' + x1 + ',' + midY + ' ' + x2 + ',' + midY + ' ' + x2 + ',' + y2);
-      path.setAttribute('class', 'pb-connection-path');
-      path.setAttribute('marker-end', 'url(#pb-arrowhead)');
+      path.setAttribute('class', 'xpb-line');
+      path.setAttribute('marker-end', 'url(#xpb-arrow)');
       _svgEl.appendChild(path);
     }
   }
 
-  /* ════════════════════════════════════════════════════
-     Selection
-     ════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════
+     Insert menu (dropdown at "+" button)
+     ═══════════════════════════════════════════════════ */
 
-  function selectNode(u) {
-    if (_selectedUid === u) {
-      _selectedUid = null;
-    } else {
-      _selectedUid = u;
-    }
-    renderCanvas();
+  function showInsertMenu(insertIdx, anchor) {
+    // Close any existing
+    var existing = _canvasEl.querySelector('.xpb-menu');
+    if (existing) existing.remove();
+
+    var menu = h('div', 'xpb-menu');
+
+    CATS.forEach(function (cat) {
+      var catLabel = h('div', 'xpb-menu-cat');
+      catLabel.style.color = CAT_COLORS[cat];
+      catLabel.textContent = cat;
+      menu.appendChild(catLabel);
+
+      _actions.filter(function (a) { return a.category === cat; }).forEach(function (act) {
+        var item = h('div', 'xpb-menu-item');
+        var dot = h('span', 'xpb-dot');
+        dot.style.background = CAT_COLORS[cat];
+        item.appendChild(dot);
+        item.appendChild(document.createTextNode(act.name));
+        item.addEventListener('click', function (e) {
+          e.stopPropagation();
+          menu.remove();
+          insertNode(act.id, insertIdx);
+        });
+        menu.appendChild(item);
+      });
+    });
+
+    anchor.appendChild(menu);
+
+    setTimeout(function () {
+      document.addEventListener('click', function closer() {
+        menu.remove();
+        document.removeEventListener('click', closer);
+      });
+    }, 0);
   }
 
-  /* ════════════════════════════════════════════════════
-     Mutations
-     ════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════
+     Flow mutations
+     ═══════════════════════════════════════════════════ */
 
   function addNode(actionId) {
-    var action = findAction(actionId);
-    if (!action) return;
-
-    var newNode = {
-      uid: uid(),
-      actionId: action.id,
-      name: action.name,
-      paramLabel: action.param,
-      paramValue: action.paramDefault,
-      description: ''
-    };
-
-    /* Insert at specific position if set by "+" button, or after selected node, or at end */
-    if (_insertAt >= 0) {
-      _flow.splice(_insertAt, 0, newNode);
-      _insertAt = -1;
-    } else if (_selectedUid) {
-      var idx = findNodeIndex(_selectedUid);
-      if (idx >= 0) {
-        _flow.splice(idx + 1, 0, newNode);
-      } else {
-        _flow.push(newNode);
-      }
-    } else {
-      _flow.push(newNode);
-    }
-
-    _selectedUid = newNode.uid;
-    renderCanvas();
-
-    /* Scroll the new node into view */
-    requestAnimationFrame(function () {
-      var nodeEl = _canvasEl.querySelector('[data-uid="' + newNode.uid + '"]');
-      if (nodeEl) nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var act = findAct(actionId);
+    if (!act) return;
+    _flow.push({
+      uid: id(), actionId: act.id, name: act.name,
+      paramLabel: act.param, paramValue: act.paramDefault
     });
+    _selected = null;
+    renderCanvas();
+    _canvasEl.scrollTop = _canvasEl.scrollHeight;
   }
 
-  function removeNode(u) {
-    var idx = findNodeIndex(u);
-    if (idx < 0) return;
-    _flow.splice(idx, 1);
-    if (_selectedUid === u) _selectedUid = null;
+  function insertNode(actionId, idx) {
+    var act = findAct(actionId);
+    if (!act) return;
+    _flow.splice(idx, 0, {
+      uid: id(), actionId: act.id, name: act.name,
+      paramLabel: act.param, paramValue: act.paramDefault
+    });
     renderCanvas();
   }
 
-  /* ════════════════════════════════════════════════════
-     Test
-     ════════════════════════════════════════════════════ */
+  function removeNode(idx) { _flow.splice(idx, 1); _selected = null; renderCanvas(); }
+  function moveNode(from, to) { var item = _flow.splice(from, 1)[0]; _flow.splice(to, 0, item); renderCanvas(); }
+  function updateCount() { if (_countEl) _countEl.textContent = _flow.length + ' step' + (_flow.length !== 1 ? 's' : ''); }
+
+  /* ═══════════════════════════════════════════════════
+     Test playbook
+     ═══════════════════════════════════════════════════ */
 
   function testPlaybook() {
     if (!_resultEl) return;
-    _resultEl.innerHTML = '';
-    _resultEl.style.display = 'block';
+    _resultEl.style.display = '';
 
     if (_flow.length === 0) {
-      _resultEl.innerHTML = '<div class="pb-rmsg pb-rmsg-err">Add steps to the pipeline first.</div>';
+      _resultEl.innerHTML = '<div class="xpb-msg xpb-msg-err">Add steps to test.</div>';
       return;
     }
 
     var has = { Triggers: false, Conditions: false, Actions: false, Enrichment: false };
-    var steps = [];
-    _flow.forEach(function (node) {
-      var action = findAction(node.actionId);
-      if (action) has[action.category] = true;
-      steps.push({ cat: action ? action.category : '?', name: node.name, param: node.paramValue });
-    });
-
-    var html = '<div class="pb-rhead">Execution Trace</div><div class="pb-rtrace">';
-    steps.forEach(function (s, i) {
-      html += '<div class="pb-rstep">' +
-        '<span class="pb-rnum" style="color:' + (CATEGORY_COLORS[s.cat] || '') + '">' + (i + 1) + '</span>' +
-        '<span class="pb-rname">' + escAttr(s.name) + '</span>' +
-        '<span class="pb-rparam">' + escAttr(s.param) + '</span>' +
-        '<span class="pb-rok">PASS</span></div>';
-    });
-    html += '</div>';
+    _flow.forEach(function (n) { var a = findAct(n.actionId); if (a) has[a.category] = true; });
 
     var issues = [];
-    if (!has.Triggers)   issues.push('No trigger. The playbook needs a starting condition.');
-    if (!has.Enrichment) issues.push('No enrichment. Add context before making decisions.');
-    if (!has.Conditions) issues.push('No condition gate. All alerts get the same treatment.');
-    if (!has.Actions)    issues.push('No response action. The playbook detects but does nothing.');
-
-    if (issues.length) {
-      html += '<div class="pb-rhead" style="margin-top:8px">Issues</div>';
-      issues.forEach(function (s) { html += '<div class="pb-rissue">' + s + '</div>'; });
-    }
+    if (!has.Triggers)   issues.push('Missing trigger — playbook needs a starting condition');
+    if (!has.Enrichment) issues.push('Missing enrichment — add context before decisions');
+    if (!has.Conditions) issues.push('Missing condition — all alerts treated identically');
+    if (!has.Actions)    issues.push('Missing action — playbook detects but doesn\'t respond');
 
     var score = (has.Triggers ? 25 : 0) + (has.Conditions ? 25 : 0) + (has.Actions ? 25 : 0) + (has.Enrichment ? 25 : 0);
     var cls = score >= 75 ? 'good' : score >= 50 ? 'mid' : 'low';
-    html += '<div class="pb-rscore pb-rscore-' + cls + '">' +
-      '<span class="pb-rscore-lbl">Coverage</span>' +
-      '<span class="pb-rscore-bar"><span class="pb-rscore-fill" style="width:' + score + '%"></span></span>' +
-      '<span class="pb-rscore-val">' + score + '%</span></div>';
 
+    var html = '<div class="xpb-result-hdr">Pipeline Test</div>';
+    html += '<div class="xpb-score xpb-score-' + cls + '"><span>Coverage</span><span class="xpb-score-bar"><span style="width:' + score + '%"></span></span><span>' + score + '%</span></div>';
+    if (issues.length) {
+      issues.forEach(function (s) { html += '<div class="xpb-issue">' + s + '</div>'; });
+    } else {
+      html += '<div class="xpb-msg xpb-msg-ok">Pipeline covers all categories. Ready to submit.</div>';
+    }
     _resultEl.innerHTML = html;
   }
 
   function getPlaybook() {
-    return _flow.map(function (node) {
-      var action = findAction(node.actionId);
-      return {
-        actionId: node.actionId,
-        category: action ? action.category : 'Unknown',
-        name: node.name,
-        param: node.paramValue,
-        description: node.description || ''
-      };
+    return _flow.map(function (n) {
+      var a = findAct(n.actionId);
+      return { actionId: n.actionId, category: a ? a.category : 'Unknown', name: n.name, param: n.paramValue };
     });
   }
 
-  /* ════════════════════════════════════════════════════
-     Init — build the full XSOAR-style editor layout
-     ════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════
+     Init
+     ═══════════════════════════════════════════════════ */
 
   function init(opts) {
     _container = opts.container;
     _actions = opts.availableActions || DEFAULT_ACTIONS;
     _onSubmit = opts.onPlaybookSubmit || null;
     _flow = [];
-    _uidCounter = 0;
-    _selectedUid = null;
-    _insertAt = -1;
+    _uid = 0;
+    _selected = null;
 
     _container.innerHTML = '';
-    _container.classList.add('pb-editor');
 
-    /* Left sidebar — task palette */
-    _container.appendChild(buildSidebar());
+    // Build layout: sidebar | canvas area
+    var wrap = h('div', 'xpb-wrap');
+    wrap.appendChild(buildSidebar());
 
-    /* Center canvas area */
-    var canvasArea = el('div', 'pb-canvas-area');
+    var main = h('div', 'xpb-main');
 
-    /* Canvas header */
-    var canvasHeader = el('div', 'pb-canvas-header');
-    var headerTitle = el('span', 'pb-canvas-title');
-    headerTitle.textContent = 'Pipeline';
-    canvasHeader.appendChild(headerTitle);
-    _countEl = el('span', 'pb-canvas-count');
+    // Header
+    var hdr = h('div', 'xpb-header');
+    hdr.innerHTML = '<span class="xpb-title">Playbook</span>';
+    _countEl = h('span', 'xpb-count');
     _countEl.textContent = '0 steps';
-    canvasHeader.appendChild(_countEl);
-    canvasArea.appendChild(canvasHeader);
+    hdr.appendChild(_countEl);
+    main.appendChild(hdr);
 
-    /* Scrollable canvas */
-    _canvasEl = el('div', 'pb-canvas');
+    // Canvas
+    _canvasEl = h('div', 'xpb-canvas');
     _canvasEl.addEventListener('click', function (e) {
-      /* Deselect when clicking canvas background */
-      if (e.target === _canvasEl) {
-        _selectedUid = null;
-        renderCanvas();
-      }
+      if (e.target === _canvasEl) { _selected = null; renderCanvas(); }
     });
-    canvasArea.appendChild(_canvasEl);
+    main.appendChild(_canvasEl);
 
-    /* Bottom controls */
-    var controls = el('div', 'pb-canvas-controls');
-
-    var testBtn = el('button', 'pb-btn pb-btn-sec', 'Test Pipeline');
-    testBtn.addEventListener('click', function () { testPlaybook(); });
-
-    var submitBtn = el('button', 'pb-btn pb-btn-pri', 'Submit Playbook');
+    // Controls
+    var ctrls = h('div', 'xpb-ctrls');
+    var testBtn = h('button', 'xpb-btn xpb-btn-sec', 'Test Pipeline');
+    testBtn.addEventListener('click', testPlaybook);
+    var submitBtn = h('button', 'xpb-btn xpb-btn-pri', 'Submit Playbook');
     submitBtn.addEventListener('click', function () {
       var pb = getPlaybook();
-      if (pb.length === 0) return;
-      if (_onSubmit) _onSubmit(pb);
+      if (pb.length > 0 && _onSubmit) _onSubmit(pb);
     });
+    ctrls.appendChild(testBtn);
+    ctrls.appendChild(submitBtn);
+    main.appendChild(ctrls);
 
-    controls.appendChild(testBtn);
-    controls.appendChild(submitBtn);
-    canvasArea.appendChild(controls);
-
-    /* Results area */
-    _resultEl = el('div', 'pb-canvas-results');
+    // Results
+    _resultEl = h('div', 'xpb-results');
     _resultEl.style.display = 'none';
-    canvasArea.appendChild(_resultEl);
+    main.appendChild(_resultEl);
 
-    _container.appendChild(canvasArea);
+    wrap.appendChild(main);
+    _container.appendChild(wrap);
 
-    /* Initial render */
     renderCanvas();
-
-    /* Redraw connections on resize */
-    var resizeTimer;
-    window.addEventListener('resize', function () {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () { drawConnections(); }, 100);
-    });
-
-    /* Redraw connections on canvas scroll */
-    _canvasEl.addEventListener('scroll', function () {
-      /* SVG is absolutely positioned so no redraw needed — it scrolls with the content */
-    });
+    window.addEventListener('resize', function () { requestAnimationFrame(drawConnections); });
   }
 
   window.PenumbraLabs = window.PenumbraLabs || {};
