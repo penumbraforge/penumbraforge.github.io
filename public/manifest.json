@@ -1,0 +1,21 @@
+{
+  "name": "Penumbra Forge",
+  "short_name": "Penumbra Forge",
+  "description": "Security tools, labs & software — forged by Shadoe",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050509",
+  "theme_color": "#050509",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
