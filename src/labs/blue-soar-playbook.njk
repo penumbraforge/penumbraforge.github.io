@@ -337,24 +337,66 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // ── Initialize source-filtered SIEM views (auth, dns) ──
-  ['auth', 'dns'].forEach(function(source) {
-    var container = document.getElementById('tool-' + source);
-    if (container) {
-      var sourceMap = { auth: 'auth', dns: 'dns' };
-      var filtered = corpus.filter(function(e) { return e.source === sourceMap[source]; });
-      Labs.SIEM.init({
-        container: container,
-        evidenceCorpus: filtered,
-        onAction: function(action) {
-          sim.dispatch({ type: 'siem_action', action: action.action, entry: action.entry });
-          if (action.action === 'evidence' && action.entry.evidenceId) {
-            updateEvidenceTracker(action.entry.evidenceId);
-          }
+  // ── Render source-filtered log views (auth, dns) as static tables ──
+  // Note: Labs.SIEM is a singleton — calling init() multiple times overwrites
+  // its state. Use a simple inline renderer for the filtered-source tabs.
+  (function() {
+    var SEV_CLASS = { critical: 'sev-crit', high: 'sev-high', medium: 'sev-med', low: 'sev-low', info: 'sev-info' };
+    var SEV_LABEL = { critical: 'CRIT', high: 'HIGH', medium: 'MED', low: 'LOW', info: 'INFO' };
+
+    function renderFilteredLogs(containerId, source) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+      var filtered = corpus.filter(function(e) { return e.source === source; });
+
+      var html = '<div class="siem-filtered-view">';
+      html += '<div class="siem-toolbar" style="padding:8px 12px;font-size:11px;color:var(--text-3);">';
+      html += 'Showing ' + filtered.length + ' ' + source.toUpperCase() + ' log entries</div>';
+      html += '<div class="siem-stream" style="overflow-y:auto;flex:1;">';
+
+      if (filtered.length === 0) {
+        html += '<div style="padding:24px;color:var(--text-3);font-size:12px;text-align:center;">No ' + source.toUpperCase() + ' log entries in this dataset.</div>';
+      } else {
+        for (var i = 0; i < filtered.length; i++) {
+          var e = filtered[i];
+          var sev = e.severity || 'info';
+          var sevCls = SEV_CLASS[sev] || 'sev-info';
+          var sevLabel = SEV_LABEL[sev] || 'INFO';
+          var ts = e.timestamp || '';
+          var summary = e.summary || e.message || '';
+          // Strip any HTML tags from summary for safe display
+          var div = document.createElement('div');
+          div.innerHTML = summary;
+          var plainSummary = div.textContent || div.innerText || summary;
+
+          html += '<div class="siem-row" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border-subtle);font-size:11px;">';
+          html += '<span class="siem-sev ' + sevCls + '" style="flex-shrink:0;">' + sevLabel + '</span>';
+          html += '<span class="siem-ts" style="color:var(--text-3);flex-shrink:0;font-family:monospace;">' + ts.substring(0, 19) + '</span>';
+          html += '<span class="siem-summary" style="color:var(--text-2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + plainSummary + '</span>';
+          html += '</div>';
         }
-      });
+      }
+
+      html += '</div></div>';
+      container.innerHTML = html;
     }
-  });
+
+    renderFilteredLogs('tool-auth', 'auth');
+    renderFilteredLogs('tool-dns', 'dns');
+  }());
+
+  // ── Hide irrelevant tabs (Packet Capture, Threat Intel) for SOAR lab ──
+  (function() {
+    var hideTools = ['pcap', 'threatintel'];
+    hideTools.forEach(function(tool) {
+      var btn = document.querySelector('#siem-tabs .soc-tool-tab[data-tool="' + tool + '"]');
+      if (btn) btn.style.display = 'none';
+      var pane = document.getElementById('tool-' + tool);
+      if (pane) {
+        pane.innerHTML = '<div style="padding:24px;color:var(--text-3);font-size:12px;text-align:center;">This data source is not available for this scenario.</div>';
+      }
+    });
+  }());
 
   // ── Initialize Timeline ──
   Labs.Timeline.init({

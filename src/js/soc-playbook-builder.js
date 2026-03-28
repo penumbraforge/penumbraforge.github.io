@@ -1147,9 +1147,7 @@
       { id: 'start', type: 'start', name: 'Start', x: 0, y: 0, config: {} },
       { id: 'end',   type: 'end',   name: 'End',   x: 0, y: 0, config: {} }
     ];
-    _connections = [
-      { id: 'c0', from: 'start', fromPort: 'out', to: 'end', toPort: 'in' }
-    ];
+    _connections = [];
 
     _container.innerHTML = '';
 
