@@ -75,6 +75,10 @@
         triggerMatch = action.type === 'iframe_message';
       } else if (rule.trigger === 'browser') {
         triggerMatch = action.type === 'browser';
+      } else {
+        // Generic fallback: match if action.type equals the trigger name.
+        // Covers siem_action, timeline_action, containment_action, auto, etc.
+        triggerMatch = action.type === rule.trigger;
       }
 
       if (!triggerMatch) return { success: false };
@@ -115,13 +119,14 @@
     },
 
     dispatch: function (action) {
-      // Log every action for nudge engine and scoring
       this._actionsLog.push({
         action: action,
         timestamp: Date.now()
       });
 
-      // Check all available transitions from current state
+      if (this._stateMachine.isComplete()) return;
+
+      // First try transitions from current state (normal path)
       var available = this._stateMachine.getAvailableActions();
       var fromState = this._stateMachine.current;
 
@@ -138,6 +143,50 @@
               this._onComplete();
             }
             return;
+          }
+        }
+      }
+
+      // If no transition from current state matched, check if this action
+      // would match a LATER state's transition. If so, fast-track through
+      // intermediate states. This allows skilled users to skip steps.
+      var allStates = this._stateMachine._graph.states;
+      var stateKeys = Object.keys(allStates);
+      for (var s = 0; s < stateKeys.length; s++) {
+        var stateId = stateKeys[s];
+        var stateNode = allStates[stateId];
+        if (!stateNode.transitions) continue;
+
+        var transitionNames = Object.keys(stateNode.transitions);
+        for (var t = 0; t < transitionNames.length; t++) {
+          var tName = transitionNames[t];
+          var checkResult = this._validator.check(tName, action);
+
+          if (checkResult.success) {
+            // Fast-track: advance through all intermediate states to reach this one
+            var safety = 0;
+            while (this._stateMachine.current !== stateId && safety < 20) {
+              // Find any transition from current state and take it
+              var currentAvailable = this._stateMachine.getAvailableActions();
+              if (currentAvailable.length === 0) break;
+              var prevState = this._stateMachine.current;
+              var nextState = this._stateMachine.transition(currentAvailable[0]);
+              if (nextState === null) break;
+              this._onStateChange(prevState, nextState, action);
+              safety++;
+            }
+            // Now take the actual transition
+            if (this._stateMachine.current === stateId) {
+              var prev = this._stateMachine.current;
+              var next = this._stateMachine.transition(tName);
+              if (next !== null) {
+                this._onStateChange(prev, next, action);
+                if (this._stateMachine.isComplete()) {
+                  this._onComplete();
+                }
+                return;
+              }
+            }
           }
         }
       }
