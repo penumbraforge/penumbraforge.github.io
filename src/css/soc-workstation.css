@@ -505,17 +505,20 @@
 .pw-count { font-size:10px; color:var(--text-3); font-family:var(--font-mono); }
 
 /* ─── Canvas ─── */
-.pw-canvas-wrap { flex:1; overflow:auto; min-height:0; position:relative; }
+.pw-canvas-wrap { flex:1; overflow:auto; min-height:0; position:relative; display:flex; }
 .pw-canvas {
   position:relative;
+  flex:1;
   min-height:100%;
   min-width:100%;
-  background:#0a0a14;
-  background-image:radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+  background:var(--surface-0);
+  background-image:radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
   background-size:20px 20px;
 }
 .pw-svg { position:absolute; top:0; left:0; pointer-events:none; z-index:1; overflow:visible; }
-.pw-line { fill:none; stroke-width:2; }
+.pw-svg path { pointer-events:stroke; }
+.pw-line { fill:none; stroke-width:2; transition:stroke-width 0.15s; }
+.pw-line-sel { stroke-width:4 !important; filter:drop-shadow(0 0 3px rgba(59,130,246,0.5)); }
 .pw-drag-line { stroke:var(--soc-accent); stroke-width:2; stroke-dasharray:6,3; opacity:0.8; }
 
 /* ─── Start / End pills ─── */
@@ -544,8 +547,10 @@
 .pw-node {
   width:220px; height:70px;
   background:var(--surface-1); border:1px solid var(--border); border-radius:6px;
-  position:absolute; z-index:2; cursor:pointer;
+  position:absolute; z-index:2; cursor:grab;
   transition:border-color 0.15s, box-shadow 0.15s;
+}
+.pw-node:active { cursor:grabbing;
   display:flex; overflow:visible;
   box-shadow:0 2px 8px rgba(0,0,0,0.2);
 }

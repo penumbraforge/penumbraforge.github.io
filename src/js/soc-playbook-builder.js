@@ -54,6 +54,12 @@
   var _dragFrom = null; // { nodeId, port }
   var _dragStartPos = null;
 
+  /* ─── Node drag state ─── */
+  var _nodeDrag = null; // { nodeId, startX, startY, origX, origY }
+
+  /* ─── Selected connection ─── */
+  var _selectedConnId = null;
+
   /* ═══════════════════════════════════════════════════
      Utilities
      ═══════════════════════════════════════════════════ */
@@ -315,10 +321,55 @@
       if (conn.fromPort === 'yes') strokeColor = '#4ade80';
       else if (conn.fromPort === 'no') strokeColor = '#ef4444';
 
-      path.setAttribute('class', 'pw-line');
+      path.setAttribute('class', 'pw-line' + (_selectedConnId === conn.id ? ' pw-line-sel' : ''));
       path.setAttribute('stroke', strokeColor);
       path.setAttribute('marker-end', conn.fromPort === 'yes' ? 'url(#pw-arrow-green)' : conn.fromPort === 'no' ? 'url(#pw-arrow-red)' : 'url(#pw-arrow)');
+      path.setAttribute('data-conn-id', conn.id);
+      path.style.pointerEvents = 'stroke';
+      path.style.cursor = 'pointer';
+      path.setAttribute('stroke-width', _selectedConnId === conn.id ? '4' : '2');
+
+      // Click to select/delete connection
+      path.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        _selectedConnId = _selectedConnId === conn.id ? null : conn.id;
+        drawConnections();
+      });
+
+      // Invisible wider hit area for easier clicking
+      var hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      hitArea.setAttribute('d', path.getAttribute('d'));
+      hitArea.setAttribute('stroke', 'transparent');
+      hitArea.setAttribute('stroke-width', '14');
+      hitArea.setAttribute('fill', 'none');
+      hitArea.style.cursor = 'pointer';
+      hitArea.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        _selectedConnId = _selectedConnId === conn.id ? null : conn.id;
+        drawConnections();
+      });
+
+      _svgEl.appendChild(hitArea);
       _svgEl.appendChild(path);
+
+      // If selected, add a delete button at the midpoint
+      if (_selectedConnId === conn.id) {
+        var mx = (p1.x + p2.x) / 2;
+        var my = (p1.y + p2.y) / 2;
+        var fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+        fo.setAttribute('x', mx - 10);
+        fo.setAttribute('y', my - 10);
+        fo.setAttribute('width', 20);
+        fo.setAttribute('height', 20);
+        fo.innerHTML = '<button xmlns="http://www.w3.org/1999/xhtml" style="width:20px;height:20px;border-radius:50%;background:#ef4444;border:none;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;" title="Delete connection">&times;</button>';
+        fo.querySelector('button').addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          _connections = _connections.filter(function (c) { return c.id !== conn.id; });
+          _selectedConnId = null;
+          render();
+        });
+        _svgEl.appendChild(fo);
+      }
     });
   }
 
@@ -454,11 +505,46 @@
 
       _canvasEl.appendChild(el);
 
-      // Click to select
-      el.addEventListener('click', function (e) {
-        if (e.target.classList.contains('pw-port') || e.target.classList.contains('pw-del') || e.target.classList.contains('pw-mobile-add')) return;
-        selectNode(node.id);
-      });
+      // Click to select + drag to move
+      (function (nodeRef, nodeEl) {
+        var dragStarted = false;
+        var startMX, startMY;
+
+        nodeEl.addEventListener('mousedown', function (e) {
+          if (e.target.classList.contains('pw-port') || e.target.classList.contains('pw-del') || e.target.closest('input') || _isMobile) return;
+          e.preventDefault();
+          dragStarted = false;
+          startMX = e.clientX;
+          startMY = e.clientY;
+          _nodeDrag = { nodeId: nodeRef.id, origX: nodeRef.x, origY: nodeRef.y };
+
+          function onMove(ev) {
+            var dx = ev.clientX - startMX;
+            var dy = ev.clientY - startMY;
+            if (!dragStarted && Math.abs(dx) + Math.abs(dy) > 5) dragStarted = true;
+            if (dragStarted) {
+              nodeRef.x = Math.max(0, _nodeDrag.origX + dx);
+              nodeRef.y = Math.max(0, _nodeDrag.origY + dy);
+              nodeEl.style.left = nodeRef.x + 'px';
+              nodeEl.style.top = nodeRef.y + 'px';
+              drawConnections();
+              sizeCanvas();
+            }
+          }
+
+          function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            _nodeDrag = null;
+            if (!dragStarted) {
+              selectNode(nodeRef.id);
+            }
+          }
+
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        });
+      })(node, el);
 
       // Delete button
       var delBtn = el.querySelector('[data-del]');
@@ -1107,11 +1193,24 @@
 
     canvasWrap.appendChild(_canvasEl);
 
-    // Click canvas background to deselect
+    // Click canvas background to deselect nodes and connections
     _canvasEl.addEventListener('click', function (e) {
       if (e.target === _canvasEl) {
         _selectedId = null;
+        _selectedConnId = null;
         closeAddPopup();
+        render();
+      }
+    });
+
+    // Keyboard: Delete/Backspace removes selected connection
+    document.addEventListener('keydown', function (e) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && _selectedConnId) {
+        // Don't intercept if user is typing in an input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        e.preventDefault();
+        _connections = _connections.filter(function (c) { return c.id !== _selectedConnId; });
+        _selectedConnId = null;
         render();
       }
     });
