@@ -1,10 +1,9 @@
 /**
  * Penumbra Forge — SOAR Playbook Builder
  *
- * Professional playbook designer. Top toolbar with categorised action
- * buttons, scrollable pipeline canvas below. Users click toolbar actions
- * to append steps, configure parameters inline, reorder/remove, test
- * the pipeline logic, and submit.
+ * XSOAR-style visual workflow editor. Left sidebar with categorised task
+ * palette, center canvas with SVG-connected flowchart nodes, inline
+ * config panels. Vanilla JS, no dependencies.
  */
 
 (function () {
@@ -47,8 +46,14 @@
   var _flow = [];
   var _onSubmit = null;
   var _uidCounter = 0;
-  var _flowEl = null;
+  var _selectedUid = null;
+
+  /* DOM references */
+  var _canvasEl = null;
+  var _svgEl = null;
   var _countEl = null;
+  var _resultEl = null;
+  var _sidebarSections = null;
 
   function uid() { return 'pb-' + (++_uidCounter); }
 
@@ -59,11 +64,29 @@
     return e;
   }
 
+  function svgEl(tag) {
+    return document.createElementNS('http://www.w3.org/2000/svg', tag);
+  }
+
   function findAction(id) {
     for (var i = 0; i < _actions.length; i++) {
       if (_actions[i].id === id) return _actions[i];
     }
     return null;
+  }
+
+  function findNode(u) {
+    for (var i = 0; i < _flow.length; i++) {
+      if (_flow[i].uid === u) return _flow[i];
+    }
+    return null;
+  }
+
+  function findNodeIndex(u) {
+    for (var i = 0; i < _flow.length; i++) {
+      if (_flow[i].uid === u) return i;
+    }
+    return -1;
   }
 
   function escAttr(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
@@ -73,141 +96,344 @@
   }
 
   /* ════════════════════════════════════════════════════
-     Render — Toolbar (horizontal, top)
+     Sidebar — categorised task palette with search
      ════════════════════════════════════════════════════ */
 
-  function buildToolbar() {
-    var toolbar = el('div', 'pb-toolbar');
+  function buildSidebar() {
+    var sidebar = el('div', 'pb-sidebar');
+
+    /* Search */
+    var searchWrap = el('div', 'pb-sidebar-search');
+    var searchInput = el('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search tasks...';
+    searchInput.addEventListener('input', function () {
+      filterSidebar(this.value.toLowerCase());
+    });
+    searchWrap.appendChild(searchInput);
+    sidebar.appendChild(searchWrap);
+
+    /* Categories */
+    _sidebarSections = el('div', 'pb-sidebar-sections');
 
     CATEGORY_ORDER.forEach(function (cat) {
-      var group = el('div', 'pb-toolbar-group');
+      var catEl = el('div', 'pb-sidebar-cat');
+      catEl.setAttribute('data-category', cat);
 
-      var label = el('span', 'pb-toolbar-label');
-      label.textContent = cat;
-      label.style.color = CATEGORY_COLORS[cat] || 'var(--text-3)';
-      group.appendChild(label);
+      var header = el('div', 'pb-sidebar-cat-header');
+      header.textContent = cat;
+      header.style.color = CATEGORY_COLORS[cat] || 'var(--text-3)';
+      catEl.appendChild(header);
 
       var items = _actions.filter(function (a) { return a.category === cat; });
       items.forEach(function (action) {
-        var btn = el('button', 'pb-toolbar-btn');
-        btn.textContent = action.name;
-        btn.title = action.param + ': ' + action.paramDefault;
-        btn.style.borderColor = CATEGORY_COLORS[cat] || 'var(--border)';
-        btn.addEventListener('click', function () { addNode(action.id); });
-        btn.addEventListener('mouseenter', function () {
-          btn.style.color = CATEGORY_COLORS[cat];
-          btn.style.borderColor = CATEGORY_COLORS[cat];
-        });
-        btn.addEventListener('mouseleave', function () {
-          btn.style.color = '';
-          btn.style.borderColor = CATEGORY_COLORS[cat] || 'var(--border)';
-        });
-        group.appendChild(btn);
+        var task = el('div', 'pb-sidebar-task');
+        task.setAttribute('data-action-id', action.id);
+        task.setAttribute('data-name', action.name.toLowerCase());
+
+        var dot = el('span', 'pb-sidebar-dot');
+        dot.style.background = CATEGORY_COLORS[cat];
+        task.appendChild(dot);
+
+        var label = el('span');
+        label.textContent = action.name;
+        task.appendChild(label);
+
+        task.addEventListener('click', function () { addNode(action.id); });
+        catEl.appendChild(task);
       });
 
-      toolbar.appendChild(group);
+      _sidebarSections.appendChild(catEl);
     });
 
-    return toolbar;
+    sidebar.appendChild(_sidebarSections);
+    return sidebar;
+  }
+
+  function filterSidebar(query) {
+    if (!_sidebarSections) return;
+    var cats = _sidebarSections.querySelectorAll('.pb-sidebar-cat');
+    for (var c = 0; c < cats.length; c++) {
+      var tasks = cats[c].querySelectorAll('.pb-sidebar-task');
+      var anyVisible = false;
+      for (var t = 0; t < tasks.length; t++) {
+        var name = tasks[t].getAttribute('data-name') || '';
+        var show = !query || name.indexOf(query) !== -1;
+        tasks[t].style.display = show ? '' : 'none';
+        if (show) anyVisible = true;
+      }
+      cats[c].style.display = anyVisible ? '' : 'none';
+    }
   }
 
   /* ════════════════════════════════════════════════════
-     Render — Pipeline Flow
+     Canvas — visual workflow graph
      ════════════════════════════════════════════════════ */
 
-  function renderFlow() {
-    if (!_flowEl) return;
-    _flowEl.innerHTML = '';
+  function renderCanvas() {
+    if (!_canvasEl) return;
+
+    /* Preserve scroll position */
+    var scrollTop = _canvasEl.scrollTop;
+
+    _canvasEl.innerHTML = '';
     updateCount();
 
-    if (_flow.length === 0) {
-      _flowEl.innerHTML =
-        '<div class="pb-empty">' +
-          '<div class="pb-empty-title">Empty pipeline</div>' +
-          '<div class="pb-empty-desc">Click actions in the toolbar above to build your automation playbook.</div>' +
-        '</div>';
-      return;
-    }
+    /* SVG overlay for connections */
+    _svgEl = svgEl('svg');
+    _svgEl.setAttribute('class', 'pb-connections');
+    _canvasEl.appendChild(_svgEl);
 
+    /* Arrowhead marker */
+    var defs = svgEl('defs');
+    var marker = svgEl('marker');
+    marker.setAttribute('id', 'pb-arrowhead');
+    marker.setAttribute('markerWidth', '6');
+    marker.setAttribute('markerHeight', '4');
+    marker.setAttribute('refX', '6');
+    marker.setAttribute('refY', '2');
+    marker.setAttribute('orient', 'auto');
+    var markerPath = svgEl('polygon');
+    markerPath.setAttribute('points', '0 0, 6 2, 0 4');
+    markerPath.setAttribute('class', 'pb-arrow-fill');
+    marker.appendChild(markerPath);
+    defs.appendChild(marker);
+    _svgEl.appendChild(defs);
+
+    /* Start node */
+    var startNode = el('div', 'pb-start-node');
+    startNode.textContent = 'Start';
+    _canvasEl.appendChild(startNode);
+
+    /* Task nodes with insert buttons between them */
     _flow.forEach(function (node, idx) {
+      /* Insert button before this node */
+      var insertBtn = el('button', 'pb-insert-btn');
+      insertBtn.textContent = '+';
+      insertBtn.title = 'Insert task here';
+      insertBtn.setAttribute('data-insert-at', String(idx));
+      insertBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        _insertAt = idx;
+        highlightSidebar();
+      });
+      _canvasEl.appendChild(insertBtn);
+
+      /* Node element */
       var action = findAction(node.actionId);
       var cat = action ? action.category : 'Unknown';
       var color = CATEGORY_COLORS[cat] || 'var(--text-3)';
+      var isCondition = cat === 'Conditions';
+      var isSelected = node.uid === _selectedUid;
 
-      // Connector
-      if (idx > 0) {
-        var conn = el('div', 'pb-connector');
-        conn.innerHTML = '<div class="pb-connector-line"></div>';
-        _flowEl.appendChild(conn);
+      var nodeEl = el('div', 'pb-node' + (isCondition ? ' pb-node-condition' : '') + (isSelected ? ' pb-node-selected' : ''));
+      nodeEl.setAttribute('data-uid', node.uid);
+
+      /* Click to select */
+      nodeEl.addEventListener('click', function (e) {
+        if (e.target.classList.contains('pb-node-delete') || e.target.tagName === 'INPUT') return;
+        selectNode(node.uid);
+      });
+
+      /* Accent bar */
+      var accent = el('div', 'pb-node-accent');
+      accent.style.background = color;
+      nodeEl.appendChild(accent);
+
+      /* Content area */
+      var content = el('div', 'pb-node-content');
+
+      /* Header: badge + title + delete */
+      var header = el('div', 'pb-node-header');
+
+      var badge = el('span', 'pb-node-type-badge');
+      badge.textContent = cat.toUpperCase();
+      badge.style.color = color;
+      badge.style.borderColor = color;
+      header.appendChild(badge);
+
+      var title = el('span', 'pb-node-title');
+      title.textContent = node.name;
+      header.appendChild(title);
+
+      var delBtn = el('button', 'pb-node-delete');
+      delBtn.innerHTML = '&#x00D7;';
+      delBtn.title = 'Remove';
+      delBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        removeNode(node.uid);
+      });
+      header.appendChild(delBtn);
+
+      content.appendChild(header);
+
+      /* Param preview (shown when not selected) */
+      if (!isSelected && node.paramValue) {
+        var preview = el('div', 'pb-node-param-preview');
+        preview.textContent = node.paramLabel + ': ' + node.paramValue;
+        content.appendChild(preview);
       }
 
-      // Node
-      var nodeEl = el('div', 'pb-node');
-      nodeEl.style.borderLeftColor = color;
+      /* Condition diamond indicator */
+      if (isCondition) {
+        var diamond = el('div', 'pb-node-diamond');
+        diamond.style.borderColor = color;
+        nodeEl.appendChild(diamond);
+      }
 
-      // Step number
-      var num = el('div', 'pb-step-num');
-      num.textContent = String(idx + 1);
-      num.style.color = color;
-      nodeEl.appendChild(num);
+      /* Config panel (shown when selected) */
+      var config = el('div', 'pb-node-config');
 
-      // Body
-      var body = el('div', 'pb-node-body');
+      /* Task name row */
+      var nameRow = el('div', 'pb-config-row');
+      var nameLabel = el('label');
+      nameLabel.textContent = 'Task name';
+      nameRow.appendChild(nameLabel);
+      var nameInput = el('input');
+      nameInput.type = 'text';
+      nameInput.value = node.name;
+      nameInput.setAttribute('data-uid', node.uid);
+      nameInput.setAttribute('data-field', 'name');
+      nameInput.addEventListener('change', function () {
+        var n = findNode(this.getAttribute('data-uid'));
+        if (n) { n.name = this.value; renderCanvas(); }
+      });
+      nameRow.appendChild(nameInput);
+      config.appendChild(nameRow);
 
-      // Header row
-      var header = el('div', 'pb-node-header');
-      var tag = el('span', 'pb-node-tag');
-      tag.textContent = cat.toUpperCase();
-      tag.style.color = color;
-      tag.style.borderColor = color;
-      header.appendChild(tag);
-      var name = el('span', 'pb-node-name');
-      name.textContent = node.name;
-      header.appendChild(name);
-      body.appendChild(header);
-
-      // Param
-      var paramRow = el('div', 'pb-node-param');
-      var paramLabel = el('span', 'pb-node-plabel');
-      paramLabel.textContent = node.paramLabel + ':';
+      /* Param row */
+      var paramRow = el('div', 'pb-config-row');
+      var paramLabel = el('label');
+      paramLabel.textContent = node.paramLabel;
       paramRow.appendChild(paramLabel);
-      var paramInput = el('input', 'pb-node-pinput');
+      var paramInput = el('input');
       paramInput.type = 'text';
       paramInput.value = node.paramValue;
       paramInput.setAttribute('data-uid', node.uid);
+      paramInput.setAttribute('data-field', 'paramValue');
       paramInput.addEventListener('change', function () {
-        var u = this.getAttribute('data-uid');
-        for (var i = 0; i < _flow.length; i++) {
-          if (_flow[i].uid === u) { _flow[i].paramValue = this.value; break; }
-        }
+        var n = findNode(this.getAttribute('data-uid'));
+        if (n) { n.paramValue = this.value; }
       });
       paramRow.appendChild(paramInput);
-      body.appendChild(paramRow);
+      config.appendChild(paramRow);
 
-      nodeEl.appendChild(body);
+      /* Description row */
+      var descRow = el('div', 'pb-config-row');
+      var descLabel = el('label');
+      descLabel.textContent = 'Description';
+      descRow.appendChild(descLabel);
+      var descInput = el('input');
+      descInput.type = 'text';
+      descInput.value = node.description || '';
+      descInput.placeholder = 'Optional...';
+      descInput.setAttribute('data-uid', node.uid);
+      descInput.addEventListener('change', function () {
+        var n = findNode(this.getAttribute('data-uid'));
+        if (n) { n.description = this.value; }
+      });
+      descRow.appendChild(descInput);
+      config.appendChild(descRow);
 
-      // Controls
-      var ctrls = el('div', 'pb-node-ctrls');
-      if (idx > 0) {
-        var up = el('button', 'pb-cbtn', '&#x2191;');
-        up.title = 'Move up';
-        up.addEventListener('click', function () { moveNode(idx, idx - 1); });
-        ctrls.appendChild(up);
-      }
-      if (idx < _flow.length - 1) {
-        var down = el('button', 'pb-cbtn', '&#x2193;');
-        down.title = 'Move down';
-        down.addEventListener('click', function () { moveNode(idx, idx + 1); });
-        ctrls.appendChild(down);
-      }
-      var rm = el('button', 'pb-cbtn pb-cbtn-rm', '&#x00D7;');
-      rm.title = 'Remove';
-      rm.addEventListener('click', function () { removeNode(idx); });
-      ctrls.appendChild(rm);
-
-      nodeEl.appendChild(ctrls);
-      _flowEl.appendChild(nodeEl);
+      content.appendChild(config);
+      nodeEl.appendChild(content);
+      _canvasEl.appendChild(nodeEl);
     });
+
+    /* Insert button after last node (before End) */
+    var lastInsert = el('button', 'pb-insert-btn');
+    lastInsert.textContent = '+';
+    lastInsert.title = 'Insert task here';
+    lastInsert.setAttribute('data-insert-at', String(_flow.length));
+    lastInsert.addEventListener('click', function (e) {
+      e.stopPropagation();
+      _insertAt = _flow.length;
+      highlightSidebar();
+    });
+    _canvasEl.appendChild(lastInsert);
+
+    /* End node */
+    var endNode = el('div', 'pb-end-node');
+    endNode.textContent = 'End';
+    _canvasEl.appendChild(endNode);
+
+    /* Draw SVG connections after layout settles */
+    requestAnimationFrame(function () {
+      drawConnections();
+      _canvasEl.scrollTop = scrollTop;
+    });
+  }
+
+  var _insertAt = -1;
+
+  function highlightSidebar() {
+    /* Brief flash on sidebar to hint user should pick a task */
+    if (_sidebarSections) {
+      _sidebarSections.classList.add('pb-sidebar-highlight');
+      setTimeout(function () {
+        _sidebarSections.classList.remove('pb-sidebar-highlight');
+      }, 600);
+    }
+  }
+
+  /* ════════════════════════════════════════════════════
+     SVG Connection Drawing
+     ════════════════════════════════════════════════════ */
+
+  function drawConnections() {
+    if (!_svgEl || !_canvasEl) return;
+
+    _svgEl.querySelectorAll('.pb-connection-path').forEach(function (p) { p.remove(); });
+
+    /* Collect all nodes in visual order (start, tasks, end) */
+    var allNodes = _canvasEl.querySelectorAll('.pb-start-node, .pb-node, .pb-end-node');
+    if (allNodes.length < 2) return;
+
+    var canvasRect = _canvasEl.getBoundingClientRect();
+    var scrollLeft = _canvasEl.scrollLeft;
+    var scrollTop = _canvasEl.scrollTop;
+
+    /* Size the SVG to cover entire scrollable area */
+    _svgEl.setAttribute('width', _canvasEl.scrollWidth);
+    _svgEl.setAttribute('height', _canvasEl.scrollHeight);
+    _svgEl.style.width = _canvasEl.scrollWidth + 'px';
+    _svgEl.style.height = _canvasEl.scrollHeight + 'px';
+
+    for (var i = 0; i < allNodes.length - 1; i++) {
+      var from = allNodes[i];
+      var to = allNodes[i + 1];
+
+      /* Skip insert buttons — only connect actual nodes */
+      if (from.classList.contains('pb-insert-btn') || to.classList.contains('pb-insert-btn')) continue;
+
+      var fromRect = from.getBoundingClientRect();
+      var toRect = to.getBoundingClientRect();
+
+      var x1 = fromRect.left + fromRect.width / 2 - canvasRect.left + scrollLeft;
+      var y1 = fromRect.bottom - canvasRect.top + scrollTop;
+      var x2 = toRect.left + toRect.width / 2 - canvasRect.left + scrollLeft;
+      var y2 = toRect.top - canvasRect.top + scrollTop;
+
+      var path = svgEl('path');
+      var midY = (y1 + y2) / 2;
+      path.setAttribute('d', 'M' + x1 + ',' + y1 + ' C' + x1 + ',' + midY + ' ' + x2 + ',' + midY + ' ' + x2 + ',' + y2);
+      path.setAttribute('class', 'pb-connection-path');
+      path.setAttribute('marker-end', 'url(#pb-arrowhead)');
+      _svgEl.appendChild(path);
+    }
+  }
+
+  /* ════════════════════════════════════════════════════
+     Selection
+     ════════════════════════════════════════════════════ */
+
+  function selectNode(u) {
+    if (_selectedUid === u) {
+      _selectedUid = null;
+    } else {
+      _selectedUid = u;
+    }
+    renderCanvas();
   }
 
   /* ════════════════════════════════════════════════════
@@ -217,29 +443,60 @@
   function addNode(actionId) {
     var action = findAction(actionId);
     if (!action) return;
-    _flow.push({
+
+    var newNode = {
       uid: uid(),
       actionId: action.id,
       name: action.name,
       paramLabel: action.param,
-      paramValue: action.paramDefault
+      paramValue: action.paramDefault,
+      description: ''
+    };
+
+    /* Insert at specific position if set by "+" button, or after selected node, or at end */
+    if (_insertAt >= 0) {
+      _flow.splice(_insertAt, 0, newNode);
+      _insertAt = -1;
+    } else if (_selectedUid) {
+      var idx = findNodeIndex(_selectedUid);
+      if (idx >= 0) {
+        _flow.splice(idx + 1, 0, newNode);
+      } else {
+        _flow.push(newNode);
+      }
+    } else {
+      _flow.push(newNode);
+    }
+
+    _selectedUid = newNode.uid;
+    renderCanvas();
+
+    /* Scroll the new node into view */
+    requestAnimationFrame(function () {
+      var nodeEl = _canvasEl.querySelector('[data-uid="' + newNode.uid + '"]');
+      if (nodeEl) nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
-    renderFlow();
-    // Scroll to bottom
-    if (_flowEl) _flowEl.scrollTop = _flowEl.scrollHeight;
   }
 
-  function removeNode(idx) { _flow.splice(idx, 1); renderFlow(); }
-  function moveNode(from, to) { var item = _flow.splice(from, 1)[0]; _flow.splice(to, 0, item); renderFlow(); }
+  function removeNode(u) {
+    var idx = findNodeIndex(u);
+    if (idx < 0) return;
+    _flow.splice(idx, 1);
+    if (_selectedUid === u) _selectedUid = null;
+    renderCanvas();
+  }
 
   /* ════════════════════════════════════════════════════
      Test
      ════════════════════════════════════════════════════ */
 
-  function testPlaybook(resultEl) {
-    resultEl.innerHTML = '';
+  function testPlaybook() {
+    if (!_resultEl) return;
+    _resultEl.innerHTML = '';
+    _resultEl.style.display = 'block';
+
     if (_flow.length === 0) {
-      resultEl.innerHTML = '<div class="pb-rmsg pb-rmsg-err">Add steps to the pipeline first.</div>';
+      _resultEl.innerHTML = '<div class="pb-rmsg pb-rmsg-err">Add steps to the pipeline first.</div>';
       return;
     }
 
@@ -255,7 +512,7 @@
     steps.forEach(function (s, i) {
       html += '<div class="pb-rstep">' +
         '<span class="pb-rnum" style="color:' + (CATEGORY_COLORS[s.cat] || '') + '">' + (i + 1) + '</span>' +
-        '<span class="pb-rname">' + s.name + '</span>' +
+        '<span class="pb-rname">' + escAttr(s.name) + '</span>' +
         '<span class="pb-rparam">' + escAttr(s.param) + '</span>' +
         '<span class="pb-rok">PASS</span></div>';
     });
@@ -279,18 +536,24 @@
       '<span class="pb-rscore-bar"><span class="pb-rscore-fill" style="width:' + score + '%"></span></span>' +
       '<span class="pb-rscore-val">' + score + '%</span></div>';
 
-    resultEl.innerHTML = html;
+    _resultEl.innerHTML = html;
   }
 
   function getPlaybook() {
     return _flow.map(function (node) {
       var action = findAction(node.actionId);
-      return { actionId: node.actionId, category: action ? action.category : 'Unknown', name: node.name, param: node.paramValue };
+      return {
+        actionId: node.actionId,
+        category: action ? action.category : 'Unknown',
+        name: node.name,
+        param: node.paramValue,
+        description: node.description || ''
+      };
     });
   }
 
   /* ════════════════════════════════════════════════════
-     Init
+     Init — build the full XSOAR-style editor layout
      ════════════════════════════════════════════════════ */
 
   function init(opts) {
@@ -299,32 +562,44 @@
     _onSubmit = opts.onPlaybookSubmit || null;
     _flow = [];
     _uidCounter = 0;
+    _selectedUid = null;
+    _insertAt = -1;
 
     _container.innerHTML = '';
-    _container.classList.add('pb-container');
+    _container.classList.add('pb-editor');
 
-    // Toolbar (top, fixed height)
-    _container.appendChild(buildToolbar());
+    /* Left sidebar — task palette */
+    _container.appendChild(buildSidebar());
 
-    // Pipeline header
-    var pipeHeader = el('div', 'pb-pipe-header');
-    pipeHeader.innerHTML = '<span class="pb-pipe-title">Pipeline</span>';
-    _countEl = el('span', 'pb-pipe-count');
+    /* Center canvas area */
+    var canvasArea = el('div', 'pb-canvas-area');
+
+    /* Canvas header */
+    var canvasHeader = el('div', 'pb-canvas-header');
+    var headerTitle = el('span', 'pb-canvas-title');
+    headerTitle.textContent = 'Pipeline';
+    canvasHeader.appendChild(headerTitle);
+    _countEl = el('span', 'pb-canvas-count');
     _countEl.textContent = '0 steps';
-    pipeHeader.appendChild(_countEl);
-    _container.appendChild(pipeHeader);
+    canvasHeader.appendChild(_countEl);
+    canvasArea.appendChild(canvasHeader);
 
-    // Flow canvas (scrollable, fills remaining space)
-    _flowEl = el('div', 'pb-flow');
-    renderFlow();
-    _container.appendChild(_flowEl);
+    /* Scrollable canvas */
+    _canvasEl = el('div', 'pb-canvas');
+    _canvasEl.addEventListener('click', function (e) {
+      /* Deselect when clicking canvas background */
+      if (e.target === _canvasEl) {
+        _selectedUid = null;
+        renderCanvas();
+      }
+    });
+    canvasArea.appendChild(_canvasEl);
 
-    // Bottom bar (fixed)
-    var bottom = el('div', 'pb-bottom');
-    var resultArea = el('div', 'pb-results');
+    /* Bottom controls */
+    var controls = el('div', 'pb-canvas-controls');
 
     var testBtn = el('button', 'pb-btn pb-btn-sec', 'Test Pipeline');
-    testBtn.addEventListener('click', function () { testPlaybook(resultArea); });
+    testBtn.addEventListener('click', function () { testPlaybook(); });
 
     var submitBtn = el('button', 'pb-btn pb-btn-pri', 'Submit Playbook');
     submitBtn.addEventListener('click', function () {
@@ -333,12 +608,31 @@
       if (_onSubmit) _onSubmit(pb);
     });
 
-    var btnRow = el('div', 'pb-btn-row');
-    btnRow.appendChild(testBtn);
-    btnRow.appendChild(submitBtn);
-    bottom.appendChild(btnRow);
-    bottom.appendChild(resultArea);
-    _container.appendChild(bottom);
+    controls.appendChild(testBtn);
+    controls.appendChild(submitBtn);
+    canvasArea.appendChild(controls);
+
+    /* Results area */
+    _resultEl = el('div', 'pb-canvas-results');
+    _resultEl.style.display = 'none';
+    canvasArea.appendChild(_resultEl);
+
+    _container.appendChild(canvasArea);
+
+    /* Initial render */
+    renderCanvas();
+
+    /* Redraw connections on resize */
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () { drawConnections(); }, 100);
+    });
+
+    /* Redraw connections on canvas scroll */
+    _canvasEl.addEventListener('scroll', function () {
+      /* SVG is absolutely positioned so no redraw needed — it scrolls with the content */
+    });
   }
 
   window.PenumbraLabs = window.PenumbraLabs || {};
