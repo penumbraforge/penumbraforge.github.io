@@ -4,5 +4,11 @@
     "description": "Pre-commit secret defense. Catches API keys, tokens, and credentials before they reach your repo.",
     "url": "/gate",
     "repo": null
+  },
+  {
+    "name": "vexes",
+    "description": "Cross-ecosystem dependency security scanner. 4-layer behavioral analysis catches supply chain attacks that vulnerability databases miss.",
+    "url": "/vexes",
+    "repo": null
   }
 ]

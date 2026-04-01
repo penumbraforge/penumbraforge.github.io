@@ -32,7 +32,7 @@ permalink: /gate/wiki/getting-started/
 
 <span class="ok">  ✓</span> <span class="dim">Scanned 847 files in 1.2s</span>
 
-<span class="dim">  Gate v2.0.0 · 281 rules · scanning 847 files</span>
+<span class="dim">  Gate v2.0.1 · 148 rules · scanning 847 files</span>
 
 <span class="dim">  [1/1]</span> <span class="err">CRITICAL</span>  <span class="file">src/api/payments.ts:23</span>
 <span class="dim">  rule:</span> stripe-secret-key
@@ -65,13 +65,13 @@ permalink: /gate/wiki/getting-started/
 
     <h2 id="how-scanning-works">How Scanning Works</h2>
 
-    <p>Gate uses 281 detection rules to find secrets in your code. Each rule targets a specific provider or pattern type (AWS keys, GitHub tokens, database URLs, private keys, etc.).</p>
+    <p>Gate uses 148 detection rules to find secrets in your code. Each rule targets a specific provider or pattern type (AWS keys, GitHub tokens, database URLs, private keys, etc.).</p>
 
     <p>The scanning process:</p>
     <ol>
       <li>Gate collects all files in the target directory (or staged files in pre-commit mode).</li>
       <li>Binary files, known non-source paths, and files matching <code>.gateignore</code> patterns are skipped.</li>
-      <li>Each file is scanned against all 281 rules. Rules use regular expressions with contextual validation to reduce false positives.</li>
+      <li>Each file is scanned against all 148 rules. Rules use regular expressions with contextual validation to reduce false positives.</li>
       <li>Matches are classified by severity: <span style="color: var(--error);">CRITICAL</span>, <span style="color: var(--warn);">HIGH</span>, <span style="color: var(--text-2);">MEDIUM</span>, <span style="color: var(--text-3);">LOW</span>.</li>
       <li>If <code>--verify</code> is enabled, Gate checks whether each credential is still active by making read-only API calls to the provider.</li>
     </ol>

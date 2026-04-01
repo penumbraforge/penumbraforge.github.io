@@ -14,6 +14,7 @@ layout: base.njk
   <a href="/blog/">Blog</a>
   <a href="/gate/">Gate</a>
   <a href="/librarian/">Librarian</a>
+  <a href="/vexes/">Vexes</a>
   <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
 </nav>
 
@@ -35,9 +36,9 @@ layout: base.njk
       <h1 class="reveal reveal-delay-2">Security tools, labs &amp; software<br>forged by <strong>Shadoe</strong></h1>
       <p class="hero-subtitle reveal reveal-delay-3">Independent security studio. Privacy-first tools, hands-on offensive and defensive security labs, and open source software — built by a senior CIRT engineer.</p>
       <div class="hero-stats reveal reveal-delay-4">
-        <div><div class="stat-num">79</div><div class="stat-label">Tools</div></div>
+        <div><div class="stat-num">78</div><div class="stat-label">Tools</div></div>
         <div><div class="stat-num">12</div><div class="stat-label">Labs</div></div>
-        <div><div class="stat-num">3</div><div class="stat-label">Products</div></div>
+        <div><div class="stat-num">4</div><div class="stat-label">Products</div></div>
       </div>
     </div>
     <div class="reveal reveal-delay-3">
@@ -99,7 +100,7 @@ layout: base.njk
       <h2 class="station-title">Gate</h2>
       <p>Catches secrets before they reach your repository — and fixes them automatically. Installs in one command, scans in milliseconds.</p>
       <div class="station-features">
-        <span class="station-feature">30+ secret detection patterns</span>
+        <span class="station-feature">148 secret detection rules</span>
         <span class="station-feature">Auto-fix — redacts secrets in place</span>
         <span class="station-feature">Pre-commit hook integration</span>
         <span class="station-feature">Zero cloud dependency</span>
@@ -164,6 +165,38 @@ layout: base.njk
     </a>
   </div>
 
+  <div class="station reveal">
+    <div class="station-content">
+      <div class="station-tag">Dependency Security</div>
+      <h2 class="station-title">vexes</h2>
+      <p>Cross-ecosystem supply chain scanner. 4-layer behavioral analysis catches attacks that vulnerability databases miss — before they execute.</p>
+      <div class="station-features">
+        <span class="station-feature">AST code analysis + behavioral fingerprinting</span>
+        <span class="station-feature">Pre-install guard — blocks before execution</span>
+        <span class="station-feature">9 ecosystems, one scanner</span>
+        <span class="station-feature">Zero dependencies</span>
+      </div>
+      <a href="/vexes/" class="station-cta">Learn more &rarr;</a>
+    </div>
+    <a href="/vexes/" class="station-terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
+        <span class="terminal-title">vexes analyze --deep</span>
+      </div>
+      <pre class="terminal-body"><span class="hl-dim">$</span> <span class="hl-key">vexes analyze --deep</span>
+
+<span class="hl-warn">&#x2718;</span> <span class="hl-str">axios 1.14.1</span> <span class="hl-dim">(npm)</span>
+  <span class="hl-dim">signal:</span> <span class="hl-warn">MAINTAINER_CHANGE</span>
+  <span class="hl-dim">detail:</span> publishing account changed 2d ago
+  <span class="hl-dim">signal:</span> <span class="hl-warn">CAPABILITY_ESCALATION</span>
+  <span class="hl-dim">detail:</span> gained net+exec capabilities
+
+<span class="hl-dim">───────────────────────────────</span>
+<span class="hl-warn">1 critical signal</span> <span class="hl-dim">in 847 packages</span>
+<span class="hl-dim">  npm, pypi, cargo — 4.2s</span></pre>
+    </a>
+  </div>
+
   <div class="station station-umbra reveal">
     <div class="station-content">
       <div class="station-tag">Local AI Studio</div>
@@ -213,10 +246,10 @@ layout: base.njk
 
   <div class="section-head reveal">
     <div>
-      <h2>79 tools, zero tracking</h2>
+      <h2>78 tools, zero tracking</h2>
       <p class="section-desc">Privacy-first developer and security utilities. No accounts, no tracking — most tools run entirely in your browser.</p>
     </div>
-    <span class="section-count">79 tools &amp; counting</span>
+    <span class="section-count">78 tools &amp; counting</span>
   </div>
 
   <div class="tools-grid tools-grid--home">
@@ -231,11 +264,11 @@ layout: base.njk
   </div>
 
   <div class="tools-more-link">
-    <a href="/tools/">View all 79 tools &rarr;</a>
+    <a href="/tools/">View all 78 tools &rarr;</a>
   </div>
 
   <div class="tools-cta-row reveal">
-    <a href="/tools/" class="tools-cta">Browse all 79 tools &rarr;</a>
+    <a href="/tools/" class="tools-cta">Browse all 78 tools &rarr;</a>
   </div>
 </div>
 

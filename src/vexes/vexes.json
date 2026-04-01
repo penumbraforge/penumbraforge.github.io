@@ -1,0 +1,6 @@
+{
+  "layout": "product-layout.njk",
+  "productName": "vexes",
+  "productTitle": "vexes — Dependency Security Scanner",
+  "productDescription": "Cross-ecosystem dependency security scanner with 4-layer behavioral analysis. 9 ecosystems. Zero dependencies. Catches supply chain attacks that signature-based tools miss."
+}
