@@ -1,0 +1,64 @@
+---
+title: "Vexes Wiki"
+description: "vexes wiki — comprehensive documentation for the cross-ecosystem dependency security scanner."
+permalink: /vexes/wiki/
+---
+<h1>vexes Wiki</h1>
+    <p class="subtitle">Comprehensive documentation for the cross-ecosystem dependency security scanner with 4-layer behavioral analysis.</p>
+
+    <h2 id="what-is-vexes">What is vexes?</h2>
+
+    <p>vexes is a dependency security scanner that goes beyond vulnerability databases. Traditional tools like <code>npm audit</code> only check if a package version appears in a known-vulnerability list. vexes analyzes actual code, dependency graphs, version history, and registry metadata to catch supply chain attacks that no database has catalogued yet.</p>
+
+    <p>The core insight: most supply chain attacks are not vulnerabilities -- they are intentional malice. A hijacked maintainer account, a typosquatted package name, a postinstall script that phones home. These patterns are detectable through behavioral analysis, not signature matching.</p>
+
+    <h2 id="key-concepts">Key Concepts</h2>
+
+    <h3>4-Layer Detection Engine</h3>
+    <p>vexes runs four independent analysis layers on every dependency: AST code analysis, dependency graph profiling, behavioral fingerprinting between versions, and registry metadata inspection. Each layer produces signals that are scored and aggregated into a final severity.</p>
+
+    <h3>Signals</h3>
+    <p>A signal is a discrete finding from one of the four analysis layers. Examples: <code>TYPOSQUAT</code>, <code>MAINTAINER_CHANGE</code>, <code>CAPABILITY_ESCALATION</code>, <code>AST_DANGEROUS_PATTERN</code>. Signals have severity levels (critical, high, medium, low) and some are undisableable -- they cannot be turned off via configuration because suppressing them is never safe.</p>
+
+    <h3>Pre-Install Guard</h3>
+    <p>The guard command intercepts package manager installs and analyzes new or changed dependencies before they execute. It diffs lockfiles, runs the detection engine on new packages, and blocks or warns based on signal severity -- all before a single postinstall script runs.</p>
+
+    <h3>Ecosystems</h3>
+    <p>vexes supports 9 package ecosystems (npm, PyPI, Cargo, Go, RubyGems, Composer, NuGet, Maven/Gradle, Homebrew) and auto-detects 21 lockfile formats. No configuration needed -- it finds and parses whatever lockfiles exist in your project.</p>
+
+    <h2 id="wiki-pages">Documentation</h2>
+
+    <div class="wiki-cards">
+      <a href="/vexes/wiki/getting-started/" class="wiki-card">
+        <h3>Getting Started</h3>
+        <p>Installation, first scan, first analysis, and understanding the output.</p>
+      </a>
+      <a href="/vexes/wiki/commands/" class="wiki-card">
+        <h3>Commands Reference</h3>
+        <p>Every command and flag. scan, analyze, fix, guard, and monitor.</p>
+      </a>
+      <a href="/vexes/wiki/detection-engine/" class="wiki-card">
+        <h3>Detection Engine</h3>
+        <p>4-layer analysis architecture, signal types, scoring, and undisableable signals.</p>
+      </a>
+      <a href="/vexes/wiki/pre-install-guard/" class="wiki-card">
+        <h3>Pre-Install Guard</h3>
+        <p>Intercept installs, lockfile diffing, shell wrappers, and auto-guarding setup.</p>
+      </a>
+      <a href="/vexes/wiki/ecosystems/" class="wiki-card">
+        <h3>Ecosystems</h3>
+        <p>9 ecosystems, 21 lockfile formats, ecosystem filtering, and parser details.</p>
+      </a>
+      <a href="/vexes/wiki/ci-cd/" class="wiki-card">
+        <h3>CI/CD Integration</h3>
+        <p>GitHub Actions, SARIF output, monitor mode, annotations, and exit codes.</p>
+      </a>
+      <a href="/vexes/wiki/configuration/" class="wiki-card">
+        <h3>Configuration</h3>
+        <p>.vexesrc format, signal overrides, severity thresholds, and ignore patterns.</p>
+      </a>
+      <a href="/vexes/wiki/security/" class="wiki-card">
+        <h3>Security Model</h3>
+        <p>Zero dependencies, terminal injection protection, SSRF prevention, and threat model.</p>
+      </a>
+    </div>

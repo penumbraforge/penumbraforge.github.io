@@ -1,0 +1,110 @@
+---
+title: "Detection Engine"
+description: "How vexes analyzes dependencies with 4 independent layers — AST code analysis, dependency graph profiling, behavioral fingerprinting, and registry metadata inspection."
+permalink: /vexes/wiki/detection-engine/
+---
+<h1>Detection Engine</h1>
+    <p class="subtitle">4-layer behavioral analysis architecture, signal types, scoring, and undisableable signals.</p>
+
+    <h2 id="architecture">Architecture</h2>
+
+    <p>vexes runs four independent analysis layers. Each layer examines a different facet of a dependency and produces signals -- discrete findings with severity levels and evidence. Signals from all layers are aggregated into a final report.</p>
+
+    <p>The layers are independent: a failure in one layer does not affect the others. If Layer 1 cannot download a tarball, Layers 2-4 still run on metadata and produce results.</p>
+
+    <h2 id="layer-1">Layer 1 — AST Code Analysis</h2>
+
+    <p>Parses JavaScript and Python source code via the vendored Acorn AST parser. This layer requires <code>--deep</code> because it downloads and inspects actual package tarballs from the registry.</p>
+
+    <h3>What it detects</h3>
+    <ul>
+      <li><strong style="color: var(--text-1);">Dangerous function calls</strong> -- <code>eval()</code>, <code>Function()</code>, <code>child_process.exec()</code>, <code>child_process.spawn()</code></li>
+      <li><strong style="color: var(--text-1);">Credential harvesting</strong> -- reads from <code>~/.ssh</code>, <code>~/.aws</code>, environment variables containing tokens or keys</li>
+      <li><strong style="color: var(--text-1);">Obfuscated code</strong> -- hex-encoded strings, base64-decoded eval chains, computed property access patterns</li>
+      <li><strong style="color: var(--text-1);">WebAssembly payloads</strong> -- WASM instantiation in unexpected packages</li>
+      <li><strong style="color: var(--text-1);">DNS exfiltration</strong> -- DNS lookups with data-bearing subdomains</li>
+      <li><strong style="color: var(--text-1);">Prototype chain escapes</strong> -- <code>__proto__</code> manipulation, prototype pollution vectors</li>
+      <li><strong style="color: var(--text-1);">Network connections</strong> -- outbound HTTP/HTTPS requests, especially in postinstall scripts</li>
+    </ul>
+
+    <h3>Signal: AST_DANGEROUS_PATTERN</h3>
+    <p>Severity varies by context. A <code>child_process.exec()</code> in a postinstall script is critical. The same call in a build tool's main code may be medium or low.</p>
+
+    <h2 id="layer-2">Layer 2 — Dependency Graph</h2>
+
+    <p>Profiles newly added or recently changed dependencies by examining their age, naming, authorship, and relationships.</p>
+
+    <h3>What it detects</h3>
+    <ul>
+      <li><strong style="color: var(--text-1);">Phantom dependencies</strong> -- packages published less than 7 days ago. Newly created packages are disproportionately likely to be malicious.</li>
+      <li><strong style="color: var(--text-1);">Typosquatting</strong> -- edit distance analysis against popular package names. Catches <code>expresss</code>, <code>loadash</code>, <code>reqeusts</code>.</li>
+      <li><strong style="color: var(--text-1);">Unicode homoglyphs</strong> -- visually identical characters used to disguise package names (Cyrillic 'а' vs Latin 'a').</li>
+      <li><strong style="color: var(--text-1);">Circular staging</strong> -- multiple packages by the same author that depend on each other in a chain, often used to stage multi-package attacks.</li>
+    </ul>
+
+    <h3>Signals</h3>
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Signal</th><th>Severity</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>PHANTOM_DEPENDENCY</code></td><td>High</td><td>Package published less than 7 days ago</td></tr>
+        <tr><td><code>TYPOSQUAT</code></td><td>High</td><td>Name edit distance 1-2 from a popular package</td></tr>
+        <tr><td><code>HOMOGLYPH_ATTACK</code></td><td>Critical</td><td>Unicode confusable characters in name</td></tr>
+        <tr><td><code>CIRCULAR_STAGING</code></td><td>High</td><td>Suspicious circular dependency chain by same author</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="layer-3">Layer 3 — Behavioral Fingerprinting</h2>
+
+    <p>Compares capability profiles between consecutive package versions. When a utility library suddenly gains network and process execution capabilities, that is the hallmark of a hijacked package.</p>
+
+    <h3>How it works</h3>
+    <p>vexes tracks which capabilities each version of a package has: HTTP requests, file system access, process execution, crypto operations, DNS lookups. When a new version adds capabilities that the previous version did not have, a signal is raised.</p>
+
+    <h3>Signal: CAPABILITY_ESCALATION</h3>
+    <p>Severity depends on which capabilities were added. Gaining <code>exec</code> + <code>net</code> is critical. Gaining only <code>fs</code> read access might be low. The signal includes a diff showing exactly what changed.</p>
+
+    <h2 id="layer-4">Layer 4 — Registry Metadata</h2>
+
+    <p>Analyzes publish history, maintainer account changes, release cadence, and provenance attestations from the package registry.</p>
+
+    <h3>What it detects</h3>
+    <ul>
+      <li><strong style="color: var(--text-1);">Maintainer changes</strong> -- the publishing account changed between versions. This is the primary indicator of an account takeover attack.</li>
+      <li><strong style="color: var(--text-1);">Rapid-fire releases</strong> -- many versions published in a short period, often indicating automated malicious publishing.</li>
+      <li><strong style="color: var(--text-1);">Dormant reactivation</strong> -- a package with no updates for months or years suddenly publishes a new version.</li>
+      <li><strong style="color: var(--text-1);">Missing provenance</strong> -- no Sigstore provenance attestation when one was previously present.</li>
+    </ul>
+
+    <h3>Signals</h3>
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Signal</th><th>Severity</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>MAINTAINER_CHANGE</code></td><td>Critical</td><td>Publishing account changed between versions</td></tr>
+        <tr><td><code>RAPID_RELEASE</code></td><td>Medium</td><td>5+ versions published within 24 hours</td></tr>
+        <tr><td><code>DORMANT_REACTIVATION</code></td><td>Medium</td><td>No updates for 6+ months, then sudden release</td></tr>
+        <tr><td><code>PROVENANCE_MISSING</code></td><td>Low</td><td>Sigstore attestation absent or unverifiable</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="undisableable-signals">Undisableable Signals</h2>
+
+    <p>Four signals cannot be turned off via configuration. Suppressing them is never safe because they indicate conditions where the risk of ignoring the signal outweighs any false positive cost.</p>
+
+    <ul>
+      <li><code>KNOWN_COMPROMISED</code> -- package version is in a confirmed compromise database</li>
+      <li><code>PHANTOM_DEPENDENCY</code> -- package published less than 7 days ago</li>
+      <li><code>CIRCULAR_STAGING</code> -- suspicious circular dependency chain</li>
+      <li><code>CAPABILITY_ESCALATION</code> -- version gained dangerous new capabilities</li>
+    </ul>
+
+    <p>All other signals can be suppressed or have their severity adjusted via <a href="/vexes/wiki/configuration/">configuration</a>.</p>
+
+    <h2 id="scoring">Signal Scoring</h2>
+
+    <p>The final severity for a package is the highest severity among all its signals. Multiple high-severity signals on the same package do not compound into critical -- each signal is reported independently with its own evidence.</p>
+
+    <p>This means a package with one critical signal and five low signals is still reported as critical. The individual signals provide the nuance; the overall severity is the maximum.</p>

@@ -1,0 +1,167 @@
+---
+title: "Commands Reference"
+description: "Every vexes command and flag — scan, analyze, fix, guard, and monitor."
+permalink: /vexes/wiki/commands/
+---
+<h1>Commands Reference</h1>
+    <p class="subtitle">Every command and flag. Five commands cover vulnerability scanning, behavioral analysis, fix recommendations, pre-install guarding, and CI monitoring.</p>
+
+    <h2 id="scan">vexes scan</h2>
+
+    <p>Query the OSV.dev vulnerability database for known vulnerabilities in your dependencies. This is the fastest check -- it does not analyze code or behavior, only known CVEs and advisories.</p>
+
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Flag</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>--ecosystem &lt;name&gt;</code></td><td>Scan only one ecosystem (npm, pypi, cargo, go, rubygems, composer, nuget, maven, homebrew)</td></tr>
+        <tr><td><code>--severity &lt;level&gt;</code></td><td>Minimum severity to report: low, medium, high, critical</td></tr>
+        <tr><td><code>--json</code></td><td>Output results as JSON</td></tr>
+        <tr><td><code>--sarif</code></td><td>Output results as SARIF for GitHub Advanced Security</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-block"><span class="cmt"># Scan only npm dependencies</span>
+<span class="prompt">$ </span><span class="cmd">vexes scan --ecosystem npm</span>
+
+<span class="cmt"># Only show critical and high severity</span>
+<span class="prompt">$ </span><span class="cmd">vexes scan --severity high</span>
+
+<span class="cmt"># JSON output for scripting</span>
+<span class="prompt">$ </span><span class="cmd">vexes scan --json</span></div>
+
+    <h2 id="analyze">vexes analyze</h2>
+
+    <p>Run the 4-layer behavioral detection engine. This is the primary command for catching supply chain attacks that vulnerability databases miss.</p>
+
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Flag</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>--deep</code></td><td>Download and AST-inspect actual package tarballs. Enables Layer 1 code analysis.</td></tr>
+        <tr><td><code>--explain &lt;pkg&gt;</code></td><td>Detailed breakdown for a single package. Shows all signals with evidence.</td></tr>
+        <tr><td><code>--strict</code></td><td>Exit with non-zero code on any signal. Designed for CI enforcement.</td></tr>
+        <tr><td><code>--ecosystem &lt;name&gt;</code></td><td>Analyze only one ecosystem.</td></tr>
+        <tr><td><code>--json</code></td><td>Output results as JSON.</td></tr>
+        <tr><td><code>--sarif</code></td><td>Output results as SARIF.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-block"><span class="cmt"># Standard behavioral analysis</span>
+<span class="prompt">$ </span><span class="cmd">vexes analyze</span>
+
+<span class="cmt"># Deep analysis with AST code inspection</span>
+<span class="prompt">$ </span><span class="cmd">vexes analyze --deep</span>
+
+<span class="cmt"># Explain a specific package</span>
+<span class="prompt">$ </span><span class="cmd">vexes analyze --explain lodash</span>
+
+<span class="cmt"># Strict mode for CI — fail on any signal</span>
+<span class="prompt">$ </span><span class="cmd">vexes analyze --strict</span></div>
+
+    <h3>--deep flag</h3>
+    <p>Without <code>--deep</code>, vexes analyzes metadata and dependency graphs only (Layers 2-4). With <code>--deep</code>, it also downloads package tarballs and runs AST code analysis (Layer 1). Deep analysis is slower but catches code-level threats like <code>eval()</code> in postinstall scripts, credential harvesting, and obfuscated payloads.</p>
+
+    <h3>--explain flag</h3>
+    <p>Shows a complete signal breakdown for a single package, including evidence and context for each signal. Useful for investigating flagged dependencies.</p>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes analyze --explain axios</span>
+
+<span class="dim">  axios 1.14.1 (npm)
+  ──────────────────────────────────────
+
+  Signal: MAINTAINER_CHANGE        severity: critical
+  detail: Publishing account changed 2 days ago.
+          Previous maintainer: matt-zabriskie
+          Current maintainer:  unknown-user-847
+
+  Signal: AST_DANGEROUS_PATTERN    severity: critical
+  detail: child_process.exec() found in scripts/postinstall.js
+          Line 14: exec('curl -s https://...')
+
+  Signal: CAPABILITY_ESCALATION    severity: high
+  detail: Version 1.14.0 had capabilities: [http]
+          Version 1.14.1 has capabilities: [http, exec, net]
+          New capabilities: exec, net
+
+  ──────────────────────────────────────
+  3 signals · 2 critical · 1 high</span></div>
+
+    <h2 id="fix">vexes fix</h2>
+
+    <p>Show verified upgrade recommendations for vulnerable dependencies. Every suggested version is cross-checked against OSV to ensure the fix itself is not vulnerable.</p>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes fix</span>
+
+<span class="dim">  lodash 4.17.20 → 4.17.21</span>
+<span class="dim">    vuln:   GHSA-jf85-cpcp-j695 (Prototype Pollution)</span>
+<span class="ok">    target: 4.17.21 verified clean against OSV</span>
+
+<span class="dim">  ──────────────────────────────────────
+  1 fix available</span></div>
+
+    <p>If the suggested upgrade version has its own known vulnerabilities, vexes will report this and look for the next safe version.</p>
+
+    <h2 id="guard">vexes guard</h2>
+
+    <p>Intercept package manager installs and analyze new or changed dependencies before they execute. See <a href="/vexes/wiki/pre-install-guard/">Pre-Install Guard</a> for the full guide.</p>
+
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Flag</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>-- &lt;command&gt;</code></td><td>The install command to guard (e.g., <code>npm install axios</code>)</td></tr>
+        <tr><td><code>--setup</code></td><td>Install shell wrappers for automatic guarding</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-block"><span class="cmt"># Guard a single install</span>
+<span class="prompt">$ </span><span class="cmd">vexes guard -- npm install axios</span>
+
+<span class="cmt"># Install shell wrappers for auto-guarding</span>
+<span class="prompt">$ </span><span class="cmd">vexes guard --setup</span></div>
+
+    <h2 id="monitor">vexes monitor</h2>
+
+    <p>Continuous monitoring mode for CI pipelines or local development. Supports one-shot CI mode with GitHub Actions annotations, SARIF output, and continuous watch mode.</p>
+
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Flag</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>--ci</code></td><td>One-shot scan with GitHub Actions annotations on findings</td></tr>
+        <tr><td><code>--ci --sarif</code></td><td>SARIF output for GitHub Advanced Security code scanning</td></tr>
+        <tr><td><code>--watch</code></td><td>Continuous lockfile and OSV polling. Re-scans on file changes.</td></tr>
+        <tr><td><code>--severity &lt;level&gt;</code></td><td>Minimum severity to report</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-block"><span class="cmt"># CI mode with annotations</span>
+<span class="prompt">$ </span><span class="cmd">vexes monitor --ci</span>
+
+<span class="cmt"># SARIF output for GitHub code scanning</span>
+<span class="prompt">$ </span><span class="cmd">vexes monitor --ci --sarif</span>
+
+<span class="cmt"># Watch mode — re-scans on lockfile changes</span>
+<span class="prompt">$ </span><span class="cmd">vexes monitor --watch</span></div>
+
+    <h2 id="exit-codes">Exit Codes</h2>
+
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Code</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>0</code></td><td>No findings above the severity threshold</td></tr>
+        <tr><td><code>1</code></td><td>Findings detected above the severity threshold</td></tr>
+        <tr><td><code>2</code></td><td>Scan incomplete -- a query failed (network error, API timeout). vexes never silently reports clean on failure.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box">
+      <strong>Fail loud, not clean:</strong> Exit code 2 is critical. If OSV queries fail, vexes exits with code 2 and prints SCAN INCOMPLETE. A scanner that silently reports clean on failure is worse than useless.
+    </div>

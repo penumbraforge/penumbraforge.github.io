@@ -27,6 +27,7 @@
         <a href="/blog/">Blog</a>
       <a href="/gate/"{% if productName == "gate" %} class="active"{% endif %}>Gate</a>
       <a href="/librarian/"{% if productName == "librarian" %} class="active"{% endif %}>Librarian</a>
+      <a href="/vexes/"{% if productName == "vexes" %} class="active"{% endif %}>Vexes</a>
       <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
     </nav>
   </header>
@@ -58,6 +59,16 @@
         <li><a href="/librarian/wiki/content-guard/"{% if page.url == "/librarian/wiki/content-guard/" %} class="active"{% endif %}>Content Guard</a></li>
         <li><a href="/librarian/wiki/signing/"{% if page.url == "/librarian/wiki/signing/" %} class="active"{% endif %}>Ed25519 Signing</a></li>
         <li><a href="/librarian/wiki/local-models/"{% if page.url == "/librarian/wiki/local-models/" %} class="active"{% endif %}>Local Models</a></li>
+        {% elif productName == "vexes" %}
+        <li><a href="/vexes/wiki/"{% if page.url == "/vexes/wiki/" %} class="active"{% endif %}>Home</a></li>
+        <li><a href="/vexes/wiki/getting-started/"{% if page.url == "/vexes/wiki/getting-started/" %} class="active"{% endif %}>Getting Started</a></li>
+        <li><a href="/vexes/wiki/commands/"{% if page.url == "/vexes/wiki/commands/" %} class="active"{% endif %}>Commands Reference</a></li>
+        <li><a href="/vexes/wiki/detection-engine/"{% if page.url == "/vexes/wiki/detection-engine/" %} class="active"{% endif %}>Detection Engine</a></li>
+        <li><a href="/vexes/wiki/pre-install-guard/"{% if page.url == "/vexes/wiki/pre-install-guard/" %} class="active"{% endif %}>Pre-Install Guard</a></li>
+        <li><a href="/vexes/wiki/ecosystems/"{% if page.url == "/vexes/wiki/ecosystems/" %} class="active"{% endif %}>Ecosystems</a></li>
+        <li><a href="/vexes/wiki/ci-cd/"{% if page.url == "/vexes/wiki/ci-cd/" %} class="active"{% endif %}>CI/CD Integration</a></li>
+        <li><a href="/vexes/wiki/configuration/"{% if page.url == "/vexes/wiki/configuration/" %} class="active"{% endif %}>Configuration</a></li>
+        <li><a href="/vexes/wiki/security/"{% if page.url == "/vexes/wiki/security/" %} class="active"{% endif %}>Security Model</a></li>
         {% endif %}
       </ul>
     </aside>

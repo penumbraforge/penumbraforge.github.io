@@ -1,0 +1,114 @@
+---
+title: "CI/CD Integration"
+description: "Add vexes to your CI pipeline with GitHub Actions, SARIF output, and continuous monitoring."
+permalink: /vexes/wiki/ci-cd/
+---
+<h1>CI/CD Integration</h1>
+    <p class="subtitle">GitHub Actions integration, SARIF output for code scanning, monitor modes, and exit code handling.</p>
+
+    <h2 id="github-action">GitHub Actions</h2>
+
+    <p>The simplest way to add vexes to your CI pipeline is with a GitHub Actions workflow. This example runs on every pull request and push to main.</p>
+
+    <div class="code-block"><span class="cmt"># .github/workflows/vexes.yml</span>
+<span class="kw">name</span>: Dependency Security
+<span class="kw">on</span>: [pull_request, push]
+
+<span class="kw">jobs</span>:
+  <span class="kw">scan</span>:
+    <span class="kw">runs-on</span>: ubuntu-latest
+    <span class="kw">steps</span>:
+      - <span class="kw">uses</span>: actions/checkout@v4
+      - <span class="kw">uses</span>: actions/setup-node@v4
+        <span class="kw">with</span>:
+          <span class="kw">node-version</span>: <span class="val">22</span>
+      - <span class="kw">name</span>: Vulnerability scan
+        <span class="kw">run</span>: npx @penumbraforge/vexes monitor --ci --severity high</div>
+
+    <h2 id="monitor-ci">Monitor --ci Mode</h2>
+
+    <p>The <code>monitor --ci</code> flag optimizes output for CI environments:</p>
+
+    <ul>
+      <li>Emits GitHub Actions annotation commands (<code>::error</code>, <code>::warning</code>) so findings appear inline on the PR diff.</li>
+      <li>Exits with code 1 if findings exceed the severity threshold, failing the check.</li>
+      <li>Exits with code 2 if the scan is incomplete (network failure, API timeout). This prevents false clean reports.</li>
+      <li>Disables interactive prompts and color codes that break CI logs.</li>
+    </ul>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes monitor --ci --severity high</span>
+
+<span class="dim">::error file=package-lock.json::CRITICAL: axios 1.14.1 — MAINTAINER_CHANGE (publishing account changed 2 days ago)
+::warning file=package-lock.json::HIGH: loadash 4.17.99 — TYPOSQUAT (edit distance 1 from "lodash")</span></div>
+
+    <h2 id="sarif">SARIF Output</h2>
+
+    <p>Add <code>--sarif</code> for SARIF (Static Analysis Results Interchange Format) output compatible with GitHub Advanced Security code scanning. Upload the SARIF file as a GitHub code scanning artifact to get findings on the Security tab.</p>
+
+    <div class="code-block"><span class="cmt"># .github/workflows/vexes.yml</span>
+<span class="kw">name</span>: Dependency Security
+<span class="kw">on</span>: [pull_request, push]
+
+<span class="kw">jobs</span>:
+  <span class="kw">scan</span>:
+    <span class="kw">runs-on</span>: ubuntu-latest
+    <span class="kw">permissions</span>:
+      <span class="kw">security-events</span>: write
+    <span class="kw">steps</span>:
+      - <span class="kw">uses</span>: actions/checkout@v4
+      - <span class="kw">uses</span>: actions/setup-node@v4
+        <span class="kw">with</span>:
+          <span class="kw">node-version</span>: <span class="val">22</span>
+      - <span class="kw">name</span>: Security scan
+        <span class="kw">run</span>: npx @penumbraforge/vexes monitor --ci --sarif > results.sarif
+        <span class="kw">continue-on-error</span>: <span class="val">true</span>
+      - <span class="kw">name</span>: Upload SARIF
+        <span class="kw">uses</span>: github/codeql-action/upload-sarif@v3
+        <span class="kw">with</span>:
+          <span class="kw">sarif_file</span>: results.sarif</div>
+
+    <h2 id="behavioral-analysis-ci">Behavioral Analysis in CI</h2>
+
+    <p>For deeper protection, run behavioral analysis alongside vulnerability scanning. Use <code>analyze --strict</code> to fail the build on any behavioral signal.</p>
+
+    <div class="code-block"><span class="kw">steps</span>:
+  - <span class="kw">name</span>: Vulnerability scan
+    <span class="kw">run</span>: npx @penumbraforge/vexes scan --severity high
+  - <span class="kw">name</span>: Behavioral analysis
+    <span class="kw">run</span>: npx @penumbraforge/vexes analyze --strict</div>
+
+    <p>The <code>--strict</code> flag causes <code>analyze</code> to exit with code 1 on any signal, regardless of severity. For PR checks where you want to enforce zero behavioral anomalies, this is the right setting.</p>
+
+    <h2 id="watch-mode">Watch Mode</h2>
+
+    <p>For local development, <code>monitor --watch</code> continuously monitors lockfiles and re-scans when changes are detected. It also polls OSV periodically for new advisories affecting your current dependencies.</p>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes monitor --watch</span>
+
+<span class="dim">  Watching: package-lock.json, Cargo.lock
+  OSV poll interval: 1 hour
+  Press Ctrl+C to stop.</span>
+
+<span class="dim">  [14:32:01] Lockfile changed: package-lock.json
+  [14:32:02] Scanning 315 packages...
+  [14:32:04] Clean. No vulnerabilities found.</span>
+
+<span class="dim">  [15:32:04] OSV poll — checking for new advisories...
+  [15:32:05] Clean. No new advisories.</span></div>
+
+    <h2 id="exit-codes">Exit Codes for CI</h2>
+
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Code</th><th>CI Meaning</th><th>Recommended Action</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>0</code></td><td>Pass</td><td>No findings above threshold. Build proceeds.</td></tr>
+        <tr><td><code>1</code></td><td>Fail</td><td>Findings detected. Block merge until resolved.</td></tr>
+        <tr><td><code>2</code></td><td>Error</td><td>Scan incomplete. Do not trust the result. Investigate.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box">
+      <strong>Exit code 2 matters.</strong> If your CI ignores exit code 2, a network failure during scanning will be treated as "clean" -- which is exactly what an attacker would want. Always handle exit code 2 as a build failure.
+    </div>

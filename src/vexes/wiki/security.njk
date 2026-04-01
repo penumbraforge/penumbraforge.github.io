@@ -1,0 +1,71 @@
+---
+title: "Security Model"
+description: "How vexes hardens itself against the untrusted data it processes — zero dependencies, injection prevention, and threat model."
+permalink: /vexes/wiki/security/
+---
+<h1>Security Model</h1>
+    <p class="subtitle">How vexes hardens itself against the untrusted data it processes. Every layer assumes the input is adversarial.</p>
+
+    <h2 id="threat-model">Threat Model</h2>
+
+    <p>vexes is a security tool that processes untrusted data from multiple sources: package tarballs, registry APIs, lockfiles, and configuration files. Each of these is a potential attack vector. The threat model assumes that an attacker controls the data in any or all of these sources and will attempt to exploit the scanner itself.</p>
+
+    <h2 id="zero-dependencies">Zero Dependencies</h2>
+
+    <p>vexes has zero external dependencies. The entire dependency chain is the attack surface -- a compromised transitive dependency in the scanner itself would be catastrophic. By having no dependencies, vexes eliminates this entire attack class.</p>
+
+    <ul>
+      <li><strong style="color: var(--text-1);">Acorn parser</strong> is vendored directly into the source tree. It is not installed via npm.</li>
+      <li><strong style="color: var(--text-1);">SQLite</strong> is a Node.js built-in module starting in v22.5. No native addon required.</li>
+      <li><strong style="color: var(--text-1);">HTTPS client</strong> uses Node.js built-in <code>https</code> module for registry and OSV API calls.</li>
+      <li><strong style="color: var(--text-1);">YAML parser</strong> is a minimal, purpose-built implementation that only supports the subset needed for config files.</li>
+    </ul>
+
+    <h2 id="terminal-injection">Terminal Injection Protection</h2>
+
+    <p>Package names, descriptions, and other registry metadata are displayed in the terminal. An attacker could craft a malicious package name containing ANSI escape sequences that execute terminal commands (OSC 52 clipboard writes, CSI cursor repositioning to overwrite output, etc.).</p>
+
+    <p>vexes strips all control sequences from external data before display:</p>
+    <ul>
+      <li>CSI sequences (cursor movement, color, clear)</li>
+      <li>OSC sequences with both BEL and ST terminators</li>
+      <li>DCS, APC, PM, and SOS escape sequences</li>
+      <li>C1 control codes (0x80-0x9F)</li>
+      <li>Bare ESC bytes not followed by recognized sequences</li>
+    </ul>
+
+    <h2 id="command-injection">Command Injection Prevention</h2>
+
+    <p>The guard command executes package managers as subprocesses. This is a prime target for command injection if not handled carefully.</p>
+
+    <ul>
+      <li><strong style="color: var(--text-1);">execFileSync, not execSync.</strong> All subprocesses use <code>execFileSync</code> with no shell. Arguments are passed as an array, not a string. Shell metacharacters cannot escape.</li>
+      <li><strong style="color: var(--text-1);">Allowlisted commands.</strong> Only known package manager binaries (npm, pnpm, yarn, pip, cargo, gem, composer) are allowed. Arbitrary commands are rejected.</li>
+      <li><strong style="color: var(--text-1);">Shell-escaped display.</strong> Fix commands shown to the user are shell-escaped before display, preventing copy-paste injection.</li>
+    </ul>
+
+    <h2 id="ssrf-protection">Gzip Bomb and SSRF Protection</h2>
+
+    <p>Deep analysis downloads package tarballs from registries. An attacker could publish a package with a malicious tarball designed to exploit the download process.</p>
+
+    <ul>
+      <li><strong style="color: var(--text-1);">Streaming size limits.</strong> Downloads are streamed with a hard size limit. If the decompressed size exceeds the limit, the stream is aborted. No gzip bombs.</li>
+      <li><strong style="color: var(--text-1);">HTTPS only.</strong> All registry URLs must use HTTPS. HTTP URLs are rejected.</li>
+      <li><strong style="color: var(--text-1);">Registry host allowlist.</strong> Downloads are only permitted from known registry hosts (registry.npmjs.org, pypi.org, crates.io, etc.). Redirects to non-allowlisted hosts are rejected.</li>
+    </ul>
+
+    <h2 id="fix-verification">Verified Fix Recommendations</h2>
+
+    <p>Every upgrade version suggested by <code>vexes fix</code> is cross-checked against OSV before presenting it to the user. If the suggested fix version has its own known vulnerabilities, vexes looks for the next safe version or reports that no clean fix is available.</p>
+
+    <p>This prevents circular fixes: recommending an upgrade to a version that introduces a different vulnerability.</p>
+
+    <h2 id="config-protection">Configuration File Protection</h2>
+
+    <p>The YAML parser for <code>.vexesrc</code> rejects <code>__proto__</code>, <code>constructor</code>, and <code>prototype</code> keys. This prevents prototype pollution attacks via crafted config files -- a real attack vector in tools that parse untrusted YAML.</p>
+
+    <h2 id="fail-loud">Fail Loud, Not Clean</h2>
+
+    <p>If any OSV query, registry API call, or analysis step fails, vexes exits with code 2 and prints SCAN INCOMPLETE. It never silently reports a clean result when it could not complete the scan.</p>
+
+    <p>This is a critical security property. A scanner that reports clean on failure gives false confidence. An attacker who can cause a network timeout would get a free pass with a scanner that fails silently. vexes makes failure visible and unmistakable.</p>

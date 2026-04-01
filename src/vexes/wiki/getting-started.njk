@@ -1,0 +1,95 @@
+---
+title: "Getting Started"
+description: "Install vexes, run your first scan, and understand what the output means."
+permalink: /vexes/wiki/getting-started/
+---
+<h1>Getting Started</h1>
+    <p class="subtitle">Install vexes, run your first scan and analysis, and understand the output.</p>
+
+    <h2 id="prerequisites">Prerequisites</h2>
+
+    <p>vexes requires <strong style="color: var(--text-1);">Node.js 22.5 or later</strong>. The SQLite module used for caching is a Node.js built-in starting in v22.5. No other dependencies are needed -- vexes has zero external dependencies.</p>
+
+    <div class="code-block"><span class="cmt"># Check your Node.js version</span>
+<span class="prompt">$ </span><span class="cmd">node --version</span>
+<span class="dim">v22.12.0</span></div>
+
+    <h2 id="installation">Installation</h2>
+
+    <h3>Zero-install (npx)</h3>
+    <p>The fastest way to try vexes. No installation required -- npx downloads and runs it in one step.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npx @penumbraforge/vexes scan</span></div>
+
+    <h3>Global install (npm)</h3>
+    <p>For regular use, install globally so the <code>vexes</code> command is always available.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npm install -g @penumbraforge/vexes</span>
+
+<span class="cmt"># Verify the installation</span>
+<span class="prompt">$ </span><span class="cmd">vexes --version</span>
+<span class="dim">vexes v0.1.1</span></div>
+
+    <h2 id="first-scan">Your First Scan</h2>
+
+    <p>Run <code>vexes scan</code> in any project directory. vexes auto-detects lockfiles and queries the OSV.dev vulnerability database.</p>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes scan</span>
+
+<span class="dim">  vexes v0.1.1 — scanning dependencies
+  Found 312 packages in package-lock.json
+  Ecosystem: npm</span>
+
+<span class="err">  CRITICAL</span>  lodash 4.17.20 <span class="dim">(npm)</span>
+<span class="dim">  vuln:</span> GHSA-jf85-cpcp-j695
+<span class="dim">  fix:</span>  upgrade to 4.17.21
+
+<span class="dim">  ──────────────────────────────────────
+  1 vulnerability found · 312 packages scanned — 1.8s</span></div>
+
+    <p>The scan command checks known vulnerabilities via OSV.dev. For behavioral analysis (typosquatting, account takeovers, capability escalation), use the <code>analyze</code> command.</p>
+
+    <h2 id="first-analysis">Your First Analysis</h2>
+
+    <p>The <code>analyze</code> command runs the 4-layer behavioral detection engine. This goes far beyond vulnerability databases -- it examines actual code patterns, dependency graphs, and registry metadata.</p>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes analyze</span>
+
+<span class="dim">  vexes v0.1.1 — analyzing dependencies
+  Found 312 packages in package-lock.json
+  Ecosystem: npm</span>
+
+<span class="warn">  HIGH</span>     some-util 1.0.3 <span class="dim">(npm)</span>
+<span class="dim">  signal:</span> <span class="warn">PHANTOM_DEPENDENCY</span>
+<span class="dim">  detail:</span> first published 2 days ago
+
+<span class="dim">  ──────────────────────────────────────
+  1 signal · 0 critical · 1 high
+  312 packages — 3.1s</span></div>
+
+    <h3>Deep analysis</h3>
+    <p>Add <code>--deep</code> to download and AST-inspect actual package tarballs. This enables Layer 1 (AST code analysis) which detects <code>eval()</code>, <code>child_process.exec()</code>, credential harvesting, and obfuscated code patterns.</p>
+
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes analyze --deep</span></div>
+
+    <p>Deep analysis takes longer because it downloads package tarballs from the registry. The tradeoff is significantly more comprehensive detection.</p>
+
+    <h2 id="understanding-output">Understanding the Output</h2>
+
+    <h3>Severity levels</h3>
+    <p>Every finding has a severity level:</p>
+    <ul>
+      <li><strong style="color: var(--error);">CRITICAL</strong> -- immediate action required. Known compromised packages, active account takeovers with dangerous code patterns.</li>
+      <li><strong style="color: var(--warn);">HIGH</strong> -- likely malicious. Typosquatting, phantom dependencies, capability escalation between versions.</li>
+      <li><strong style="color: var(--text-2);">MEDIUM</strong> -- suspicious but may be legitimate. Unusual publish patterns, minor capability changes.</li>
+      <li><strong style="color: var(--text-3);">LOW</strong> -- informational. Dormant package reactivation, missing provenance attestations.</li>
+    </ul>
+
+    <h3>Signal types</h3>
+    <p>Signals are the individual findings from each detection layer. A single package can trigger multiple signals. See <a href="/vexes/wiki/detection-engine/">Detection Engine</a> for the complete signal reference.</p>
+
+    <h2 id="next-steps">Next Steps</h2>
+    <ul>
+      <li><a href="/vexes/wiki/commands/">Commands Reference</a> -- learn every command and flag</li>
+      <li><a href="/vexes/wiki/detection-engine/">Detection Engine</a> -- understand the 4-layer analysis architecture</li>
+      <li><a href="/vexes/wiki/pre-install-guard/">Pre-Install Guard</a> -- block threats before they execute</li>
+      <li><a href="/vexes/wiki/ci-cd/">CI/CD Integration</a> -- add vexes to your pipeline</li>
+    </ul>

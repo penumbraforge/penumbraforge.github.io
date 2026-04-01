@@ -4581,6 +4581,7 @@ a.t-card {
   .tools-hub-filter,
   .tools-cta,
   .lib-btn,
+  .vx-btn,
   .gate-copy-btn {
     min-height: 44px;
     display: inline-flex;
@@ -4598,6 +4599,12 @@ a.t-card {
   /* -- Gate cmd tables: allow horizontal scroll -- */
   .gate-cmd-table {
     display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* -- Vexes tables: allow horizontal scroll -- */
+  .vx-table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
