@@ -1,0 +1,477 @@
+---
+toolSlug: local-rag
+permalink: /tools/local-rag/
+---
+<style>
+  .rag-add { margin-top: 4px; }
+  .rag-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 26px 18px; min-height: 150px; cursor: pointer; transition: background 160ms, border-color 160ms; outline: none; }
+  .rag-drop:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--accent) 45%, transparent); }
+  .rag-drop svg { width: 26px; height: 26px; color: var(--accent); opacity: 0.85; }
+  .rag-drop.drag { background: color-mix(in oklab, var(--accent) 9%, transparent); }
+  .rag-drop p { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+  .rag-drop .rag-hint { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+  .rag-drop strong { color: var(--wb-ink); }
+  .rag-drop .btn { padding: 5px 12px; }
+  .rag-paste { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .rag-paste input[type="text"] { width: 100%; }
+  .rag-paste textarea { width: 100%; min-height: 96px; }
+  .rag-paste .btn { align-self: flex-start; }
+  .rag-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+  .rag-summary { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); margin-left: auto; }
+  .rag-summary b { color: var(--accent); font-weight: 600; }
+  .rag-status { margin-top: 12px; font-family: var(--font-mono); font-size: 12px; color: var(--text-2); min-height: 16px; line-height: 1.5; }
+  .rag-status--ok { color: var(--sage); }
+  .rag-status--warn { color: #e8a87c; }
+  .rag-status--working::after { content: "▍"; animation: ai-blink 1s steps(2) infinite; color: var(--accent); margin-left: 2px; }
+  .rag-status .tool-error { margin-top: 6px; }
+  .rag-settings-btn { margin-top: 9px; }
+  .rag-sources { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+  .rag-src { display: inline-flex; align-items: center; gap: 8px; padding: 6px 5px 6px 11px; border: 1px solid var(--wb-line); border-radius: 3px; background: #06060d; font-family: var(--font-mono); font-size: 11px; color: var(--text-1); }
+  .rag-src b { color: var(--accent); font-weight: 600; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rag-src span { color: var(--text-3); }
+  .rag-src-x { background: none; border: 0; color: var(--text-3); cursor: pointer; font-size: 16px; line-height: 1; padding: 0 5px; }
+  .rag-src-x:hover { color: #e8a87c; }
+  .rag-chat { margin-top: 18px; height: min(56vh, 560px); }
+  .rag-empty { margin: auto; text-align: center; color: var(--text-3); font-size: 13px; line-height: 1.75; max-width: 46ch; padding: 0 12px; }
+  .rag-empty b { color: var(--text-2); font-weight: 600; }
+  .rag-cites { margin-top: 12px; padding-top: 11px; border-top: 1px dashed var(--wb-line); display: flex; flex-direction: column; gap: 8px; }
+  .rag-cites-h { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--slate); }
+  .rag-cite { border: 1px solid var(--wb-line); border-radius: 3px; background: #06060d; padding: 8px 10px; }
+  .rag-cite-meta { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+  .rag-cite-src { font-family: var(--font-mono); font-size: 11px; color: var(--accent); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rag-cite-pct { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); white-space: nowrap; }
+  .rag-cite-txt { font-size: 12px; line-height: 1.6; color: var(--text-2); white-space: normal; }
+</style>
+
+<div class="rag" id="ragRoot">
+
+  <div class="rag-add wb-split">
+    <div class="wb-panel">
+      <div class="wb-panel-bar"><span>Add files</span></div>
+      <div class="rag-drop" id="dropZone" role="button" tabindex="0" aria-label="Add source files by dropping or choosing">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg>
+        <p><strong>Drop files here</strong> or <button type="button" class="btn" id="chooseBtn">choose files</button></p>
+        <p class="rag-hint">.txt · .md · .json · .csv · .log · source code — plain text only. Nothing is uploaded.</p>
+        <input type="file" id="fileInput" multiple hidden aria-hidden="true">
+      </div>
+    </div>
+    <div class="wb-panel">
+      <div class="wb-panel-bar"><span>Paste text</span></div>
+      <div class="rag-paste">
+        <input type="text" id="pasteName" placeholder="Source name (optional)" aria-label="Pasted source name" spellcheck="false">
+        <textarea id="pasteText" placeholder="Paste notes, docs, a transcript, code…" aria-label="Text to add as a source" spellcheck="false"></textarea>
+        <button type="button" class="btn btn--primary" id="addPaste">Add text</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rag-actions">
+    <button type="button" class="btn" id="exampleBtn">Load example docs</button>
+    <button type="button" class="btn" id="clearBtn" hidden>Clear all</button>
+    <span class="rag-summary" id="summary"></span>
+  </div>
+
+  <div class="rag-status" id="status" role="status" aria-live="polite"></div>
+
+  <div class="rag-sources" id="sourceList" aria-live="polite"></div>
+
+  <div class="ai-chat rag-chat">
+    <div class="ai-log" id="log" role="log" aria-live="polite" aria-label="Answers"></div>
+    <form class="ai-inputrow" id="askForm">
+      <textarea class="ai-in" id="askInput" rows="1" placeholder="Ask a question about your sources…" spellcheck="false" aria-label="Ask a question about your sources"></textarea>
+      <button class="ai-send" id="askBtn" type="submit">Ask</button>
+      <button class="ai-stop" id="stopBtn" type="button" hidden>Stop</button>
+    </form>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  var AI = window.PenumbraAI, UI = window.PenumbraAIUI;
+  var root = document.getElementById('ragRoot');
+  if (!AI || !UI) {
+    var e = document.createElement('div');
+    e.className = 'tool-error';
+    e.textContent = 'The local AI engine failed to load. Reload the page and try again.';
+    if (root) root.appendChild(e);
+    return;
+  }
+
+  // ---- config ----
+  var CHUNK_SIZE = 800, CHUNK_OVERLAP = 120, EMBED_BATCH = 24;
+  var TOP_K = 5, MAX_FILE_BYTES = 5 * 1024 * 1024, MAX_CHUNKS_TOTAL = 5000;
+  var BINARY_EXT = /\.(pdf|png|jpe?g|gif|webp|bmp|ico|zip|gz|tgz|bz2|rar|7z|tar|exe|dll|so|dylib|wasm|bin|dat|doc|docx|xls|xlsx|ppt|pptx|odt|ods|mp3|wav|flac|ogg|m4a|mp4|mov|avi|mkv|webm|woff2?|ttf|otf|eot|class|jar|psd|ai|heic)$/i;
+
+  var SYSTEM = [
+    "You are a careful retrieval assistant for the user's own documents.",
+    "Follow these rules strictly:",
+    "1. Answer ONLY using the provided context. Never use outside knowledge.",
+    "2. Cite the source name(s) you drew from, inline, in square brackets, e.g. [notes.md].",
+    "3. If the answer is not in the context, say you can't find it in the provided sources — do not guess.",
+    "4. Be concise; paraphrase or quote only what the context supports."
+  ].join('\n');
+
+  // ---- state ----
+  var sources = [];   // [{ id, name, chunkCount }]
+  var store = [];     // [{ text, embedding, sourceName, sourceId }]
+  var seq = 0, busy = false, askedOnce = false;
+
+  // ---- elements ----
+  var dropZone = document.getElementById('dropZone');
+  var chooseBtn = document.getElementById('chooseBtn');
+  var fileInput = document.getElementById('fileInput');
+  var pasteName = document.getElementById('pasteName');
+  var pasteText = document.getElementById('pasteText');
+  var addPaste = document.getElementById('addPaste');
+  var exampleBtn = document.getElementById('exampleBtn');
+  var clearBtn = document.getElementById('clearBtn');
+  var summary = document.getElementById('summary');
+  var status = document.getElementById('status');
+  var sourceList = document.getElementById('sourceList');
+  var log = document.getElementById('log');
+  var askForm = document.getElementById('askForm');
+  var askInput = document.getElementById('askInput');
+  var askBtn = document.getElementById('askBtn');
+  var stopBtn = document.getElementById('stopBtn');
+
+  function el(tag, cls, txt) { var n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
+
+  // ---- status ----
+  function setStatus(text, kind) {
+    status.className = 'rag-status' + (kind ? ' rag-status--' + kind : '');
+    status.textContent = text || '';
+  }
+  function showEngineError(prefix, err) {
+    setStatus('', 'warn');
+    var box = el('div', 'tool-error');
+    box.textContent = prefix + (err && err.message ? err.message : String(err)) + '  —  pick or fix an engine and try again.';
+    var btn = el('button', 'btn rag-settings-btn', 'Open engine settings');
+    btn.type = 'button';
+    btn.addEventListener('click', function () { UI.openSettings(); });
+    status.className = 'rag-status rag-status--warn';
+    status.textContent = '';
+    status.appendChild(box);
+    status.appendChild(btn);
+  }
+
+  // ---- chunking ----
+  function chunkText(raw) {
+    var text = String(raw).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    var trimmed = text.trim();
+    if (!trimmed) return [];
+    if (trimmed.length <= CHUNK_SIZE) return [trimmed];
+    var chunks = [], i = 0, n = text.length, guard = 0;
+    while (i < n && guard < 100000) {
+      guard++;
+      var end = Math.min(i + CHUNK_SIZE, n);
+      if (end < n) {
+        var slice = text.slice(i, end);
+        var brk = Math.max(slice.lastIndexOf('\n\n'), slice.lastIndexOf('\n'), slice.lastIndexOf('. '), slice.lastIndexOf(' '));
+        if (brk > CHUNK_SIZE * 0.5) end = i + brk + 1;
+      }
+      var piece = text.slice(i, end).trim();
+      if (piece) chunks.push(piece);
+      if (end >= n) break;
+      var next = end - CHUNK_OVERLAP;
+      i = next > i ? next : end;
+    }
+    return chunks;
+  }
+
+  // ---- embedding ----
+  function embedChunks(texts, onProg) {
+    var out = [], idx = 0;
+    function step() {
+      if (idx >= texts.length) return Promise.resolve(out);
+      var batch = texts.slice(idx, idx + EMBED_BATCH);
+      return AI.embed(batch, {
+        onProgress: function (pr) { if (pr && pr.text) onProg('model', pr.text + (pr.progress ? ' ' + Math.round(pr.progress * 100) + '%' : '')); }
+      }).then(function (vecs) {
+        for (var k = 0; k < vecs.length; k++) out.push(vecs[k]);
+        idx += batch.length;
+        onProg('count', idx, texts.length);
+        return step();
+      });
+    }
+    return step();
+  }
+
+  // ---- indexing ----
+  function indexAll(items) {
+    if (busy) { setStatus('Hold on — still working on the last batch…', 'warn'); return Promise.resolve(); }
+    busy = true; paintControls();
+    var i = 0;
+    function next() {
+      if (i >= items.length) return Promise.resolve();
+      var item = items[i++];
+      var chunks = chunkText(item.text);
+      if (!chunks.length) { setStatus('“' + item.name + '” had no readable text — skipped.', 'warn'); return next(); }
+      if (store.length + chunks.length > MAX_CHUNKS_TOTAL) {
+        setStatus('Reached the ' + MAX_CHUNKS_TOTAL + '-chunk limit. Clear some sources to add more.', 'warn');
+        return Promise.resolve();
+      }
+      setStatus('Indexing “' + item.name + '” — 0 / ' + chunks.length + ' chunks…', 'working');
+      return embedChunks(chunks, function (kind, a, b) {
+        if (kind === 'model') setStatus('Preparing model for “' + item.name + '”: ' + a, 'working');
+        else setStatus('Indexing “' + item.name + '” — ' + a + ' / ' + b + ' chunks…', 'working');
+      }).then(function (vecs) {
+        var id = 's' + (++seq);
+        for (var c = 0; c < chunks.length; c++) store.push({ text: chunks[c], embedding: vecs[c], sourceName: item.name, sourceId: id });
+        sources.push({ id: id, name: item.name, chunkCount: chunks.length });
+        renderSources(); renderSummary(); renderEmpty();
+        return next();
+      });
+    }
+    return next().then(function () {
+      if (store.length) setStatus('Ready — ask anything about your sources below.', 'ok');
+      busy = false; paintControls();
+    }).catch(function (err) {
+      showEngineError('Could not build embeddings: ', err);
+      busy = false; paintControls();
+    });
+  }
+
+  // ---- file ingest ----
+  function readText(file) {
+    if (file.text) return file.text();
+    return new Promise(function (res, rej) {
+      var r = new FileReader();
+      r.onload = function () { res(String(r.result || '')); };
+      r.onerror = function () { rej(new Error('Could not read ' + file.name)); };
+      r.readAsText(file);
+    });
+  }
+  function looksBinary(s) {
+    if (!s) return false;
+    var n = Math.min(s.length, 4000), bad = 0;
+    for (var i = 0; i < n; i++) {
+      var c = s.charCodeAt(i);
+      if (c === 0) return true;
+      if (c === 0xFFFD) bad++;
+    }
+    return n > 0 && bad / n > 0.1;
+  }
+  function handleFiles(fileList) {
+    if (busy) { setStatus('Hold on — still working on the last batch…', 'warn'); return; }
+    var files = Array.prototype.slice.call(fileList || []);
+    var items = [], skipped = [], pending = files.length;
+    if (!pending) return;
+    setStatus('Reading ' + pending + ' file' + (pending === 1 ? '' : 's') + '…', 'working');
+    files.forEach(function (file) {
+      if (BINARY_EXT.test(file.name)) { skipped.push(file.name + ' (not a text file)'); done(); return; }
+      if (file.size > MAX_FILE_BYTES) { skipped.push(file.name + ' (over 5 MB)'); done(); return; }
+      readText(file).then(function (txt) {
+        if (looksBinary(txt)) skipped.push(file.name + ' (looks binary)');
+        else if (txt.trim()) items.push({ name: file.name, text: txt });
+        else skipped.push(file.name + ' (empty)');
+        done();
+      }, function () { skipped.push(file.name + ' (unreadable)'); done(); });
+    });
+    function done() {
+      if (--pending > 0) return;
+      if (!items.length) { setStatus(skipped.length ? 'Skipped: ' + skipped.join(', ') : 'Nothing to add.', 'warn'); return; }
+      indexAll(items).then(function () {
+        if (skipped.length) setStatus('Skipped: ' + skipped.join(', '), 'warn');
+      });
+    }
+  }
+
+  // ---- render ----
+  function renderSummary() {
+    if (!sources.length) { summary.textContent = ''; return; }
+    summary.innerHTML = '';
+    summary.appendChild(el('b', null, String(sources.length)));
+    summary.appendChild(document.createTextNode(' source' + (sources.length === 1 ? '' : 's') + ' · '));
+    summary.appendChild(el('b', null, String(store.length)));
+    summary.appendChild(document.createTextNode(' chunks indexed'));
+  }
+  function renderSources() {
+    sourceList.innerHTML = '';
+    sources.forEach(function (s) {
+      var chip = el('div', 'rag-src');
+      chip.appendChild(el('b', null, s.name));
+      chip.appendChild(el('span', null, s.chunkCount + ' chunk' + (s.chunkCount === 1 ? '' : 's')));
+      var x = el('button', 'rag-src-x', '×');
+      x.type = 'button';
+      x.setAttribute('aria-label', 'Remove ' + s.name);
+      x.addEventListener('click', function () {
+        if (busy) return;
+        store = store.filter(function (c) { return c.sourceId !== s.id; });
+        sources = sources.filter(function (o) { return o.id !== s.id; });
+        renderSources(); renderSummary(); renderEmpty();
+        setStatus('Removed “' + s.name + '”.', '');
+      });
+      chip.appendChild(x);
+      sourceList.appendChild(chip);
+    });
+    clearBtn.hidden = sources.length === 0;
+  }
+  function renderEmpty() {
+    if (askedOnce) return;
+    log.innerHTML = '';
+    var m = el('div', 'rag-empty');
+    if (store.length) {
+      m.appendChild(el('b', null, 'Indexed ' + store.length + ' chunks from ' + sources.length + ' source' + (sources.length === 1 ? '' : 's') + '.'));
+      m.appendChild(document.createElement('br'));
+      m.appendChild(document.createTextNode('Ask a question below — answers cite the sources they came from.'));
+    } else {
+      m.appendChild(el('b', null, 'No sources yet.'));
+      m.appendChild(document.createElement('br'));
+      m.appendChild(document.createTextNode('Drop a file or paste text above, or try “Load example docs”. Everything stays on your machine.'));
+    }
+    log.appendChild(m);
+  }
+  function paintControls() {
+    var lock = busy;
+    chooseBtn.disabled = lock; addPaste.disabled = lock; exampleBtn.disabled = lock; clearBtn.disabled = lock;
+    fileInput.disabled = lock;
+    dropZone.style.opacity = lock ? '0.55' : '';
+    dropZone.style.pointerEvents = lock ? 'none' : '';
+  }
+
+  // ---- chat bubbles ----
+  function bubble(role) {
+    if (!askedOnce) { askedOnce = true; log.innerHTML = ''; }
+    var msg = el('div', 'ai-msg ai-' + role);
+    var body = el('div', 'ai-msg-body');
+    msg.appendChild(body);
+    log.appendChild(msg);
+    log.scrollTop = log.scrollHeight;
+    return { msg: msg, body: body };
+  }
+  function renderCites(body, top) {
+    if (!top.length) return;
+    var wrap = el('div', 'rag-cites');
+    wrap.appendChild(el('div', 'rag-cites-h', 'Sources used (' + top.length + ')'));
+    top.forEach(function (r) {
+      var c = el('div', 'rag-cite');
+      var meta = el('div', 'rag-cite-meta');
+      meta.appendChild(el('span', 'rag-cite-src', r.c.sourceName));
+      meta.appendChild(el('span', 'rag-cite-pct', Math.round(Math.max(0, r.score) * 100) + '% match'));
+      c.appendChild(meta);
+      var snippet = r.c.text.replace(/\s+/g, ' ').trim();
+      c.appendChild(el('div', 'rag-cite-txt', snippet.length > 240 ? snippet.slice(0, 240) + '…' : snippet));
+      wrap.appendChild(c);
+    });
+    body.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ---- ask ----
+  function ask(question) {
+    if (busy) { setStatus('Hold on — still indexing…', 'warn'); return; }
+    if (!store.length) {
+      bubble('user').body.textContent = question;
+      bubble('assistant').body.textContent = 'Add at least one source first — drop a file or paste text above (or try “Load example docs”), then ask again.';
+      return;
+    }
+    bubble('user').body.textContent = question;
+    var a = bubble('assistant');
+    var st = el('span', 'ai-status working', 'Searching your sources…');
+    a.msg.appendChild(st);
+
+    busy = true; paintControls(); askBtn.disabled = true;
+
+    AI.embed([question], {
+      onProgress: function (pr) { if (pr && pr.text) st.textContent = pr.text + (pr.progress ? ' ' + Math.round(pr.progress * 100) + '%' : ''); }
+    }).then(function (qv) {
+      var qvec = qv[0];
+      var ranked = store.map(function (c) { return { c: c, score: AI.cosine(qvec, c.embedding) }; })
+        .sort(function (x, y) { return y.score - x.score; });
+      var top = ranked.slice(0, TOP_K);
+      var context = top.map(function (r) { return '[Source: ' + r.c.sourceName + ']\n' + r.c.text; }).join('\n\n---\n\n');
+      var userMsg = "Context from the user's documents:\n\n" + context +
+        "\n\n---\n\nQuestion: " + question + "\n\nAnswer using only the context above, and cite the source name(s) in brackets.";
+
+      var handle = UI.stream(a.body, {
+        system: SYSTEM,
+        messages: [{ role: 'user', content: userMsg }],
+        temperature: 0.2,
+        statusEl: st,
+        cancelBtn: stopBtn,
+        onToken: function () { log.scrollTop = log.scrollHeight; },
+        onDone: function () {
+          renderCites(a.body, top);
+          busy = false; paintControls(); askBtn.disabled = false; askInput.focus();
+        }
+      });
+      handle.promise.catch(function () { busy = false; paintControls(); askBtn.disabled = false; });
+    }).catch(function (err) {
+      st.remove();
+      var box = el('div', 'tool-error');
+      box.textContent = 'Could not search your sources: ' + (err && err.message ? err.message : String(err)) + '  —  check the engine (Engine ▾ above).';
+      a.body.appendChild(box);
+      busy = false; paintControls(); askBtn.disabled = false;
+    });
+  }
+
+  // ---- example ----
+  function loadExample() {
+    if (busy) return;
+    var welcome =
+      "# Chat with your files — how it works\n\n" +
+      "This tool is a local retrieval-augmented generation (RAG) assistant. You add sources — " +
+      "text files, markdown, CSV, logs, or source code — and it splits each source into small " +
+      "overlapping chunks of roughly 800 characters.\n\n" +
+      "Every chunk is turned into an embedding, a numeric fingerprint of its meaning, using an " +
+      "on-device model. When you ask a question, your question is embedded too, and the tool finds " +
+      "the chunks whose meaning is closest to your question using cosine similarity. The five most " +
+      "relevant chunks are handed to the language model as context, and the model answers using only " +
+      "that context, citing which source it used.\n\n" +
+      "Nothing you add or ask is uploaded. Files never leave your browser; the whole pipeline runs on your machine.";
+    var engines =
+      "# Engines and privacy\n\n" +
+      "You can run this tool three ways, all private:\n\n" +
+      "- In-browser (WebGPU): a real LLM and an embedding model run inside your browser on your GPU. " +
+      "The models download once from Hugging Face and are then cached for offline use.\n" +
+      "- Your local server: point the tool at your own Ollama or LM Studio instance. The model runs on your own hardware.\n" +
+      "- API key: bring your own OpenAI-compatible key. Requests go only to the endpoint you configure, never to Penumbra Forge.\n\n" +
+      "The recommended fast in-browser model is Llama 3.2 1B. For higher quality, choose a larger model in the engine settings. " +
+      "In-browser embeddings use the Snowflake Arctic Embed model.";
+    indexAll([{ name: 'how-it-works.md', text: welcome }, { name: 'engines.md', text: engines }]).then(function () {
+      if (!askInput.value.trim()) askInput.value = 'How does the tool decide which chunks to use, and is anything uploaded?';
+    });
+  }
+
+  // ---- wire up ----
+  chooseBtn.addEventListener('click', function () { if (!busy) fileInput.click(); });
+  fileInput.addEventListener('change', function () { handleFiles(fileInput.files); fileInput.value = ''; });
+  dropZone.addEventListener('click', function (ev) { if (ev.target === chooseBtn) return; if (!busy) fileInput.click(); });
+  dropZone.addEventListener('keydown', function (ev) { if ((ev.key === 'Enter' || ev.key === ' ') && !busy) { ev.preventDefault(); fileInput.click(); } });
+  ['dragenter', 'dragover'].forEach(function (t) { dropZone.addEventListener(t, function (ev) { ev.preventDefault(); dropZone.classList.add('drag'); }); });
+  ['dragleave', 'dragend'].forEach(function (t) { dropZone.addEventListener(t, function () { dropZone.classList.remove('drag'); }); });
+  dropZone.addEventListener('drop', function (ev) {
+    ev.preventDefault(); dropZone.classList.remove('drag');
+    if (ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files.length) handleFiles(ev.dataTransfer.files);
+  });
+
+  addPaste.addEventListener('click', function () {
+    var txt = pasteText.value;
+    if (!txt.trim()) { setStatus('Paste some text first.', 'warn'); return; }
+    var name = (pasteName.value.trim()) || ('pasted-' + (sources.length + 1) + '.txt');
+    indexAll([{ name: name, text: txt }]).then(function () { pasteText.value = ''; pasteName.value = ''; });
+  });
+
+  exampleBtn.addEventListener('click', loadExample);
+  clearBtn.addEventListener('click', function () {
+    if (busy) return;
+    sources = []; store = []; askedOnce = false;
+    renderSources(); renderSummary(); renderEmpty();
+    setStatus('Cleared all sources.', '');
+  });
+
+  askInput.addEventListener('input', function () { askInput.style.height = 'auto'; askInput.style.height = Math.min(askInput.scrollHeight, 200) + 'px'; });
+  askInput.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); askForm.requestSubmit(); } });
+  askForm.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var q = askInput.value.trim();
+    if (!q) return;
+    askInput.value = ''; askInput.style.height = 'auto';
+    ask(q);
+  });
+
+  // ---- init ----
+  renderSummary(); renderSources(); renderEmpty();
+})();
+</script>

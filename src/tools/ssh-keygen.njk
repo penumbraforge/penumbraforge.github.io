@@ -3,379 +3,499 @@ toolSlug: ssh-keygen
 permalink: /tools/ssh-keygen/
 ---
 
-<div class="sk-safety-note" role="note">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-  Keys are generated entirely in your browser using the Web Crypto API. Nothing is transmitted to any server.
-</div>
-
-<div class="tool-row">
-  <div class="tool-options" role="group" aria-label="Key type">
-    <button class="tool-option active" data-keytype="RSA-2048" aria-pressed="true">RSA-2048</button>
-    <button class="tool-option" data-keytype="RSA-4096" aria-pressed="false">RSA-4096</button>
-    <button class="tool-option" data-keytype="Ed25519" aria-pressed="false">Ed25519 <span style="font-size:0.7em;color:#f97316;">(library)</span></button>
+<div class="tool-row" style="gap:1.25rem;flex-wrap:wrap;align-items:flex-start;">
+  <div class="tool-group" style="margin:0;">
+    <label id="sk-type-label">Key type</label>
+    <div class="tool-options" role="group" aria-labelledby="sk-type-label">
+      <button class="tool-option active" data-type="ed25519" aria-pressed="true">Ed25519</button>
+      <button class="tool-option" data-type="rsa-2048" aria-pressed="false">RSA-2048</button>
+      <button class="tool-option" data-type="rsa-4096" aria-pressed="false">RSA-4096</button>
+    </div>
+  </div>
+  <div class="tool-group" style="margin:0;">
+    <label id="sk-format-label">Private key format</label>
+    <div class="tool-options" role="group" aria-labelledby="sk-format-label" id="sk-format-group">
+      <button class="tool-option active" data-format="openssh" aria-pressed="true">OpenSSH</button>
+      <button class="tool-option" data-format="pkcs8" aria-pressed="false">PKCS#8 PEM</button>
+    </div>
   </div>
 </div>
 
-<div id="sk-ed25519-note" style="display:none;" class="sk-notice">
-  Ed25519 is not natively supported by the browser Web Crypto API (it lacks SubjectPublicKeyInfo DER export). This tool generates RSA keys fully client-side. For Ed25519, use <code>ssh-keygen -t ed25519</code> on the command line or a library like <a href="https://www.npmjs.com/package/@noble/ed25519" target="_blank" rel="noopener">@noble/ed25519</a>.
-</div>
+<p id="sk-type-hint" class="sk-hint"></p>
+<p id="sk-ed-unsupported" class="sk-warn" style="display:none;">This browser's Web Crypto does not implement Ed25519. Ed25519 is disabled — RSA keys are generated instead. To create an Ed25519 key, run <code>ssh-keygen -t ed25519</code> on the command line.</p>
 
 <div class="tool-group">
-  <label for="sk-comment">Key comment (optional)</label>
-  <input type="text" id="sk-comment" placeholder="user@hostname" spellcheck="false" autocomplete="off">
-  <span style="font-size:0.75rem;color:var(--text-3,#888);margin-top:0.3rem;display:block;">Appears at the end of the public key for identification. Typically user@hostname.</span>
+  <label for="sk-comment">Comment (optional)</label>
+  <input type="text" id="sk-comment" placeholder="user@hostname" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+  <span class="sk-hint" style="margin-top:.4rem;">Appended to the public key for identification — typically <code>user@hostname</code>. It labels the key; it is not secret.</span>
 </div>
 
-<div class="tool-group">
-  <label for="sk-passphrase">Passphrase (optional)</label>
-  <input type="password" id="sk-passphrase" placeholder="Leave empty for no passphrase" autocomplete="new-password">
-  <span style="font-size:0.75rem;color:var(--text-3,#888);margin-top:0.3rem;display:block;">A passphrase encrypts the private key at rest. Recommended for keys stored on disk.</span>
+<div class="tool-row" style="align-items:center;gap:.75rem;flex-wrap:wrap;">
+  <button class="btn btn--primary" id="sk-gen" type="button">Generate key pair</button>
+  <button class="btn" id="sk-example" type="button">Load example</button>
+  <span id="sk-status" class="sk-status" role="status" aria-live="polite"></span>
 </div>
 
-<div class="tool-row">
-  <button class="btn btn--primary" id="sk-generate-btn">Generate key pair</button>
-  <span id="sk-generating" style="display:none;font-size:0.875rem;color:var(--text-3,#888);align-self:center;">Generating…</span>
-</div>
-
-<div id="sk-error" style="display:none;" class="tool-error" role="alert" aria-live="polite"></div>
+<div id="sk-error" class="tool-error" role="alert" aria-live="assertive" style="display:none;margin-top:1rem;"></div>
 
 <div id="sk-results" style="display:none;">
-  <div class="sk-fingerprint-wrap" id="sk-fingerprint-wrap">
-    <span class="sk-fp-label">Fingerprint (SHA-256)</span>
-    <code class="sk-fp-value" id="sk-fingerprint"></code>
+  <div class="wb-split" style="margin-top:1.25rem;">
+    <div class="wb-panel">
+      <div class="wb-panel-bar">Identity <span class="wb-badge wb-badge--local" id="sk-algo-badge">Ed25519 · 256-bit</span></div>
+      <dl class="sk-facts">
+        <dt>Fingerprint</dt>
+        <dd><span class="sk-fp"><code id="sk-fp" aria-live="polite"></code><button class="btn btn--copy" id="sk-fp-copy" type="button" aria-label="Copy fingerprint">Copy</button></span></dd>
+        <dt>Algorithm</dt><dd id="sk-algo"></dd>
+        <dt>Comment</dt><dd id="sk-comment-out"></dd>
+      </dl>
+    </div>
+    <div class="wb-panel">
+      <div class="wb-panel-bar">Randomart <span class="wb-badge" style="border-color:var(--wb-line);color:var(--text-3);">SHA256</span></div>
+      <pre class="sk-art" id="sk-art" aria-label="Key randomart image"></pre>
+    </div>
   </div>
 
-  <div class="sk-key-block">
-    <div class="sk-key-header">
-      <span class="sk-key-title">Public key</span>
-      <div style="display:flex;gap:0.5rem;">
-        <button class="btn btn--copy" id="sk-copy-pub">Copy</button>
-        <button class="btn" id="sk-download-pub">Download</button>
-      </div>
+  <div class="wb-panel sk-keypanel" style="margin-top:14px;">
+    <div class="wb-panel-bar">
+      <span>Public key · <span id="sk-pub-name">id_ed25519.pub</span></span>
+      <span class="sk-actions">
+        <button class="btn btn--copy" id="sk-pub-copy" type="button">Copy</button>
+        <button class="btn" id="sk-pub-dl" type="button">Download</button>
+      </span>
     </div>
-    <pre id="sk-public-key" class="sk-key-pre"></pre>
+    <pre class="sk-key" id="sk-pub" aria-label="Public key"></pre>
   </div>
 
-  <div class="sk-key-block sk-key-block--private">
-    <div class="sk-key-header">
-      <span class="sk-key-title">Private key</span>
-      <div style="display:flex;gap:0.5rem;">
-        <button class="btn btn--copy" id="sk-copy-priv">Copy</button>
-        <button class="btn" id="sk-download-priv">Download</button>
-      </div>
+  <div class="wb-panel sk-keypanel sk-keypanel--private" style="margin-top:14px;">
+    <div class="wb-panel-bar">
+      <span>Private key · <span id="sk-priv-format">OpenSSH</span> · <span id="sk-priv-name">id_ed25519</span> <span class="sk-badge-warn">unencrypted</span></span>
+      <span class="sk-actions">
+        <button class="btn btn--copy" id="sk-priv-copy" type="button">Copy</button>
+        <button class="btn" id="sk-priv-dl" type="button">Download</button>
+      </span>
     </div>
-    <pre id="sk-private-key" class="sk-key-pre"></pre>
-    <p class="sk-priv-warn">Keep this key secret. Never share it or commit it to version control.</p>
+    <pre class="sk-key" id="sk-priv" aria-label="Private key"></pre>
   </div>
+
+  <div class="sk-warn" role="note">
+    <strong>This private key is exported unencrypted.</strong> It is not passphrase-protected — anyone who can read the file can use it. Save it, lock down its permissions, then add a passphrase:
+    <div class="sk-cmd">
+      <code id="sk-cmd-text">chmod 600 id_ed25519 &amp;&amp; ssh-keygen -p -f id_ed25519</code>
+      <button class="btn btn--copy" id="sk-cmd-copy" type="button">Copy</button>
+    </div>
+  </div>
+
+  <details class="sk-steps">
+    <summary>How to use this key</summary>
+    <ol>
+      <li>Save the private key to <code id="sk-step-priv">~/.ssh/id_ed25519</code> and run <code id="sk-step-chmod">chmod 600 ~/.ssh/id_ed25519</code>.</li>
+      <li>Add a passphrase (recommended): <code id="sk-step-pass">ssh-keygen -p -f ~/.ssh/id_ed25519</code>.</li>
+      <li>Install the public key on a server: <code id="sk-step-copy">ssh-copy-id -i ~/.ssh/id_ed25519.pub user@host</code>, or append it to <code>~/.ssh/authorized_keys</code>.</li>
+      <li>For GitHub / GitLab, paste the public key into your account's SSH keys settings.</li>
+    </ol>
+  </details>
 </div>
 
 <style>
-  .sk-safety-note {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.75rem 1rem;
-    background: rgba(34,197,94,0.07);
-    border: 1px solid rgba(34,197,94,0.2);
-    border-radius: 8px;
-    font-size: 0.875rem;
-    color: #4ade80;
-    margin-bottom: 1.25rem;
-  }
-  .sk-notice {
-    padding: 0.75rem 1rem;
-    background: rgba(249,115,22,0.07);
-    border: 1px solid rgba(249,115,22,0.2);
-    border-radius: 8px;
-    font-size: 0.8125rem;
-    color: var(--text-2,#94a3b8);
-    line-height: 1.55;
-    margin-bottom: 0.75rem;
-  }
-  .sk-notice code { font-family: var(--font-mono,monospace); color: #fb923c; }
-  .sk-notice a { color: #818cf8; text-decoration: underline; }
-  .sk-fingerprint-wrap {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: var(--surface-1,#1a1a2e);
-    border: 1px solid var(--border,#2a2a3a);
-    border-radius: 8px;
-    margin-bottom: 0.75rem;
-    flex-wrap: wrap;
-  }
-  .sk-fp-label { font-size: 0.75rem; font-weight: 700; color: var(--text-3,#888); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
-  .sk-fp-value { font-family: var(--font-mono,monospace); font-size: 0.8125rem; color: #a5b4fc; word-break: break-all; }
-  .sk-key-block {
-    border: 1px solid var(--border,#2a2a3a);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 0.75rem;
-  }
-  .sk-key-block--private { border-left: 3px solid #f87171; }
-  .sk-key-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.6rem 0.875rem;
-    background: var(--surface-1,#1a1a2e);
-    border-bottom: 1px solid var(--border,#2a2a3a);
-  }
-  .sk-key-title { font-size: 0.875rem; font-weight: 600; color: var(--text-1,#e2e8f0); }
-  .sk-key-pre {
-    margin: 0;
-    padding: 0.875rem;
-    font-family: var(--font-mono,monospace);
-    font-size: 0.75rem;
-    color: var(--text-1,#e2e8f0);
-    background: var(--surface-0,#0f0f1a);
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 200px;
-    overflow-y: auto;
-  }
-  .sk-priv-warn {
-    margin: 0;
-    padding: 0.5rem 0.875rem;
-    font-size: 0.75rem;
-    color: #f87171;
-    background: rgba(239,68,68,0.05);
-    border-top: 1px solid rgba(239,68,68,0.15);
-  }
+  .sk-hint { font-size: 12.5px; line-height: 1.6; color: var(--text-3); margin: .85rem 0 0; }
+  .sk-hint code { font-family: var(--font-mono); font-size: .92em; color: var(--accent); }
+  .sk-status { font-family: var(--font-mono); font-size: 11px; letter-spacing: .5px; color: var(--text-3); }
+  .sk-status.err { color: #e8a87c; }
+  .sk-facts { margin: 0; padding: 15px 16px; display: grid; grid-template-columns: auto 1fr; gap: 9px 16px; align-items: baseline; }
+  .sk-facts dt { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--slate); }
+  .sk-facts dd { margin: 0; font-size: 12.5px; color: var(--text-1); word-break: break-all; }
+  .sk-fp { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .sk-fp code { font-family: var(--font-mono); font-size: 12px; color: var(--accent); word-break: break-all; }
+  .sk-art { margin: 0; padding: 14px 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.28; color: var(--sage); white-space: pre; overflow-x: auto; }
+  .sk-keypanel .wb-panel-bar { text-transform: none; letter-spacing: .3px; color: var(--text-2); gap: 12px; }
+  .sk-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .sk-key { margin: 0; padding: 14px 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; color: var(--wb-ink); white-space: pre-wrap; word-break: break-all; max-height: 240px; overflow: auto; }
+  .sk-keypanel--private { border-color: color-mix(in oklab, #e8677a 42%, var(--wb-line)); }
+  .sk-keypanel--private .wb-panel-bar { color: #e8a3ad; border-bottom-color: color-mix(in oklab, #e8677a 30%, var(--wb-line)); }
+  .sk-badge-warn { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: #e0a458; border: 1px solid color-mix(in oklab, #e0a458 40%, transparent); border-radius: 2px; padding: 2px 6px; margin-left: 4px; white-space: nowrap; }
+  .sk-warn { margin-top: 14px; padding: 14px 16px; border: 1px solid color-mix(in oklab, #e0a458 34%, transparent); border-left: 2px solid #e0a458; border-radius: 3px; background: color-mix(in oklab, #e0a458 7%, transparent); font-size: 12.5px; line-height: 1.65; color: var(--text-2); }
+  .sk-warn strong { color: #f0c088; font-weight: 600; }
+  .sk-warn code { font-family: var(--font-mono); font-size: .92em; color: var(--accent); }
+  .sk-cmd { display: flex; align-items: center; gap: 10px; margin-top: 11px; flex-wrap: wrap; }
+  .sk-cmd code { flex: 1; min-width: 200px; font-family: var(--font-mono); font-size: 11.5px; color: var(--wb-ink); background: #06060d; border: 1px solid var(--wb-line); border-radius: 3px; padding: 9px 12px; overflow-x: auto; white-space: nowrap; }
+  .sk-steps { margin-top: 16px; }
+  .sk-steps summary { cursor: pointer; font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--slate); }
+  .sk-steps summary:hover { color: var(--wb-ink); }
+  .sk-steps ol { margin: 13px 0 0; padding-left: 20px; display: grid; gap: 9px; font-size: 13px; line-height: 1.6; color: var(--text-2); }
+  .sk-steps code { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent); background: color-mix(in oklab, var(--accent) 8%, transparent); padding: 1px 5px; border-radius: 2px; }
+  .tool-option[disabled] { opacity: .4; cursor: not-allowed; }
+  .tool-option[disabled]:hover { color: var(--text-2); background: transparent; }
 </style>
 
-<script>
-(function () {
-  var keyTypeBtns  = Array.prototype.slice.call(document.querySelectorAll('[data-keytype]'));
-  var ed25519Note  = document.getElementById('sk-ed25519-note');
-  var commentEl    = document.getElementById('sk-comment');
-  var passphraseEl = document.getElementById('sk-passphrase');
-  var generateBtn  = document.getElementById('sk-generate-btn');
-  var generatingEl = document.getElementById('sk-generating');
-  var errorEl      = document.getElementById('sk-error');
-  var resultsEl    = document.getElementById('sk-results');
-  var fingerprintEl= document.getElementById('sk-fingerprint');
-  var pubKeyEl     = document.getElementById('sk-public-key');
-  var privKeyEl    = document.getElementById('sk-private-key');
-  var copyPubBtn   = document.getElementById('sk-copy-pub');
-  var copyPrivBtn  = document.getElementById('sk-copy-priv');
-  var dlPubBtn     = document.getElementById('sk-download-pub');
-  var dlPrivBtn    = document.getElementById('sk-download-priv');
+<script type="module">
+  import { bytesToB64, b64ToBytes, strToBytes } from '/js/tools-lib.js';
 
-  var currentKeyType = 'RSA-2048';
+  var subtle = crypto.subtle;
 
-  keyTypeBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      keyTypeBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
-      btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
-      currentKeyType = btn.getAttribute('data-keytype');
-      ed25519Note.style.display = currentKeyType === 'Ed25519' ? '' : 'none';
+  // ---- SSH wire-format helpers ----
+  function u32(n) { return new Uint8Array([(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]); }
+  function concat(arrs) {
+    var len = 0, i; for (i = 0; i < arrs.length; i++) len += arrs[i].length;
+    var out = new Uint8Array(len), o = 0;
+    for (i = 0; i < arrs.length; i++) { out.set(arrs[i], o); o += arrs[i].length; }
+    return out;
+  }
+  function sshString(data) {
+    if (typeof data === 'string') data = strToBytes(data);
+    return concat([u32(data.length), data]);
+  }
+  // ssh mpint: two's-complement big-endian; leading 0x00 when the high bit is set (positive)
+  function mpint(bytes) {
+    var i = 0; while (i < bytes.length - 1 && bytes[i] === 0) i++;
+    bytes = bytes.slice(i);
+    if (bytes.length && (bytes[0] & 0x80)) bytes = concat([new Uint8Array([0]), bytes]);
+    return sshString(bytes);
+  }
+  function pemWrap(label, bytes, width) {
+    var b64 = bytesToB64(bytes), lines = [];
+    for (var i = 0; i < b64.length; i += width) lines.push(b64.slice(i, i + width));
+    return '-----BEGIN ' + label + '-----\n' + lines.join('\n') + '\n-----END ' + label + '-----\n';
+  }
+
+  // ---- OpenSSH private-key container (cipher "none", unencrypted) ----
+  function buildOpenSSHPrivate(pubBlob, privBlob, comment) {
+    var checkint = crypto.getRandomValues(new Uint8Array(4));
+    var priv = concat([checkint, checkint, privBlob, sshString(comment || '')]);
+    var block = 8, padLen = (block - (priv.length % block)) % block;
+    var pad = new Uint8Array(padLen);
+    for (var i = 0; i < padLen; i++) pad[i] = i + 1;
+    priv = concat([priv, pad]);
+    var body = concat([
+      strToBytes('openssh-key-v1\0'),
+      sshString('none'), sshString('none'), sshString(''),
+      u32(1), sshString(pubBlob), sshString(priv)
+    ]);
+    return pemWrap('OPENSSH PRIVATE KEY', body, 70);
+  }
+
+  // ---- SHA-256 fingerprint of the public-key blob ----
+  function fingerprint(pubBlob) {
+    return subtle.digest('SHA-256', pubBlob).then(function (d) {
+      return 'SHA256:' + bytesToB64(new Uint8Array(d)).replace(/=+$/, '');
     });
-  });
-
-  function bufferToBase64(buf) {
-    var bytes = new Uint8Array(buf);
-    var binary = '';
-    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    return btoa(binary);
   }
 
-  function base64ToUint8(b64) {
-    var binary = atob(b64);
-    var arr = new Uint8Array(binary.length);
-    for (var i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-    return arr;
-  }
-
-  function chunk(str, n) {
-    var result = [];
-    for (var i = 0; i < str.length; i += n) result.push(str.slice(i, i + n));
-    return result.join('\n');
-  }
-
-  // Convert RSA public key to OpenSSH wire format
-  function rsaPubKeyToOpenSSH(spkiBuffer, comment) {
-    var spki = new Uint8Array(spkiBuffer);
-    // Extract modulus and exponent from SPKI DER
-    // SPKI structure: SEQUENCE { SEQUENCE { OID, NULL }, BIT STRING { SEQUENCE { INTEGER n, INTEGER e } } }
-    // We parse the DER manually for the RSA key data
-    var keyName = 'ssh-rsa';
-    var keyNameBytes = new TextEncoder().encode(keyName);
-
-    // Parse DER to extract n and e
-    function readDER(buf, pos) {
-      var tag = buf[pos++];
-      var len = buf[pos++];
-      if (len & 0x80) {
-        var lenBytes = len & 0x7f;
-        len = 0;
-        for (var i = 0; i < lenBytes; i++) len = (len << 8) | buf[pos++];
+  // ---- drunken-bishop randomart over the SHA-256 digest (matches ssh-keygen -lv) ----
+  function randomart(pubBlob, typeLabel, bits) {
+    return subtle.digest('SHA-256', pubBlob).then(function (dig) {
+      var digest = new Uint8Array(dig), X = 17, Y = 9, field = [], i, j;
+      for (i = 0; i < X; i++) { field[i] = []; for (j = 0; j < Y; j++) field[i][j] = 0; }
+      var x = (X - 1) >> 1, y = (Y - 1) >> 1;
+      for (var n = 0; n < digest.length; n++) {
+        var byte = digest[n];
+        for (var s = 0; s < 4; s++) {
+          x += (byte & 1) ? 1 : -1;
+          y += (byte & 2) ? 1 : -1;
+          x = x < 0 ? 0 : x > X - 1 ? X - 1 : x;
+          y = y < 0 ? 0 : y > Y - 1 ? Y - 1 : y;
+          if (field[x][y] < 14) field[x][y]++;
+          byte >>= 2;
+        }
       }
-      return { tag: tag, length: len, start: pos, end: pos + len };
-    }
-
-    // Navigate SPKI to find the RSA BIT STRING
-    var pos = 0;
-    var outer = readDER(spki, pos); // SEQUENCE
-    pos = outer.start;
-    var algoSeq = readDER(spki, pos); // SEQUENCE (algorithm)
-    pos = algoSeq.end;
-    var bitString = readDER(spki, pos); // BIT STRING
-    // Skip the initial 0x00 byte of the bit string
-    var rsaPos = bitString.start + 1;
-    var rsaOuter = readDER(spki, rsaPos); // SEQUENCE
-    rsaPos = rsaOuter.start;
-    var modInfo = readDER(spki, rsaPos); // INTEGER (n)
-    var modulus = spki.slice(modInfo.start, modInfo.end);
-    rsaPos = modInfo.end;
-    var expInfo = readDER(spki, rsaPos); // INTEGER (e)
-    var exponent = spki.slice(expInfo.start, expInfo.end);
-
-    // Build wire format: uint32(len) + data for each field
-    function sshBytes(data) {
-      var len = data.length;
-      var arr = new Uint8Array(4 + len);
-      arr[0] = (len >>> 24) & 0xff;
-      arr[1] = (len >>> 16) & 0xff;
-      arr[2] = (len >>> 8)  & 0xff;
-      arr[3] =  len         & 0xff;
-      arr.set(data, 4);
-      return arr;
-    }
-
-    var parts = [sshBytes(keyNameBytes), sshBytes(exponent), sshBytes(modulus)];
-    var totalLen = parts.reduce(function (a, p) { return a + p.length; }, 0);
-    var wire = new Uint8Array(totalLen);
-    var offset = 0;
-    parts.forEach(function (p) { wire.set(p, offset); offset += p.length; });
-
-    var b64 = btoa(String.fromCharCode.apply(null, wire));
-    var commentStr = comment ? ' ' + comment : '';
-    return 'ssh-rsa ' + b64 + commentStr;
-  }
-
-  // Compute SHA-256 fingerprint of the public key wire format
-  function computeFingerprint(pubKeyLine) {
-    var parts = pubKeyLine.split(' ');
-    if (parts.length < 2) return Promise.reject(new Error('invalid key'));
-    var keyData = base64ToUint8(parts[1]);
-    return crypto.subtle.digest('SHA-256', keyData).then(function (buf) {
-      var b64 = bufferToBase64(buf);
-      return 'SHA256:' + b64.replace(/=+$/, '');
+      var chars = ' .o+=*BOX@%&#/^SE';
+      field[(X - 1) >> 1][(Y - 1) >> 1] = 15; // start 'S'
+      field[x][y] = 16;                        // end 'E'
+      function border(label) {
+        var w = X, l = label.length > w ? label.slice(0, w) : label;
+        var before = (w - l.length) >> 1, after = w - l.length - before;
+        return '+' + Array(before + 1).join('-') + l + Array(after + 1).join('-') + '+';
+      }
+      var rows = [border('[' + typeLabel + ' ' + bits + ']')];
+      for (j = 0; j < Y; j++) {
+        var row = '|';
+        for (i = 0; i < X; i++) row += chars[field[i][j] > 16 ? 16 : field[i][j]];
+        rows.push(row + '|');
+      }
+      rows.push(border('[SHA256]'));
+      return rows.join('\n');
     });
   }
 
-  // Encode RSA private key as PKCS#8 PEM (standard for OpenSSH)
-  function privKeyToPEM(pkcs8Buffer) {
-    var b64 = chunk(bufferToBase64(pkcs8Buffer), 64);
-    return '-----BEGIN PRIVATE KEY-----\n' + b64 + '\n-----END PRIVATE KEY-----';
-  }
-
-  function showError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = '';
-    resultsEl.style.display = 'none';
-  }
-
-  function hideError() {
-    errorEl.textContent = '';
-    errorEl.style.display = 'none';
-  }
-
-  function setGenerating(on) {
-    generateBtn.disabled = on;
-    generatingEl.style.display = on ? '' : 'none';
-  }
-
-  generateBtn.addEventListener('click', function () {
-    if (currentKeyType === 'Ed25519') {
-      showError('Ed25519 is not supported via the Web Crypto API. Please use RSA-2048 or RSA-4096, or run "ssh-keygen -t ed25519" on the command line.');
-      return;
-    }
-
-    hideError();
-    resultsEl.style.display = 'none';
-    setGenerating(true);
-
-    var modulusLength = currentKeyType === 'RSA-4096' ? 4096 : 2048;
-    var comment = commentEl.value.trim();
-
-    crypto.subtle.generateKey(
-      {
-        name: 'RSASSA-PKCS1-v1_5',
-        modulusLength: modulusLength,
-        publicExponent: new Uint8Array([1, 0, 1]),
-        hash: 'SHA-256'
-      },
-      true,
-      ['sign', 'verify']
-    ).then(function (keyPair) {
+  // ---- key generation ----
+  function genEd25519(comment) {
+    return subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']).then(function (kp) {
       return Promise.all([
-        crypto.subtle.exportKey('spki', keyPair.publicKey),
-        crypto.subtle.exportKey('pkcs8', keyPair.privateKey)
-      ]);
-    }).then(function (exported) {
-      var spkiBuf  = exported[0];
-      var pkcs8Buf = exported[1];
-
-      var pubKeyLine = rsaPubKeyToOpenSSH(spkiBuf, comment);
-      var privPEM    = privKeyToPEM(pkcs8Buf);
-
-      return computeFingerprint(pubKeyLine).then(function (fp) {
-        return { pubKeyLine: pubKeyLine, privPEM: privPEM, fingerprint: fp };
+        subtle.exportKey('raw', kp.publicKey).then(
+          function (r) { return new Uint8Array(r); },
+          function () { return subtle.exportKey('spki', kp.publicKey).then(function (s) { return new Uint8Array(s).slice(-32); }); }
+        ),
+        subtle.exportKey('pkcs8', kp.privateKey).then(function (p) { return new Uint8Array(p); })
+      ]).then(function (out) {
+        var pubRaw = out[0], pkcs8 = out[1], seed = pkcs8.slice(-32);
+        var pubBlob = concat([sshString('ssh-ed25519'), sshString(pubRaw)]);
+        var priv64 = concat([seed, pubRaw]);
+        var privBlob = concat([sshString('ssh-ed25519'), sshString(pubRaw), sshString(priv64)]);
+        return {
+          type: 'ed25519', displayType: 'Ed25519', typeLabel: 'ED25519', bits: 256,
+          algorithm: 'Ed25519 (EdDSA, 256-bit)',
+          pubLine: 'ssh-ed25519 ' + bytesToB64(pubBlob) + (comment ? ' ' + comment : ''),
+          pubBlob: pubBlob,
+          openssh: buildOpenSSHPrivate(pubBlob, privBlob, comment),
+          pkcs8: pemWrap('PRIVATE KEY', pkcs8, 64)
+        };
       });
-    }).then(function (result) {
-      setGenerating(false);
-      hideError();
-      resultsEl.style.display = '';
-
-      pubKeyEl.textContent  = result.pubKeyLine;
-      privKeyEl.textContent = result.privPEM;
-      fingerprintEl.textContent = result.fingerprint;
-    }).catch(function (e) {
-      setGenerating(false);
-      showError('Key generation failed: ' + e.message);
     });
-  });
+  }
 
+  function genRSA(bits, comment) {
+    return subtle.generateKey(
+      { name: 'RSASSA-PKCS1-v1_5', modulusLength: bits, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      true, ['sign', 'verify']
+    ).then(function (kp) {
+      return Promise.all([
+        subtle.exportKey('jwk', kp.privateKey),
+        subtle.exportKey('pkcs8', kp.privateKey).then(function (p) { return new Uint8Array(p); })
+      ]).then(function (out) {
+        var jwk = out[0], pkcs8 = out[1];
+        var n = b64ToBytes(jwk.n), e = b64ToBytes(jwk.e), d = b64ToBytes(jwk.d),
+            p = b64ToBytes(jwk.p), q = b64ToBytes(jwk.q), iqmp = b64ToBytes(jwk.qi);
+        var pubBlob = concat([sshString('ssh-rsa'), mpint(e), mpint(n)]);
+        var privBlob = concat([sshString('ssh-rsa'), mpint(n), mpint(e), mpint(d), mpint(iqmp), mpint(p), mpint(q)]);
+        return {
+          type: bits === 4096 ? 'rsa-4096' : 'rsa-2048', displayType: 'RSA', typeLabel: 'RSA', bits: bits,
+          algorithm: 'RSA ' + bits + '-bit (RSASSA-PKCS1-v1_5, SHA-256)',
+          pubLine: 'ssh-rsa ' + bytesToB64(pubBlob) + (comment ? ' ' + comment : ''),
+          pubBlob: pubBlob,
+          openssh: buildOpenSSHPrivate(pubBlob, privBlob, comment),
+          pkcs8: pemWrap('PRIVATE KEY', pkcs8, 64)
+        };
+      });
+    });
+  }
+
+  // ---- DOM ----
+  var typeBtns   = Array.prototype.slice.call(document.querySelectorAll('[data-type]'));
+  var fmtBtns    = Array.prototype.slice.call(document.querySelectorAll('[data-format]'));
+  var edBtn      = document.querySelector('[data-type="ed25519"]');
+  var pkcs8Btn   = document.querySelector('[data-format="pkcs8"]');
+  var fmtGroup   = document.getElementById('sk-format-group');
+  var typeHint   = document.getElementById('sk-type-hint');
+  var edUnsup    = document.getElementById('sk-ed-unsupported');
+  var commentEl  = document.getElementById('sk-comment');
+  var genBtn     = document.getElementById('sk-gen');
+  var exampleBtn = document.getElementById('sk-example');
+  var statusEl   = document.getElementById('sk-status');
+  var errorEl    = document.getElementById('sk-error');
+  var resultsEl  = document.getElementById('sk-results');
+  var algoBadge  = document.getElementById('sk-algo-badge');
+  var fpEl       = document.getElementById('sk-fp');
+  var algoEl     = document.getElementById('sk-algo');
+  var commentOut = document.getElementById('sk-comment-out');
+  var artEl      = document.getElementById('sk-art');
+  var pubNameEl  = document.getElementById('sk-pub-name');
+  var pubEl      = document.getElementById('sk-pub');
+  var privFmtEl  = document.getElementById('sk-priv-format');
+  var privNameEl = document.getElementById('sk-priv-name');
+  var privEl     = document.getElementById('sk-priv');
+  var cmdText    = document.getElementById('sk-cmd-text');
+  var stepPriv   = document.getElementById('sk-step-priv');
+  var stepChmod  = document.getElementById('sk-step-chmod');
+  var stepPass   = document.getElementById('sk-step-pass');
+  var stepCopy   = document.getElementById('sk-step-copy');
+
+  var HINTS = {
+    'ed25519': 'Modern, fast, and compact — the recommended choice for new keys. Exported in the native OpenSSH private-key format (OpenSSH tools cannot load PKCS#8 Ed25519 keys, so that option is unavailable here).',
+    'rsa-2048': 'Broadly compatible with older servers. 2048-bit is the practical minimum. Export as OpenSSH or PKCS#8 PEM.',
+    'rsa-4096': 'Broadly compatible and stronger for long-lived keys, at some signing-speed cost. Export as OpenSSH or PKCS#8 PEM.'
+  };
+
+  var currentType = 'ed25519';
+  var currentFormat = 'openssh';
+  var ed25519Supported = true;
+  var mat = null; // last generated key material
+
+  function setActive(btns, attr, val) {
+    btns.forEach(function (b) {
+      var on = b.getAttribute(attr) === val;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  function hideResults() { resultsEl.style.display = 'none'; }
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = ''; hideResults(); }
+  function hideError() { errorEl.textContent = ''; errorEl.style.display = 'none'; }
+  function setBusy(on) { genBtn.disabled = on; exampleBtn.disabled = on; statusEl.classList.remove('err'); statusEl.textContent = on ? 'Generating…' : ''; }
+
+  function updateHint() {
+    typeHint.textContent = HINTS[currentType] || '';
+    var isEd = currentType === 'ed25519';
+    pkcs8Btn.disabled = isEd;
+    pkcs8Btn.setAttribute('aria-disabled', String(isEd));
+    fmtGroup.style.opacity = isEd ? '.5' : '';
+    if (isEd && currentFormat === 'pkcs8') selectFormat('openssh');
+  }
+
+  function selectType(type) {
+    if (type === 'ed25519' && !ed25519Supported) type = 'rsa-2048';
+    currentType = type;
+    setActive(typeBtns, 'data-type', type);
+    updateHint();
+    hideResults();
+    hideError();
+  }
+
+  function selectFormat(fmt) {
+    if (fmt === 'pkcs8' && currentType === 'ed25519') fmt = 'openssh';
+    currentFormat = fmt;
+    setActive(fmtBtns, 'data-format', fmt);
+    if (mat && resultsEl.style.display !== 'none') renderPrivate();
+  }
+
+  typeBtns.forEach(function (b) { b.addEventListener('click', function () { if (b.disabled) return; selectType(b.getAttribute('data-type')); }); });
+  fmtBtns.forEach(function (b) { b.addEventListener('click', function () { if (b.disabled) return; selectFormat(b.getAttribute('data-format')); }); });
+
+  function cleanComment(v) { return String(v || '').replace(/[\x00-\x1f\x7f]/g, ' ').trim(); }
+
+  function generate() {
+    hideError();
+    setBusy(true);
+    var comment = cleanComment(commentEl.value);
+    var job = currentType === 'ed25519'
+      ? genEd25519(comment)
+      : genRSA(currentType === 'rsa-4096' ? 4096 : 2048, comment);
+    job.then(function (k) {
+      return Promise.all([fingerprint(k.pubBlob), randomart(k.pubBlob, k.typeLabel, k.bits)]).then(function (extra) {
+        k.comment = comment; k.fingerprint = extra[0]; k.art = extra[1];
+        mat = k;
+        renderResults();
+        setBusy(false);
+      });
+    }).catch(function (e) {
+      setBusy(false);
+      var msg = currentType === 'ed25519'
+        ? 'Ed25519 generation failed in this browser (' + e.message + '). Try RSA-2048 or RSA-4096.'
+        : 'Key generation failed: ' + e.message;
+      showError(msg);
+      statusEl.classList.add('err');
+      statusEl.textContent = 'Failed';
+      if (window.PF) window.PF.fail(e.message);
+    });
+  }
+
+  function renderResults() {
+    resultsEl.style.display = '';
+    algoBadge.textContent = mat.displayType + ' · ' + mat.bits + '-bit';
+    fpEl.textContent = mat.fingerprint;
+    algoEl.textContent = mat.algorithm;
+    commentOut.textContent = mat.comment || '(none)';
+    artEl.textContent = mat.art;
+    pubNameEl.textContent = pubFileName();
+    pubEl.textContent = mat.pubLine;
+    var fn = privBaseName();
+    cmdText.textContent = 'chmod 600 ' + fn + ' && ssh-keygen -p -f ' + fn;
+    stepPriv.textContent = '~/.ssh/' + fn;
+    stepChmod.textContent = 'chmod 600 ~/.ssh/' + fn;
+    stepPass.textContent = 'ssh-keygen -p -f ~/.ssh/' + fn;
+    stepCopy.textContent = 'ssh-copy-id -i ~/.ssh/' + fn + '.pub user@host';
+    renderPrivate();
+  }
+
+  function pubFileName() { return (mat.type === 'ed25519' ? 'id_ed25519' : 'id_rsa') + '.pub'; }
+  function privBaseName() { return mat.type === 'ed25519' ? 'id_ed25519' : 'id_rsa'; }
+
+  function renderPrivate() {
+    var useFmt = mat.type === 'ed25519' ? 'openssh' : currentFormat;
+    var text, name, label;
+    if (useFmt === 'pkcs8') { text = mat.pkcs8; name = 'id_rsa.pem'; label = 'PKCS#8 PEM'; }
+    else { text = mat.openssh; name = privBaseName(); label = 'OpenSSH'; }
+    privEl.textContent = text;
+    privFmtEl.textContent = label;
+    privNameEl.textContent = name;
+    privEl._file = name;
+    publish(useFmt, text);
+  }
+
+  function publish(fmt, privText) {
+    if (!window.PF) return;
+    window.PF.ready({
+      output: mat.pubLine,
+      data: {
+        type: mat.type, bits: mat.bits, algorithm: mat.algorithm, comment: mat.comment || null,
+        fingerprint: mat.fingerprint, publicKey: mat.pubLine,
+        privateKey: privText, privateKeyFormat: fmt, privateKeyEncrypted: false,
+        randomart: mat.art
+      }
+    });
+  }
+
+  // ---- copy / download ----
   function copyText(text, btn) {
     if (!text) return;
+    function done(ok) {
+      btn.classList.add('copied');
+      btn.textContent = ok ? 'Copied' : 'Failed';
+      setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+    }
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () {
-        btn.textContent = 'Copied!';
-        setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
-      }).catch(function () {
-        btn.textContent = 'Failed';
-        setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
-      });
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
     } else {
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.cssText = 'position:fixed;opacity:0;';
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); btn.textContent = 'Copied!'; } catch(e) { btn.textContent = 'Failed'; }
-      document.body.removeChild(ta);
-      setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta); done(true);
+      } catch (e) { done(false); }
     }
   }
-
-  function downloadText(text, filename) {
+  function download(text, filename) {
     var blob = new Blob([text], { type: 'text/plain' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
 
-  copyPubBtn.addEventListener('click', function () { copyText(pubKeyEl.textContent, copyPubBtn); });
-  copyPrivBtn.addEventListener('click', function () { copyText(privKeyEl.textContent, copyPrivBtn); });
-  dlPubBtn.addEventListener('click', function () { downloadText(pubKeyEl.textContent, 'id_rsa.pub'); });
-  dlPrivBtn.addEventListener('click', function () { downloadText(privKeyEl.textContent, 'id_rsa'); });
-})();
+  document.getElementById('sk-fp-copy').addEventListener('click', function () { copyText(fpEl.textContent, this); });
+  document.getElementById('sk-pub-copy').addEventListener('click', function () { copyText(pubEl.textContent, this); });
+  document.getElementById('sk-priv-copy').addEventListener('click', function () { copyText(privEl.textContent, this); });
+  document.getElementById('sk-cmd-copy').addEventListener('click', function () { copyText(cmdText.textContent, this); });
+  document.getElementById('sk-pub-dl').addEventListener('click', function () { download(pubEl.textContent, pubFileName()); });
+  document.getElementById('sk-priv-dl').addEventListener('click', function () { download(privEl.textContent, privEl._file || privBaseName()); });
+
+  genBtn.addEventListener('click', generate);
+  exampleBtn.addEventListener('click', function () { commentEl.value = 'ada@workstation'; generate(); });
+
+  // ---- feature-detect Ed25519, then handle URL / agent auto-invoke ----
+  function probeEd25519() {
+    try {
+      return subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']).then(function () { return true; }, function () { return false; });
+    } catch (e) { return Promise.resolve(false); }
+  }
+
+  var TYPE_ALIASES = {
+    'ed25519': 'ed25519', 'ed': 'ed25519', 'eddsa': 'ed25519',
+    'rsa': 'rsa-2048', 'rsa-2048': 'rsa-2048', 'rsa2048': 'rsa-2048', '2048': 'rsa-2048',
+    'rsa-4096': 'rsa-4096', 'rsa4096': 'rsa-4096', '4096': 'rsa-4096'
+  };
+
+  function handleAuto() {
+    if (!window.PF) return;
+    var p = window.PF.input();
+    var raw = (p.type != null ? p.type : (p.in != null ? p.in : '')).toString().toLowerCase().trim();
+    var typed = TYPE_ALIASES[raw];
+    if (typed) selectType(typed);
+    if (p.format != null) selectFormat(String(p.format).toLowerCase() === 'pkcs8' ? 'pkcs8' : 'openssh');
+    if (p.comment != null) commentEl.value = p.comment;
+    if (typed || p.comment != null || p.format != null || p.gen != null || (p.in != null)) generate();
+  }
+
+  updateHint();
+  probeEd25519().then(function (ok) {
+    ed25519Supported = ok;
+    if (!ok) {
+      edBtn.disabled = true;
+      edBtn.setAttribute('aria-disabled', 'true');
+      edBtn.title = "Ed25519 is not implemented by this browser's Web Crypto.";
+      edUnsup.style.display = '';
+      selectType('rsa-2048');
+    }
+    handleAuto();
+  });
 </script>

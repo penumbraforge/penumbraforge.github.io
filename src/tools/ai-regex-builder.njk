@@ -1,0 +1,450 @@
+---
+toolSlug: ai-regex-builder
+permalink: /tools/ai-regex-builder/
+---
+<style>
+  .rx-mode { margin-bottom: 22px; }
+  .rx-panel[hidden] { display: none; }
+  .rx-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 20px; }
+  .rx-hint { font-family: var(--font-mono); font-size: 11px; letter-spacing: .4px; color: var(--text-3); }
+  .rx-link { background: none; border: 0; padding: 0; cursor: pointer; color: var(--accent);
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .4px; text-decoration: underline;
+    text-underline-offset: 3px; }
+  .rx-link:hover { color: #fff; }
+  .rx-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: -6px 0 20px; }
+  .rx-sectlabel { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--slate); margin: 22px 0 9px; display: flex;
+    align-items: center; gap: 10px; }
+  .rx-sectlabel .rx-copy { margin-left: auto; }
+  .rx-fieldrow { display: flex; gap: 10px; align-items: stretch; }
+  .rx-fieldrow input { flex: 1; }
+  .rx-meta { font-family: var(--font-mono); font-size: 12px; color: var(--text-2);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px 0 8px; }
+  .rx-count { color: var(--sage); }
+  .rx-count.zero { color: #e8a87c; }
+  .rx-note { color: var(--text-3); }
+  .rx-err { color: #e8a87c; }
+  .rx-highlight { white-space: pre-wrap; word-break: break-word; min-height: 58px; }
+  .rx-highlight mark.rx-mark { background: color-mix(in oklab, var(--accent) 30%, transparent);
+    color: #fff; border-radius: 2px; outline: 1px solid color-mix(in oklab, var(--accent) 60%, transparent);
+    padding: 0 1px; }
+  .rx-out { white-space: pre-wrap; word-break: break-word; min-height: 60px; }
+  .rx-out:empty::before { content: attr(data-empty); color: var(--text-3); }
+  .rx-valid { font-family: var(--font-mono); font-size: 12px; }
+  .rx-valid.ok { color: var(--sage); }
+  .rx-valid.bad { color: #e8a87c; }
+</style>
+
+<div class="tool-options rx-mode" role="tablist" aria-label="Mode">
+  <button class="tool-option active" id="modeBuild" role="tab" aria-selected="true" data-mode="build">English → Regex</button>
+  <button class="tool-option" id="modeExplain" role="tab" aria-selected="false" data-mode="explain">Explain a Regex</button>
+</div>
+
+<!-- ============ BUILD MODE ============ -->
+<div class="rx-panel" id="buildPanel">
+  <div class="tool-group">
+    <label for="descIn">Describe the pattern in plain English</label>
+    <textarea id="descIn" rows="3" spellcheck="false" autocomplete="off"
+      placeholder="e.g. match US phone numbers with an optional +1 country code"></textarea>
+  </div>
+
+  <div class="rx-chips" aria-label="Example descriptions">
+    <button class="tool-option rx-ex" type="button" data-desc="match US phone numbers with an optional +1 country code" data-sample="Call +1 (415) 555-0192 or 212-555-7788 today.&#10;Not a phone: order #4155550192xyz, ext 12.&#10;Reach us: 1-800-555-0100.">US phone numbers</button>
+    <button class="tool-option rx-ex" type="button" data-desc="match valid email addresses" data-sample="ping penumbra@forge.dev and Ada.L+news@sub.example.co.uk&#10;bad ones: foo@, @bar.com, name@no-tld">Email addresses</button>
+    <button class="tool-option rx-ex" type="button" data-desc="match hex color codes like #fff or #1a2b3c" data-sample="Palette: #b8a5d6, #06060D, shorthand #fff, and #A0F.&#10;Reject: #12, #gggggg, ffffff">Hex colors</button>
+    <button class="tool-option rx-ex" type="button" data-desc="match ISO 8601 dates in YYYY-MM-DD form" data-sample="Due 2026-07-16 and 1999-12-31.&#10;Not dates: 2026/07/16, 20260716, 2026-13-40">ISO dates</button>
+    <button class="tool-option rx-ex" type="button" data-desc="capture the semantic version number from a release tag like v1.2.3" data-sample="v1.2.3 shipped; also 10.0.0-rc.1 and version 2.14.7 out now.">Semver</button>
+  </div>
+
+  <div class="tool-row" style="align-items:flex-end;">
+    <div class="tool-group" style="flex:0 0 auto;">
+      <label style="display:block;">Regex flavor</label>
+      <div class="tool-options" role="group" aria-label="Regex flavor" style="margin-bottom:0;">
+        <button class="tool-option active" type="button" data-flavor="js" aria-pressed="true">JavaScript</button>
+        <button class="tool-option" type="button" data-flavor="pcre" aria-pressed="false">PCRE</button>
+        <button class="tool-option" type="button" data-flavor="python" aria-pressed="false">Python</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-group">
+    <label for="sampleIn">Sample text to test against <span style="text-transform:none;letter-spacing:0;color:var(--text-3);">(optional — enables live verification)</span></label>
+    <textarea id="sampleIn" rows="4" spellcheck="false" autocomplete="off"
+      placeholder="Paste text you expect the pattern to match (and some it shouldn't)…"></textarea>
+  </div>
+
+  <div class="rx-actions">
+    <button class="btn btn--primary" id="genBtn" type="button">Generate regex</button>
+    <button class="ai-stop" id="genStop" type="button" hidden>Stop</button>
+    <button class="rx-link" id="loadExample" type="button">Load example</button>
+    <span class="ai-status" id="genStatus" role="status" aria-live="polite"></span>
+  </div>
+
+  <div class="rx-sectlabel">Model output
+    <button class="btn btn--copy rx-copy" id="copyOut" type="button" style="position:static;padding:6px 12px;font-size:11px;">Copy</button>
+  </div>
+  <div class="output-area rx-out" id="buildOut" data-empty="The regex, an explanation, and example matches will stream here." aria-live="polite"></div>
+
+  <div class="rx-sectlabel">Tested regex
+    <button class="btn btn--copy rx-copy" id="copyRegex" type="button" style="position:static;padding:6px 12px;font-size:11px;">Copy regex</button>
+  </div>
+  <div class="rx-fieldrow">
+    <input type="text" id="rxField" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
+      placeholder="Generated pattern appears here — you can edit it and it re-tests live" style="font-family:var(--font-mono);">
+  </div>
+
+  <div class="rx-meta" aria-live="polite">
+    <span class="rx-count zero" id="rxCount">Add sample text, then generate or type a pattern to test it live.</span>
+    <span class="rx-note" id="rxNote"></span>
+  </div>
+  <div class="output-area rx-highlight" id="rxHighlight" aria-label="Live match highlight"></div>
+</div>
+
+<!-- ============ EXPLAIN MODE ============ -->
+<div class="rx-panel" id="explainPanel" hidden>
+  <div class="tool-group">
+    <label for="rxIn">Paste a regular expression</label>
+    <textarea id="rxIn" rows="3" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
+      placeholder="e.g. ^(?&lt;user&gt;[\w.+-]+)@(?&lt;domain&gt;[\w-]+\.[\w.-]+)$" style="font-family:var(--font-mono);"></textarea>
+  </div>
+
+  <div class="rx-actions">
+    <button class="btn btn--primary" id="explainBtn" type="button">Explain it</button>
+    <button class="ai-stop" id="explainStop" type="button" hidden>Stop</button>
+    <button class="rx-link" id="loadExplainExample" type="button">Load example</button>
+    <span class="rx-valid" id="rxValid" aria-live="polite"></span>
+    <span class="ai-status" id="explainStatus" role="status" aria-live="polite"></span>
+  </div>
+
+  <div class="rx-sectlabel">Plain-English breakdown
+    <button class="btn btn--copy rx-copy" id="copyExplain" type="button" style="position:static;padding:6px 12px;font-size:11px;">Copy</button>
+  </div>
+  <div class="output-area rx-out" id="explainOut" data-empty="A sentence summary, a token-by-token breakdown, and gotchas will stream here." aria-live="polite"></div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var AIUI = window.PenumbraAIUI;
+
+  /* ---------------- Mode switching ---------------- */
+  var buildPanel = $('buildPanel'), explainPanel = $('explainPanel');
+  var modeBuild = $('modeBuild'), modeExplain = $('modeExplain');
+  function setMode(mode) {
+    var build = mode === 'build';
+    modeBuild.classList.toggle('active', build);
+    modeExplain.classList.toggle('active', !build);
+    modeBuild.setAttribute('aria-selected', build ? 'true' : 'false');
+    modeExplain.setAttribute('aria-selected', build ? 'false' : 'true');
+    buildPanel.hidden = !build;
+    explainPanel.hidden = build;
+  }
+  modeBuild.addEventListener('click', function () { setMode('build'); });
+  modeExplain.addEventListener('click', function () { setMode('explain'); });
+
+  /* ---------------- Flavor selector ---------------- */
+  var flavor = 'js';
+  var flavorLabels = {
+    js: 'JavaScript (ECMAScript, usable with new RegExp())',
+    pcre: 'PCRE (Perl-compatible: PHP, grep -P, many others)',
+    python: "Python's re module"
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-flavor]'), function (btn) {
+    btn.addEventListener('click', function () {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-flavor]'), function (b) {
+        b.classList.remove('active'); b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      flavor = btn.getAttribute('data-flavor');
+      verify();
+    });
+  });
+
+  /* ---------------- Copy helper ---------------- */
+  function wireCopy(btn, getText) {
+    btn.addEventListener('click', function () {
+      var t = (getText() || '').trim();
+      if (!t) return;
+      var done = function () {
+        btn.classList.add('copied');
+        var orig = btn.textContent; btn.textContent = 'Copied';
+        setTimeout(function () { btn.classList.remove('copied'); btn.textContent = orig; }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(done, function () {});
+      }
+    });
+  }
+  wireCopy($('copyOut'), function () { return $('buildOut').textContent; });
+  wireCopy($('copyRegex'), function () { return $('rxField').value; });
+  wireCopy($('copyExplain'), function () { return $('explainOut').textContent; });
+
+  /* ---------------- Regex extraction from model text ---------------- */
+  function extractRegex(text) {
+    var candidate = '';
+    var fence = text.match(/```[a-zA-Z]*\s*\n?([\s\S]*?)```/);
+    if (fence) {
+      candidate = fence[1].trim();
+    } else {
+      var inline = text.match(/`([^`\n]{2,})`/);
+      if (inline) candidate = inline[1].trim();
+      else {
+        var slashy = text.match(/(^|[\s:])(\/(?:\\.|[^\/\n])+\/[a-z]*)(\s|$)/m);
+        if (slashy) candidate = slashy[2].trim();
+      }
+    }
+    if (!candidate) return '';
+    /* first non-empty line only */
+    var lines = candidate.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i].trim();
+      if (ln) return ln;
+    }
+    return '';
+  }
+
+  /* split /pattern/flags  OR  bare pattern */
+  function splitPattern(raw) {
+    raw = raw.trim();
+    if (raw.length > 2 && raw.charAt(0) === '/') {
+      var last = raw.lastIndexOf('/');
+      if (last > 0) {
+        var fl = raw.slice(last + 1);
+        if (/^[gimsuy]*$/.test(fl)) return { pattern: raw.slice(1, last), flags: fl };
+      }
+    }
+    return { pattern: raw, flags: '' };
+  }
+
+  /* Best-effort normalization so PCRE/Python patterns can be *tested* as JS RegExp.
+     Only affects the live-test RegExp, never the displayed pattern. */
+  function normalizeForJs(pattern) {
+    var changed = false, addFlags = '';
+    var out = pattern;
+    /* named groups: (?P<name>  ->  (?<name>   and backrefs (?P=name) -> \k<name> */
+    if (/\(\?P[<=]/.test(out)) {
+      out = out.replace(/\(\?P</g, '(?<').replace(/\(\?P=(\w+)\)/g, '\\k<$1>');
+      changed = true;
+    }
+    /* leading inline flags like (?i) (?im) (?s) -> lift to real flags */
+    var inline = out.match(/^\(\?([a-z]+)\)/);
+    if (inline) {
+      var f = inline[1];
+      if (/[ims]/.test(f)) { addFlags += f.replace(/[^ims]/g, ''); }
+      out = out.slice(inline[0].length);
+      changed = true;
+    }
+    /* anchors \A -> ^ , \Z or \z -> $ */
+    if (/\\[AZz]/.test(out)) {
+      out = out.replace(/\\A/g, '^').replace(/\\[Zz]/g, '$');
+      changed = true;
+    }
+    /* possessive quantifiers a++ a*+ a?+ {n,m}+ -> greedy (drop trailing +) */
+    if (/([*+?}])\+/.test(out)) {
+      out = out.replace(/([*+?}])\+/g, '$1');
+      changed = true;
+    }
+    return { pattern: out, addFlags: addFlags, changed: changed };
+  }
+
+  /* ---------------- Live verification ---------------- */
+  var rxField = $('rxField'), sampleIn = $('sampleIn');
+  var rxHighlight = $('rxHighlight'), rxCount = $('rxCount'), rxNote = $('rxNote');
+
+  function clearNode(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+
+  function renderPlain(text) {
+    clearNode(rxHighlight);
+    rxHighlight.appendChild(document.createTextNode(text || ''));
+  }
+
+  function verify() {
+    var raw = rxField.value.trim();
+    var text = sampleIn.value;
+    rxNote.textContent = '';
+    rxCount.className = 'rx-count zero';
+
+    if (!raw) {
+      rxCount.textContent = 'Add sample text, then generate or type a pattern to test it live.';
+      renderPlain(text);
+      return;
+    }
+    if (!text) {
+      rxCount.textContent = 'Add sample text above to see live matches.';
+      clearNode(rxHighlight);
+      return;
+    }
+
+    var sp = splitPattern(raw);
+    var testPattern = sp.pattern;
+    var testFlags = sp.flags.replace(/[^gimsuy]/g, '');
+
+    if (flavor !== 'js') {
+      var norm = normalizeForJs(sp.pattern);
+      testPattern = norm.pattern;
+      for (var i = 0; i < norm.addFlags.length; i++) {
+        if (testFlags.indexOf(norm.addFlags[i]) < 0) testFlags += norm.addFlags[i];
+      }
+      if (norm.changed) rxNote.textContent = '· normalized to a JS-equivalent form for this live test';
+    }
+    if (testFlags.indexOf('g') < 0) testFlags += 'g';
+
+    var re;
+    try {
+      re = new RegExp(testPattern, testFlags);
+    } catch (err) {
+      rxCount.textContent = 'Not valid as a JavaScript RegExp';
+      rxCount.className = 'rx-count zero';
+      rxNote.textContent = '· ' + err.message;
+      rxNote.className = 'rx-err';
+      renderPlain(text);
+      return;
+    }
+    rxNote.className = 'rx-note';
+
+    /* Build highlighted DOM safely — text nodes + <mark>, never innerHTML */
+    clearNode(rxHighlight);
+    var frag = document.createDocumentFragment();
+    var cursor = 0, count = 0, guard = 0, m;
+    re.lastIndex = 0;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, m.index)));
+      var mk = document.createElement('mark');
+      mk.className = 'rx-mark';
+      mk.textContent = text.slice(m.index, m.index + m[0].length);
+      frag.appendChild(mk);
+      cursor = m.index + m[0].length;
+      count++;
+      if (m[0].length === 0) re.lastIndex++;
+      if (++guard > 20000) break;
+    }
+    if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
+    rxHighlight.appendChild(frag);
+
+    rxCount.textContent = count === 0 ? 'No matches' : (count + (count === 1 ? ' match' : ' matches'));
+    rxCount.className = 'rx-count' + (count === 0 ? ' zero' : '');
+  }
+
+  rxField.addEventListener('input', verify);
+  sampleIn.addEventListener('input', verify);
+
+  /* ---------------- Example loaders ---------------- */
+  var descIn = $('descIn');
+  Array.prototype.forEach.call(document.querySelectorAll('.rx-ex'), function (btn) {
+    btn.addEventListener('click', function () {
+      descIn.value = btn.getAttribute('data-desc') || '';
+      var s = btn.getAttribute('data-sample');
+      if (s) sampleIn.value = s;
+      descIn.focus();
+    });
+  });
+  $('loadExample').addEventListener('click', function () {
+    descIn.value = 'match US phone numbers with an optional +1 country code';
+    sampleIn.value = 'Call +1 (415) 555-0192 or 212-555-7788 today.\nNot a phone: order #4155550192xyz.\nReach us at 1-800-555-0100.';
+    descIn.focus();
+  });
+  $('loadExplainExample').addEventListener('click', function () {
+    $('rxIn').value = '^(?<user>[\\w.+-]+)@(?<domain>[\\w-]+\\.[\\w.-]+)$';
+    checkValidity();
+    $('rxIn').focus();
+  });
+
+  /* ---------------- Empty-input inline error ---------------- */
+  function showInlineError(afterEl, msg) {
+    var existing = afterEl.parentNode.querySelector('.rx-inline-err');
+    if (existing) existing.parentNode.removeChild(existing);
+    var e = document.createElement('div');
+    e.className = 'tool-error rx-inline-err';
+    e.style.marginTop = '12px';
+    e.textContent = msg;
+    afterEl.parentNode.insertBefore(e, afterEl.nextSibling);
+    setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 4000);
+  }
+
+  /* ---------------- Build: generate ---------------- */
+  var genBtn = $('genBtn'), genStop = $('genStop'), genStatus = $('genStatus'), buildOut = $('buildOut');
+
+  function buildSystemPrompt() {
+    return 'You are a precise regular-expression engineer. The user describes, in plain English, a text pattern. '
+      + 'Target flavor: ' + flavorLabels[flavor] + '.\n'
+      + 'Respond in EXACTLY this structure and nothing else:\n'
+      + '1. A single fenced code block (```), containing ONLY the regular expression itself — no /slashes/, no flags, no prose.\n'
+      + '2. A line starting "Explanation:" that plainly states what it matches.\n'
+      + '3. Two lines, each starting "Example match:", showing a concrete string the pattern matches.\n'
+      + 'Prefer a correct, readable pattern over a clever one. Escape literals properly for the target flavor. '
+      + 'Do not add flags or delimiters inside the code block.';
+  }
+
+  genBtn.addEventListener('click', function () {
+    if (!AIUI) { showInlineError(genBtn.parentNode, 'AI runtime not loaded. Pick an engine with “Engine ▾” above.'); return; }
+    var desc = descIn.value.trim();
+    if (!desc) { showInlineError(genBtn.parentNode, 'Describe the pattern you want first — e.g. “match US phone numbers”.'); descIn.focus(); return; }
+
+    var userMsg = 'Description: ' + desc;
+    if (sampleIn.value.trim()) userMsg += '\n\nSample text it should work on:\n' + sampleIn.value.trim();
+
+    genBtn.disabled = true;
+    var handle = AIUI.stream(buildOut, {
+      system: buildSystemPrompt(),
+      messages: [{ role: 'user', content: userMsg }],
+      temperature: 0.2,
+      statusEl: genStatus,
+      cancelBtn: genStop,
+      onToken: function (t, acc) {
+        /* progressively surface the regex as soon as a code fence closes */
+        var r = extractRegex(acc);
+        if (r && r !== rxField.value) { rxField.value = r; }
+      },
+      onDone: function (full) {
+        genBtn.disabled = false;
+        var r = extractRegex(full);
+        if (r) { rxField.value = r; }
+        verify();
+      }
+    });
+    handle.promise.catch(function () { genBtn.disabled = false; });
+  });
+
+  /* ---------------- Explain mode ---------------- */
+  var rxIn = $('rxIn'), explainBtn = $('explainBtn'), explainStop = $('explainStop');
+  var explainStatus = $('explainStatus'), explainOut = $('explainOut'), rxValid = $('rxValid');
+
+  function checkValidity() {
+    var v = rxIn.value.trim();
+    if (!v) { rxValid.textContent = ''; rxValid.className = 'rx-valid'; return; }
+    var sp = splitPattern(v);
+    try {
+      new RegExp(sp.pattern, sp.flags);
+      rxValid.textContent = 'valid JavaScript RegExp';
+      rxValid.className = 'rx-valid ok';
+    } catch (e) {
+      rxValid.textContent = 'not JS-compatible: ' + e.message;
+      rxValid.className = 'rx-valid bad';
+    }
+  }
+  rxIn.addEventListener('input', checkValidity);
+
+  explainBtn.addEventListener('click', function () {
+    if (!AIUI) { showInlineError(explainBtn.parentNode, 'AI runtime not loaded. Pick an engine with “Engine ▾” above.'); return; }
+    var v = rxIn.value.trim();
+    if (!v) { showInlineError(explainBtn.parentNode, 'Paste a regular expression to explain.'); rxIn.focus(); return; }
+
+    var sys = 'You are a patient regex teacher. The user pastes a regular expression. Explain it clearly for a developer who is not a regex expert:\n'
+      + '- Start with one sentence summarizing what the whole pattern matches.\n'
+      + '- Then a token-by-token breakdown as a bulleted list; for each piece, show the piece and what it does.\n'
+      + '- End with a short "Gotchas:" note covering anchors, greedy vs lazy, escaping, or engine-specific constructs — only if relevant.\n'
+      + 'Be accurate and concise. Do not invent behavior. If a construct is specific to a particular engine, say which.';
+
+    explainBtn.disabled = true;
+    var handle = AIUI.stream(explainOut, {
+      system: sys,
+      messages: [{ role: 'user', content: 'Explain this regular expression:\n' + v }],
+      temperature: 0.2,
+      statusEl: explainStatus,
+      cancelBtn: explainStop,
+      onDone: function () { explainBtn.disabled = false; }
+    });
+    handle.promise.catch(function () { explainBtn.disabled = false; });
+  });
+})();
+</script>

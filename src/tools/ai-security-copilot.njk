@@ -1,0 +1,645 @@
+---
+toolSlug: ai-security-copilot
+permalink: /tools/ai-security-copilot/
+---
+{% raw %}
+<style>
+  .sec-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .sec-toolbar-r { display: flex; gap: 8px; }
+  .sec-hint { font-size: 12px; line-height: 1.55; color: var(--text-3); margin: 8px 2px 18px; }
+  .sec-hint kbd { font-family: var(--font-mono); font-size: 10.5px; background: color-mix(in oklab, var(--accent) 10%, transparent); border: 1px solid var(--wb-line); border-radius: 3px; padding: 1px 5px; color: var(--text-2); }
+  .sec-run { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 14px; }
+  .sec-detected { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.5px; color: var(--accent); border: 1px solid var(--wb-line-bright); padding: 4px 9px; border-radius: 2px; }
+  .sec-section { margin-top: 22px; }
+  .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .sec-head-l { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--slate); }
+  .sec-head-l em { font-style: normal; color: var(--text-3); letter-spacing: 0.5px; text-transform: none; font-size: 11px; }
+  .sec-ai { min-height: 60px; white-space: pre-wrap; }
+  #secFactsBody { white-space: normal; }
+  .sec-grid { display: grid; grid-template-columns: auto 1fr; gap: 5px 16px; font-family: var(--font-mono); font-size: 12px; margin: 2px 0 6px; }
+  .sec-grid dt { color: var(--slate); white-space: nowrap; }
+  .sec-grid dd { color: var(--text-1); word-break: break-word; }
+  .sec-sub { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--slate); margin: 16px 0 7px; }
+  .sec-list { list-style: none; display: flex; flex-direction: column; gap: 6px; margin: 4px 0; padding: 0; }
+  .sec-list li { font-family: var(--font-mono); font-size: 12px; display: flex; gap: 9px; align-items: baseline; line-height: 1.5; color: var(--text-1); }
+  .sec-chip { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 2px 6px; border-radius: 2px; border: 1px solid; flex-shrink: 0; min-width: 52px; text-align: center; }
+  .sev-critical { color: #e8736b; border-color: color-mix(in oklab, #e8736b 42%, transparent); background: color-mix(in oklab, #e8736b 9%, transparent); }
+  .sev-high { color: #e8a87c; border-color: color-mix(in oklab, #e8a87c 42%, transparent); background: color-mix(in oklab, #e8a87c 8%, transparent); }
+  .sev-medium { color: #d8b45c; border-color: color-mix(in oklab, #d8b45c 42%, transparent); background: color-mix(in oklab, #d8b45c 8%, transparent); }
+  .sev-low { color: var(--sage); border-color: color-mix(in oklab, var(--sage) 35%, transparent); background: color-mix(in oklab, var(--sage) 7%, transparent); }
+  .sev-info { color: var(--text-3); border-color: var(--wb-line); }
+  .sec-ok { color: var(--sage); border-color: color-mix(in oklab, var(--sage) 35%, transparent); background: color-mix(in oklab, var(--sage) 7%, transparent); }
+  .sec-miss { color: #e8a87c; border-color: color-mix(in oklab, #e8a87c 42%, transparent); background: color-mix(in oklab, #e8a87c 8%, transparent); }
+  .sec-mono { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-1); line-height: 1.7; background: color-mix(in oklab, var(--accent) 4%, transparent); border: 1px solid var(--wb-line); border-radius: 3px; padding: 10px 12px; margin-top: 2px; }
+</style>
+
+<div class="sec-copilot">
+  <label for="secInput">Artifact to analyze</label>
+
+  <div class="sec-toolbar">
+    <div class="tool-options" role="tablist" id="secTypes" aria-label="Input type">
+      <button class="tool-option active" type="button" role="tab" aria-selected="true" data-type="auto">Auto</button>
+      <button class="tool-option" type="button" role="tab" aria-selected="false" data-type="headers">Headers</button>
+      <button class="tool-option" type="button" role="tab" aria-selected="false" data-type="jwt">JWT</button>
+      <button class="tool-option" type="button" role="tab" aria-selected="false" data-type="cert">TLS cert</button>
+      <button class="tool-option" type="button" role="tab" aria-selected="false" data-type="config">Config</button>
+      <button class="tool-option" type="button" role="tab" aria-selected="false" data-type="csp">CSP</button>
+    </div>
+    <div class="sec-toolbar-r">
+      <button class="btn" id="secExample" type="button">Load example</button>
+      <button class="btn" id="secClear" type="button">Clear</button>
+    </div>
+  </div>
+
+  <textarea id="secInput" rows="10" spellcheck="false" autocapitalize="off" autocorrect="off"
+    aria-describedby="secHint"
+    placeholder="Paste HTTP response headers, a JWT, a TLS certificate (PEM), a config/.env file, or a Content-Security-Policy…"></textarea>
+  <p id="secHint" class="sec-hint">
+    A security analyst that runs on your machine. Deterministic facts are computed locally in your browser
+    first (JWT decode, header inventory, certificate parse, CSP audit, secret scan); the AI on your chosen
+    engine then reasons on top. Nothing is uploaded. <kbd>&#8984;</kbd>/<kbd>Ctrl</kbd>+<kbd>Enter</kbd> to run.
+  </p>
+
+  <div class="sec-run">
+    <button class="btn btn--primary" id="secRun" type="button">Analyze</button>
+    <button class="btn" id="secStop" type="button" hidden>Stop</button>
+    <span class="ai-status" id="secStatus" aria-live="polite"></span>
+    <span class="sec-detected" id="secDetected" hidden></span>
+  </div>
+
+  <section class="sec-section" id="secFacts" hidden>
+    <div class="sec-head">
+      <span class="sec-head-l">Deterministic facts <em>· computed locally, no AI</em></span>
+      <button class="btn btn--copy" id="secCopyFacts" type="button">Copy</button>
+    </div>
+    <div class="output-area" id="secFactsBody" aria-live="polite"></div>
+  </section>
+
+  <section class="sec-section" id="secAiSection" hidden>
+    <div class="sec-head">
+      <span class="sec-head-l">AI assessment <em>· runs on your engine</em></span>
+      <button class="btn btn--copy" id="secCopyAi" type="button">Copy</button>
+    </div>
+    <div class="output-area sec-ai" id="secAiOut" aria-live="polite"></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  if (!window.PenumbraAIUI) return;
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  function trunc(s, n) { s = String(s); return s.length > n ? s.slice(0, n) + '…' : s; }
+
+  var input = $('secInput'), typesWrap = $('secTypes'), runBtn = $('secRun'), stopBtn = $('secStop'),
+      statusEl = $('secStatus'), detectedEl = $('secDetected'), factsPanel = $('secFacts'),
+      factsBody = $('secFactsBody'), aiSection = $('secAiSection'), aiOut = $('secAiOut'),
+      exampleBtn = $('secExample'), clearBtn = $('secClear'),
+      copyFactsBtn = $('secCopyFacts'), copyAiBtn = $('secCopyAi');
+
+  var selType = 'auto';
+  var lastFactsText = '';
+
+  /* ---------- type selector ---------- */
+  typesWrap.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-type]'); if (!b) return;
+    selType = b.dataset.type;
+    typesWrap.querySelectorAll('.tool-option').forEach(function (o) {
+      var on = o === b; o.classList.toggle('active', on); o.setAttribute('aria-selected', String(on));
+    });
+  });
+
+  /* ================= deterministic helpers ================= */
+  function b64urlToStr(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '=';
+    var bin = atob(s);
+    try {
+      return decodeURIComponent(Array.prototype.map.call(bin, function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+    } catch (e) { return bin; }
+  }
+  function b64urlEnc(str) {
+    return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function nowSec() { return Math.floor(Date.now() / 1000); }
+  function rel(sec) {
+    var diff = sec - nowSec(), a = Math.abs(diff), u;
+    if (a < 3600) u = Math.round(a / 60) + 'm';
+    else if (a < 86400) u = Math.round(a / 3600) + 'h';
+    else u = Math.round(a / 86400) + 'd';
+    return diff < 0 ? u + ' ago' : 'in ' + u;
+  }
+  function fmtTs(sec) {
+    var d = new Date(sec * 1000); if (isNaN(d.getTime())) return String(sec);
+    return d.toISOString().replace(/\.\d{3}Z$/, 'Z') + ' (' + rel(sec) + ')';
+  }
+
+  /* ================= JWT ================= */
+  function analyzeJWT(text) {
+    var parts = text.trim().split('.');
+    if (parts.length < 2) throw new Error('Not a JWT — expected header.payload.signature.');
+    var header = JSON.parse(b64urlToStr(parts[0]));
+    var payload = JSON.parse(b64urlToStr(parts[1]));
+    var findings = [], now = nowSec();
+    var alg = (header.alg == null ? '' : String(header.alg));
+    if (/^none$/i.test(alg)) findings.push({ sev: 'critical', msg: 'alg = "none" — the token is unsigned. Anyone can forge claims. Reject "none" server-side.' });
+    else if (/^HS/i.test(alg)) findings.push({ sev: 'medium', msg: 'alg = ' + alg + ' (HMAC/symmetric). If a verifier also accepts RS*/ES*, this enables algorithm-confusion key attacks. Pin the expected algorithm and never trust the header.' });
+    if (!alg) findings.push({ sev: 'high', msg: 'No alg in header — verification behavior is undefined.' });
+    if (payload.exp == null) findings.push({ sev: 'high', msg: 'No exp claim — the token never expires. Add a short expiry.' });
+    else if (payload.exp < now) findings.push({ sev: 'medium', msg: 'Token is expired (exp ' + fmtTs(payload.exp) + ').' });
+    else if (payload.exp - (payload.iat || now) > 604800) findings.push({ sev: 'low', msg: 'Long lifetime (~' + Math.round((payload.exp - (payload.iat || now)) / 3600) + 'h). Prefer short-lived access tokens with refresh.' });
+    if (payload.nbf != null && payload.nbf > now) findings.push({ sev: 'info', msg: 'Not yet valid (nbf ' + fmtTs(payload.nbf) + ').' });
+    if (payload.iat == null) findings.push({ sev: 'low', msg: 'No iat claim — token age cannot be evaluated.' });
+    if (!payload.iss) findings.push({ sev: 'low', msg: 'No iss (issuer) claim — issuer validation is harder.' });
+    if (!payload.aud) findings.push({ sev: 'low', msg: 'No aud (audience) claim — token may be replayable across services.' });
+    var sensitive = Object.keys(payload).filter(function (k) { return /pass|secret|ssn|social|credit|card|cvv|pwd|private|api[_-]?key/i.test(k); });
+    if (sensitive.length) findings.push({ sev: 'high', msg: 'Payload may carry sensitive fields (' + sensitive.join(', ') + '). JWT payloads are base64, NOT encrypted — anyone can read them.' });
+    if (!findings.length) findings.push({ sev: 'info', msg: 'No obvious JWT issues in the deterministic pass.' });
+
+    var kv = [['alg', alg || '(none)'], ['typ', header.typ || '—'], ['kid', header.kid || '—']];
+    if (payload.iss) kv.push(['iss', String(payload.iss)]);
+    if (payload.sub) kv.push(['sub', String(payload.sub)]);
+    if (payload.aud) kv.push(['aud', Array.isArray(payload.aud) ? payload.aud.join(', ') : String(payload.aud)]);
+    if (payload.iat != null) kv.push(['iat', fmtTs(payload.iat)]);
+    if (payload.nbf != null) kv.push(['nbf', fmtTs(payload.nbf)]);
+    if (payload.exp != null) kv.push(['exp', fmtTs(payload.exp)]);
+    kv.push(['signature', parts[2] ? trunc(parts[2], 24) + ' (' + parts[2].length + ' chars, NOT verified here)' : '(empty — unsigned)']);
+
+    return {
+      label: 'JSON Web Token', kv: kv, findings: findings,
+      blocks: [
+        { title: 'Decoded header', text: JSON.stringify(header, null, 2) },
+        { title: 'Decoded payload', text: JSON.stringify(payload, null, 2) }
+      ]
+    };
+  }
+
+  /* ================= HTTP headers ================= */
+  function analyzeHeaders(text) {
+    var lines = text.split(/\r?\n/), map = {}, statusLine = null;
+    lines.forEach(function (l) {
+      l = l.trim(); if (!l) return;
+      if (/^HTTP\/[\d.]+/i.test(l)) { statusLine = l; return; }
+      var i = l.indexOf(':'); if (i < 1) return;
+      var name = l.slice(0, i).trim(), val = l.slice(i + 1).trim(), key = name.toLowerCase();
+      if (map[key] != null) map[key] += '\n' + val; else map[key] = val;
+    });
+    var SEC = [
+      ['strict-transport-security', 'HSTS — forces HTTPS'],
+      ['content-security-policy', 'CSP — mitigates XSS/injection'],
+      ['x-content-type-options', 'nosniff — blocks MIME sniffing'],
+      ['x-frame-options', 'Legacy clickjacking defense'],
+      ['referrer-policy', 'Controls Referer leakage'],
+      ['permissions-policy', 'Restricts powerful browser features'],
+      ['cross-origin-opener-policy', 'COOP — process isolation'],
+      ['cross-origin-resource-policy', 'CORP — blocks cross-origin embeds'],
+      ['cross-origin-embedder-policy', 'COEP — cross-origin isolation']
+    ];
+    var present = [], missing = [], findings = [];
+    SEC.forEach(function (h) {
+      if (map[h[0]] != null) present.push([h[0], map[h[0]]]); else missing.push(h[0] + ' — ' + h[1]);
+    });
+    if (map['strict-transport-security'] == null) findings.push({ sev: 'high', msg: 'No HSTS — connections can be downgraded to HTTP (SSL stripping). Add: Strict-Transport-Security: max-age=31536000; includeSubDomains.' });
+    else {
+      var hsts = map['strict-transport-security'], m = hsts.match(/max-age\s*=\s*(\d+)/i), age = m ? +m[1] : 0;
+      if (age < 15552000) findings.push({ sev: 'medium', msg: 'HSTS max-age is ' + age + 's (< 180 days). Use max-age=31536000 with includeSubDomains; preload.' });
+      if (!/includeSubDomains/i.test(hsts)) findings.push({ sev: 'low', msg: 'HSTS lacks includeSubDomains — subdomains stay downgradeable.' });
+    }
+    if (map['content-security-policy'] == null) findings.push({ sev: 'high', msg: 'No Content-Security-Policy — the primary XSS mitigation is absent.' });
+    if (map['x-content-type-options'] == null || !/nosniff/i.test(map['x-content-type-options'] || '')) findings.push({ sev: 'medium', msg: 'X-Content-Type-Options: nosniff missing — browsers may MIME-sniff responses.' });
+    var hasFrameAncestors = map['content-security-policy'] != null && /frame-ancestors/i.test(map['content-security-policy']);
+    if (map['x-frame-options'] == null && !hasFrameAncestors) findings.push({ sev: 'medium', msg: 'No clickjacking protection — set CSP frame-ancestors or X-Frame-Options.' });
+    if (map['referrer-policy'] == null) findings.push({ sev: 'low', msg: 'No Referrer-Policy — full URLs may leak via the Referer header.' });
+    ['server', 'x-powered-by', 'x-aspnet-version', 'x-aspnetmvc-version', 'x-runtime'].forEach(function (k) {
+      if (map[k] != null) findings.push({ sev: 'low', msg: 'Information disclosure: ' + k + ': ' + trunc(map[k], 60) + ' reveals stack/version details.' });
+    });
+    if (map['set-cookie'] != null) {
+      map['set-cookie'].split('\n').forEach(function (c) {
+        var name = ((c.split('=')[0] || 'cookie').trim());
+        if (!/;\s*Secure/i.test(c)) findings.push({ sev: 'medium', msg: 'Cookie "' + name + '" missing Secure — can be sent over plain HTTP.' });
+        if (!/;\s*HttpOnly/i.test(c)) findings.push({ sev: 'medium', msg: 'Cookie "' + name + '" missing HttpOnly — readable by JavaScript (XSS theft).' });
+        if (!/;\s*SameSite/i.test(c)) findings.push({ sev: 'low', msg: 'Cookie "' + name + '" missing SameSite — CSRF exposure.' });
+      });
+    }
+    if ((map['access-control-allow-origin'] || '') === '*') findings.push({ sev: 'medium', msg: 'Access-Control-Allow-Origin: * exposes the resource to every origin.' });
+    if (!findings.length) findings.push({ sev: 'info', msg: 'No obvious header issues in the deterministic pass.' });
+    return { label: 'HTTP response headers', kv: statusLine ? [['status', statusLine]] : [], present: present, missing: missing, findings: findings };
+  }
+
+  /* ================= CSP ================= */
+  function analyzeCSP(text) {
+    var raw = text.trim().replace(/^content-security-policy(-report-only)?\s*:/i, '').trim();
+    var reportOnly = /content-security-policy-report-only/i.test(text);
+    var dirs = {}, order = [];
+    raw.split(';').forEach(function (seg) {
+      seg = seg.trim(); if (!seg) return;
+      var sp = seg.split(/\s+/), name = sp.shift().toLowerCase();
+      dirs[name] = sp; if (order.indexOf(name) < 0) order.push(name);
+    });
+    function has(d) { return dirs[d] != null; }
+    function srcHas(d, tok) { return (dirs[d] || []).some(function (s) { return s.toLowerCase() === tok; }); }
+    var findings = [];
+    if (!has('default-src') && !has('script-src')) findings.push({ sev: 'high', msg: 'No default-src or script-src — the policy barely restricts script execution.' });
+    ['script-src', 'default-src', 'script-src-elem'].forEach(function (d) {
+      if (srcHas(d, "'unsafe-inline'")) findings.push({ sev: 'high', msg: d + " allows 'unsafe-inline' — inline scripts run, defeating the main XSS protection. Use nonces or hashes." });
+      if (srcHas(d, "'unsafe-eval'")) findings.push({ sev: 'high', msg: d + " allows 'unsafe-eval' — eval()/new Function() are permitted." });
+    });
+    Object.keys(dirs).forEach(function (d) {
+      if (/-src$/.test(d) && (dirs[d] || []).indexOf('*') >= 0) findings.push({ sev: 'high', msg: d + ' uses a wildcard * source — any host can load resources.' });
+      (dirs[d] || []).forEach(function (s) {
+        if (/^http:/i.test(s)) findings.push({ sev: 'medium', msg: d + ' includes an http: source (' + s + ') — mixed content / MITM risk.' });
+        if (/^data:/i.test(s) && /script/.test(d)) findings.push({ sev: 'high', msg: d + ' allows data: — enables attacker-controlled script payloads.' });
+      });
+    });
+    if (!srcHas('object-src', "'none'") && !srcHas('default-src', "'none'")) findings.push({ sev: 'medium', msg: "object-src 'none' not set — legacy plugin injection surface remains." });
+    if (!has('frame-ancestors')) findings.push({ sev: 'medium', msg: 'No frame-ancestors — CSP does not restrict clickjacking.' });
+    if (!has('base-uri')) findings.push({ sev: 'low', msg: 'No base-uri — a <base> injection can hijack relative URLs.' });
+    if (!has('report-uri') && !has('report-to')) findings.push({ sev: 'low', msg: 'No reporting (report-to / report-uri) — violations go unnoticed.' });
+    if (reportOnly) findings.push({ sev: 'info', msg: 'Report-Only mode — this policy is NOT enforced by the browser.' });
+    if (!findings.length) findings.push({ sev: 'info', msg: 'No obvious CSP weaknesses in the deterministic pass.' });
+    var kv = order.map(function (d) { return [d, (dirs[d].join(' ') || '(no value)')]; });
+    return { label: 'Content-Security-Policy', kv: kv, findings: findings };
+  }
+
+  /* ================= config / secret scan ================= */
+  function redact(line) {
+    return line.replace(/(['"=:]\s*)([^\s'"]{3})([^\s'"]{4,})/g, function (m, pre, keep, rest) {
+      return pre + keep + '•'.repeat(Math.min(rest.length, 8));
+    });
+  }
+  function analyzeConfig(text) {
+    var lines = text.split(/\r?\n/), findings = [], hits = 0;
+    var RULES = [
+      [/AKIA[0-9A-Z]{16}/, 'AWS access key ID', 'critical'],
+      [/aws_secret_access_key\s*[=:]\s*\S{20,}/i, 'AWS secret access key', 'critical'],
+      [/-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/, 'private key material', 'critical'],
+      [/gh[pousr]_[A-Za-z0-9]{20,}/, 'GitHub token', 'critical'],
+      [/xox[baprs]-[A-Za-z0-9-]{10,}/, 'Slack token', 'critical'],
+      [/\bsk-[A-Za-z0-9]{20,}/, 'API secret key (sk-…)', 'critical'],
+      [/(secret|password|passwd|pwd|token|api[_-]?key|access[_-]?key|private[_-]?key|client[_-]?secret)\s*[=:]\s*['"]?[^\s'"]{6,}/i, 'hardcoded credential', 'high'],
+      [/(postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp):\/\/[^:\s\/]+:[^@\s]+@/i, 'connection string with inline password', 'high']
+    ];
+    lines.forEach(function (l, i) {
+      RULES.forEach(function (r) {
+        if (r[0].test(l)) { hits++; findings.push({ sev: r[2], msg: 'Line ' + (i + 1) + ': ' + r[1] + ' — ' + trunc(redact(l.trim()), 96) }); }
+      });
+    });
+    if (/debug\s*[=:]\s*(true|1|on|yes)\b/i.test(text)) findings.push({ sev: 'medium', msg: 'Debug mode appears enabled — verbose errors/stack traces can leak internals in production.' });
+    if (/(ssl[_-]?verify|verify[_-]?ssl|tls[_-]?verify|verify)\s*[=:]\s*(false|0|no|off|none)\b/i.test(text)) findings.push({ sev: 'high', msg: 'TLS/SSL verification appears disabled — enables man-in-the-middle interception.' });
+    if (/(allowed_hosts|cors_?origins?|access-control-allow-origin)\s*[=:][^\n]*\*/i.test(text)) findings.push({ sev: 'medium', msg: 'Wildcard host / CORS allowlist detected — tighten to explicit origins.' });
+    if (/\b0\.0\.0\.0\b/.test(text)) findings.push({ sev: 'low', msg: 'Service bound to 0.0.0.0 — confirm it is not unintentionally reachable from the public internet.' });
+    if (!findings.length) findings.push({ sev: 'info', msg: 'No hardcoded secrets or risky patterns found in the deterministic pass.' });
+    return { label: 'Configuration file', kv: [['lines scanned', String(lines.length)], ['secret matches', String(hits)]], findings: findings };
+  }
+
+  /* ================= TLS certificate (ASN.1 DER) ================= */
+  var OID_NAMES = {
+    '2.5.4.3': 'CN', '2.5.4.6': 'C', '2.5.4.7': 'L', '2.5.4.8': 'ST', '2.5.4.10': 'O', '2.5.4.11': 'OU',
+    '1.2.840.113549.1.1.1': 'RSA', '1.2.840.10045.2.1': 'EC',
+    '1.2.840.113549.1.1.4': 'md5WithRSA', '1.2.840.113549.1.1.5': 'sha1WithRSA',
+    '1.2.840.113549.1.1.11': 'sha256WithRSA', '1.2.840.113549.1.1.12': 'sha384WithRSA',
+    '1.2.840.113549.1.1.13': 'sha512WithRSA', '1.2.840.113549.1.1.10': 'RSASSA-PSS',
+    '1.2.840.10045.4.3.2': 'ecdsa-with-SHA256', '1.2.840.10045.4.3.3': 'ecdsa-with-SHA384',
+    '1.2.840.10045.4.3.4': 'ecdsa-with-SHA512'
+  };
+  var CURVES = { '1.2.840.10045.3.1.7': 'P-256', '1.3.132.0.34': 'P-384', '1.3.132.0.35': 'P-521' };
+
+  function pemToBytes(pem) {
+    var m = pem.match(/-----BEGIN CERTIFICATE-----([\s\S]*?)-----END CERTIFICATE-----/);
+    if (!m) throw new Error('No PEM CERTIFICATE block found.');
+    var b64 = m[1].replace(/[^A-Za-z0-9+/=]/g, ''), bin = atob(b64), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function readTLV(b, pos) {
+    if (pos + 1 >= b.length) throw new Error('Truncated DER.');
+    var tag = b[pos], len = b[pos + 1], p = pos + 2;
+    if (len & 0x80) { var n = len & 0x7f; len = 0; for (var i = 0; i < n; i++) { len = len * 256 + b[p]; p++; } }
+    return { tag: tag, start: p, end: p + len, len: len, next: p + len };
+  }
+  function bytesToStr(b, s, e) {
+    var arr = b.subarray(s, e);
+    try { return new TextDecoder('utf-8').decode(arr); }
+    catch (x) { var out = ''; for (var i = 0; i < arr.length; i++) out += String.fromCharCode(arr[i]); return out; }
+  }
+  function readOID(b, tlv) {
+    var s = tlv.start, e = tlv.end; if (s >= e) return '';
+    var first = b[s], parts = [Math.floor(first / 40), first % 40], val = 0;
+    for (var i = s + 1; i < e; i++) { val = val * 128 + (b[i] & 0x7f); if (!(b[i] & 0x80)) { parts.push(val); val = 0; } }
+    return parts.join('.');
+  }
+  function parseName(b, nameTLV) {
+    var out = {}, p = nameTLV.start;
+    while (p < nameTLV.end) {
+      var rdn = readTLV(b, p), q = rdn.start;
+      while (q < rdn.end) {
+        var atv = readTLV(b, q), oidT = readTLV(b, atv.start), oid = readOID(b, oidT), valT = readTLV(b, oidT.next);
+        var val = bytesToStr(b, valT.start, valT.end), key = OID_NAMES[oid] || oid;
+        out[key] = out[key] ? out[key] + ', ' + val : val;
+        q = atv.next;
+      }
+      p = rdn.next;
+    }
+    return out;
+  }
+  function parseTime(b, tlv) {
+    var s = bytesToStr(b, tlv.start, tlv.end), yyyy, rest;
+    if (tlv.tag === 0x17) { var yy = parseInt(s.slice(0, 2), 10); yyyy = yy < 50 ? 2000 + yy : 1900 + yy; rest = s.slice(2); }
+    else { yyyy = parseInt(s.slice(0, 4), 10); rest = s.slice(4); }
+    return Date.UTC(yyyy, (+rest.slice(0, 2)) - 1, +rest.slice(2, 4), +rest.slice(4, 6), +rest.slice(6, 8), +rest.slice(8, 10) || 0);
+  }
+  function dnStr(n) {
+    var parts = []; ['CN', 'O', 'OU', 'L', 'ST', 'C'].forEach(function (k) { if (n[k]) parts.push(k + '=' + n[k]); });
+    Object.keys(n).forEach(function (k) { if (['CN', 'O', 'OU', 'L', 'ST', 'C'].indexOf(k) < 0) parts.push(k + '=' + n[k]); });
+    return parts.join(', ') || '(empty)';
+  }
+  function analyzeCert(text) {
+    var chainCount = (text.match(/-----BEGIN CERTIFICATE-----/g) || []).length;
+    var b = pemToBytes(text);
+    var cert = readTLV(b, 0), tbs = readTLV(b, cert.start), p = tbs.start;
+    var t = readTLV(b, p), version = 1;
+    if (t.tag === 0xA0) { var vi = readTLV(b, t.start); version = b[vi.start] + 1; p = t.next; t = readTLV(b, p); }
+    var serial = ''; for (var i = t.start; i < t.end; i++) serial += ('0' + b[i].toString(16)).slice(-2) + (i < t.end - 1 ? ':' : '');
+    p = t.next;
+    var sigAlgSeq = readTLV(b, p), sigOid = readOID(b, readTLV(b, sigAlgSeq.start)); p = sigAlgSeq.next;
+    var issuerT = readTLV(b, p), issuer = parseName(b, issuerT); p = issuerT.next;
+    var validity = readTLV(b, p), nbT = readTLV(b, validity.start), naT = readTLV(b, nbT.next);
+    var notBefore = parseTime(b, nbT), notAfter = parseTime(b, naT); p = validity.next;
+    var subjectT = readTLV(b, p), subject = parseName(b, subjectT); p = subjectT.next;
+    var spki = readTLV(b, p);
+    var algSeq = readTLV(b, spki.start), algOidT = readTLV(b, algSeq.start), algOid = readOID(b, algOidT);
+    var keyType = OID_NAMES[algOid] || algOid, keyBits = null, curve = null;
+    try {
+      if (algOid === '1.2.840.113549.1.1.1') {
+        keyType = 'RSA';
+        var bitStr = readTLV(b, algSeq.next), inner = readTLV(b, bitStr.start + 1), modT = readTLV(b, inner.start);
+        var mlen = modT.len; if (b[modT.start] === 0) mlen -= 1; keyBits = mlen * 8;
+      } else if (algOid === '1.2.840.10045.2.1') {
+        keyType = 'EC'; curve = CURVES[readOID(b, readTLV(b, algOidT.next))] || 'unknown curve';
+      }
+    } catch (x) { /* key size best-effort */ }
+    var sans = [];
+    try {
+      var p2 = spki.next;
+      while (p2 < tbs.end) {
+        var ext = readTLV(b, p2);
+        if (ext.tag === 0xA3) {
+          var extsSeq = readTLV(b, ext.start), ep = extsSeq.start;
+          while (ep < extsSeq.end) {
+            var e2 = readTLV(b, ep), eoidT = readTLV(b, e2.start), eoid = readOID(b, eoidT), nx = readTLV(b, eoidT.next);
+            if (nx.tag === 0x01) nx = readTLV(b, nx.next);
+            if (eoid === '2.5.29.17') {
+              var sanSeq = readTLV(b, nx.start), sp = sanSeq.start;
+              while (sp < sanSeq.end) { var gn = readTLV(b, sp); if (gn.tag === 0x82) sans.push(bytesToStr(b, gn.start, gn.end)); sp = gn.next; }
+            }
+            ep = e2.next;
+          }
+        }
+        p2 = ext.next;
+      }
+    } catch (x) { /* extensions best-effort */ }
+
+    var findings = [], now = Date.now(), days = Math.round((notAfter - notBefore) / 86400000);
+    if (notAfter < now) findings.push({ sev: 'critical', msg: 'Certificate is EXPIRED (notAfter ' + new Date(notAfter).toISOString().slice(0, 10) + ', ' + rel(notAfter / 1000) + ').' });
+    else if (notAfter - now < 30 * 86400000) findings.push({ sev: 'medium', msg: 'Certificate expires soon (' + rel(notAfter / 1000) + '). Renew before it lapses.' });
+    if (notBefore > now) findings.push({ sev: 'high', msg: 'Certificate is not yet valid (notBefore ' + new Date(notBefore).toISOString().slice(0, 10) + ').' });
+    var sigName = OID_NAMES[sigOid] || sigOid;
+    if (/md5|sha1/i.test(sigName)) findings.push({ sev: 'high', msg: 'Weak signature algorithm (' + sigName + '). SHA-1/MD5 are broken for signatures — reissue with SHA-256+.' });
+    if (keyType === 'RSA' && keyBits && keyBits < 2048) findings.push({ sev: 'high', msg: 'Weak RSA key (' + keyBits + '-bit). Use 2048-bit or larger (or an EC key).' });
+    if (days > 398) findings.push({ sev: 'low', msg: 'Validity period is ' + days + ' days (> 398). Public CAs cap leaf certs at 398 days; long-lived certs increase exposure.' });
+    if (dnStr(issuer) === dnStr(subject)) findings.push({ sev: 'info', msg: 'Self-signed (issuer == subject). Fine for internal/testing use; browsers will not trust it publicly.' });
+    if (!sans.length) findings.push({ sev: 'medium', msg: 'No Subject Alternative Names — modern browsers ignore the CN and require a SAN entry.' });
+    if (!findings.length) findings.push({ sev: 'info', msg: 'No obvious certificate issues in the deterministic pass.' });
+
+    var kv = [
+      ['subject', dnStr(subject)],
+      ['issuer', dnStr(issuer)],
+      ['valid from', new Date(notBefore).toISOString().slice(0, 19) + 'Z'],
+      ['valid to', new Date(notAfter).toISOString().slice(0, 19) + 'Z (' + rel(notAfter / 1000) + ')'],
+      ['validity', days + ' days'],
+      ['key', keyType + (keyBits ? ' ' + keyBits + '-bit' : '') + (curve ? ' ' + curve : '')],
+      ['signature', sigName],
+      ['version', 'v' + version],
+      ['serial', trunc(serial, 47)]
+    ];
+    if (chainCount > 1) kv.unshift(['chain', chainCount + ' certificates (analyzing leaf)']);
+    var blocks = [];
+    if (sans.length) blocks.push({ title: 'Subject Alternative Names', text: sans.join('\n') });
+    return { label: 'TLS certificate (X.509)', kv: kv, findings: findings, blocks: blocks };
+  }
+
+  /* ================= detection ================= */
+  function detect(text) {
+    var s = text.trim();
+    if (/-----BEGIN CERTIFICATE-----/.test(s)) return 'cert';
+    if (/^ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(s) && (s.match(/\./g) || []).length >= 2) return 'jwt';
+    var low = s.toLowerCase();
+    if (/^content-security-policy/i.test(s)) return 'csp';
+    var lines = s.split(/\r?\n/);
+    var hdrCount = lines.filter(function (l) { return /^[A-Za-z][A-Za-z0-9-]*:\s?.+/.test(l.trim()); }).length;
+    if (/^HTTP\/[\d.]+/i.test(s) || (hdrCount >= 2 && /(content-type|strict-transport|x-frame|content-security|set-cookie|server)\s*:/i.test(low))) return 'headers';
+    if (/(default|script|style|img|connect|frame|object|base)-src\b/.test(low) && /;|'self'|'unsafe-/.test(low)) return 'csp';
+    return 'config';
+  }
+
+  var ANALYZERS = { jwt: analyzeJWT, headers: analyzeHeaders, csp: analyzeCSP, config: analyzeConfig, cert: analyzeCert };
+  var TYPE_LABEL = { jwt: 'JWT', headers: 'HTTP headers', csp: 'CSP', config: 'config file', cert: 'TLS certificate' };
+
+  /* ================= system prompts ================= */
+  var TYPE_GUIDE = {
+    jwt: 'You are reviewing a JSON Web Token. Focus on algorithm choice and confusion (alg=none, HMAC vs asymmetric), expiration and validity claims (exp, nbf, iat), issuer/audience validation, over-broad scopes/roles, and sensitive data placed in the (unencrypted) payload. Do not attempt to crack, brute-force, or forge the token — assess configuration risk only.',
+    headers: 'You are reviewing HTTP response headers. Focus on missing or weak security headers (HSTS, CSP, X-Content-Type-Options, clickjacking protection, Referrer-Policy, Permissions-Policy, COOP/COEP/CORP), insecure cookie flags, overly permissive CORS, and information disclosure via Server/X-Powered-By.',
+    csp: 'You are reviewing a Content-Security-Policy. Focus on bypasses: unsafe-inline / unsafe-eval, wildcard or overly broad sources, http:/data: sources, missing default-src/object-src/frame-ancestors/base-uri, and whether the policy is enforced or report-only. Recommend nonce/hash-based hardening.',
+    config: 'You are reviewing a configuration or environment file. Focus on hardcoded secrets and credentials, disabled TLS verification, debug mode in production, permissive host/CORS wildcards, dangerous network bindings, and least-privilege issues. Never echo full secret values back — refer to them by location.',
+    cert: 'You are reviewing an X.509 TLS certificate. Focus on expiry and validity window, signature algorithm strength (reject SHA-1/MD5), key type and size, self-signed vs CA-issued trust, SAN coverage, and excessive validity periods.'
+  };
+  function buildSystem(type) {
+    return 'You are a senior application-security analyst running locally on the user\'s own machine. ' +
+      'You review security artifacts and give precise, actionable assessments. Be concise and concrete; do not pad. ' +
+      'Never invent fields or values that are not present in the input. Trust the deterministic pre-analysis as ground truth. ' +
+      'Structure your answer in three parts: (1) "Risk summary" — one or two sentences plus an overall risk level of Critical, High, Medium, Low, or Info. ' +
+      '(2) "Findings" — a ranked list, most severe first, each line prefixed with its severity and naming the exact issue. ' +
+      '(3) "Remediation" — a short, prioritized list of concrete fixes. ' +
+      'This is advisory analysis, not a guarantee, and you are not executing anything. ' + (TYPE_GUIDE[type] || '');
+  }
+  function buildUser(type, raw, factsText) {
+    var capped = raw.length > 8000 ? raw.slice(0, 8000) + '\n…[truncated]' : raw;
+    return 'Analyze this ' + (TYPE_LABEL[type] || 'artifact') + '.\n\n' +
+      '=== Deterministic pre-analysis (computed locally in the browser — treat as ground truth) ===\n' +
+      factsText + '\n\n' +
+      '=== Raw input ===\n' + capped + '\n\n' +
+      'Give the risk summary, ranked findings, and remediation as instructed.';
+  }
+
+  /* ================= render ================= */
+  function renderFacts(type, r) {
+    factsBody.textContent = '';
+    factsBody.appendChild(el('div', 'sec-sub', r.label));
+    if (r.kv && r.kv.length) {
+      var dl = el('dl', 'sec-grid');
+      r.kv.forEach(function (p) { dl.appendChild(el('dt', null, p[0])); dl.appendChild(el('dd', null, p[1])); });
+      factsBody.appendChild(dl);
+    }
+    if (r.present && r.present.length) {
+      factsBody.appendChild(el('div', 'sec-sub', 'Security headers present'));
+      var ul = el('ul', 'sec-list');
+      r.present.forEach(function (p) {
+        var li = el('li'); li.appendChild(el('span', 'sec-chip sec-ok', 'set'));
+        li.appendChild(el('span', null, p[0] + ': ' + trunc(p[1], 80))); ul.appendChild(li);
+      });
+      factsBody.appendChild(ul);
+    }
+    if (r.missing && r.missing.length) {
+      factsBody.appendChild(el('div', 'sec-sub', 'Missing / not set'));
+      var um = el('ul', 'sec-list');
+      r.missing.forEach(function (m) {
+        var li = el('li'); li.appendChild(el('span', 'sec-chip sec-miss', 'gap'));
+        li.appendChild(el('span', null, m)); um.appendChild(li);
+      });
+      factsBody.appendChild(um);
+    }
+    if (r.findings && r.findings.length) {
+      factsBody.appendChild(el('div', 'sec-sub', 'Deterministic findings'));
+      var uf = el('ul', 'sec-list');
+      r.findings.forEach(function (f) {
+        var li = el('li'); li.appendChild(el('span', 'sec-chip sev-' + f.sev, f.sev));
+        li.appendChild(el('span', null, f.msg)); uf.appendChild(li);
+      });
+      factsBody.appendChild(uf);
+    }
+    if (r.blocks && r.blocks.length) {
+      r.blocks.forEach(function (bk) {
+        factsBody.appendChild(el('div', 'sec-sub', bk.title));
+        factsBody.appendChild(el('div', 'sec-mono', bk.text));
+      });
+    }
+    factsPanel.hidden = false;
+  }
+  function factsToText(type, r) {
+    var out = ['DETERMINISTIC FACTS — ' + r.label];
+    if (r.kv && r.kv.length) { out.push(''); r.kv.forEach(function (p) { out.push(p[0] + ': ' + p[1]); }); }
+    if (r.present && r.present.length) { out.push(''); out.push('Present security headers:'); r.present.forEach(function (p) { out.push('  + ' + p[0] + ': ' + p[1]); }); }
+    if (r.missing && r.missing.length) { out.push(''); out.push('Missing / not set:'); r.missing.forEach(function (m) { out.push('  - ' + m); }); }
+    if (r.findings && r.findings.length) { out.push(''); out.push('Deterministic findings:'); r.findings.forEach(function (f) { out.push('  [' + f.sev.toUpperCase() + '] ' + f.msg); }); }
+    if (r.blocks && r.blocks.length) { r.blocks.forEach(function (bk) { out.push(''); out.push(bk.title + ':'); out.push(bk.text); }); }
+    return out.join('\n');
+  }
+
+  /* ================= examples ================= */
+  var DEMO_CERT = '-----BEGIN CERTIFICATE-----\n' +
+    'MIIDujCCAqKgAwIBAgIUKa6ukbRMHwSeAY6uQj4eXdL52ccwDQYJKoZIhvcNAQEL\n' +
+    'BQAwTDELMAkGA1UEBhMCVVMxHDAaBgNVBAoME1BlbnVtYnJhIEZvcmdlIERlbW8x\n' +
+    'HzAdBgNVBAMMFmRlbW8ucGVudW1icmFmb3JnZS5jb20wHhcNMjYwNzE3MDY1MDIx\n' +
+    'WhcNMjYxMDE1MDY1MDIxWjBMMQswCQYDVQQGEwJVUzEcMBoGA1UECgwTUGVudW1i\n' +
+    'cmEgRm9yZ2UgRGVtbzEfMB0GA1UEAwwWZGVtby5wZW51bWJyYWZvcmdlLmNvbTCC\n' +
+    'ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKxE9/OyifLhOAJYNu3jO9h/\n' +
+    'dAk5S8vaefm0/kvKHQeH+kcfDCWKqT4rxtuGtEyKdyJStzNSjApdKSP6ciJB3z63\n' +
+    '/SLI1oKOi4USrzV+kbWi/e4lLtXbbTCSHR3CoVHGsm0sN36FS0v/SjnJ/yyoiXqE\n' +
+    '/Vexi7Svdm7y7NqdvZmzfKiEbSo5p11/gcGxjVI0LkkIzaZRsRw1WGHXutfyAsPx\n' +
+    'inLQWvPTz88n5t985hyZN7EfZGQ11PYyPnIl29bFWer3K4vq/l3L8oCPGCzSPLt9\n' +
+    '9BjjsD/QHojAOr94EceelHfHEaYrtr/DXgMJ4YlAZlKldzkj8hFOnFlbZIr1rFEC\n' +
+    'AwEAAaOBkzCBkDAdBgNVHQ4EFgQUuR1jf5ylvVXOmpXJQJj5Mm6HNcUwHwYDVR0j\n' +
+    'BBgwFoAUuR1jf5ylvVXOmpXJQJj5Mm6HNcUwDwYDVR0TAQH/BAUwAwEB/zA9BgNV\n' +
+    'HREENjA0ghZkZW1vLnBlbnVtYnJhZm9yZ2UuY29tghp3d3cuZGVtby5wZW51bWJy\n' +
+    'YWZvcmdlLmNvbTANBgkqhkiG9w0BAQsFAAOCAQEAIbRGPvLYLyWO/r+dg9OIDuiO\n' +
+    'eMh303sx2UniIJ6rdUhfi4KzkflhxIpk7XIbhV7rLKsjrD3xhxR1DXAnoB2xSCSC\n' +
+    'Ii1H17tND+qU2FaQ0vk3eCLaWNehaHkXjW5+jmRja+qYxLW6Eonguo5xVyWhn+nK\n' +
+    'Pd7Vxeq0iKWLjVYi9FusR8BdRq4mVCcnu3BrFy90yLgge0a4V9lNWCB/PyQDKSbB\n' +
+    'RbNu1yvwbTQWk+u5Q3V8XN/0ZrpHEL4fnajTJkV+ZFSKu+JuLq+3iqJucnGXq7aa\n' +
+    'rp8SY2aoL/KJ40o8vAFYhpyPoSCuXuTADFMI13qYp7Os7dBHg1nRwYIvnxhPQQ==\n' +
+    '-----END CERTIFICATE-----';
+
+  function demoJWT() {
+    var h = b64urlEnc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    var pl = b64urlEnc(JSON.stringify({ sub: '42', name: 'Ada Lovelace', email: 'ada@example.com', role: 'admin', iat: 1710000000, exp: 1710003600 }));
+    return h + '.' + pl + '.' + 'ZmFrZS1zaWduYXR1cmUtbm90LXZlcmlmaWVk';
+  }
+  var EXAMPLES = {
+    headers: 'HTTP/2 200\n' +
+      'content-type: text/html; charset=utf-8\n' +
+      'server: nginx/1.18.0 (Ubuntu)\n' +
+      'x-powered-by: Express\n' +
+      'set-cookie: session=8f2b91ac; Path=/\n' +
+      'cache-control: no-store\n' +
+      'access-control-allow-origin: *',
+    csp: "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.example.com *; " +
+      "style-src 'self' 'unsafe-inline'; img-src *; connect-src 'self' http://api.internal",
+    config: '# service configuration\n' +
+      'DEBUG=true\n' +
+      'DATABASE_URL=postgres://admin:S3cr3tPass@db.internal:5432/prod\n' +
+      'AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\n' +
+      'AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n' +
+      'JWT_SECRET=supersecret123\n' +
+      'SSL_VERIFY=false\n' +
+      'ALLOWED_HOSTS=*\n' +
+      'BIND=0.0.0.0:8080'
+  };
+  function exampleFor(type) {
+    if (type === 'auto') type = 'jwt';
+    if (type === 'jwt') return demoJWT();
+    if (type === 'cert') return DEMO_CERT;
+    return EXAMPLES[type] || EXAMPLES.headers;
+  }
+
+  /* ================= run ================= */
+  function run() {
+    var text = input.value.trim();
+    if (!text) {
+      statusEl.textContent = 'Paste an artifact to analyze, or “Load example”.';
+      statusEl.className = 'ai-status';
+      factsPanel.hidden = true; aiSection.hidden = true; detectedEl.hidden = true;
+      input.focus();
+      return;
+    }
+    var type = selType === 'auto' ? detect(text) : selType;
+    detectedEl.hidden = false;
+    detectedEl.textContent = (selType === 'auto' ? 'Detected: ' : 'Type: ') + (TYPE_LABEL[type] || type);
+
+    var result;
+    try { result = ANALYZERS[type](text); }
+    catch (err) {
+      result = { label: (TYPE_LABEL[type] || 'Input'), kv: [], findings: [{ sev: 'info', msg: 'Deterministic parse unavailable: ' + err.message + ' — the AI will still assess the raw input.' }] };
+    }
+    renderFacts(type, result);
+    lastFactsText = factsToText(type, result);
+
+    aiSection.hidden = false;
+    runBtn.disabled = true;
+    var h = PenumbraAIUI.stream(aiOut, {
+      system: buildSystem(type),
+      messages: [{ role: 'user', content: buildUser(type, text, lastFactsText) }],
+      temperature: 0.2,
+      statusEl: statusEl,
+      cancelBtn: stopBtn
+    });
+    var done = function () { runBtn.disabled = false; };
+    h.promise.then(done, done);
+  }
+
+  /* ================= wiring ================= */
+  runBtn.addEventListener('click', run);
+  input.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+  });
+  exampleBtn.addEventListener('click', function () {
+    input.value = exampleFor(selType);
+    statusEl.textContent = ''; statusEl.className = 'ai-status';
+    input.focus();
+  });
+  clearBtn.addEventListener('click', function () {
+    input.value = ''; factsPanel.hidden = true; aiSection.hidden = true; detectedEl.hidden = true;
+    statusEl.textContent = ''; statusEl.className = 'ai-status'; input.focus();
+  });
+  function wireCopy(btn, getText) {
+    btn.addEventListener('click', function () {
+      var txt = getText(); if (!txt) return;
+      var ok = function () { btn.classList.add('copied'); var old = btn.textContent; btn.textContent = 'Copied'; setTimeout(function () { btn.classList.remove('copied'); btn.textContent = old; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, function () {});
+    });
+  }
+  wireCopy(copyFactsBtn, function () { return lastFactsText; });
+  wireCopy(copyAiBtn, function () { return aiOut.textContent; });
+})();
+</script>
+{% endraw %}

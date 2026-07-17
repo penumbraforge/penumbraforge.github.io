@@ -1,0 +1,728 @@
+---
+toolSlug: contrast-lab
+permalink: /tools/contrast-lab/
+---
+
+<style>
+  .cl-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: end; }
+  @media (max-width: 620px) { .cl-grid { grid-template-columns: 1fr; } }
+  .cl-field { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+  .cl-pickrow { display: flex; gap: 8px; align-items: center; }
+  .cl-swatch-input {
+    width: 46px; height: 42px; padding: 0; border: 1px solid var(--wb-line);
+    border-radius: 4px; background: #000; cursor: pointer; flex-shrink: 0;
+  }
+  .cl-swatch-input::-webkit-color-swatch-wrapper { padding: 3px; }
+  .cl-swatch-input::-webkit-color-swatch { border: none; border-radius: 2px; }
+  .cl-hex { flex: 1; min-width: 0; text-transform: uppercase; }
+  .cl-icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; flex-shrink: 0; cursor: pointer;
+    border: 1px solid var(--wb-line); border-radius: 4px; background: transparent;
+    color: var(--text-2); transition: border-color 160ms, color 160ms;
+  }
+  .cl-icon-btn:hover { border-color: var(--accent); color: var(--wb-ink); }
+  .cl-icon-btn svg { width: 17px; height: 17px; }
+  .cl-swap {
+    align-self: end; margin-bottom: 1px; width: 42px; height: 42px;
+  }
+  @media (max-width: 620px) { .cl-swap { width: auto; margin: 2px 0; } }
+
+  .cl-preview { margin-top: 20px; border: 1px solid var(--wb-line); border-radius: 6px; overflow: hidden; }
+  .cl-preview-stage { padding: 30px 26px; transition: background 140ms ease; }
+  .cl-preview-stage .cl-lg { font-size: 27px; font-weight: 700; line-height: 1.25; margin: 0 0 12px; letter-spacing: -0.01em; transition: color 140ms; }
+  .cl-preview-stage .cl-md { font-size: 17px; font-weight: 400; line-height: 1.55; margin: 0 0 12px; transition: color 140ms; }
+  .cl-preview-stage .cl-sm { font-size: 13px; font-weight: 400; line-height: 1.5; margin: 0 0 16px; transition: color 140ms; opacity: 0.96; }
+  .cl-preview-stage .cl-ui { display: inline-flex; align-items: center; gap: 8px; }
+  .cl-fauxbtn { display: inline-block; padding: 8px 16px; border-radius: 5px; font-size: 13px; font-weight: 600; transition: background 140ms, color 140ms; }
+  .cl-fauxlink { font-size: 13px; text-decoration: underline; text-underline-offset: 2px; transition: color 140ms; }
+  .cl-preview-cap {
+    display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+    border-top: 1px solid var(--wb-line); background: #06060d;
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.4px; color: var(--text-3);
+  }
+  .cl-preview-cap input {
+    flex: 1; min-width: 0; background: transparent !important; border: 0 !important;
+    padding: 2px 0 !important; font-size: 11px !important; color: var(--text-2) !important;
+    box-shadow: none !important;
+  }
+
+  .cl-scores { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+  @media (max-width: 620px) { .cl-scores { grid-template-columns: 1fr; } }
+  .cl-card { border: 1px solid var(--wb-line); border-radius: 6px; background: #06060d; padding: 18px 18px 16px; }
+  .cl-card-h {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--slate); margin-bottom: 10px;
+  }
+  .cl-card-h .cl-spec { letter-spacing: 0.5px; text-transform: none; color: var(--text-3); font-size: 10px; }
+  .cl-ratio { font-family: var(--font-mono); font-size: 40px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; color: var(--wb-ink); }
+  .cl-ratio.is-pass { color: var(--sage); }
+  .cl-ratio.is-fail { color: #e8a87c; }
+  .cl-apca-num { font-family: var(--font-mono); font-size: 40px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; color: var(--wb-ink); }
+  .cl-apca-note { font-size: 12px; line-height: 1.5; color: var(--text-2); margin-top: 10px; }
+  .cl-apca-pol { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); margin-top: 4px; letter-spacing: 0.3px; }
+
+  .cl-badges { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+  .cl-badge {
+    display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 3px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.3px; border: 1px solid transparent;
+  }
+  .cl-badge.pass { color: var(--sage); background: color-mix(in oklab, var(--sage) 10%, transparent); border-color: color-mix(in oklab, var(--sage) 32%, transparent); }
+  .cl-badge.fail { color: #e8a87c; background: color-mix(in oklab, #e8a87c 8%, transparent); border-color: color-mix(in oklab, #e8a87c 26%, transparent); }
+  .cl-badge b { font-weight: 600; }
+
+  .cl-section-h {
+    display: flex; align-items: center; gap: 12px; margin: 26px 0 14px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--slate);
+  }
+  .cl-section-h::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--wb-line), transparent); }
+
+  .cl-suggest { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 620px) { .cl-suggest { grid-template-columns: 1fr; } }
+  .cl-fix {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    border: 1px solid var(--wb-line); border-radius: 5px; background: #06060d;
+  }
+  .cl-fix-sw { width: 40px; height: 40px; border-radius: 5px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.12); }
+  .cl-fix-meta { flex: 1; min-width: 0; }
+  .cl-fix-meta .k { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.5px; color: var(--text-3); text-transform: uppercase; }
+  .cl-fix-meta .v { font-family: var(--font-mono); font-size: 14px; color: var(--wb-ink); margin-top: 2px; }
+  .cl-fix-meta .r { font-family: var(--font-mono); font-size: 11px; color: var(--sage); margin-top: 2px; }
+  .cl-ok-note {
+    display: flex; align-items: center; gap: 10px; padding: 13px 15px; border-radius: 5px;
+    border: 1px solid color-mix(in oklab, var(--sage) 30%, transparent);
+    background: color-mix(in oklab, var(--sage) 7%, transparent);
+    font-size: 13px; color: var(--text-1);
+  }
+  .cl-ok-note svg { width: 17px; height: 17px; color: var(--sage); flex-shrink: 0; }
+
+  .cl-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 16px; align-items: center; }
+  .cl-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+  .cl-palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 14px; }
+  .cl-pchip { border: 1px solid var(--wb-line); border-radius: 5px; overflow: hidden; }
+  .cl-pchip-sw { height: 60px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 15px; font-weight: 700; }
+  .cl-pchip-meta { padding: 6px 8px; background: #06060d; }
+  .cl-pchip-meta .nm { font-family: var(--font-mono); font-size: 10px; color: var(--slate); letter-spacing: 0.5px; }
+  .cl-pchip-meta .hx { font-family: var(--font-mono); font-size: 11px; color: var(--text-1); margin-top: 2px; }
+  .cl-pchip-meta .on { font-family: var(--font-mono); font-size: 9.5px; margin-top: 3px; }
+  .cl-pchip-meta .on.pass { color: var(--sage); } .cl-pchip-meta .on.fail { color: #e8a87c; }
+
+  .cl-hint { font-size: 12px; line-height: 1.6; color: var(--text-3); margin-top: 8px; }
+  .cl-hint code { font-family: var(--font-mono); color: var(--accent); font-size: 11px; }
+  .cl-mini-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--slate); }
+</style>
+
+<!-- ── Colour controls ─────────────────────────────────────────── -->
+<div class="cl-grid">
+  <div class="cl-field">
+    <label for="cl-fg-hex">Foreground · text</label>
+    <div class="cl-pickrow">
+      <input type="color" id="cl-fg-picker" class="cl-swatch-input" value="#8f86b3" aria-label="Foreground color picker">
+      <input type="text" id="cl-fg-hex" class="cl-hex" value="#8F86B3" spellcheck="false" autocomplete="off" autocapitalize="characters" aria-label="Foreground hex value" placeholder="#8F86B3">
+      <button type="button" id="cl-fg-eye" class="cl-icon-btn" title="Pick from screen (eyedropper)" aria-label="Eyedropper — pick foreground from screen" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 22l1-4 9.5-9.5"/><path d="m14 7 3 3"/><path d="M16.5 4.5a2.12 2.12 0 0 1 3 3L10 17l-4 1 1-4Z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <button type="button" id="cl-swap" class="btn cl-swap" title="Swap foreground and background" aria-label="Swap foreground and background colors">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" style="vertical-align:middle"><path d="M7 4v13"/><path d="m4 7 3-3 3 3"/><path d="M17 20V7"/><path d="m20 17-3 3-3-3"/></svg>
+  </button>
+
+  <div class="cl-field">
+    <label for="cl-bg-hex">Background · surface</label>
+    <div class="cl-pickrow">
+      <input type="color" id="cl-bg-picker" class="cl-swatch-input" value="#161122" aria-label="Background color picker">
+      <input type="text" id="cl-bg-hex" class="cl-hex" value="#161122" spellcheck="false" autocomplete="off" autocapitalize="characters" aria-label="Background hex value" placeholder="#161122">
+      <button type="button" id="cl-bg-eye" class="cl-icon-btn" title="Pick from screen (eyedropper)" aria-label="Eyedropper — pick background from screen" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 22l1-4 9.5-9.5"/><path d="m14 7 3 3"/><path d="M16.5 4.5a2.12 2.12 0 0 1 3 3L10 17l-4 1 1-4Z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="cl-quick">
+  <button type="button" class="btn" id="cl-ex-fail">Load failing example</button>
+  <button type="button" class="btn" id="cl-ex-pass">Load passing example</button>
+</div>
+
+<div id="cl-error" class="tool-error" role="alert" aria-live="polite" style="display:none; margin-top:12px;"></div>
+
+<!-- ── Live preview ────────────────────────────────────────────── -->
+<div class="cl-preview">
+  <div class="cl-preview-stage" id="cl-stage" role="img" aria-label="Live preview of foreground text on background">
+    <p class="cl-lg" id="cl-prev-lg">The quick brown fox</p>
+    <p class="cl-md" id="cl-prev-md">The quick brown fox jumps over the lazy dog — legible body copy at a comfortable reading size.</p>
+    <p class="cl-sm" id="cl-prev-sm">Small caption &amp; helper text · 0123456789 · the quick brown fox</p>
+    <span class="cl-ui">
+      <span class="cl-fauxbtn" id="cl-prev-btn">Button</span>
+      <a class="cl-fauxlink" id="cl-prev-link" href="#" onclick="return false;">a hyperlink</a>
+    </span>
+  </div>
+  <div class="cl-preview-cap">
+    <span aria-hidden="true">EDIT&nbsp;PREVIEW</span>
+    <input type="text" id="cl-sample" value="The quick brown fox jumps over the lazy dog" aria-label="Preview sample text" maxlength="240">
+  </div>
+</div>
+
+<!-- ── Scores ──────────────────────────────────────────────────── -->
+<div class="cl-scores">
+  <div class="cl-card">
+    <div class="cl-card-h"><span>WCAG 2.1 · ratio</span><span class="cl-spec">contrast ratio</span></div>
+    <div class="cl-ratio" id="cl-ratio" role="status" aria-live="polite">—</div>
+    <div class="cl-badges" id="cl-badges"></div>
+  </div>
+  <div class="cl-card">
+    <div class="cl-card-h"><span>APCA · Lc</span><span class="cl-spec">W3 0.1.9 · perceptual</span></div>
+    <div class="cl-apca-num" id="cl-apca" role="status" aria-live="polite">—</div>
+    <div class="cl-apca-pol" id="cl-apca-pol"></div>
+    <div class="cl-apca-note" id="cl-apca-note"></div>
+  </div>
+</div>
+
+<!-- ── Fix suggestions ─────────────────────────────────────────── -->
+<div class="cl-section-h">
+  <span>Make it pass</span>
+</div>
+<div class="tool-row" style="gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+  <span class="cl-mini-label">Target</span>
+  <div class="tool-options" role="group" aria-label="Contrast target">
+    <button type="button" class="tool-option active" data-target="4.5" aria-pressed="true">AA (4.5:1)</button>
+    <button type="button" class="tool-option" data-target="7" aria-pressed="false">AAA (7:1)</button>
+    <button type="button" class="tool-option" data-target="3" aria-pressed="false">AA Large (3:1)</button>
+  </div>
+</div>
+<div id="cl-fix" aria-live="polite"></div>
+
+<!-- ── Report actions ──────────────────────────────────────────── -->
+<div class="cl-actions">
+  <button type="button" class="btn btn--copy" id="cl-copy-report">Copy summary</button>
+  <button type="button" class="btn" id="cl-dl-report">Download report</button>
+  <button type="button" class="btn" id="cl-share">Copy share link</button>
+</div>
+
+<!-- ── Accessible palette generator ────────────────────────────── -->
+<div class="cl-section-h"><span>Accessible palette generator</span></div>
+<p class="cl-hint">Generate a full 10-step tonal scale from one brand color. Each step is paired with the on-color (black or white) that passes WCAG AA, ready to drop into your design tokens.</p>
+<div class="tool-row" style="gap:10px; align-items:flex-end; flex-wrap:wrap; margin-top:8px;">
+  <div class="cl-field" style="flex:1; min-width:200px;">
+    <label for="cl-seed-hex">Brand / seed color</label>
+    <div class="cl-pickrow">
+      <input type="color" id="cl-seed-picker" class="cl-swatch-input" value="#8f86b3" aria-label="Palette seed color picker">
+      <input type="text" id="cl-seed-hex" class="cl-hex" value="#8F86B3" spellcheck="false" autocomplete="off" autocapitalize="characters" aria-label="Palette seed hex value">
+    </div>
+  </div>
+  <button type="button" class="btn btn--primary" id="cl-gen">Generate scale</button>
+</div>
+<div class="cl-palette-grid" id="cl-palette" role="list" aria-label="Generated accessible palette"></div>
+<div class="cl-actions" id="cl-palette-actions" style="display:none;">
+  <button type="button" class="btn btn--copy" id="cl-copy-css">Copy CSS variables</button>
+  <button type="button" class="btn" id="cl-dl-json">Download JSON</button>
+  <button type="button" class="btn" id="cl-dl-css">Download CSS</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  var fgHex = $('cl-fg-hex'), fgPick = $('cl-fg-picker'), fgEye = $('cl-fg-eye');
+  var bgHex = $('cl-bg-hex'), bgPick = $('cl-bg-picker'), bgEye = $('cl-bg-eye');
+  var swapBtn = $('cl-swap');
+  var errorEl = $('cl-error');
+  var stage = $('cl-stage'), prevLg = $('cl-prev-lg'), prevMd = $('cl-prev-md'),
+      prevSm = $('cl-prev-sm'), prevBtn = $('cl-prev-btn'), prevLink = $('cl-prev-link'),
+      sampleEl = $('cl-sample');
+  var ratioEl = $('cl-ratio'), badgesEl = $('cl-badges');
+  var apcaEl = $('cl-apca'), apcaPolEl = $('cl-apca-pol'), apcaNoteEl = $('cl-apca-note');
+  var fixEl = $('cl-fix');
+  var copyReportBtn = $('cl-copy-report'), dlReportBtn = $('cl-dl-report'), shareBtn = $('cl-share');
+  var seedHex = $('cl-seed-hex'), seedPick = $('cl-seed-picker'), genBtn = $('cl-gen');
+  var paletteEl = $('cl-palette'), paletteActions = $('cl-palette-actions');
+  var copyCssBtn = $('cl-copy-css'), dlJsonBtn = $('cl-dl-json'), dlCssBtn = $('cl-dl-css');
+  var targetBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-target]'));
+
+  var fixTarget = 4.5;
+  var lastReport = '';
+  var lastPalette = null;
+
+  /* ── Color math ─────────────────────────────────────────────── */
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function normalizeHex(str) {
+    if (str == null) return null;
+    var s = String(str).trim().replace(/^#/, '');
+    if (/^[0-9a-fA-F]{3}$/.test(s)) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+    if (!/^[0-9a-fA-F]{6}$/.test(s)) return null;
+    return '#' + s.toLowerCase();
+  }
+
+  function hexToRgb(hex) {
+    var h = normalizeHex(hex);
+    if (!h) return null;
+    var n = parseInt(h.slice(1), 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(function (v) {
+      return clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  /* Accept hex, rgb(), or CSS named colors (via canvas) — robustness for pasted values. */
+  function parseColor(str) {
+    if (str == null) return null;
+    var s = String(str).trim();
+    var h = normalizeHex(s);
+    if (h) return hexToRgb(h);
+    var m = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (m) return { r: clamp(+m[1], 0, 255), g: clamp(+m[2], 0, 255), b: clamp(+m[3], 0, 255) };
+    try {
+      var cv = document.createElement('canvas'); cv.width = cv.height = 1;
+      var ctx = cv.getContext('2d');
+      ctx.fillStyle = '#000'; ctx.fillStyle = s;
+      var computed = ctx.fillStyle;
+      if (computed !== '#000000' || s.toLowerCase() === 'black') return hexToRgb(computed);
+    } catch (e) {}
+    return null;
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b), h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; }
+    else {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+      else if (max === g) h = ((b - r) / d + 2) / 6;
+      else h = ((r - g) / d + 4) / 6;
+    }
+    return { h: h * 360, s: s * 100, l: l * 100 };
+  }
+
+  function hslToRgb(h, s, l) {
+    h = ((h % 360) + 360) % 360; s = clamp(s, 0, 100) / 100; l = clamp(l, 0, 100) / 100;
+    var c = (1 - Math.abs(2 * l - 1)) * s;
+    var x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    var m = l - c / 2, r, g, b;
+    if (h < 60) { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+    return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+  }
+
+  /* WCAG 2.1 relative luminance + contrast ratio */
+  function linChan(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  function relLum(rgb) { return 0.2126 * linChan(rgb.r) + 0.7152 * linChan(rgb.g) + 0.0722 * linChan(rgb.b); }
+  function contrastRatio(a, b) {
+    var l1 = relLum(a), l2 = relLum(b);
+    var hi = Math.max(l1, l2), lo = Math.min(l1, l2);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  /* APCA-W3 0.1.9 (constants 0.0.98G-4g). txt/bg are sRGB. Returns signed Lc. */
+  function sRGBtoY(rgb) {
+    var TRC = 2.4;
+    function e(c) { return Math.pow(c / 255, TRC); }
+    return 0.2126729 * e(rgb.r) + 0.7151522 * e(rgb.g) + 0.0721750 * e(rgb.b);
+  }
+  function apcaLc(txt, bg) {
+    var txtY = sRGBtoY(txt), bgY = sRGBtoY(bg);
+    if (isNaN(txtY) || isNaN(bgY)) return 0.0;
+    if (Math.min(txtY, bgY) < 0.0 || Math.max(txtY, bgY) > 1.1) return 0.0;
+    var normBG = 0.56, normTXT = 0.57, revTXT = 0.62, revBG = 0.65;
+    var blkThrs = 0.022, blkClmp = 1.414, scale = 1.14,
+        loBoWoffset = 0.027, loWoBoffset = 0.027, deltaYmin = 0.0005, loClip = 0.1;
+    if (txtY <= blkThrs) txtY += Math.pow(blkThrs - txtY, blkClmp);
+    if (bgY <= blkThrs) bgY += Math.pow(blkThrs - bgY, blkClmp);
+    if (Math.abs(bgY - txtY) < deltaYmin) return 0.0;
+    var SAPC, out;
+    if (bgY > txtY) { /* normal polarity — dark text on light bg */
+      SAPC = (Math.pow(bgY, normBG) - Math.pow(txtY, normTXT)) * scale;
+      out = SAPC < loClip ? 0.0 : SAPC - loBoWoffset;
+    } else { /* reverse polarity — light text on dark bg */
+      SAPC = (Math.pow(bgY, revBG) - Math.pow(txtY, revTXT)) * scale;
+      out = SAPC > -loClip ? 0.0 : SAPC + loWoBoffset;
+    }
+    return out * 100;
+  }
+
+  function apcaVerdict(absLc) {
+    if (absLc >= 90) return 'Excellent — comfortable for any body text.';
+    if (absLc >= 75) return 'Good — passes for body & column text (16px+).';
+    if (absLc >= 60) return 'Fair — fine for larger text, headlines & fluent content.';
+    if (absLc >= 45) return 'Weak — only large / bold headlines (24px+ bold).';
+    if (absLc >= 30) return 'Poor — non-body only (large display, placeholders).';
+    if (absLc >= 15) return 'Very poor — decorative & non-text elements only.';
+    return 'Fail — effectively invisible.';
+  }
+
+  /* ── State + rendering ──────────────────────────────────────── */
+  var suppress = false;
+
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = ''; }
+  function hideError() { errorEl.textContent = ''; errorEl.style.display = 'none'; }
+
+  function setFg(hex) {
+    var h = normalizeHex(hex); if (!h) return;
+    suppress = true; fgHex.value = h.toUpperCase(); fgPick.value = h; suppress = false; compute();
+  }
+  function setBg(hex) {
+    var h = normalizeHex(hex); if (!h) return;
+    suppress = true; bgHex.value = h.toUpperCase(); bgPick.value = h; suppress = false; compute();
+  }
+
+  function makeBadge(label, spec, pass) {
+    var b = document.createElement('span');
+    b.className = 'cl-badge ' + (pass ? 'pass' : 'fail');
+    var mark = document.createElement('b'); mark.textContent = pass ? '✓' : '✗';
+    b.appendChild(mark);
+    b.appendChild(document.createTextNode(' ' + label));
+    var sp = document.createElement('span'); sp.style.opacity = '0.7'; sp.textContent = ' ' + spec;
+    b.appendChild(sp);
+    return b;
+  }
+
+  function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+  function compute() {
+    var fg = parseColor(fgHex.value);
+    var bg = parseColor(bgHex.value);
+
+    if (!fg || !bg) {
+      showError('Enter valid colors for both fields — e.g. #8F86B3 or rgb(143,134,179).');
+      ratioEl.textContent = '—'; ratioEl.className = 'cl-ratio';
+      apcaEl.textContent = '—'; apcaPolEl.textContent = ''; apcaNoteEl.textContent = '';
+      clear(badgesEl); clear(fixEl);
+      return;
+    }
+    hideError();
+
+    var fgHexN = rgbToHex(fg.r, fg.g, fg.b);
+    var bgHexN = rgbToHex(bg.r, bg.g, bg.b);
+
+    /* preview */
+    stage.style.background = bgHexN;
+    [prevLg, prevMd, prevSm, prevLink].forEach(function (n) { n.style.color = fgHexN; });
+    prevBtn.style.background = fgHexN; prevBtn.style.color = bgHexN;
+    stage.setAttribute('aria-label', 'Preview: ' + fgHexN + ' text on ' + bgHexN + ' background');
+
+    /* WCAG */
+    var ratio = contrastRatio(fg, bg);
+    var aaN = ratio >= 4.5, aaL = ratio >= 3.0, aaaN = ratio >= 7.0, aaaL = ratio >= 4.5;
+    ratioEl.textContent = ratio.toFixed(2) + ':1';
+    ratioEl.className = 'cl-ratio ' + (aaN ? 'is-pass' : 'is-fail');
+
+    clear(badgesEl);
+    badgesEl.appendChild(makeBadge('AA', 'normal', aaN));
+    badgesEl.appendChild(makeBadge('AA', 'large', aaL));
+    badgesEl.appendChild(makeBadge('AAA', 'normal', aaaN));
+    badgesEl.appendChild(makeBadge('AAA', 'large', aaaL));
+
+    /* APCA */
+    var lc = apcaLc(fg, bg);
+    var absLc = Math.abs(lc);
+    apcaEl.textContent = 'Lc ' + (lc < 0 ? '−' : '') + absLc.toFixed(1);
+    apcaPolEl.textContent = lc < 0 ? 'light text on darker surface (reverse)' : (lc > 0 ? 'dark text on lighter surface (normal)' : 'no perceptible difference');
+    apcaNoteEl.textContent = apcaVerdict(absLc);
+
+    renderFixes(fg, bg, ratio);
+    buildReport(fgHexN, bgHexN, ratio, aaN, aaL, aaaN, aaaL, lc);
+    publish(fgHexN, bgHexN, ratio, aaN, aaaN, aaL, aaaL, lc);
+    syncUrl(fgHexN, bgHexN);
+  }
+
+  /* Nudge only lightness (keep hue + saturation) until target ratio is met. */
+  function bestLightnessFix(fixRgb, otherRgb, target) {
+    var hsl = rgbToHsl(fixRgb.r, fixRgb.g, fixRgb.b);
+    var best = null;
+    for (var L = 0; L <= 100; L++) {
+      var cand = hslToRgb(hsl.h, hsl.s, L);
+      var r = contrastRatio(cand, otherRgb);
+      if (r >= target) {
+        var dist = Math.abs(L - hsl.l);
+        if (!best || dist < best.dist) best = { rgb: cand, L: L, ratio: r, dist: dist, dir: L < hsl.l ? 'darker' : 'lighter' };
+      }
+    }
+    return best;
+  }
+
+  function fixRow(kind, hex, ratio, applyFn) {
+    var row = document.createElement('div'); row.className = 'cl-fix';
+    var sw = document.createElement('div'); sw.className = 'cl-fix-sw'; sw.style.background = hex;
+    var meta = document.createElement('div'); meta.className = 'cl-fix-meta';
+    var k = document.createElement('div'); k.className = 'k'; k.textContent = kind;
+    var v = document.createElement('div'); v.className = 'v'; v.textContent = hex.toUpperCase();
+    var r = document.createElement('div'); r.className = 'r'; r.textContent = ratio.toFixed(2) + ':1';
+    meta.appendChild(k); meta.appendChild(v); meta.appendChild(r);
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn'; btn.textContent = 'Apply';
+    btn.addEventListener('click', applyFn);
+    row.appendChild(sw); row.appendChild(meta); row.appendChild(btn);
+    return row;
+  }
+
+  function renderFixes(fg, bg, ratio) {
+    clear(fixEl);
+    if (ratio >= fixTarget) {
+      var ok = document.createElement('div'); ok.className = 'cl-ok-note';
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '2');
+      var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', 'M20 6 9 17l-5-5'); svg.appendChild(p);
+      ok.appendChild(svg);
+      ok.appendChild(document.createTextNode('This pair already clears ' + ratio.toFixed(2) + ':1 — above your ' + fixTarget + ':1 target. No changes needed.'));
+      fixEl.appendChild(ok);
+      return;
+    }
+    var grid = document.createElement('div'); grid.className = 'cl-suggest';
+    var textFix = bestLightnessFix(fg, bg, fixTarget);
+    var bgFix = bestLightnessFix(bg, fg, fixTarget);
+    if (textFix) {
+      var th = rgbToHex(textFix.rgb.r, textFix.rgb.g, textFix.rgb.b);
+      grid.appendChild(fixRow('Nudge text ' + textFix.dir + ' →', th, textFix.ratio, function () { setFg(th); }));
+    }
+    if (bgFix) {
+      var bh = rgbToHex(bgFix.rgb.r, bgFix.rgb.g, bgFix.rgb.b);
+      grid.appendChild(fixRow('Nudge surface ' + bgFix.dir + ' →', bh, bgFix.ratio, function () { setBg(bh); }));
+    }
+    if (!textFix && !bgFix) {
+      var none = document.createElement('p'); none.className = 'cl-hint';
+      none.textContent = 'No single-channel lightness nudge reaches ' + fixTarget + ':1 against this partner color. Try changing the other color, or lower the target.';
+      fixEl.appendChild(none);
+    } else {
+      fixEl.appendChild(grid);
+    }
+  }
+
+  /* ── Report ─────────────────────────────────────────────────── */
+  function buildReport(fgHexN, bgHexN, ratio, aaN, aaL, aaaN, aaaL, lc) {
+    var yn = function (b) { return b ? 'PASS' : 'FAIL'; };
+    lastReport =
+      'Penumbra Forge — Color Contrast Report\n' +
+      '======================================\n' +
+      'Foreground (text) : ' + fgHexN.toUpperCase() + '\n' +
+      'Background (surf.) : ' + bgHexN.toUpperCase() + '\n\n' +
+      'WCAG 2.1 contrast ratio : ' + ratio.toFixed(2) + ':1\n' +
+      '  AA  normal (>=4.5) : ' + yn(aaN) + '\n' +
+      '  AA  large  (>=3.0) : ' + yn(aaL) + '\n' +
+      '  AAA normal (>=7.0) : ' + yn(aaaN) + '\n' +
+      '  AAA large  (>=4.5) : ' + yn(aaaL) + '\n\n' +
+      'APCA (W3 0.1.9) Lc : ' + lc.toFixed(2) + ' (' + apcaVerdict(Math.abs(lc)) + ')\n\n' +
+      'Computed entirely in-browser at penumbraforge.com/tools/contrast-lab/\n' +
+      'Nothing was uploaded.\n';
+  }
+
+  /* ── Clipboard + download helpers ───────────────────────────── */
+  function flash(btn, txt) {
+    var prev = btn.textContent; btn.textContent = txt;
+    setTimeout(function () { btn.textContent = prev; }, 1600);
+  }
+  function copyText(text, btn, okLabel) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { flash(btn, okLabel || 'Copied!'); }, function () { fallbackCopy(text, btn); });
+    } else { fallbackCopy(text, btn); }
+  }
+  function fallbackCopy(text, btn) {
+    var ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); flash(btn, 'Copied!'); } catch (e) { flash(btn, 'Failed'); }
+    document.body.removeChild(ta);
+  }
+  function downloadBlob(filename, text, type) {
+    var blob = new Blob([text], { type: type || 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
+  /* ── Palette generator ──────────────────────────────────────── */
+  var STEPS = [
+    { name: '50', l: 96 }, { name: '100', l: 90 }, { name: '200', l: 81 }, { name: '300', l: 70 },
+    { name: '400', l: 60 }, { name: '500', l: 50 }, { name: '600', l: 41 }, { name: '700', l: 32 },
+    { name: '800', l: 23 }, { name: '900', l: 14 }
+  ];
+  var BLACK = { r: 0, g: 0, b: 0 }, WHITE = { r: 255, g: 255, b: 255 };
+
+  function generatePalette() {
+    var seed = parseColor(seedHex.value);
+    if (!seed) { showError('Enter a valid seed color for the palette (e.g. #8F86B3).'); return; }
+    hideError();
+    var hsl = rgbToHsl(seed.r, seed.g, seed.b);
+    var sat = clamp(hsl.s, 12, 92); /* keep some chroma across the ramp */
+    var out = [];
+    STEPS.forEach(function (st) {
+      var rgb = hslToRgb(hsl.h, sat, st.l);
+      var hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+      var rW = contrastRatio(WHITE, rgb), rB = contrastRatio(BLACK, rgb);
+      var onWhite = rW >= rB;
+      var on = onWhite ? '#ffffff' : '#000000';
+      var onRatio = onWhite ? rW : rB;
+      out.push({ name: st.name, hex: hex, on: on, onRatio: onRatio, pass: onRatio >= 4.5 });
+    });
+    lastPalette = { hue: Math.round(hsl.h), steps: out };
+    renderPalette(out);
+  }
+
+  function renderPalette(steps) {
+    clear(paletteEl);
+    steps.forEach(function (s) {
+      var chip = document.createElement('div'); chip.className = 'cl-pchip'; chip.setAttribute('role', 'listitem');
+      var sw = document.createElement('div'); sw.className = 'cl-pchip-sw';
+      sw.style.background = s.hex; sw.style.color = s.on; sw.textContent = 'Aa';
+      sw.title = 'Click to use ' + s.hex.toUpperCase() + ' as background';
+      sw.style.cursor = 'pointer';
+      sw.addEventListener('click', function () { setBg(s.hex); if (window.scrollTo) window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      var meta = document.createElement('div'); meta.className = 'cl-pchip-meta';
+      var nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = s.name;
+      var hx = document.createElement('div'); hx.className = 'hx'; hx.textContent = s.hex.toUpperCase();
+      var on = document.createElement('div'); on.className = 'on ' + (s.pass ? 'pass' : 'fail');
+      on.textContent = (s.pass ? '✓' : '✗') + ' on ' + (s.on === '#ffffff' ? 'white' : 'black') + ' ' + s.onRatio.toFixed(1);
+      meta.appendChild(nm); meta.appendChild(hx); meta.appendChild(on);
+      chip.appendChild(sw); chip.appendChild(meta);
+      paletteEl.appendChild(chip);
+    });
+    paletteActions.style.display = steps.length ? '' : 'none';
+  }
+
+  function paletteToCss() {
+    if (!lastPalette) return '';
+    var lines = [':root {'];
+    lastPalette.steps.forEach(function (s) { lines.push('  --brand-' + s.name + ': ' + s.hex + ';'); });
+    lastPalette.steps.forEach(function (s) { lines.push('  --brand-on-' + s.name + ': ' + s.on + ';'); });
+    lines.push('}');
+    lines.push('/* on-colors chosen for WCAG AA (>=4.5:1); generated in-browser at penumbraforge.com */');
+    return lines.join('\n');
+  }
+  function paletteToJson() {
+    if (!lastPalette) return '';
+    var obj = { seedHue: lastPalette.hue, note: 'on = accessible text color (WCAG AA); generated in-browser at penumbraforge.com', scale: {} };
+    lastPalette.steps.forEach(function (s) {
+      obj.scale[s.name] = { hex: s.hex, on: s.on, onRatio: +s.onRatio.toFixed(2), passesAA: s.pass };
+    });
+    return JSON.stringify(obj, null, 2);
+  }
+
+  /* ── Agent I/O + shareable URL ──────────────────────────────── */
+  function publish(fgHexN, bgHexN, ratio, aaN, aaaN, aaL, aaaL, lc) {
+    if (!window.PF) return;
+    try {
+      PF.ready({
+        output: fgHexN.toUpperCase() + ' on ' + bgHexN.toUpperCase() + ' = ' + ratio.toFixed(2) + ':1 (AA ' + (aaN ? 'pass' : 'fail') + ', AAA ' + (aaaN ? 'pass' : 'fail') + ', APCA Lc ' + lc.toFixed(1) + ')',
+        data: {
+          fg: fgHexN, bg: bgHexN,
+          ratio: +ratio.toFixed(2),
+          aa: aaN, aaa: aaaN,
+          aaLarge: aaL, aaaLarge: aaaL,
+          apca: +lc.toFixed(2)
+        }
+      });
+    } catch (e) {}
+  }
+  function syncUrl(fgHexN, bgHexN) {
+    try {
+      var u = new URL(location.href); u.hash = '';
+      u.searchParams.set('fg', fgHexN.replace('#', ''));
+      u.searchParams.set('bg', bgHexN.replace('#', ''));
+      history.replaceState(null, '', u.toString());
+    } catch (e) {}
+  }
+
+  /* ── Wiring ─────────────────────────────────────────────────── */
+  fgHex.addEventListener('input', function () {
+    if (suppress) return;
+    var h = normalizeHex(fgHex.value); if (h) { suppress = true; fgPick.value = h; suppress = false; }
+    compute();
+  });
+  bgHex.addEventListener('input', function () {
+    if (suppress) return;
+    var h = normalizeHex(bgHex.value); if (h) { suppress = true; bgPick.value = h; suppress = false; }
+    compute();
+  });
+  fgPick.addEventListener('input', function () { if (suppress) return; setFg(fgPick.value); });
+  bgPick.addEventListener('input', function () { if (suppress) return; setBg(bgPick.value); });
+
+  swapBtn.addEventListener('click', function () {
+    var f = parseColor(fgHex.value), b = parseColor(bgHex.value);
+    if (!f || !b) return;
+    var fh = rgbToHex(f.r, f.g, f.b), bh = rgbToHex(b.r, b.g, b.b);
+    suppress = true;
+    fgHex.value = bh.toUpperCase(); fgPick.value = bh;
+    bgHex.value = fh.toUpperCase(); bgPick.value = fh;
+    suppress = false; compute();
+  });
+
+  $('cl-ex-fail').addEventListener('click', function () { suppress = true; fgHex.value = '#7A7A7A'; fgPick.value = '#7a7a7a'; bgHex.value = '#F2F2F2'; bgPick.value = '#f2f2f2'; suppress = false; compute(); });
+  $('cl-ex-pass').addEventListener('click', function () { suppress = true; fgHex.value = '#E8E3F5'; fgPick.value = '#e8e3f5'; bgHex.value = '#12101B'; bgPick.value = '#12101b'; suppress = false; compute(); });
+
+  function updateSample() {
+    var t = sampleEl.value || 'The quick brown fox jumps over the lazy dog';
+    prevMd.textContent = t;
+    prevSm.textContent = t;
+    prevLg.textContent = t.length > 34 ? t.slice(0, 34) : t;
+  }
+  sampleEl.addEventListener('input', updateSample);
+
+  targetBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      targetBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      fixTarget = parseFloat(btn.getAttribute('data-target'));
+      var fg = parseColor(fgHex.value), bg = parseColor(bgHex.value);
+      if (fg && bg) renderFixes(fg, bg, contrastRatio(fg, bg));
+    });
+  });
+
+  copyReportBtn.addEventListener('click', function () { copyText(lastReport, copyReportBtn); });
+  dlReportBtn.addEventListener('click', function () { if (lastReport) downloadBlob('contrast-report.txt', lastReport); });
+  shareBtn.addEventListener('click', function () {
+    var url = location.href.split('#')[0];
+    copyText(url, shareBtn, 'Link copied!');
+  });
+
+  seedHex.addEventListener('input', function () { var h = normalizeHex(seedHex.value); if (h) seedPick.value = h; });
+  seedPick.addEventListener('input', function () { seedHex.value = seedPick.value.toUpperCase(); });
+  genBtn.addEventListener('click', generatePalette);
+  copyCssBtn.addEventListener('click', function () { copyText(paletteToCss(), copyCssBtn); });
+  dlJsonBtn.addEventListener('click', function () { var j = paletteToJson(); if (j) downloadBlob('accessible-palette.json', j, 'application/json'); });
+  dlCssBtn.addEventListener('click', function () { var c = paletteToCss(); if (c) downloadBlob('accessible-palette.css', c, 'text/css'); });
+
+  /* EyeDropper (Chromium) — progressive enhancement */
+  if (window.EyeDropper) {
+    fgEye.hidden = false; bgEye.hidden = false;
+    function pick(setter) {
+      try {
+        var ed = new window.EyeDropper();
+        ed.open().then(function (res) { if (res && res.sRGBHex) setter(res.sRGBHex); }).catch(function () {});
+      } catch (e) {}
+    }
+    fgEye.addEventListener('click', function () { pick(setFg); });
+    bgEye.addEventListener('click', function () { pick(setBg); });
+  }
+
+  /* ── Init: honor ?fg=&bg= then compute ──────────────────────── */
+  (function init() {
+    var applied = false;
+    if (window.PF && PF.input) {
+      var p = PF.input();
+      var f = normalizeHex(p.fg), b = normalizeHex(p.bg);
+      if (f) { fgHex.value = f.toUpperCase(); fgPick.value = f; applied = true; }
+      if (b) { bgHex.value = b.toUpperCase(); bgPick.value = b; applied = true; }
+      if (p.seed) { var sd = normalizeHex(p.seed); if (sd) { seedHex.value = sd.toUpperCase(); seedPick.value = sd; } }
+    }
+    updateSample();
+    compute();
+    if (applied) generatePalette();
+  })();
+})();
+</script>

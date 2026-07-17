@@ -1,0 +1,616 @@
+---
+toolSlug: image-converter
+permalink: /tools/image-converter/
+---
+
+<style>
+  .ic-controls { display:flex; flex-wrap:wrap; gap:22px 28px; align-items:flex-end; }
+  .ic-controls .tool-group { margin-bottom:0; }
+  .ic-controls label span { color:var(--accent); font-family:var(--font-mono); }
+  .ic-resize-row { display:flex; align-items:center; gap:10px; }
+  .ic-resize-row input[type="number"] { width:110px; }
+  .ic-resize-row span { color:var(--text-3); font-family:var(--font-mono); }
+  #ic-quality { width:220px; max-width:100%; accent-color:var(--accent); cursor:pointer; }
+  #ic-bg { width:52px; height:40px; padding:3px; background:#06060d; border:1px solid var(--wb-line,var(--border)); border-radius:3px; cursor:pointer; }
+  .ic-hidden { display:none !important; }
+
+  #ic-drop { border:2px dashed var(--border); border-radius:8px; padding:2rem 1.25rem; text-align:center; cursor:pointer; transition:border-color .2s, background .2s; user-select:none; margin-top:22px; }
+  #ic-drop:hover, #ic-drop.ic-drag { border-color:var(--accent); background:color-mix(in oklab, var(--accent) 6%, transparent); }
+  #ic-drop .ic-drop-main { color:var(--text-1); font-size:14px; }
+  #ic-drop .ic-drop-sub { color:var(--text-3); font-size:12px; margin-top:6px; font-family:var(--font-mono); letter-spacing:.3px; }
+
+  .ic-empty { text-align:center; padding:6px 0 2px; }
+  .ic-empty .btn { margin-top:14px; }
+
+  .ic-summary { display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin:22px 0 4px; }
+  .ic-stat { display:flex; flex-direction:column; gap:2px; padding:10px 16px; border:1px solid var(--border); border-radius:4px; background:#06060d; }
+  .ic-stat b { font-family:var(--font-mono); font-size:16px; color:var(--text-1); }
+  .ic-stat span { font-family:var(--font-mono); font-size:9.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--slate); }
+  .ic-stat.saved b { color:var(--sage); }
+  .ic-summary .ic-actions { margin-left:auto; display:flex; gap:10px; }
+
+  .ic-preview { margin-top:16px; }
+  .ic-pane-body { display:flex; align-items:center; justify-content:center; min-height:220px; max-height:380px; padding:12px;
+    background:#0a0a12 repeating-conic-gradient(#141420 0% 25%, #0c0c16 0% 50%) 0/22px 22px; overflow:hidden; }
+  .ic-pane-body img { max-width:100%; max-height:356px; object-fit:contain; image-rendering:auto; display:block; }
+  .ic-pane-meta { font-family:var(--font-mono); font-size:10px; letter-spacing:.4px; color:var(--text-2); text-transform:none; }
+
+  .ic-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px; margin-top:22px; }
+  .ic-card { border:1px solid var(--border); border-radius:6px; background:#06060d; overflow:hidden; cursor:pointer; transition:border-color .18s, translate .18s; position:relative; }
+  .ic-card:hover { border-color:var(--wb-line-bright, var(--accent)); }
+  .ic-card.sel { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in oklab, var(--accent) 14%, transparent); }
+  .ic-thumb { height:120px; display:flex; align-items:center; justify-content:center; padding:8px;
+    background:repeating-conic-gradient(#141420 0% 25%, #0c0c16 0% 50%) 0/16px 16px; }
+  .ic-thumb img { max-width:100%; max-height:104px; object-fit:contain; }
+  .ic-card-body { padding:10px 12px 12px; }
+  .ic-name { font-size:12px; color:var(--text-1); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ic-sizes { font-family:var(--font-mono); font-size:11px; color:var(--text-3); margin-top:5px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .ic-sizes .arrow { opacity:.5; }
+  .ic-sizes .new { color:var(--text-1); }
+  .ic-saved { display:inline-block; font-family:var(--font-mono); font-size:9.5px; letter-spacing:.5px; padding:2px 6px; border-radius:2px; margin-top:8px; }
+  .ic-saved.good { color:var(--sage); border:1px solid color-mix(in oklab, var(--sage) 35%, transparent); background:color-mix(in oklab, var(--sage) 8%, transparent); }
+  .ic-saved.bad  { color:#e8a87c; border:1px solid color-mix(in oklab, #e8a87c 30%, transparent); background:color-mix(in oklab, #e8a87c 8%, transparent); }
+  .ic-saved.pend { color:var(--text-3); border:1px solid var(--border); }
+  .ic-card-actions { display:flex; gap:8px; margin-top:11px; }
+  .ic-card-actions .btn { padding:6px 12px; font-size:10.5px; }
+  .ic-remove { position:absolute; top:7px; right:7px; width:22px; height:22px; border-radius:3px; border:1px solid var(--border);
+    background:rgba(6,6,13,.8); color:var(--text-2); font-size:13px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:2; }
+  .ic-remove:hover { color:#e8a87c; border-color:color-mix(in oklab, #e8a87c 35%, transparent); }
+</style>
+
+<div class="ic-controls" aria-label="Conversion options">
+  <div class="tool-group">
+    <label id="ic-fmt-label">Output format</label>
+    <div class="tool-options" role="group" aria-labelledby="ic-fmt-label">
+      <button class="tool-option active" data-fmt="image/webp" aria-pressed="true">WebP</button>
+      <button class="tool-option" data-fmt="image/jpeg" aria-pressed="false">JPEG</button>
+      <button class="tool-option" data-fmt="image/png" aria-pressed="false">PNG</button>
+    </div>
+  </div>
+
+  <div class="tool-group" id="ic-quality-group">
+    <label for="ic-quality">Quality <span id="ic-quality-val">80%</span></label>
+    <input type="range" id="ic-quality" min="1" max="100" value="80" aria-describedby="ic-quality-val">
+  </div>
+
+  <div class="tool-group">
+    <label>Max size (px) &mdash; optional, keeps aspect</label>
+    <div class="ic-resize-row">
+      <input type="number" id="ic-maxw" min="1" step="1" placeholder="width" aria-label="Maximum width in pixels" autocomplete="off">
+      <span>&times;</span>
+      <input type="number" id="ic-maxh" min="1" step="1" placeholder="height" aria-label="Maximum height in pixels" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="tool-group ic-hidden" id="ic-bg-group">
+    <label for="ic-bg">Matte (JPEG has no transparency)</label>
+    <input type="color" id="ic-bg" value="#ffffff" aria-label="Background matte color for JPEG output">
+  </div>
+</div>
+
+<div id="ic-drop" role="button" tabindex="0" aria-label="Drop images here or click to browse">
+  <div class="ic-drop-main">Drop images here or <u>click to browse</u></div>
+  <div class="ic-drop-sub">PNG &middot; JPEG &middot; WebP &middot; GIF &middot; BMP &nbsp;|&nbsp; up to 24 files, 30&nbsp;MB each</div>
+  <input type="file" id="ic-file" accept="image/*" multiple style="display:none;" aria-hidden="true">
+</div>
+
+<div id="ic-webp-warn" class="tool-error ic-hidden" style="margin-top:14px;" role="status">
+  Your browser can't encode WebP &mdash; that option is disabled. PNG and JPEG still work.
+</div>
+
+<div id="ic-error" class="tool-error ic-hidden" style="margin-top:14px;" role="alert" aria-live="assertive"></div>
+
+<div id="ic-status" class="sr-only" role="status" aria-live="polite" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);"></div>
+
+<div id="ic-empty" class="ic-empty" style="margin-top:22px;">
+  <p style="color:var(--text-3); font-size:13px; line-height:1.6;">No images yet. Everything runs in your browser &mdash; nothing is uploaded.<br>Drop a file above, or try a sample.</p>
+  <button class="btn" id="ic-example" type="button">Load example image</button>
+</div>
+
+<div id="ic-workbench" class="ic-hidden">
+  <div class="ic-summary">
+    <div class="ic-stat"><b id="ic-sum-count">0</b><span>Images</span></div>
+    <div class="ic-stat"><b id="ic-sum-before">0 B</b><span>Original</span></div>
+    <div class="ic-stat"><b id="ic-sum-after">0 B</b><span>Converted</span></div>
+    <div class="ic-stat saved"><b id="ic-sum-saved">0%</b><span>Saved</span></div>
+    <div class="ic-actions">
+      <button class="btn btn--primary" id="ic-download-all" type="button">Download all</button>
+      <button class="btn" id="ic-clear" type="button">Clear</button>
+    </div>
+  </div>
+
+  <div class="ic-preview wb-split">
+    <div class="wb-panel">
+      <div class="wb-panel-bar"><span>Original</span><span class="ic-pane-meta" id="ic-orig-meta">&mdash;</span></div>
+      <div class="ic-pane-body"><img id="ic-orig-img" alt="Original image preview"></div>
+    </div>
+    <div class="wb-panel">
+      <div class="wb-panel-bar"><span>Converted</span><span class="ic-pane-meta" id="ic-conv-meta">&mdash;</span></div>
+      <div class="ic-pane-body"><img id="ic-conv-img" alt="Converted image preview"></div>
+    </div>
+  </div>
+
+  <div class="ic-grid" id="ic-grid"></div>
+</div>
+
+<script>
+(function () {
+  var MAX_FILES = 24;
+  var MAX_BYTES = 30 * 1024 * 1024;
+
+  var els = {
+    controls:   document.querySelector('.ic-controls'),
+    fmtBtns:    Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-fmt]')),
+    qGroup:     document.getElementById('ic-quality-group'),
+    quality:    document.getElementById('ic-quality'),
+    qualityVal: document.getElementById('ic-quality-val'),
+    maxw:       document.getElementById('ic-maxw'),
+    maxh:       document.getElementById('ic-maxh'),
+    bgGroup:    document.getElementById('ic-bg-group'),
+    bg:         document.getElementById('ic-bg'),
+    drop:       document.getElementById('ic-drop'),
+    file:       document.getElementById('ic-file'),
+    webpWarn:   document.getElementById('ic-webp-warn'),
+    error:      document.getElementById('ic-error'),
+    status:     document.getElementById('ic-status'),
+    empty:      document.getElementById('ic-empty'),
+    example:    document.getElementById('ic-example'),
+    workbench:  document.getElementById('ic-workbench'),
+    sumCount:   document.getElementById('ic-sum-count'),
+    sumBefore:  document.getElementById('ic-sum-before'),
+    sumAfter:   document.getElementById('ic-sum-after'),
+    sumSaved:   document.getElementById('ic-sum-saved'),
+    dlAll:      document.getElementById('ic-download-all'),
+    clearBtn:   document.getElementById('ic-clear'),
+    origImg:    document.getElementById('ic-orig-img'),
+    convImg:    document.getElementById('ic-conv-img'),
+    origMeta:   document.getElementById('ic-orig-meta'),
+    convMeta:   document.getElementById('ic-conv-meta'),
+    grid:       document.getElementById('ic-grid')
+  };
+
+  var items = [];        // { id, name, file, bitmap, ow, oh, osize, ourl, blob, url, cw, ch, csize, card, els }
+  var seq = 0;
+  var currentFmt = 'image/webp';
+  var selectedId = null;
+  var reprocessTimer = null;
+
+  // ---- WebP encode support ----
+  var webpOK = true;
+  try {
+    var probe = document.createElement('canvas');
+    probe.width = 1; probe.height = 1;
+    webpOK = probe.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  } catch (e) { webpOK = false; }
+  if (!webpOK) {
+    els.webpWarn.classList.remove('ic-hidden');
+    var wbtn = document.querySelector('.tool-option[data-fmt="image/webp"]');
+    if (wbtn) {
+      wbtn.disabled = true;
+      wbtn.style.opacity = '0.45';
+      wbtn.style.cursor = 'not-allowed';
+      wbtn.classList.remove('active');
+      wbtn.setAttribute('aria-pressed', 'false');
+      var jbtn = document.querySelector('.tool-option[data-fmt="image/jpeg"]');
+      if (jbtn) { jbtn.classList.add('active'); jbtn.setAttribute('aria-pressed', 'true'); currentFmt = 'image/jpeg'; }
+    }
+    syncFormatUI();
+  }
+
+  // ---- helpers ----
+  function fmtBytes(n) {
+    if (n == null) return '—';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+  function extFor(mime) {
+    return mime === 'image/jpeg' ? 'jpg' : mime === 'image/webp' ? 'webp' : 'png';
+  }
+  function outName(name, ext) {
+    return name.replace(/\.[^.\\/]+$/, '') + '.' + ext;
+  }
+  function say(msg) { els.status.textContent = msg; }
+  function showError(msg) { els.error.textContent = msg; els.error.classList.remove('ic-hidden'); }
+  function clearError() { els.error.textContent = ''; els.error.classList.add('ic-hidden'); }
+  function quality01() { return Math.min(1, Math.max(0.01, (parseInt(els.quality.value, 10) || 80) / 100)); }
+
+  function targetDims(ow, oh) {
+    var mw = parseInt(els.maxw.value, 10);
+    var mh = parseInt(els.maxh.value, 10);
+    var scale = 1;
+    if (mw > 0 && ow > mw) scale = Math.min(scale, mw / ow);
+    if (mh > 0 && oh > mh) scale = Math.min(scale, mh / oh);
+    return { w: Math.max(1, Math.round(ow * scale)), h: Math.max(1, Math.round(oh * scale)) };
+  }
+
+  function syncFormatUI() {
+    var lossy = (currentFmt === 'image/jpeg' || currentFmt === 'image/webp');
+    els.qGroup.classList.toggle('ic-hidden', !lossy);
+    els.bgGroup.classList.toggle('ic-hidden', currentFmt !== 'image/jpeg');
+  }
+
+  // ---- ingest ----
+  function addFiles(fileList) {
+    clearError();
+    var files = Array.prototype.slice.call(fileList || []);
+    if (!files.length) return;
+
+    var accepted = [];
+    var skipped = [];
+    files.forEach(function (f) {
+      if (!/^image\//.test(f.type) && !/\.(png|jpe?g|webp|gif|bmp|avif)$/i.test(f.name)) { skipped.push(f.name + ' (not an image)'); return; }
+      if (f.size > MAX_BYTES) { skipped.push(f.name + ' (over 30 MB)'); return; }
+      accepted.push(f);
+    });
+
+    if (items.length + accepted.length > MAX_FILES) {
+      accepted = accepted.slice(0, Math.max(0, MAX_FILES - items.length));
+      skipped.push('batch capped at ' + MAX_FILES + ' images');
+    }
+    if (skipped.length) showError('Skipped: ' + skipped.join(', '));
+    if (!accepted.length) return;
+
+    say('Decoding ' + accepted.length + ' image' + (accepted.length === 1 ? '' : 's') + '…');
+
+    accepted.forEach(function (f) {
+      createImageBitmap(f).then(function (bmp) {
+        var it = {
+          id: ++seq, name: f.name || ('image-' + seq), file: f, bitmap: bmp,
+          ow: bmp.width, oh: bmp.height, osize: f.size, ourl: URL.createObjectURL(f),
+          blob: null, url: null, cw: 0, ch: 0, csize: null, card: null, els: null
+        };
+        items.push(it);
+        buildCard(it);
+        if (selectedId == null) selectItem(it.id);
+        reveal();
+        processOne(it);
+      }).catch(function () {
+        showError('Could not decode "' + (f.name || 'image') + '". It may be corrupt or an unsupported format.');
+      });
+    });
+  }
+
+  function reveal() {
+    els.empty.classList.add('ic-hidden');
+    els.workbench.classList.remove('ic-hidden');
+  }
+
+  // ---- render card (DOM APIs so filenames are escaped via textContent) ----
+  function buildCard(it) {
+    var card = document.createElement('div');
+    card.className = 'ic-card';
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', 'Select ' + it.name);
+
+    var remove = document.createElement('button');
+    remove.className = 'ic-remove';
+    remove.type = 'button';
+    remove.setAttribute('aria-label', 'Remove ' + it.name);
+    remove.textContent = '×';
+
+    var thumb = document.createElement('div');
+    thumb.className = 'ic-thumb';
+    var timg = document.createElement('img');
+    timg.alt = it.name;
+    timg.src = it.ourl;
+    thumb.appendChild(timg);
+
+    var body = document.createElement('div');
+    body.className = 'ic-card-body';
+
+    var name = document.createElement('div');
+    name.className = 'ic-name';
+    name.title = it.name;
+    name.textContent = it.name;
+
+    var sizes = document.createElement('div');
+    sizes.className = 'ic-sizes';
+    var oldS = document.createElement('span'); oldS.className = 'old'; oldS.textContent = fmtBytes(it.osize);
+    var arrow = document.createElement('span'); arrow.className = 'arrow'; arrow.textContent = '→';
+    var newS = document.createElement('span'); newS.className = 'new'; newS.textContent = '…';
+    sizes.appendChild(oldS); sizes.appendChild(arrow); sizes.appendChild(newS);
+
+    var saved = document.createElement('div');
+    saved.className = 'ic-saved pend';
+    saved.textContent = 'working…';
+
+    var actions = document.createElement('div');
+    actions.className = 'ic-card-actions';
+    var dl = document.createElement('button');
+    dl.className = 'btn btn--primary';
+    dl.type = 'button';
+    dl.textContent = 'Download';
+    dl.disabled = true;
+    actions.appendChild(dl);
+
+    body.appendChild(name);
+    body.appendChild(sizes);
+    body.appendChild(saved);
+    body.appendChild(actions);
+
+    card.appendChild(remove);
+    card.appendChild(thumb);
+    card.appendChild(body);
+    els.grid.appendChild(card);
+
+    it.card = card;
+    it.els = { timg: timg, newS: newS, saved: saved, dl: dl };
+
+    card.addEventListener('click', function () { selectItem(it.id); });
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectItem(it.id); }
+    });
+    remove.addEventListener('click', function (e) { e.stopPropagation(); removeItem(it.id); });
+    dl.addEventListener('click', function (e) { e.stopPropagation(); downloadItem(it); });
+  }
+
+  // ---- process one image ----
+  function processOne(it) {
+    if (!it.bitmap) return;
+    var dims = targetDims(it.ow, it.oh);
+    var canvas = document.createElement('canvas');
+    canvas.width = dims.w;
+    canvas.height = dims.h;
+    var ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    if (currentFmt === 'image/jpeg') {
+      ctx.fillStyle = els.bg.value || '#ffffff';
+      ctx.fillRect(0, 0, dims.w, dims.h);
+    }
+    ctx.drawImage(it.bitmap, 0, 0, dims.w, dims.h);
+
+    var mime = currentFmt;
+    var q = quality01();
+    canvas.toBlob(function (blob) {
+      if (!blob) { showError('Encoding "' + it.name + '" failed in this browser.'); return; }
+      if (it.url) { URL.revokeObjectURL(it.url); it.url = null; }
+      it.blob = blob;
+      it.url = URL.createObjectURL(blob);
+      it.csize = blob.size;
+      it.cw = dims.w; it.ch = dims.h;
+      updateCard(it);
+      updateSummary();
+      if (it.id === selectedId) renderPreview(it);
+      say('Converted ' + it.name + ' — ' + fmtBytes(it.csize));
+      publishResult();
+    }, mime, q);
+  }
+
+  function processAll() {
+    items.forEach(processOne);
+  }
+  function scheduleReprocess() {
+    if (reprocessTimer) clearTimeout(reprocessTimer);
+    reprocessTimer = setTimeout(processAll, 140);
+  }
+
+  // ---- card + summary + preview updates ----
+  function updateCard(it) {
+    if (!it.els) return;
+    it.els.newS.textContent = fmtBytes(it.csize);
+    it.els.dl.disabled = false;
+    var pct = it.osize > 0 ? Math.round((1 - it.csize / it.osize) * 100) : 0;
+    var s = it.els.saved;
+    if (pct > 0) { s.className = 'ic-saved good'; s.textContent = '−' + pct + '% smaller'; }
+    else if (pct < 0) { s.className = 'ic-saved bad'; s.textContent = '+' + Math.abs(pct) + '% larger'; }
+    else { s.className = 'ic-saved pend'; s.textContent = 'no change'; }
+  }
+
+  function updateSummary() {
+    var done = items.filter(function (it) { return it.csize != null; });
+    var before = 0, after = 0;
+    items.forEach(function (it) { before += it.osize; });
+    done.forEach(function (it) { after += it.csize; });
+    els.sumCount.textContent = String(items.length);
+    els.sumBefore.textContent = fmtBytes(before);
+    els.sumAfter.textContent = done.length ? fmtBytes(after) : '…';
+    var doneBefore = done.reduce(function (a, it) { return a + it.osize; }, 0);
+    var pct = doneBefore > 0 ? Math.round((1 - after / doneBefore) * 100) : 0;
+    els.sumSaved.textContent = done.length ? (pct >= 0 ? pct + '%' : pct + '%') : '—';
+    els.dlAll.disabled = done.length === 0;
+  }
+
+  function selectItem(id) {
+    selectedId = id;
+    items.forEach(function (it) { if (it.card) it.card.classList.toggle('sel', it.id === id); });
+    var it = byId(id);
+    if (it) renderPreview(it);
+  }
+
+  function renderPreview(it) {
+    els.origImg.src = it.ourl;
+    els.origMeta.textContent = it.ow + '×' + it.oh + ' · ' + fmtBytes(it.osize) + ' · ' + shortType(it.file.type);
+    if (it.url) {
+      els.convImg.src = it.url;
+      var pct = it.osize > 0 ? Math.round((1 - it.csize / it.osize) * 100) : 0;
+      var tag = pct > 0 ? '−' + pct + '%' : pct < 0 ? '+' + Math.abs(pct) + '%' : '±0%';
+      els.convMeta.textContent = it.cw + '×' + it.ch + ' · ' + fmtBytes(it.csize) + ' · ' + extFor(currentFmt).toUpperCase() + ' · ' + tag;
+    } else {
+      els.convImg.removeAttribute('src');
+      els.convMeta.textContent = 'encoding…';
+    }
+  }
+
+  function shortType(t) {
+    if (!t) return 'image';
+    return t.replace('image/', '').toUpperCase();
+  }
+
+  function byId(id) {
+    for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i];
+    return null;
+  }
+
+  // ---- remove / clear ----
+  function removeItem(id) {
+    var idx = -1;
+    for (var i = 0; i < items.length; i++) if (items[i].id === id) { idx = i; break; }
+    if (idx < 0) return;
+    var it = items[idx];
+    if (it.ourl) URL.revokeObjectURL(it.ourl);
+    if (it.url) URL.revokeObjectURL(it.url);
+    if (it.bitmap && it.bitmap.close) { try { it.bitmap.close(); } catch (e) {} }
+    if (it.card && it.card.parentNode) it.card.parentNode.removeChild(it.card);
+    items.splice(idx, 1);
+    if (selectedId === id) {
+      selectedId = null;
+      if (items.length) selectItem(items[0].id);
+    }
+    if (!items.length) resetAll();
+    else updateSummary();
+    say('Removed image.');
+  }
+
+  function resetAll() {
+    items.forEach(function (it) {
+      if (it.ourl) URL.revokeObjectURL(it.ourl);
+      if (it.url) URL.revokeObjectURL(it.url);
+      if (it.bitmap && it.bitmap.close) { try { it.bitmap.close(); } catch (e) {} }
+    });
+    items = [];
+    selectedId = null;
+    els.grid.textContent = '';
+    els.origImg.removeAttribute('src');
+    els.convImg.removeAttribute('src');
+    els.workbench.classList.add('ic-hidden');
+    els.empty.classList.remove('ic-hidden');
+    clearError();
+    say('Cleared.');
+  }
+
+  // ---- download ----
+  function downloadItem(it) {
+    if (!it.blob || !it.url) return;
+    var a = document.createElement('a');
+    a.href = it.url;
+    a.download = outName(it.name, extFor(currentFmt));
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  function downloadAll() {
+    var ready = items.filter(function (it) { return it.blob; });
+    if (!ready.length) return;
+    say('Downloading ' + ready.length + ' files… your browser may ask to allow multiple downloads.');
+    var i = 0;
+    (function next() {
+      if (i >= ready.length) return;
+      downloadItem(ready[i]);
+      i++;
+      setTimeout(next, 320);
+    })();
+  }
+
+  // ---- example ----
+  function loadExample() {
+    var w = 800, h = 500;
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var x = c.getContext('2d');
+    var g = x.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#2b1c4a'); g.addColorStop(0.5, '#b8a5d6'); g.addColorStop(1, '#3a5a72');
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    for (var i = 0; i < 90; i++) {
+      x.beginPath();
+      var r = 4 + Math.random() * 46;
+      x.globalAlpha = 0.06 + Math.random() * 0.16;
+      x.fillStyle = i % 2 ? '#ffffff' : '#12101a';
+      x.arc(Math.random() * w, Math.random() * h, r, 0, Math.PI * 2);
+      x.fill();
+    }
+    x.globalAlpha = 1;
+    x.fillStyle = 'rgba(10,8,16,0.55)';
+    x.font = '700 64px ' + (getComputedStyle(document.body).getPropertyValue('--font-mono') || 'monospace');
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('PENUMBRA', w / 2, h / 2);
+    c.toBlob(function (blob) {
+      if (!blob) return;
+      var file = new File([blob], 'sample-gradient.png', { type: 'image/png' });
+      addFiles([file]);
+    }, 'image/png');
+  }
+
+  // ---- controls ----
+  els.fmtBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.disabled) return;
+      els.fmtBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      currentFmt = btn.getAttribute('data-fmt');
+      syncFormatUI();
+      if (items.length) processAll();
+    });
+  });
+  els.quality.addEventListener('input', function () {
+    els.qualityVal.textContent = els.quality.value + '%';
+    if (items.length) scheduleReprocess();
+  });
+  els.maxw.addEventListener('input', function () { if (items.length) scheduleReprocess(); });
+  els.maxh.addEventListener('input', function () { if (items.length) scheduleReprocess(); });
+  els.bg.addEventListener('input', function () { if (items.length && currentFmt === 'image/jpeg') scheduleReprocess(); });
+
+  els.example.addEventListener('click', loadExample);
+  els.clearBtn.addEventListener('click', resetAll);
+  els.dlAll.addEventListener('click', downloadAll);
+
+  // ---- drop zone ----
+  els.drop.addEventListener('click', function () { els.file.click(); });
+  els.drop.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); els.file.click(); }
+  });
+  els.file.addEventListener('change', function () {
+    if (els.file.files && els.file.files.length) addFiles(els.file.files);
+    els.file.value = '';
+  });
+  els.drop.addEventListener('dragover', function (e) { e.preventDefault(); els.drop.classList.add('ic-drag'); });
+  els.drop.addEventListener('dragleave', function () { els.drop.classList.remove('ic-drag'); });
+  els.drop.addEventListener('drop', function (e) {
+    e.preventDefault();
+    els.drop.classList.remove('ic-drag');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+
+  syncFormatUI();
+
+  // ---- Agent I/O (window.PF from /js/tool-io.js) ----
+  function publishResult() {
+    if (!window.PF) return;
+    var done = items.filter(function (it) { return it.csize != null; });
+    if (!done.length) return;
+    var before = done.reduce(function (a, it) { return a + it.osize; }, 0);
+    var after = done.reduce(function (a, it) { return a + it.csize; }, 0);
+    var pct = before > 0 ? Math.round((1 - after / before) * 100) : 0;
+    PF.ready({
+      output: done.length + ' image(s) → ' + extFor(currentFmt).toUpperCase() + ', ' + fmtBytes(after) + ' total (' + pct + '% saved)',
+      data: {
+        format: currentFmt,
+        quality: parseInt(els.quality.value, 10),
+        maxWidth: parseInt(els.maxw.value, 10) || null,
+        maxHeight: parseInt(els.maxh.value, 10) || null,
+        count: done.length,
+        totalBefore: before,
+        totalAfter: after,
+        percentSaved: pct
+      }
+    });
+  }
+
+  if (window.PF) {
+    var p = PF.input();
+    if (p.fmt) {
+      var fb = document.querySelector('.tool-option[data-fmt="' + p.fmt + '"]');
+      if (fb && !fb.disabled) fb.click();
+    }
+    if (p.q != null && !isNaN(parseInt(p.q, 10))) {
+      els.quality.value = Math.min(100, Math.max(1, parseInt(p.q, 10)));
+      els.qualityVal.textContent = els.quality.value + '%';
+    }
+    if (p.maxw != null && !isNaN(parseInt(p.maxw, 10))) els.maxw.value = parseInt(p.maxw, 10);
+    if (p.maxh != null && !isNaN(parseInt(p.maxh, 10))) els.maxh.value = parseInt(p.maxh, 10);
+  }
+})();
+</script>

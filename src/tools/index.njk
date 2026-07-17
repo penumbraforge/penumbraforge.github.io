@@ -1,199 +1,203 @@
 ---
 layout: base.njk
-title: "Free Developer & Security Tools — No Tracking, No Accounts | Penumbra Forge"
-description: "78 free online developer and security tools — AI security, detection engineering, DevSecOps, and more. No signup, no tracking. Your data never leaves your browser."
+title: "Free Developer & Security Tools — Run in Browser or via MCP | Penumbra Forge"
+description: "70+ privacy-first developer and security tools that run in your browser — plus local AI, an MCP server for agents, and a command bar you can talk to. No signup, no tracking."
 permalink: /tools/
+hideAtmosphere: true
 ---
+<link rel="stylesheet" href="/css/tools.css?v=2">
+<link rel="stylesheet" href="/css/tools-hub.css?v=2">
 
-<div class="tools-hub-page">
-<header class="site-header" id="site-header">
-  <div class="site-header-sidebar">
-    <a href="/" class="site-header-brand" title="Penumbra Forge">
-      <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
-          </a>
+{% set cats = [
+  { key: "ai", label: "Local AI" },
+  { key: "security", label: "Security" },
+  { key: "intelligence", label: "Intelligence" },
+  { key: "media", label: "Media & Creative" },
+  { key: "devops", label: "DevOps" },
+  { key: "web", label: "Web & API" },
+  { key: "encoding", label: "Encoding & Data" },
+  { key: "text", label: "Text" }
+] %}
+{% set liveTools = [] %}
+{% for tool in tools %}{% if tool.status == "live" %}{% set liveTools = (liveTools.push(tool), liveTools) %}{% endif %}{% endfor %}
+
+{% macro icon(cat) %}{% if cat == "ai" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a7 7 0 017 7c0 2.5-1.3 4.7-3.3 6L17 21H7l1.3-6A7 7 0 0112 2z"/><path d="M9 9h6M9 12h6"/></svg>{% elif cat == "security" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/></svg>{% elif cat == "intelligence" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>{% elif cat == "media" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>{% elif cat == "devops" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>{% elif cat == "web" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>{% elif cat == "text" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>{% else %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>{% endif %}{% endmacro %}
+
+{% macro card(tool) %}
+<a class="hub-card" href="/tools/{{ tool.slug }}/" data-cat="{{ tool.category }}" data-slug="{{ tool.slug }}" data-name="{{ tool.name }}" data-keywords="{{ (tool.keywords or []) | join(' ') }}"{% if tool.featured %} data-featured="1"{% endif %}{% if tool.isNew %} data-new="1"{% endif %} style="view-transition-name: t-{{ tool.slug }}">
+  <button class="hub-star" data-slug="{{ tool.slug }}" aria-label="Pin" title="Pin">&#9733;</button>
+  <div class="hub-card-top"><span class="hub-card-ic" aria-hidden="true">{{ icon(tool.category) }}</span><h4>{{ tool.name }}</h4></div>
+  <p>{{ tool.description }}</p>
+  <div class="hub-card-foot">
+    {% if tool.isNew %}<span class="hub-tag hub-tag--new">new</span>{% endif %}
+    {% if tool.category == "ai" %}<span class="hub-tag hub-tag--ai">local AI</span>{% elif tool.badge == "worker" %}<span class="hub-tag">edge</span>{% elif tool.badge == "cloud" %}<span class="hub-tag">cloud</span>{% else %}<span class="hub-tag hub-tag--local">browser</span>{% endif %}
   </div>
-  <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
-  <div class="site-header-main">
-    <nav class="site-header-nav">
-      <a href="/">Home</a>
+</a>
+{% endmacro %}
+
+<div class="wb-page">
+  <header class="wb-top">
+    <a href="/" class="wb-brand"><span class="wb-dot" aria-hidden="true"></span>Penumbra&nbsp;Forge</a>
+    <nav>
       <a href="/tools/" class="active">Tools</a>
-      <a href="/labs/">Labs</a>
-        <a href="/blog/">Blog</a>
-      <a href="/gate/">Gate</a>
-      <a href="/librarian/">Librarian</a>
-      <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+      <a href="/tools/agents/">For&nbsp;Agents</a>
+      <a href="/blog/">Blog</a>
+      <button class="wb-open-palette" data-open-palette aria-label="Search or run"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg> Run <kbd>&#8984;K</kbd></button>
     </nav>
-  </div>
-</header>
+  </header>
 
-<div class="tools-layout">
-  {% include "sidebar.njk" %}
+  <div class="hub" id="hub">
+    <section class="hub-hero">
+      <p class="hub-kick">The console</p>
+      <h1>Tools that <em>run in your browser</em> — or on your agent.</h1>
+      <p class="hub-lede">{{ liveTools.length }} privacy-first developer &amp; security tools, a local-AI suite, and an MCP server so your terminal AI can use them too. Nothing you enter is ever uploaded.</p>
+      <div class="hub-searchwrap">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="search" class="hub-search" id="hubSearch" placeholder="Search {{ liveTools.length }} tools…" autocomplete="off" spellcheck="false" aria-label="Search tools">
+        <button class="hub-run-hint" data-open-palette title="Open the command bar"><b>&#8984;K</b> to run</button>
+      </div>
+      <div class="hub-stats">
+        <span class="hub-stat"><b>{{ liveTools.length }}</b> tools</span>
+        <span class="hub-stat"><b>0</b> servers · <b>0</b> tracking</span>
+        <span class="hub-stat"><b>29</b> callable over MCP</span>
+      </div>
+    </section>
 
-  <main class="tools-content">
-    <h1 class="tools-content-title">Tool Kits</h1>
-    <p class="tools-content-subtitle">Free developer &amp; security tools. No accounts, no tracking, your data stays in your browser.</p>
-
-    <div class="tools-mobile-search" id="tools-mobile-search">
-      <input type="text" id="tools-search-input" placeholder="Search 78 tools..." autocomplete="off" spellcheck="false">
-    </div>
-
-    {# Featured section #}
-    {% set featuredTools = [] %}
-    {% for tool in tools %}{% if tool.featured %}{% set featuredTools = (featuredTools.push(tool), featuredTools) %}{% endif %}{% endfor %}
-    {% if featuredTools.length > 0 %}
-    <div class="featured-label">&#9733; Featured</div>
-    <div class="featured-grid">
-      {% for tool in featuredTools %}
-      <a class="featured-card" href="/tools/{{ tool.slug }}/">
-        <div class="featured-card-header">
-          <h3>{{ tool.name }}</h3>
-          {% if tool.badge == "worker" %}
-          <span class="featured-card-badge badge-worker">cf worker</span>
-          {% else %}
-          <span class="featured-card-badge badge-new">new</span>
-          {% endif %}
+    <div class="hub-body">
+      <aside class="hub-rail" id="hubRail">
+        <div class="hub-rail-group">
+          <div class="hub-rail-label">Browse</div>
+          <button class="hub-rail-item active" data-filter="all"><span class="tick" style="--cat:var(--accent)"></span>All tools <span class="n">{{ liveTools.length }}</span></button>
+          <button class="hub-rail-item" data-filter="new"><span class="tick" style="--cat:var(--accent)"></span>New <span class="n" id="cntNew"></span></button>
+          <button class="hub-rail-item" data-filter="featured"><span class="tick" style="--cat:var(--sage)"></span>Featured <span class="n" id="cntFeat"></span></button>
         </div>
-        <p>{{ tool.longDescription }}</p>
-        <span class="local-badge">
-          {% if tool.badge == "local" %}runs in your browser{% elif tool.badge == "worker" %}scans via edge worker{% else %}{{ tool.badge }}{% endif %}
-        </span>
-      </a>
-      {% endfor %}
-    </div>
-    {% endif %}
+        <div class="hub-rail-group">
+          <div class="hub-rail-label">Categories</div>
+          {% for c in cats %}{% set n = [] %}{% for t in liveTools %}{% if t.category == c.key %}{% set n = (n.push(t), n) %}{% endif %}{% endfor %}{% if n.length %}
+          <button class="hub-rail-item" data-filter="cat:{{ c.key }}" data-cat="{{ c.key }}"><span class="tick"></span>{{ c.label }} <span class="n">{{ n.length }}</span></button>
+          {% endif %}{% endfor %}
+        </div>
+        <div class="hub-rail-group">
+          <div class="hub-rail-label">Collections</div>
+          <button class="hub-rail-item" data-filter="col:ir"><span class="tick" style="--cat:oklch(75% 0.1 250)"></span>Incident Response</button>
+          <button class="hub-rail-item" data-filter="col:keys"><span class="tick" style="--cat:oklch(75% 0.1 20)"></span>Keys &amp; Auth</button>
+          <button class="hub-rail-item" data-filter="col:web"><span class="tick" style="--cat:oklch(75% 0.1 210)"></span>Web &amp; API</button>
+        </div>
+        <div class="hub-rail-group" id="railYours" style="display:none">
+          <div class="hub-rail-label">Yours</div>
+          <div id="railPinned"></div>
+        </div>
+        <div class="hub-rail-group">
+          <div class="hub-rail-label">Agents</div>
+          <a class="hub-rail-link" href="/tools/agents/">For AI agents <span class="arr">&rarr;</span></a>
+          <a class="hub-rail-link" href="/llms.txt">llms.txt <span class="arr">&rarr;</span></a>
+        </div>
+      </aside>
 
-    {# Category sections #}
-    {% set categoryOrder = [
-      { key: "ai", label: "AI", icon: "◈" },
-      { key: "security", label: "Security", icon: "◆" },
-      { key: "intelligence", label: "Intelligence", icon: "+" },
-      { key: "devops", label: "DevOps", icon: "⚙" },
-      { key: "web", label: "Web", icon: "◎" },
-      { key: "encoding", label: "Encoding", icon: "⟨⟩" },
-      { key: "text", label: "Text", icon: "¶" }
-    ] %}
+      <main class="hub-main" id="hubMain">
+        {# AI spotlight zone #}
+        {% set aiTools = [] %}{% for t in liveTools %}{% if t.category == "ai" %}{% set aiTools = (aiTools.push(t), aiTools) %}{% endif %}{% endfor %}
+        <section class="hub-ai-zone hub-section" data-section="ai">
+          <div class="hub-section-h"><span class="lbl">Local AI</span><span class="hub-ai-badge">runs on your machine ✦</span><span class="rule"></span><span class="cnt">{{ aiTools.length }}</span></div>
+          <div class="hub-grid">{% for t in aiTools %}{{ card(t) }}{% endfor %}</div>
+        </section>
 
-    {% for cat in categoryOrder %}
-    {% set catTools = [] %}
-    {% for tool in tools %}{% if tool.category == cat.key and tool.status == "live" %}{% set catTools = (catTools.push(tool), catTools) %}{% endif %}{% endfor %}
-    {% if catTools.length > 0 %}
-    <div class="category-section" id="cat-{{ cat.key }}">
-      <div class="category-header">
-        <span class="category-icon" aria-hidden="true">{{ cat.icon }}</span>
-        <span class="category-name">{{ cat.label }}</span>
-        <span class="category-count">{{ catTools.length }} tools</span>
-      </div>
-      <div class="tools-sidebar-grid">
-        {% for tool in catTools %}
-        <a href="/tools/{{ tool.slug }}/" class="t-card" data-category="{{ tool.category }}" data-keywords="{{ tool.keywords | join(' ') }} {{ tool.name | lower }}">
-          <div class="t-icon" aria-hidden="true">
-            {% if tool.category == "ai" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a7 7 0 017 7c0 2.5-1.3 4.7-3.3 6L17 21H7l1.3-6A7 7 0 0112 2z"/><path d="M9 9h6M9 12h6"/></svg>{% elif tool.category == "security" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/></svg>{% elif tool.category == "encoding" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>{% elif tool.category == "devops" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>{% elif tool.category == "web" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>{% elif tool.category == "text" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>{% elif tool.category == "intelligence" %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>{% else %}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>{% endif %}
-          </div>
-          <h4>{{ tool.name }}</h4>
-          <p>{{ tool.description }}</p>
-          <span class="local-badge">
-            {% if tool.badge == "local" %}runs in your browser{% elif tool.badge == "worker" %}scans via edge worker{% elif tool.badge == "cloud" %}cloud-assisted{% else %}{{ tool.badge }}{% endif %}
-          </span>
-        </a>
-        {% endfor %}
-      </div>
+        {# other category sections #}
+        {% for c in cats %}{% if c.key != "ai" %}
+        {% set ct = [] %}{% for t in liveTools %}{% if t.category == c.key %}{% set ct = (ct.push(t), ct) %}{% endif %}{% endfor %}
+        {% if ct.length %}
+        <section class="hub-section" data-section="{{ c.key }}" id="sec-{{ c.key }}">
+          <div class="hub-section-h"><span class="lbl">{{ c.label }}</span><span class="rule"></span><span class="cnt">{{ ct.length }}</span></div>
+          <div class="hub-grid">{% for t in ct %}{{ card(t) }}{% endfor %}</div>
+        </section>
+        {% endif %}{% endif %}{% endfor %}
+
+        <div class="hub-empty" id="hubEmpty" aria-live="polite"><p>Nothing matches that.</p><span>Try a broader term, or press <strong>&#8984;K</strong> to run a command.</span></div>
+      </main>
     </div>
-    {% endif %}
-    {% endfor %}
-  </main>
+  </div>
+
+  {% include "command-palette.njk" %}
 </div>
 
-{% include "sidebar-js.njk" %}
-
 <script>
-(function() {
-  var isMobile = window.innerWidth <= 900;
+(function () {
+  var search = document.getElementById('hubSearch');
+  var rail = document.getElementById('hubRail');
+  var main = document.getElementById('hubMain');
+  var empty = document.getElementById('hubEmpty');
+  var cards = Array.prototype.slice.call(main.querySelectorAll('.hub-card'));
+  var sections = Array.prototype.slice.call(main.querySelectorAll('.hub-section'));
+  var COLLECTIONS = {
+    ir: ['ir-timeline','ioc-workbench','log-parser','email-header-forensics','entropy-xray','yara-playground','sigma-rule-builder','siem-query-translator','ai-security-copilot'],
+    keys: ['passkey-inspector','key-converter','jwt-decoder','jwt-attack','ssh-keygen','totp-generator','secrets-scanner','secret-lock','one-time-secret','hash-generator','password-generator'],
+    web: ['cors-debugger','curl-converter','api-request-builder','header-analyzer','security-headers','site-score','jwt-decoder','url-encoder']
+  };
+  var filter = 'all';
 
-  // Position search bar below the actual header
-  var searchBar = document.getElementById('tools-mobile-search');
-  var siteHeader = document.getElementById('site-header');
-  if (searchBar && siteHeader && isMobile) {
-    var headerH = siteHeader.offsetHeight;
-    searchBar.style.top = headerH + 'px';
+  function get(k){ try { return JSON.parse(localStorage.getItem(k)||'[]'); } catch(e){ return []; } }
+  function set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+
+  document.getElementById('cntNew').textContent = cards.filter(function(c){return c.dataset.new;}).length;
+  document.getElementById('cntFeat').textContent = cards.filter(function(c){return c.dataset.featured;}).length;
+
+  function cardMatchesFilter(c){
+    if (filter === 'all') return true;
+    if (filter === 'new') return !!c.dataset.new;
+    if (filter === 'featured') return !!c.dataset.featured;
+    if (filter.indexOf('cat:') === 0) return c.dataset.cat === filter.slice(4);
+    if (filter.indexOf('col:') === 0) return (COLLECTIONS[filter.slice(4)]||[]).indexOf(c.dataset.slug) !== -1;
+    return true;
   }
+  function apply(){
+    var q = search.value.trim().toLowerCase();
+    var shown = 0;
+    cards.forEach(function(c){
+      var okF = cardMatchesFilter(c);
+      var hay = (c.dataset.name + ' ' + c.dataset.keywords + ' ' + c.dataset.cat).toLowerCase();
+      var okQ = !q || hay.indexOf(q) !== -1;
+      var vis = okF && okQ;
+      c.style.display = vis ? '' : 'none';
+      if (vis) shown++;
+      // highlight
+      var h4 = c.querySelector('h4');
+      if (q && okQ) { var i = c.dataset.name.toLowerCase().indexOf(q); h4.innerHTML = i>=0 ? esc(c.dataset.name.slice(0,i))+'<mark>'+esc(c.dataset.name.slice(i,i+q.length))+'</mark>'+esc(c.dataset.name.slice(i+q.length)) : esc(c.dataset.name); }
+      else h4.textContent = c.dataset.name;
+    });
+    sections.forEach(function(s){ var any = s.querySelectorAll('.hub-card:not([style*="display: none"])').length > 0; s.style.display = any ? '' : 'none'; });
+    empty.style.display = shown === 0 ? 'block' : 'none';
+  }
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
 
-  // Collapsible categories on mobile
-  document.querySelectorAll('.category-header').forEach(function(header) {
-    var grid = header.nextElementSibling;
-    var section = header.closest('.category-section');
+  search.addEventListener('input', apply);
+  search.addEventListener('keydown', function(e){ if(e.key==='Escape'){ search.value=''; apply(); } });
 
-    // Add chevron indicator
-    var chevron = document.createElement('span');
-    chevron.className = 'category-chevron';
-    chevron.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
-    header.appendChild(chevron);
-
-    // Collapse by default on mobile
-    if (isMobile && grid) {
-      grid.style.display = 'none';
-      section.classList.add('collapsed');
-    }
-
-    header.addEventListener('click', function() {
-      if (!grid) return;
-      var isCollapsed = grid.style.display === 'none';
-      grid.style.display = isCollapsed ? '' : 'none';
-      section.classList.toggle('collapsed', !isCollapsed);
+  rail.querySelectorAll('.hub-rail-item').forEach(function(b){
+    b.addEventListener('click', function(){
+      rail.querySelectorAll('.hub-rail-item').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active'); filter = b.dataset.filter; apply();
+      main.scrollIntoView({ block: 'start', behavior: 'smooth' });
     });
   });
 
-  // Search
-  var searchInput = document.getElementById('tools-search-input');
-  if (searchInput) {
-    searchInput.addEventListener('input', function() {
-      var query = this.value.toLowerCase().trim();
-      var cards = document.querySelectorAll('.t-card');
-      var sections = document.querySelectorAll('.category-section');
-
-      cards.forEach(function(card) {
-        var keywords = (card.getAttribute('data-keywords') || '') + ' ' + card.textContent.toLowerCase();
-        card.style.display = query && keywords.indexOf(query) === -1 ? 'none' : '';
-      });
-
-      // Show/hide sections based on whether they have visible cards
-      sections.forEach(function(section) {
-        var grid = section.querySelector('.tools-sidebar-grid');
-        if (!grid) return;
-        var visibleCards = grid.querySelectorAll('.t-card:not([style*="display: none"])');
-        section.style.display = visibleCards.length === 0 && query ? 'none' : '';
-        // When searching, expand all sections
-        if (query) {
-          grid.style.display = '';
-          section.classList.remove('collapsed');
-        } else if (isMobile) {
-          grid.style.display = 'none';
-          section.classList.add('collapsed');
-        }
-      });
-
-      // Hide featured section when searching
-      var featured = document.querySelector('.featured-grid');
-      var featuredLabel = document.querySelector('.featured-label');
-      if (featured) featured.style.display = query ? 'none' : '';
-      if (featuredLabel) featuredLabel.style.display = query ? 'none' : '';
-    });
+  // pins
+  function renderPins(){
+    var favs = get('pf:favs');
+    cards.forEach(function(c){ c.querySelector('.hub-star').classList.toggle('on', favs.indexOf(c.dataset.slug)!==-1); });
+    var yours = document.getElementById('railYours'), list = document.getElementById('railPinned');
+    if (favs.length){ yours.style.display=''; list.innerHTML = favs.map(function(s){ var c=cards.find(function(x){return x.dataset.slug===s;}); return c?'<a class="hub-rail-link" href="/tools/'+s+'/">'+esc(c.dataset.name)+'</a>':''; }).join(''); }
+    else yours.style.display='none';
   }
+  main.querySelectorAll('.hub-star').forEach(function(star){
+    star.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation();
+      var favs = get('pf:favs'), s = star.dataset.slug, i = favs.indexOf(s);
+      if (i===-1) favs.push(s); else favs.splice(i,1); set('pf:favs', favs); renderPins();
+    });
+  });
+  renderPins();
+
+  // URL ?cat= support
+  var initCat = new URLSearchParams(location.search).get('cat');
+  if (initCat){ var b = rail.querySelector('[data-filter="cat:'+initCat+'"]'); if(b) b.click(); }
 })();
 </script>
-</div>
-
-<style>
-  .tools-content-title {
-    font-family: var(--font-display);
-    font-size: 28px;
-    font-weight: 400;
-    color: var(--text-1);
-    margin-bottom: 6px;
-    letter-spacing: -0.3px;
-  }
-  .tools-content-subtitle {
-    color: var(--text-3);
-    font-size: 14px;
-    margin-bottom: 12px;
-  }
-</style>

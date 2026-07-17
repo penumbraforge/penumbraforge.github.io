@@ -3,190 +3,515 @@ toolSlug: subnet-calculator
 permalink: /tools/subnet-calculator/
 ---
 
+<style>
+  /* --- Subnet Calculator: tool-specific layout only --- */
+  .sc-inputrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .sc-inputrow input { flex: 1; min-width: 200px; max-width: 340px; }
+  .sc-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+  .sc-preset {
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-2);
+    background: transparent; border: 1px solid var(--wb-line); border-radius: 2px;
+    padding: 5px 11px; cursor: pointer; transition: border-color .15s, color .15s, background .15s;
+  }
+  .sc-preset:hover { color: var(--wb-ink); border-color: var(--wb-line-bright); }
+  .sc-preset.on { color: #17121f; background: var(--accent); border-color: var(--accent); }
+
+  .sc-badges { display: flex; flex-wrap: wrap; gap: 7px; margin: 4px 0 18px; }
+
+  .sc-panel { margin-bottom: 14px; }
+  .sc-panel table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .sc-panel td { padding: 9px 15px; border-bottom: 1px solid var(--wb-line); vertical-align: middle; }
+  .sc-panel tr:last-child td { border-bottom: 0; }
+  .sc-k {
+    color: var(--slate); font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.4px;
+    text-transform: uppercase; white-space: nowrap; width: 1%;
+  }
+  .sc-v { color: var(--wb-ink); font-family: var(--font-mono); text-align: right; word-break: break-all; }
+  .sc-v .sub { color: var(--text-3); font-size: 11px; margin-left: 8px; }
+  .sc-copybar { display: flex; align-items: center; gap: 10px; }
+
+  /* address-space bar */
+  .sc-barwrap { padding: 26px 16px 14px; }
+  .sc-track {
+    position: relative; height: 32px; border-radius: 4px;
+    background: repeating-linear-gradient(90deg, #0a0a14 0, #0a0a14 6px, #0c0c17 6px, #0c0c17 12px);
+    border: 1px solid var(--wb-line); overflow: visible;
+  }
+  .sc-usable {
+    position: absolute; top: 0; bottom: 0;
+    background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 36%, transparent), color-mix(in oklab, var(--accent) 15%, transparent));
+    border-left: 1px solid color-mix(in oklab, var(--accent) 62%, transparent);
+    border-right: 1px solid color-mix(in oklab, var(--accent) 62%, transparent);
+  }
+  .sc-cap { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--sage); }
+  .sc-cap.net { left: 0; } .sc-cap.bc { right: 0; }
+  .sc-caret { position: absolute; top: -7px; bottom: -7px; width: 0; border-left: 1.5px dashed var(--wb-ink); pointer-events: none; }
+  .sc-caret::after {
+    content: attr(data-lab); position: absolute; top: -19px; left: 50%; translate: -50% 0; white-space: nowrap;
+    font-family: var(--font-mono); font-size: 9.5px; color: var(--wb-ink);
+    background: #12121e; border: 1px solid var(--wb-line-bright); border-radius: 2px; padding: 1px 6px;
+  }
+  .sc-ticks { display: flex; justify-content: space-between; margin-top: 11px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); gap: 8px; }
+  .sc-ticks .mid { color: var(--slate); text-align: center; }
+  .sc-ticks .end { color: var(--sage); }
+
+  /* binary breakdown */
+  .sc-bits { padding: 16px; overflow-x: auto; }
+  .sc-bitrow { display: flex; align-items: center; gap: 14px; margin-bottom: 9px; }
+  .sc-bitrow:last-of-type { margin-bottom: 4px; }
+  .sc-bitlab { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--slate); width: 74px; flex-shrink: 0; }
+  .sc-octets { display: flex; gap: 11px; }
+  .sc-octet { display: flex; gap: 3px; }
+  .sc-bit {
+    width: 17px; height: 23px; display: grid; place-items: center;
+    font-family: var(--font-mono); font-size: 12px; border-radius: 2px;
+    background: #0a0a14; color: var(--text-3); border: 1px solid var(--wb-line);
+  }
+  .sc-bit.net { background: color-mix(in oklab, var(--accent) 22%, transparent); color: var(--wb-ink); border-color: color-mix(in oklab, var(--accent) 45%, transparent); }
+  .sc-bit.bnd { border-left: 2px solid var(--accent); }
+  .sc-legend { display: flex; gap: 18px; margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--wb-line); font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); flex-wrap: wrap; }
+  .sc-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sc-sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; border: 1px solid var(--wb-line); }
+  .sc-sw.net { background: color-mix(in oklab, var(--accent) 22%, transparent); border-color: color-mix(in oklab, var(--accent) 45%, transparent); }
+  .sc-sw.host { background: #0a0a14; }
+
+  /* reference table */
+  .sc-ref { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .sc-ref th { text-align: left; padding: 8px 12px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--slate); border-bottom: 1px solid var(--wb-line-bright); }
+  .sc-ref th.r, .sc-ref td.r { text-align: right; }
+  .sc-ref td { padding: 7px 12px; border-bottom: 1px solid var(--wb-line); color: var(--text-1); font-family: var(--font-mono); }
+  .sc-ref td.use { font-family: var(--font-sans); color: var(--text-2); }
+  .sc-ref tr:last-child td { border-bottom: 0; }
+  .sc-ref tr.on td { background: color-mix(in oklab, var(--accent) 9%, transparent); color: var(--wb-ink); }
+</style>
+
 <div class="tool-group">
-  <label for="cidr-input">CIDR notation</label>
-  <input type="text" id="cidr-input" placeholder="e.g. 192.168.1.0/24" spellcheck="false" autocomplete="off" style="font-family:monospace; max-width:280px;">
+  <label for="cidr-input">IPv4 CIDR block</label>
+  <div class="sc-inputrow">
+    <input type="text" id="cidr-input" placeholder="e.g. 10.0.0.0/24" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" inputmode="text" aria-describedby="subnet-error">
+    <button class="btn" id="sc-example" type="button">Load example</button>
+  </div>
+  <div class="sc-presets" role="group" aria-label="Common prefix lengths" id="sc-presets"></div>
 </div>
 
 <div class="tool-group">
-  <label for="prefix-slider">Prefix length: /<span id="prefix-display">24</span></label>
-  <input type="range" id="prefix-slider" min="0" max="32" value="24" style="width:100%; max-width:400px;">
+  <label for="prefix-slider">Prefix length — <span id="prefix-display" style="color:var(--accent)">/24</span> <span id="prefix-detail" style="color:var(--text-3); text-transform:none; letter-spacing:0; font-family:var(--font-mono)"></span></label>
+  <input type="range" id="prefix-slider" min="0" max="32" value="24" style="width:100%; max-width:460px;" aria-label="Prefix length">
 </div>
 
-<div id="subnet-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+<div id="subnet-error" class="tool-error" role="alert" aria-live="polite" style="display:none;"></div>
 
-<div id="subnet-results" style="display:none; margin-top:1rem;">
-  <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-    <tbody id="subnet-table">
-    </tbody>
-  </table>
+<div id="subnet-results" hidden>
+  <div class="sc-badges" id="sc-badges" aria-live="polite"></div>
+
+  <div class="wb-panel sc-panel">
+    <div class="wb-panel-bar">Address space <span class="wb-badge" id="sc-range-label"></span></div>
+    <div class="sc-barwrap">
+      <div class="sc-track" id="sc-track" role="img" aria-label="Visual map of the subnet address range"></div>
+      <div class="sc-ticks">
+        <span class="end" id="sc-tick-lo"></span>
+        <span class="mid" id="sc-tick-mid"></span>
+        <span class="end" id="sc-tick-hi" style="text-align:right"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="wb-panel sc-panel">
+    <div class="wb-panel-bar">
+      <span>Subnet properties</span>
+      <button class="btn btn--copy" id="sc-copy" type="button" aria-label="Copy subnet report">Copy</button>
+    </div>
+    <table><tbody id="sc-table"></tbody></table>
+  </div>
+
+  <div class="wb-panel sc-panel">
+    <div class="wb-panel-bar">Binary breakdown <span class="wb-badge" id="sc-bits-label"></span></div>
+    <div class="sc-bits">
+      <div id="sc-bitrows"></div>
+      <div class="sc-legend">
+        <span><i class="sc-sw net"></i> network bits</span>
+        <span><i class="sc-sw host"></i> host bits</span>
+        <span id="sc-boundary-note"></span>
+      </div>
+    </div>
+  </div>
 </div>
 
-<hr style="margin:1.5rem 0; border:none; border-top:1px solid var(--border);">
+<hr style="margin:1.6rem 0; border:none; border-top:1px solid var(--wb-line);">
 
 <div class="tool-group">
-  <label>Common subnets reference</label>
-  <table style="width:100%; border-collapse:collapse; font-size:0.875rem; margin-top:0.5rem;">
+  <label>Common subnet reference</label>
+  <table class="sc-ref">
     <thead>
-      <tr style="border-bottom:2px solid var(--border);">
-        <th style="text-align:left; padding:0.4rem 0.75rem;">CIDR</th>
-        <th style="text-align:left; padding:0.4rem 0.75rem;">Subnet mask</th>
-        <th style="text-align:right; padding:0.4rem 0.75rem;">Usable hosts</th>
-        <th style="text-align:left; padding:0.4rem 0.75rem;">Common use</th>
-      </tr>
+      <tr><th>CIDR</th><th>Subnet mask</th><th class="r">Usable hosts</th><th>Typical use</th></tr>
     </thead>
-    <tbody id="ref-table"></tbody>
+    <tbody id="sc-ref-body"></tbody>
   </table>
 </div>
 
-<script>
-(function () {
-  var cidrEl      = document.getElementById('cidr-input');
-  var sliderEl    = document.getElementById('prefix-slider');
-  var prefixDisp  = document.getElementById('prefix-display');
-  var errorEl     = document.getElementById('subnet-error');
-  var resultsEl   = document.getElementById('subnet-results');
-  var tableBody   = document.getElementById('subnet-table');
-  var refBody     = document.getElementById('ref-table');
+<script type="module">
+import { cidr } from '/js/tools-lib.js';
 
-  var TR_STYLE = 'border-bottom:1px solid var(--border);';
-  var TD_LABEL = 'padding:0.4rem 0.75rem; color:var(--text-3); white-space:nowrap;';
-  var TD_VALUE = 'padding:0.4rem 0.75rem; font-family:monospace; word-break:break-all;';
+(function () {
+  var cidrEl   = document.getElementById('cidr-input');
+  var exBtn    = document.getElementById('sc-example');
+  var presetEl = document.getElementById('sc-presets');
+  var sliderEl = document.getElementById('prefix-slider');
+  var pDisp    = document.getElementById('prefix-display');
+  var pDetail  = document.getElementById('prefix-detail');
+  var errorEl  = document.getElementById('subnet-error');
+  var resultsEl= document.getElementById('subnet-results');
+  var badgesEl = document.getElementById('sc-badges');
+  var trackEl  = document.getElementById('sc-track');
+  var tickLo   = document.getElementById('sc-tick-lo');
+  var tickMid  = document.getElementById('sc-tick-mid');
+  var tickHi   = document.getElementById('sc-tick-hi');
+  var rangeLbl = document.getElementById('sc-range-label');
+  var tableEl  = document.getElementById('sc-table');
+  var copyBtn  = document.getElementById('sc-copy');
+  var bitRows  = document.getElementById('sc-bitrows');
+  var bitsLbl  = document.getElementById('sc-bits-label');
+  var boundEl  = document.getElementById('sc-boundary-note');
+  var refBody  = document.getElementById('sc-ref-body');
+
+  var EXAMPLE = '10.20.30.42/26';
+  var lastReport = '';
+
+  // ---- pure IPv4 helpers (bar / bits / wildcard only; cidr() is source of truth) ----
+  function ipToInt(str) {
+    var parts = String(str).split('.');
+    if (parts.length !== 4) return null;
+    var n = 0;
+    for (var i = 0; i < 4; i++) {
+      if (!/^\d{1,3}$/.test(parts[i])) return null;
+      var b = parseInt(parts[i], 10);
+      if (b < 0 || b > 255) return null;
+      n = ((n * 256) + b) >>> 0;
+    }
+    return n >>> 0;
+  }
+  function intToIp(n) {
+    n = n >>> 0;
+    return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+  }
+  function maskFromPrefix(p) { return p === 0 ? 0 : (0xffffffff << (32 - p)) >>> 0; }
+  function inBlock(ip, base, p) {
+    var m = maskFromPrefix(p);
+    return ((ip & m) >>> 0) === ((base & m) >>> 0);
+  }
+
+  // classful (historical, but engineers still reference it)
+  function addressClass(o0) {
+    if (o0 < 128) return 'A';
+    if (o0 < 192) return 'B';
+    if (o0 < 224) return 'C';
+    if (o0 < 240) return 'D (multicast)';
+    return 'E (reserved)';
+  }
+  // special-use scope per IANA registry
+  function scopeOf(ip) {
+    var R = [
+      ['127.0.0.0', 8,  'Loopback',              'local'],
+      ['0.0.0.0',   8,  'This network',          'ai'],
+      ['10.0.0.0',  8,  'Private (RFC 1918)',    'local'],
+      ['172.16.0.0',12, 'Private (RFC 1918)',    'local'],
+      ['192.168.0.0',16,'Private (RFC 1918)',    'local'],
+      ['100.64.0.0',10, 'CGNAT (RFC 6598)',      'ai'],
+      ['169.254.0.0',16,'Link-local (APIPA)',    'ai'],
+      ['192.0.2.0', 24, 'Documentation (TEST-NET-1)', 'ai'],
+      ['198.51.100.0',24,'Documentation (TEST-NET-2)','ai'],
+      ['203.0.113.0',24,'Documentation (TEST-NET-3)','ai'],
+      ['192.88.99.0',24,'6to4 relay anycast',    'ai'],
+      ['198.18.0.0',15, 'Benchmarking (RFC 2544)','ai'],
+      ['224.0.0.0', 4,  'Multicast',             'ai'],
+      ['240.0.0.0', 4,  'Reserved (RFC 1112)',   'ai'],
+      ['255.255.255.255',32,'Limited broadcast', 'ai']
+    ];
+    for (var i = 0; i < R.length; i++) {
+      var base = ipToInt(R[i][0]);
+      if (base !== null && inBlock(ip, base, R[i][1])) return { label: R[i][2], kind: R[i][3] };
+    }
+    return { label: 'Public / globally routable', kind: 'default' };
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function badge(text, kind) {
+    var b = el('span', 'wb-badge' + (kind && kind !== 'default' ? ' wb-badge--' + kind : ''), text);
+    return b;
+  }
+  function addRow(k, v, sub) {
+    var tr = el('tr');
+    tr.appendChild(el('td', 'sc-k', k));
+    var td = el('td', 'sc-v');
+    td.appendChild(document.createTextNode(v));
+    if (sub) { var s = el('span', 'sub', sub); td.appendChild(s); }
+    tr.appendChild(td);
+    tableEl.appendChild(tr);
+  }
 
   function showError(msg) {
     errorEl.textContent = msg;
     errorEl.style.display = '';
-    resultsEl.style.display = 'none';
+    resultsEl.hidden = true;
   }
-  function hideError() {
-    errorEl.textContent = '';
+  function clearAll() {
     errorEl.style.display = 'none';
+    errorEl.textContent = '';
+    resultsEl.hidden = true;
   }
 
-  function ip4ToInt(str) {
-    var parts = str.split('.');
-    if (parts.length !== 4) return null;
-    var n = 0;
-    for (var i = 0; i < 4; i++) {
-      var b = parseInt(parts[i], 10);
-      if (isNaN(b) || b < 0 || b > 255) return null;
-      n = (n * 256 + b) >>> 0;
+  // ---- 32-bit row of the binary breakdown ----
+  function renderBitRow(label, valueOrNull, prefix) {
+    var row = el('div', 'sc-bitrow');
+    row.appendChild(el('div', 'sc-bitlab', label));
+    var oct = el('div', 'sc-octets');
+    for (var o = 0; o < 4; o++) {
+      var group = el('div', 'sc-octet');
+      for (var j = 0; j < 8; j++) {
+        var idx = o * 8 + j;                 // 0..31, MSB first
+        var isNet = idx < prefix;
+        var bitVal = valueOrNull === null
+          ? (isNet ? '1' : '0')              // mask row
+          : String((valueOrNull >>> (31 - idx)) & 1);
+        var cell = el('div', 'sc-bit ' + (isNet ? 'net' : 'host'), bitVal);
+        if (idx === prefix && prefix > 0 && prefix < 32) cell.classList.add('bnd');
+        group.appendChild(cell);
+      }
+      oct.appendChild(group);
     }
-    return n;
+    row.appendChild(oct);
+    bitRows.appendChild(row);
   }
 
-  function intToIp4(n) {
-    return [
-      (n >>> 24) & 0xff,
-      (n >>> 16) & 0xff,
-      (n >>> 8)  & 0xff,
-       n         & 0xff
-    ].join('.');
+  // ---- address-space bar ----
+  function renderBar(networkInt, broadcastInt, firstInt, lastInt, enteredInt, total) {
+    trackEl.textContent = '';
+    var span = total > 1 ? (total - 1) : 1;
+    function pct(offset) { return total > 1 ? (offset / span) * 100 : 50; }
+
+    var usable = el('div', 'sc-usable');
+    var lo = pct(firstInt - networkInt);
+    var hi = pct(lastInt - networkInt);
+    usable.style.left = lo + '%';
+    usable.style.width = Math.max(hi - lo, total > 1 ? 0.6 : 100) + '%';
+    trackEl.appendChild(usable);
+
+    trackEl.appendChild(el('div', 'sc-cap net'));
+    trackEl.appendChild(el('div', 'sc-cap bc'));
+
+    var caret = el('div', 'sc-caret');
+    caret.style.left = pct(enteredInt - networkInt) + '%';
+    caret.setAttribute('data-lab', intToIp(enteredInt));
+    trackEl.appendChild(caret);
   }
 
-  function prefixToMask(prefix) {
-    if (prefix === 0) return 0;
-    return (0xffffffff << (32 - prefix)) >>> 0;
+  function calculate(raw, opts) {
+    opts = opts || {};
+    var val = String(raw).trim();
+    if (!val) { clearAll(); return; }
+    if (val.indexOf(':') !== -1) { showError('IPv6 is not supported yet — enter an IPv4 CIDR like 10.0.0.0/24.'); fail('IPv6 not supported'); return; }
+
+    var res;
+    try { res = cidr(val); }
+    catch (e) { showError(e.message || 'Invalid CIDR.'); fail(e.message || 'Invalid CIDR'); return; }
+
+    // derive extras (cidr() gives the canonical network/host math)
+    var slash = val.split('/');
+    var prefix = parseInt(slash[1], 10);
+    var enteredInt = ipToInt(slash[0]);
+    var networkInt = ipToInt(res.network);
+    var broadcastInt = ipToInt(res.broadcast);
+    var firstInt = ipToInt(res.firstHost);
+    var lastInt = ipToInt(res.lastHost);
+    if (enteredInt === null) enteredInt = networkInt;
+    var maskInt = maskFromPrefix(prefix);
+    var wildcard = intToIp((~maskInt) >>> 0);
+    var o0 = (networkInt >>> 24) & 255;
+    var cls = addressClass(o0);
+    var scope = scopeOf(networkInt);
+    var canonicalCidr = res.network + '/' + prefix;
+
+    errorEl.style.display = 'none';
+    resultsEl.hidden = false;
+
+    // sync slider + label unless the slider itself drove this
+    if (!opts.fromSlider) sliderEl.value = prefix;
+    pDisp.textContent = '/' + prefix;
+    pDetail.textContent = '· ' + res.netmask;
+    paintPresets(prefix);
+    paintRef(prefix);
+
+    // badges
+    badgesEl.textContent = '';
+    badgesEl.appendChild(badge('IPv4'));
+    badgesEl.appendChild(badge('/' + prefix, 'new'));
+    badgesEl.appendChild(badge('Class ' + cls));
+    badgesEl.appendChild(badge(scope.label, scope.kind));
+    badgesEl.appendChild(badge(res.usableHosts.toLocaleString() + ' usable', 'local'));
+
+    // address bar
+    rangeLbl.textContent = res.totalAddresses.toLocaleString() + ' addresses';
+    renderBar(networkInt, broadcastInt, firstInt, lastInt, enteredInt, res.totalAddresses);
+    tickLo.textContent = res.network;
+    tickHi.textContent = res.broadcast;
+    tickMid.textContent = res.usableHosts.toLocaleString() + ' usable · '
+      + (prefix >= 31 ? (prefix === 32 ? 'single host' : 'point-to-point') : (res.firstHost + ' – ' + res.lastHost));
+
+    // properties table
+    tableEl.textContent = '';
+    addRow('CIDR', canonicalCidr);
+    addRow('Network', res.network);
+    addRow('Broadcast', res.broadcast, prefix >= 31 ? '(n/a for /' + prefix + ')' : null);
+    addRow('First host', res.firstHost);
+    addRow('Last host', res.lastHost);
+    addRow('Usable hosts', res.usableHosts.toLocaleString());
+    addRow('Total addresses', res.totalAddresses.toLocaleString());
+    addRow('Subnet mask', res.netmask);
+    addRow('Wildcard mask', wildcard);
+    addRow('Host / net bits', (32 - prefix) + ' host', prefix + ' network');
+
+    // binary breakdown
+    bitRows.textContent = '';
+    bitsLbl.textContent = '/' + prefix + ' mask';
+    renderBitRow('Mask', null, prefix);
+    renderBitRow('Network', networkInt, prefix);
+    renderBitRow('Broadcast', broadcastInt, prefix);
+    boundEl.textContent = '◄ ' + prefix + ' network bits · ' + (32 - prefix) + ' host bits ►';
+
+    // plain-text report (copy + agent output)
+    lastReport =
+      canonicalCidr + '\n' +
+      'Network address    ' + res.network + '\n' +
+      'Broadcast address  ' + res.broadcast + '\n' +
+      'First usable host  ' + res.firstHost + '\n' +
+      'Last usable host   ' + res.lastHost + '\n' +
+      'Usable hosts       ' + res.usableHosts + '\n' +
+      'Total addresses    ' + res.totalAddresses + '\n' +
+      'Subnet mask        ' + res.netmask + '\n' +
+      'Wildcard mask      ' + wildcard + '\n' +
+      'Scope              ' + scope.label + '  ·  Class ' + cls;
+
+    ready(lastReport, Object.assign({
+      input: val,
+      cidr: canonicalCidr,
+      prefix: prefix,
+      wildcardMask: wildcard,
+      addressClass: cls,
+      scope: scope.label
+    }, res));
   }
 
-  function usableHosts(prefix) {
-    if (prefix >= 31) return prefix === 31 ? 2 : 1;
-    var total = Math.pow(2, 32 - prefix);
-    return total - 2;
+  // ---- agent I/O (guarded — never throws on empty) ----
+  function ready(output, data) { if (window.PF) PF.ready({ output: output, data: data }); }
+  function fail(msg) { if (window.PF) PF.fail(msg); }
+
+  // ---- reference table ----
+  var REF = [
+    { p: 8,  use: 'Large private network (Class A block)' },
+    { p: 16, use: 'Medium network (Class B block)' },
+    { p: 22, use: 'Four /24s — ~1,022 hosts' },
+    { p: 24, use: 'Standard LAN — 254 hosts' },
+    { p: 26, use: 'Small segment — 62 hosts' },
+    { p: 28, use: 'Tiny segment — 14 hosts' },
+    { p: 30, use: 'Point-to-point link — 2 hosts' },
+    { p: 31, use: 'RFC 3021 P2P — 2 usable' },
+    { p: 32, use: 'Single host / loopback' }
+  ];
+  function paintRef(active) {
+    refBody.textContent = '';
+    REF.forEach(function (r) {
+      var mask = intToIp(maskFromPrefix(r.p));
+      var hosts = r.p >= 31 ? (r.p === 32 ? 1 : 2) : (Math.pow(2, 32 - r.p) - 2);
+      var tr = el('tr');
+      if (r.p === active) tr.className = 'on';
+      tr.appendChild(el('td', null, '/' + r.p));
+      tr.appendChild(el('td', null, mask));
+      tr.appendChild(el('td', 'r', hosts.toLocaleString()));
+      tr.appendChild(el('td', 'use', r.use));
+      refBody.appendChild(tr);
+    });
   }
 
-  function addRow(label, value) {
-    var tr = document.createElement('tr');
-    tr.setAttribute('style', TR_STYLE);
-    var tdL = document.createElement('td');
-    tdL.setAttribute('style', TD_LABEL);
-    tdL.textContent = label;
-    var tdV = document.createElement('td');
-    tdV.setAttribute('style', TD_VALUE);
-    tdV.textContent = value;
-    tr.appendChild(tdL);
-    tr.appendChild(tdV);
-    tableBody.appendChild(tr);
+  // ---- prefix preset chips ----
+  var PRESETS = [8, 16, 22, 24, 26, 28, 30, 32];
+  function paintPresets(active) {
+    Array.prototype.forEach.call(presetEl.children, function (btn) {
+      var on = parseInt(btn.getAttribute('data-p'), 10) === active;
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', String(on));
+    });
   }
-
-  function calculate(cidr) {
-    var parts = cidr.trim().split('/');
-    if (parts.length !== 2) { showError('Enter a valid CIDR (e.g. 192.168.1.0/24).'); return; }
-    var ipStr  = parts[0];
-    var prefix = parseInt(parts[1], 10);
-    if (isNaN(prefix) || prefix < 0 || prefix > 32) { showError('Prefix must be 0–32.'); return; }
-    var ipInt = ip4ToInt(ipStr);
-    if (ipInt === null) { showError('Invalid IP address.'); return; }
-    hideError();
-
-    var mask      = prefixToMask(prefix);
-    var wildcard  = (~mask) >>> 0;
-    var network   = (ipInt & mask) >>> 0;
-    var broadcast = (network | wildcard) >>> 0;
-    var firstHost = prefix < 31 ? (network + 1) >>> 0 : network;
-    var lastHost  = prefix < 31 ? (broadcast - 1) >>> 0 : broadcast;
-    var hosts     = usableHosts(prefix);
-
-    // Update slider silently
-    sliderEl.value    = prefix;
-    prefixDisp.textContent = prefix;
-
-    tableBody.textContent = '';
-    addRow('Network address',    intToIp4(network));
-    addRow('Broadcast address',  intToIp4(broadcast));
-    addRow('First usable host',  prefix < 31 ? intToIp4(firstHost) : 'N/A (/31 point-to-point)');
-    addRow('Last usable host',   prefix < 31 ? intToIp4(lastHost)  : 'N/A (/31 point-to-point)');
-    addRow('Total usable hosts', hosts.toLocaleString());
-    addRow('Subnet mask',        intToIp4(mask));
-    addRow('Wildcard mask',      intToIp4(wildcard));
-    addRow('CIDR notation',      intToIp4(network) + '/' + prefix);
-    resultsEl.style.display = '';
-  }
-
-  cidrEl.addEventListener('input', function () {
-    var val = cidrEl.value.trim();
-    if (!val) { hideError(); resultsEl.style.display = 'none'; return; }
-    calculate(val);
+  PRESETS.forEach(function (p) {
+    var b = el('button', 'sc-preset', '/' + p);
+    b.type = 'button';
+    b.setAttribute('data-p', p);
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', function () { applyPrefix(p); });
+    presetEl.appendChild(b);
   });
+
+  function applyPrefix(p) {
+    var base = (cidrEl.value.trim().split('/')[0]) || '10.0.0.0';
+    if (ipToInt(base) === null) base = '10.0.0.0';
+    cidrEl.value = base + '/' + p;
+    sliderEl.value = p;
+    calculate(cidrEl.value);
+  }
+
+  // ---- events ----
+  cidrEl.addEventListener('input', function () { calculate(cidrEl.value); });
 
   sliderEl.addEventListener('input', function () {
-    prefixDisp.textContent = sliderEl.value;
-    var val = cidrEl.value.trim();
-    if (!val) return;
-    // Replace or append prefix
-    var base = val.split('/')[0];
-    cidrEl.value = base + '/' + sliderEl.value;
-    calculate(cidrEl.value);
+    var p = parseInt(sliderEl.value, 10);
+    pDisp.textContent = '/' + p;
+    pDetail.textContent = '· ' + intToIp(maskFromPrefix(p));
+    paintPresets(p);
+    paintRef(p);
+    var base = cidrEl.value.trim().split('/')[0];
+    if (!base) return;
+    cidrEl.value = base + '/' + p;
+    calculate(cidrEl.value, { fromSlider: true });
   });
 
-  // Reference table
-  var REF = [
-    { cidr:  8, use: 'Large private network (Class A)' },
-    { cidr: 16, use: 'Medium network (Class B)' },
-    { cidr: 24, use: 'Small network (Class C, ~254 hosts)' },
-    { cidr: 28, use: 'Small segment (~14 hosts)' },
-    { cidr: 30, use: 'Point-to-point link (~2 hosts)' },
-    { cidr: 32, use: 'Single host / loopback' },
-  ];
+  exBtn.addEventListener('click', function () {
+    cidrEl.value = EXAMPLE;
+    calculate(EXAMPLE);
+    cidrEl.focus();
+  });
 
-  REF.forEach(function (row) {
-    var mask = prefixToMask(row.cidr);
-    var hosts = usableHosts(row.cidr);
-    var tr = document.createElement('tr');
-    tr.setAttribute('style', TR_STYLE);
-
-    function td(text, right) {
-      var el = document.createElement('td');
-      el.setAttribute('style', 'padding:0.4rem 0.75rem;' + (right ? 'text-align:right;' : ''));
-      el.textContent = text;
-      return el;
+  copyBtn.addEventListener('click', function () {
+    if (!lastReport) return;
+    function done(ok) {
+      copyBtn.textContent = ok ? 'Copied' : 'Failed';
+      copyBtn.classList.toggle('copied', ok);
+      setTimeout(function () { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 1800);
     }
-
-    tr.appendChild(td('/' + row.cidr));
-    tr.appendChild(td(intToIp4(mask)));
-    tr.appendChild(td(hosts.toLocaleString(), true));
-    tr.appendChild(td(row.use));
-    refBody.appendChild(tr);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lastReport).then(function () { done(true); }, function () { done(false); });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = lastReport; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(true); } catch (e) { done(false); }
+      document.body.removeChild(ta);
+    }
   });
+
+  // ---- boot: build reference, honor ?in, else demo instantly ----
+  paintRef(24);
+  paintPresets(24);
+  var p = (window.PF && PF.input()) || {};
+  if (p.in != null && String(p.in).trim() !== '') {
+    cidrEl.value = String(p.in);
+    calculate(cidrEl.value);
+  } else {
+    cidrEl.value = EXAMPLE;
+    calculate(EXAMPLE);
+  }
 })();
 </script>

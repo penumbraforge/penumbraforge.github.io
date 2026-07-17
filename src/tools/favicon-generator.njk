@@ -1,0 +1,855 @@
+---
+toolSlug: favicon-generator
+permalink: /tools/favicon-generator/
+---
+
+<style>
+  .fv-source { margin-bottom: 4px; }
+  .fv-panel[hidden] { display: none; }
+  .fv-emoji-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .fv-emoji-quick button {
+    font-size: 20px; line-height: 1; padding: 6px 8px; cursor: pointer;
+    background: #06060d; border: 1px solid var(--wb-line, var(--border)); border-radius: 4px;
+  }
+  .fv-emoji-quick button:hover { border-color: var(--accent); }
+  .fv-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: start; }
+  .fv-field { display: flex; flex-direction: column; gap: 8px; }
+  .fv-color-row { display: flex; align-items: center; gap: 10px; }
+  .fv-color-row input[type="color"] {
+    width: 42px; height: 34px; padding: 2px; border: 1px solid var(--wb-line, var(--border));
+    border-radius: 4px; background: #06060d; cursor: pointer; flex-shrink: 0;
+  }
+  .fv-color-row input[type="text"] { flex: 1; min-width: 0; }
+  .fv-check { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+  .fv-range { width: 100%; }
+  .fv-range-val { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
+
+  .fv-stage { display: grid; grid-template-columns: 240px 1fr; gap: 20px; align-items: start; margin-top: 6px; }
+  @media (max-width: 700px) { .fv-stage { grid-template-columns: 1fr; } }
+  .fv-hero-wrap { display: flex; flex-direction: column; gap: 10px; }
+  .fv-checker {
+    border-radius: 6px; padding: 14px; display: grid; place-items: center;
+    background-color: #0b0b14;
+    background-image:
+      linear-gradient(45deg, #15151f 25%, transparent 25%),
+      linear-gradient(-45deg, #15151f 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #15151f 75%),
+      linear-gradient(-45deg, transparent 75%, #15151f 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    border: 1px solid var(--wb-line, var(--border));
+  }
+  .fv-hero-canvas { width: 200px; height: 200px; border-radius: 4px; image-rendering: auto; }
+  .fv-hero-cap { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--slate); text-align: center; }
+
+  .fv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .fv-tile {
+    border: 1px solid var(--wb-line, var(--border)); border-radius: 6px; overflow: hidden;
+    background: var(--wb-panel, var(--surface-1)); display: flex; flex-direction: column;
+  }
+  .fv-tile-view {
+    display: grid; place-items: center; min-height: 120px; padding: 12px;
+    background-color: #0b0b14;
+    background-image:
+      linear-gradient(45deg, #15151f 25%, transparent 25%),
+      linear-gradient(-45deg, #15151f 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #15151f 75%),
+      linear-gradient(-45deg, transparent 75%, #15151f 75%);
+    background-size: 14px 14px;
+    background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+  }
+  .fv-tile-view canvas { display: block; max-width: 128px; height: auto; border-radius: 2px; }
+  .fv-tile-meta {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 8px 11px; border-top: 1px solid var(--wb-line, var(--border));
+  }
+  .fv-tile-meta .lbl { font-family: var(--font-mono); font-size: 11px; color: var(--wb-ink, var(--text-1)); }
+  .fv-tile-meta .sz { font-family: var(--font-mono); font-size: 9.5px; color: var(--text-3); }
+  .fv-dl {
+    display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--accent); border: 1px solid var(--wb-line, var(--border)); border-radius: 3px;
+    padding: 5px 9px; transition: border-color 150ms, background 150ms;
+  }
+  .fv-dl:hover { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 12%, transparent); }
+  .fv-dl[aria-disabled="true"] { opacity: 0.4; pointer-events: none; }
+
+  .fv-section-h {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--slate); margin: 26px 0 12px; display: flex; align-items: center; gap: 12px;
+  }
+  .fv-section-h::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--wb-line, var(--border)), transparent); }
+
+  .fv-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .fv-snippet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .fv-snippet-head .cap { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--slate); }
+  pre.fv-code {
+    background: #06060d; border: 1px solid var(--wb-line, var(--border)); border-radius: 4px;
+    padding: 14px 16px; margin: 0; overflow-x: auto; white-space: pre;
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.7; color: var(--text-1);
+  }
+  .fv-hr { border: none; border-top: 1px solid var(--wb-line, var(--border)); margin: 26px 0 0; }
+</style>
+
+<div class="tool-row fv-source">
+  <div class="tool-options" role="group" aria-label="Icon source">
+    <button class="tool-option active" data-mode="monogram" aria-pressed="true">Monogram</button>
+    <button class="tool-option" data-mode="emoji" aria-pressed="false">Emoji</button>
+    <button class="tool-option" data-mode="image" aria-pressed="false">Image</button>
+  </div>
+</div>
+
+<!-- MONOGRAM -->
+<div class="tool-group fv-panel" data-panel="monogram">
+  <label for="fvMono">Letters (1–3)</label>
+  <input type="text" id="fvMono" maxlength="3" value="P" placeholder="e.g. PF" spellcheck="false" autocomplete="off" autocapitalize="characters">
+  <div class="fv-controls" style="margin-top:14px;">
+    <div class="fv-field">
+      <label for="fvFont">Typeface</label>
+      <select id="fvFont">
+        <option value='system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'>Sans</option>
+        <option value='Georgia, "Times New Roman", serif'>Serif</option>
+        <option value='"SF Mono", ui-monospace, Menlo, monospace'>Mono</option>
+        <option value='"Trebuchet MS", Verdana, sans-serif'>Grotesk</option>
+      </select>
+    </div>
+    <div class="fv-field">
+      <label for="fvFg">Text colour</label>
+      <div class="fv-color-row">
+        <input type="color" id="fvFg" value="#ffffff" aria-label="Text colour">
+        <input type="text" id="fvFgHex" value="#ffffff" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
+      </div>
+    </div>
+    <div class="fv-field" style="justify-content:flex-end;">
+      <label class="fv-check"><input type="checkbox" id="fvBold" checked> Bold weight</label>
+    </div>
+  </div>
+</div>
+
+<!-- EMOJI -->
+<div class="tool-group fv-panel" data-panel="emoji" hidden>
+  <label for="fvEmoji">Emoji</label>
+  <input type="text" id="fvEmoji" value="🚀" placeholder="Paste one emoji" autocomplete="off">
+  <div class="fv-emoji-quick" aria-label="Quick emoji">
+    <button type="button" data-emoji="🚀">🚀</button>
+    <button type="button" data-emoji="⚡">⚡</button>
+    <button type="button" data-emoji="🎮">🎮</button>
+    <button type="button" data-emoji="🔮">🔮</button>
+    <button type="button" data-emoji="🌙">🌙</button>
+    <button type="button" data-emoji="🔥">🔥</button>
+    <button type="button" data-emoji="🧪">🧪</button>
+    <button type="button" data-emoji="💎">💎</button>
+    <button type="button" data-emoji="🦉">🦉</button>
+    <button type="button" data-emoji="🛡️">🛡️</button>
+  </div>
+</div>
+
+<!-- IMAGE -->
+<div class="tool-group fv-panel" data-panel="image" hidden>
+  <label>Source image</label>
+  <div id="fvDrop" style="border:2px dashed var(--wb-line, var(--border)); border-radius:8px; padding:1.6rem; text-align:center; cursor:pointer; transition:border-color 0.2s; user-select:none;" role="button" tabindex="0" aria-label="Drop image or click to upload">
+    <span id="fvDropLabel">Drop an image (PNG, JPG, SVG, WebP) or <u>click to browse</u></span>
+    <input type="file" id="fvFile" accept="image/*" style="display:none;" aria-hidden="true">
+  </div>
+  <div id="fvFileInfo" style="margin-top:0.5rem; font-size:0.85rem; color:var(--text-3);">Square source images look best. Max 12 MB.</div>
+</div>
+
+<!-- SHARED STYLE CONTROLS -->
+<div class="fv-section-h">Shape &amp; background</div>
+<div class="fv-controls">
+  <div class="fv-field">
+    <label>Shape</label>
+    <div class="tool-options" role="group" aria-label="Icon shape">
+      <button class="tool-option active" data-shape="rounded" aria-pressed="true">Rounded</button>
+      <button class="tool-option" data-shape="square" aria-pressed="false">Square</button>
+      <button class="tool-option" data-shape="circle" aria-pressed="false">Circle</button>
+    </div>
+  </div>
+  <div class="fv-field">
+    <label for="fvBg">Background</label>
+    <div class="fv-color-row">
+      <input type="color" id="fvBg" value="#6d5ec9" aria-label="Background colour">
+      <input type="text" id="fvBgHex" value="#6d5ec9" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
+    </div>
+    <label class="fv-check" style="margin-top:2px;"><input type="checkbox" id="fvTransparent"> Transparent background</label>
+  </div>
+  <div class="fv-field">
+    <label for="fvPad">Padding <span class="fv-range-val" id="fvPadVal">14%</span></label>
+    <input type="range" id="fvPad" class="fv-range" min="0" max="40" value="14" aria-label="Padding percentage">
+  </div>
+  <div class="fv-field">
+    <label for="fvRadius">Corner radius <span class="fv-range-val" id="fvRadiusVal">22%</span></label>
+    <input type="range" id="fvRadius" class="fv-range" min="0" max="50" value="22" aria-label="Corner radius percentage">
+  </div>
+</div>
+
+<div id="fvError" style="display:none; margin-top:16px;" role="alert" aria-live="polite" class="tool-error"></div>
+<div id="fvStatus" class="visually-hidden" aria-live="polite" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);"></div>
+
+<!-- PREVIEW STAGE -->
+<div class="fv-section-h">Preview</div>
+<div class="fv-stage">
+  <div class="fv-hero-wrap">
+    <div class="fv-checker">
+      <canvas id="fvHero" width="512" height="512" class="fv-hero-canvas" role="img" aria-label="Icon preview"></canvas>
+    </div>
+    <div class="fv-hero-cap">master · 512×512</div>
+  </div>
+  <div>
+    <div class="fv-grid" id="fvGrid"></div>
+    <div class="fv-actions">
+      <button class="btn btn--primary" id="fvDownloadAll" type="button">Download all PNGs</button>
+      <a class="btn" id="fvDlIco" download="favicon.ico" aria-disabled="true">Download favicon.ico</a>
+      <a class="btn" id="fvDlManifest" download="site.webmanifest" aria-disabled="true">Download site.webmanifest</a>
+    </div>
+  </div>
+</div>
+
+<hr class="fv-hr">
+
+<!-- MANIFEST DETAILS -->
+<div class="fv-section-h">Web app details</div>
+<div class="fv-controls">
+  <div class="fv-field">
+    <label for="fvName">App name</label>
+    <input type="text" id="fvName" value="My App" placeholder="My App" autocomplete="off">
+  </div>
+  <div class="fv-field">
+    <label for="fvShort">Short name</label>
+    <input type="text" id="fvShort" value="My App" placeholder="MyApp" autocomplete="off">
+  </div>
+  <div class="fv-field">
+    <label for="fvPath">URL path</label>
+    <input type="text" id="fvPath" value="/" placeholder="/" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
+  </div>
+  <div class="fv-field">
+    <label for="fvTheme">Theme colour</label>
+    <div class="fv-color-row">
+      <input type="color" id="fvTheme" value="#6d5ec9" aria-label="Theme colour">
+      <input type="text" id="fvThemeHex" value="#6d5ec9" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
+    </div>
+  </div>
+</div>
+
+<!-- SNIPPETS -->
+<div class="fv-section-h">Paste into your &lt;head&gt;</div>
+<div class="output-area" style="position:relative;">
+  <button class="btn btn--copy" id="fvCopyHtml" aria-label="Copy HTML tags">Copy</button>
+  <pre class="fv-code" id="fvHtml" aria-label="HTML link tags"></pre>
+</div>
+
+<div class="fv-snippet-head" style="margin-top:20px;">
+  <span class="cap">site.webmanifest</span>
+</div>
+<div class="output-area" style="position:relative;">
+  <button class="btn btn--copy" id="fvCopyManifest" aria-label="Copy manifest JSON">Copy</button>
+  <pre class="fv-code" id="fvManifest" aria-label="Web app manifest JSON"></pre>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var MAX_BYTES = 12 * 1024 * 1024;
+  var ICONS = [
+    { size: 16,  name: 'favicon-16x16.png' },
+    { size: 32,  name: 'favicon-32x32.png' },
+    { size: 48,  name: 'favicon-48x48.png' },
+    { size: 180, name: 'apple-touch-icon.png' },
+    { size: 192, name: 'icon-192.png' },
+    { size: 512, name: 'icon-512.png' }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var errorEl  = $('fvError');
+  var statusEl = $('fvStatus');
+  var hero     = $('fvHero');
+  var grid     = $('fvGrid');
+
+  var state = {
+    mode: 'monogram',
+    mono: 'P',
+    emoji: '🚀',
+    img: null,          // HTMLImageElement once loaded
+    font: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    fg: '#ffffff',
+    bold: true,
+    shape: 'rounded',
+    bg: '#6d5ec9',
+    transparent: false,
+    pad: 0.14,
+    radius: 0.22
+  };
+
+  // ---- object-URL bookkeeping ----
+  var liveUrls = [];
+  function trackUrl(u) { liveUrls.push(u); return u; }
+  function revokeAll() {
+    for (var i = 0; i < liveUrls.length; i++) {
+      try { URL.revokeObjectURL(liveUrls[i]); } catch (e) {}
+    }
+    liveUrls = [];
+  }
+
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = ''; }
+  function hideError() { errorEl.textContent = ''; errorEl.style.display = 'none'; }
+  function setStatus(msg) { statusEl.textContent = msg; }
+
+  // ---- shape path ----
+  function shapePath(ctx, size, shape, radiusFrac) {
+    ctx.beginPath();
+    if (shape === 'circle') {
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+      return;
+    }
+    if (shape === 'square') {
+      ctx.rect(0, 0, size, size);
+      return;
+    }
+    var r = Math.min(size / 2, size * radiusFrac);
+    ctx.moveTo(r, 0);
+    ctx.lineTo(size - r, 0);
+    ctx.arcTo(size, 0, size, r, r);
+    ctx.lineTo(size, size - r);
+    ctx.arcTo(size, size, size - r, size, r);
+    ctx.lineTo(r, size);
+    ctx.arcTo(0, size, 0, size - r, r);
+    ctx.lineTo(0, r);
+    ctx.arcTo(0, 0, r, 0, r);
+    ctx.closePath();
+  }
+
+  // ---- draw one icon at a given size onto ctx ----
+  function drawIcon(ctx, size) {
+    ctx.clearRect(0, 0, size, size);
+    ctx.save();
+    shapePath(ctx, size, state.shape, state.radius);
+    ctx.clip();
+
+    if (!state.transparent) {
+      ctx.fillStyle = state.bg;
+      ctx.fillRect(0, 0, size, size);
+    }
+
+    var pad = size * state.pad;
+    var inner = size - pad * 2;
+    if (inner <= 0) { ctx.restore(); return; }
+
+    if (state.mode === 'image') {
+      if (state.img && state.img.naturalWidth) {
+        var iw = state.img.naturalWidth || state.img.width;
+        var ih = state.img.naturalHeight || state.img.height;
+        if (iw && ih) {
+          var scale = Math.min(inner / iw, inner / ih);
+          var w = iw * scale, h = ih * scale;
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          try { ctx.drawImage(state.img, (size - w) / 2, (size - h) / 2, w, h); } catch (e) {}
+        }
+      }
+    } else {
+      var text = state.mode === 'emoji'
+        ? Array.from(state.emoji || '').slice(0, 2).join('')
+        : (state.mono || '').slice(0, 3);
+      if (text) {
+        var weight = (state.mode === 'monogram' && state.bold) ? '700 ' : '400 ';
+        var family = state.mode === 'emoji'
+          ? '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'
+          : state.font;
+        // measure at a reference size, then scale to fit the inner box
+        var ref = 100;
+        ctx.font = weight + ref + 'px ' + family;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        var m = ctx.measureText(text);
+        var mw = m.width || ref;
+        var ascent = m.actualBoundingBoxAscent;
+        var descent = m.actualBoundingBoxDescent;
+        var mh = (ascent != null && descent != null) ? (ascent + descent) : ref;
+        if (!mh) mh = ref;
+        var fit = Math.min(inner / mw, inner / mh) * ref;
+        if (!isFinite(fit) || fit <= 0) fit = inner * 0.6;
+        // emoji looks better a touch larger; letters slightly smaller for optical padding
+        if (state.mode === 'monogram') fit *= 0.92;
+        ctx.font = weight + fit + 'px ' + family;
+        if (state.mode === 'monogram') ctx.fillStyle = state.fg;
+        // recompute vertical offset with the final font for tight centring
+        var m2 = ctx.measureText(text);
+        var a2 = m2.actualBoundingBoxAscent, d2 = m2.actualBoundingBoxDescent;
+        var yOff = (a2 != null && d2 != null) ? (a2 - d2) / 2 : 0;
+        ctx.fillText(text, size / 2, size / 2 + yOff);
+      }
+    }
+    ctx.restore();
+  }
+
+  function hasContent() {
+    if (state.mode === 'image') return !!(state.img && state.img.naturalWidth);
+    if (state.mode === 'emoji') return !!(state.emoji && state.emoji.trim());
+    return !!(state.mono && state.mono.trim());
+  }
+
+  // ---- preview tiles (built once) ----
+  var tiles = {};
+  function buildTiles() {
+    grid.innerHTML = '';
+    for (var i = 0; i < ICONS.length; i++) {
+      var ic = ICONS[i];
+      var tile = document.createElement('div');
+      tile.className = 'fv-tile';
+
+      var view = document.createElement('div');
+      view.className = 'fv-tile-view';
+      var cv = document.createElement('canvas');
+      cv.width = ic.size; cv.height = ic.size;
+      // display: small sizes at true px, large ones capped by CSS max-width
+      cv.style.width = Math.min(ic.size, 128) + 'px';
+      view.appendChild(cv);
+
+      var meta = document.createElement('div');
+      meta.className = 'fv-tile-meta';
+      var left = document.createElement('div');
+      var lbl = document.createElement('div');
+      lbl.className = 'lbl';
+      lbl.textContent = ic.size + '×' + ic.size;
+      var sz = document.createElement('div');
+      sz.className = 'sz';
+      sz.textContent = ic.name;
+      left.appendChild(lbl); left.appendChild(sz);
+
+      var dl = document.createElement('a');
+      dl.className = 'fv-dl';
+      dl.setAttribute('download', ic.name);
+      dl.setAttribute('aria-disabled', 'true');
+      dl.textContent = 'PNG';
+
+      meta.appendChild(left);
+      meta.appendChild(dl);
+      tile.appendChild(view);
+      tile.appendChild(meta);
+      grid.appendChild(tile);
+
+      tiles[ic.size] = { canvas: cv, ctx: cv.getContext('2d'), dl: dl, sz: sz, name: ic.name };
+    }
+  }
+
+  // ---- live (synchronous) render of hero + all tiles ----
+  function renderPreview() {
+    var hctx = hero.getContext('2d');
+    drawIcon(hctx, hero.width);
+    for (var i = 0; i < ICONS.length; i++) {
+      var t = tiles[ICONS[i].size];
+      drawIcon(t.ctx, ICONS[i].size);
+    }
+  }
+
+  // ---- async export: blobs, download links, .ico, manifest ----
+  var exportToken = 0;
+  function canvasToBlob(canvas) {
+    return new Promise(function (resolve) {
+      if (canvas.toBlob) canvas.toBlob(function (b) { resolve(b); }, 'image/png');
+      else {
+        try {
+          var dataUrl = canvas.toDataURL('image/png');
+          var bin = atob(dataUrl.split(',')[1]);
+          var arr = new Uint8Array(bin.length);
+          for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          resolve(new Blob([arr], { type: 'image/png' }));
+        } catch (e) { resolve(null); }
+      }
+    });
+  }
+
+  // Build a real .ico wrapping PNG payloads (16/32/48). Modern browsers accept PNG-in-ICO.
+  function buildIco(entries) {
+    var count = entries.length;
+    var headerSize = 6 + count * 16;
+    var total = headerSize;
+    for (var i = 0; i < count; i++) total += entries[i].bytes.length;
+    var buf = new ArrayBuffer(total);
+    var dv = new DataView(buf);
+    var out = new Uint8Array(buf);
+    dv.setUint16(0, 0, true);      // reserved
+    dv.setUint16(2, 1, true);      // type = icon
+    dv.setUint16(4, count, true);  // image count
+    var offset = headerSize;
+    for (var j = 0; j < count; j++) {
+      var e = entries[j];
+      var dir = 6 + j * 16;
+      dv.setUint8(dir, e.size >= 256 ? 0 : e.size);      // width
+      dv.setUint8(dir + 1, e.size >= 256 ? 0 : e.size);  // height
+      dv.setUint8(dir + 2, 0);                           // palette
+      dv.setUint8(dir + 3, 0);                           // reserved
+      dv.setUint16(dir + 4, 1, true);                    // colour planes
+      dv.setUint16(dir + 6, 32, true);                   // bits per pixel
+      dv.setUint32(dir + 8, e.bytes.length, true);       // size of data
+      dv.setUint32(dir + 12, offset, true);              // offset of data
+      out.set(e.bytes, offset);
+      offset += e.bytes.length;
+    }
+    return new Blob([buf], { type: 'image/x-icon' });
+  }
+
+  function formatBytes(n) {
+    if (n == null) return '';
+    if (n < 1024) return n + ' B';
+    return (n / 1024).toFixed(1) + ' KB';
+  }
+
+  function regenerateExports() {
+    var token = ++exportToken;
+    revokeAll();
+    // reset link states
+    for (var i = 0; i < ICONS.length; i++) {
+      var t = tiles[ICONS[i].size];
+      t.dl.setAttribute('aria-disabled', 'true');
+      t.dl.removeAttribute('href');
+    }
+    var icoLink = $('fvDlIco'); icoLink.setAttribute('aria-disabled', 'true'); icoLink.removeAttribute('href');
+
+    if (!hasContent()) {
+      setStatus('Add an image, emoji, or letters to begin.');
+      return;
+    }
+
+    var jobs = ICONS.map(function (ic) {
+      return canvasToBlob(tiles[ic.size].canvas).then(function (blob) {
+        return { size: ic.size, name: ic.name, blob: blob };
+      });
+    });
+
+    Promise.all(jobs).then(function (results) {
+      if (token !== exportToken) return; // superseded
+      var icoEntries = [];
+      var pending = [];
+      results.forEach(function (r) {
+        var t = tiles[r.size];
+        if (r.blob) {
+          var url = trackUrl(URL.createObjectURL(r.blob));
+          t.dl.href = url;
+          t.dl.setAttribute('aria-disabled', 'false');
+          t.sz.textContent = r.name + ' · ' + formatBytes(r.blob.size);
+          if (r.size === 16 || r.size === 32 || r.size === 48) {
+            pending.push(r.blob.arrayBuffer().then(function (ab) {
+              icoEntries.push({ size: r.size, bytes: new Uint8Array(ab) });
+            }));
+          }
+        }
+      });
+      return Promise.all(pending).then(function () {
+        if (token !== exportToken) return;
+        icoEntries.sort(function (a, b) { return a.size - b.size; });
+        if (icoEntries.length) {
+          try {
+            var ico = buildIco(icoEntries);
+            var icoUrl = trackUrl(URL.createObjectURL(ico));
+            icoLink.href = icoUrl;
+            icoLink.setAttribute('aria-disabled', 'false');
+          } catch (e) {}
+        }
+        setStatus('Icon set ready — ' + ICONS.length + ' PNGs plus favicon.ico.');
+      });
+    }).catch(function () {
+      setStatus('Could not generate the icon set.');
+    });
+  }
+
+  // ---- snippet generation ----
+  function normPath(p) {
+    p = (p || '/').trim();
+    if (!p) p = '/';
+    if (p.charAt(0) !== '/') p = '/' + p;
+    if (p.charAt(p.length - 1) !== '/') p += '/';
+    return p;
+  }
+
+  function updateSnippets() {
+    var path = normPath($('fvPath').value);
+    var theme = $('fvThemeHex').value.trim() || '#000000';
+    var name = $('fvName').value || 'My App';
+    var shortName = $('fvShort').value || name;
+    var bgColor = state.transparent ? '#ffffff' : state.bg;
+
+    var html =
+      '<link rel="icon" href="' + path + 'favicon.ico" sizes="any">\n' +
+      '<link rel="icon" type="image/png" sizes="16x16" href="' + path + 'favicon-16x16.png">\n' +
+      '<link rel="icon" type="image/png" sizes="32x32" href="' + path + 'favicon-32x32.png">\n' +
+      '<link rel="apple-touch-icon" sizes="180x180" href="' + path + 'apple-touch-icon.png">\n' +
+      '<link rel="manifest" href="' + path + 'site.webmanifest">\n' +
+      '<meta name="theme-color" content="' + theme + '">';
+    $('fvHtml').textContent = html;
+
+    var manifest = {
+      name: name,
+      short_name: shortName,
+      icons: [
+        { src: path + 'icon-192.png', sizes: '192x192', type: 'image/png' },
+        { src: path + 'icon-512.png', sizes: '512x512', type: 'image/png' },
+        { src: path + 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+      ],
+      theme_color: theme,
+      background_color: bgColor,
+      display: 'standalone'
+    };
+    var manifestStr = JSON.stringify(manifest, null, 2);
+    $('fvManifest').textContent = manifestStr;
+
+    // manifest download
+    var mLink = $('fvDlManifest');
+    var blob = new Blob([manifestStr], { type: 'application/manifest+json' });
+    var url = trackUrl(URL.createObjectURL(blob));
+    mLink.href = url;
+    mLink.setAttribute('aria-disabled', 'false');
+  }
+
+  // ---- orchestration ----
+  var exportTimer = null;
+  function refresh(opts) {
+    hideError();
+    renderPreview();
+    updateSnippets();
+    if (opts && opts.exportNow) {
+      regenerateExports();
+    } else {
+      clearTimeout(exportTimer);
+      exportTimer = setTimeout(regenerateExports, 180);
+    }
+    publishAgent();
+  }
+
+  // ---- source-mode switching ----
+  var modeBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
+  modeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      modeBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      state.mode = btn.getAttribute('data-mode');
+      document.querySelectorAll('.fv-panel').forEach(function (p) {
+        p.hidden = p.getAttribute('data-panel') !== state.mode;
+      });
+      refresh({ exportNow: true });
+    });
+  });
+
+  // ---- shape ----
+  var shapeBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-shape]'));
+  shapeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      shapeBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      state.shape = btn.getAttribute('data-shape');
+      refresh({ exportNow: true });
+    });
+  });
+
+  // ---- monogram inputs ----
+  $('fvMono').addEventListener('input', function () { state.mono = this.value; refresh(); });
+  $('fvFont').addEventListener('change', function () { state.font = this.value; refresh({ exportNow: true }); });
+  $('fvBold').addEventListener('change', function () { state.bold = this.checked; refresh({ exportNow: true }); });
+
+  // ---- emoji inputs ----
+  $('fvEmoji').addEventListener('input', function () { state.emoji = this.value; refresh(); });
+  document.querySelectorAll('.fv-emoji-quick button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var e = this.getAttribute('data-emoji');
+      state.emoji = e;
+      $('fvEmoji').value = e;
+      refresh({ exportNow: true });
+    });
+  });
+
+  // ---- colour pairs (picker <-> hex) ----
+  function bindColor(pickerId, hexId, key, alsoTheme) {
+    var picker = $(pickerId), hex = $(hexId);
+    function fromPicker() {
+      hex.value = picker.value;
+      state[key] = picker.value;
+      if (alsoTheme) syncTheme(picker.value);
+      refresh({ exportNow: true });
+    }
+    function fromHex() {
+      var v = hex.value.trim();
+      if (/^#?[0-9a-fA-F]{6}$/.test(v) || /^#?[0-9a-fA-F]{3}$/.test(v)) {
+        if (v.charAt(0) !== '#') v = '#' + v;
+        picker.value = expandHex(v);
+        state[key] = v;
+        if (alsoTheme) syncTheme(picker.value);
+      }
+      refresh();
+    }
+    picker.addEventListener('input', fromPicker);
+    hex.addEventListener('input', fromHex);
+  }
+  function expandHex(v) {
+    if (/^#[0-9a-fA-F]{3}$/.test(v)) {
+      return '#' + v.charAt(1) + v.charAt(1) + v.charAt(2) + v.charAt(2) + v.charAt(3) + v.charAt(3);
+    }
+    return v;
+  }
+  var themeTouched = false;
+  function syncTheme(v) {
+    // keep the theme colour in step with the background until the user edits it directly
+    if (!themeTouched) { $('fvTheme').value = v; $('fvThemeHex').value = v; }
+  }
+  bindColor('fvFg', 'fvFgHex', 'fg', false);
+  bindColor('fvBg', 'fvBgHex', 'bg', true);
+
+  // theme colour is independent once touched
+  (function () {
+    var picker = $('fvTheme'), hex = $('fvThemeHex');
+    picker.addEventListener('input', function () { themeTouched = true; hex.value = picker.value; updateSnippets(); publishAgent(); });
+    hex.addEventListener('input', function () {
+      themeTouched = true;
+      var v = hex.value.trim();
+      if (/^#?[0-9a-fA-F]{6}$/.test(v)) { if (v.charAt(0) !== '#') v = '#' + v; picker.value = v; }
+      updateSnippets(); publishAgent();
+    });
+  })();
+
+  // ---- transparent toggle ----
+  $('fvTransparent').addEventListener('change', function () {
+    state.transparent = this.checked;
+    refresh({ exportNow: true });
+  });
+
+  // ---- padding + radius ----
+  $('fvPad').addEventListener('input', function () {
+    state.pad = (+this.value) / 100;
+    $('fvPadVal').textContent = this.value + '%';
+    refresh();
+  });
+  $('fvRadius').addEventListener('input', function () {
+    state.radius = (+this.value) / 100;
+    $('fvRadiusVal').textContent = this.value + '%';
+    refresh();
+  });
+
+  // ---- manifest text fields ----
+  ['fvName', 'fvShort', 'fvPath'].forEach(function (id) {
+    $(id).addEventListener('input', function () { updateSnippets(); publishAgent(); });
+  });
+
+  // ---- image loading ----
+  var dropZone = $('fvDrop'), fileInput = $('fvFile'), fileInfo = $('fvFileInfo'), dropLabel = $('fvDropLabel');
+
+  function loadImageFile(file) {
+    if (!file) return;
+    if (!/^image\//.test(file.type) && !/\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)$/i.test(file.name)) {
+      showError('That does not look like an image file.');
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      showError('Image is larger than 12 MB. Please pick a smaller file.');
+      return;
+    }
+    hideError();
+    fileInfo.textContent = file.name + ' (' + formatBytes(file.size) + ')';
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      state.img = img;
+      dropLabel.innerHTML = 'Loaded — <u>click to replace</u>';
+      refresh({ exportNow: true });
+    };
+    img.onerror = function () {
+      URL.revokeObjectURL(url);
+      showError('Could not decode that image. Try a PNG, JPG, WebP, or SVG.');
+    };
+    img.src = url;
+  }
+
+  dropZone.addEventListener('click', function () { fileInput.click(); });
+  dropZone.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) loadImageFile(fileInput.files[0]);
+  });
+  dropZone.addEventListener('dragover', function (e) { e.preventDefault(); dropZone.style.borderColor = 'var(--accent, #b8a5d6)'; });
+  dropZone.addEventListener('dragleave', function () { dropZone.style.borderColor = ''; });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropZone.style.borderColor = '';
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) loadImageFile(e.dataTransfer.files[0]);
+  });
+
+  // ---- downloads ----
+  $('fvDownloadAll').addEventListener('click', function () {
+    if (!hasContent()) { setStatus('Nothing to download yet — add a source first.'); return; }
+    var links = [];
+    for (var i = 0; i < ICONS.length; i++) {
+      var t = tiles[ICONS[i].size];
+      if (t.dl.getAttribute('aria-disabled') === 'false' && t.dl.href) links.push(t.dl);
+    }
+    var ico = $('fvDlIco'); if (ico.getAttribute('aria-disabled') === 'false') links.push(ico);
+    var man = $('fvDlManifest'); if (man.getAttribute('aria-disabled') === 'false') links.push(man);
+    // stagger clicks so browsers don't collapse them into one
+    links.forEach(function (a, idx) {
+      setTimeout(function () { a.click(); }, idx * 120);
+    });
+    setStatus('Downloading ' + links.length + ' files.');
+  });
+
+  // ---- copy buttons ----
+  function wireCopy(btnId, srcId) {
+    var btn = $(btnId), src = $(srcId);
+    btn.addEventListener('click', function () {
+      var text = src.textContent;
+      if (!text) return;
+      function ok() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000); }
+      function bad() { btn.textContent = 'Failed'; setTimeout(function () { btn.textContent = 'Copy'; }, 2000); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(ok, bad);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        try { document.execCommand('copy'); ok(); } catch (e) { bad(); }
+        document.body.removeChild(ta);
+      }
+    });
+  }
+  wireCopy('fvCopyHtml', 'fvHtml');
+  wireCopy('fvCopyManifest', 'fvManifest');
+
+  // ---- agent I/O (window.PF) ----
+  function publishAgent() {
+    if (!window.PF) return;
+    try {
+      PF.ready({
+        output: $('fvHtml').textContent,
+        data: {
+          mode: state.mode,
+          text: state.mode === 'emoji' ? state.emoji : (state.mode === 'monogram' ? state.mono : '(image)'),
+          shape: state.shape,
+          background: state.transparent ? 'transparent' : state.bg,
+          sizes: ICONS.map(function (i) { return i.size; }),
+          appName: $('fvName').value
+        }
+      });
+    } catch (e) {}
+  }
+
+  // ---- init ----
+  buildTiles();
+
+  (function applyAgentInput() {
+    if (!window.PF) return;
+    var p = PF.input();
+    if (!p) return;
+    if (p.mode && (p.mode === 'emoji' || p.mode === 'monogram' || p.mode === 'image')) {
+      var b = document.querySelector('.tool-option[data-mode="' + p.mode + '"]');
+      if (b) b.click();
+    }
+    if (p.emoji) { state.emoji = p.emoji; $('fvEmoji').value = p.emoji; }
+    if (p.text && state.mode === 'monogram') { state.mono = p.text; $('fvMono').value = p.text; }
+    if (p.bg && /^#?[0-9a-fA-F]{3,6}$/.test(p.bg)) {
+      var v = p.bg.charAt(0) === '#' ? p.bg : '#' + p.bg;
+      state.bg = v; $('fvBgHex').value = v; try { $('fvBg').value = expandHex(v); } catch (e) {}
+    }
+    if (p.name) { $('fvName').value = p.name; $('fvShort').value = p.name; }
+  })();
+
+  refresh({ exportNow: true });
+})();
+</script>

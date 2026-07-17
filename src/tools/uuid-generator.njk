@@ -3,192 +3,470 @@ toolSlug: uuid-generator
 permalink: /tools/uuid-generator/
 ---
 
-<div class="tool-row">
-  <div class="tool-group" style="flex:1;">
+<style>
+  .uuid-controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; }
+  .uuid-controls .tool-group { margin-bottom: 0; }
+  .uuid-count-input { width: 96px; }
+  .uuid-meta {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px;
+    color: var(--slate); margin: 20px 0 8px;
+  }
+  .uuid-meta .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--wb-line-bright); }
+  .uuid-meta b { color: var(--accent); font-weight: 500; }
+  #uuid-output { white-space: pre; word-break: break-all; margin: 0; min-height: 1.75em; max-height: 340px; overflow: auto; }
+
+  /* ---- anatomy / segmented breakdown ---- */
+  .uuid-anatomy { margin-top: 8px; padding: 20px; }
+  .uuid-mono {
+    font-family: var(--font-mono); font-size: clamp(15px, 3.4vw, 23px);
+    letter-spacing: 0.5px; word-break: break-all; line-height: 1.9; color: var(--text-2);
+  }
+  .uuid-seg { border-radius: 2px; padding: 3px 0.5px; transition: background 160ms; }
+  .seg-time { color: var(--accent); background: color-mix(in oklab, var(--accent) 16%, transparent); }
+  .seg-ver  { color: var(--sage); background: color-mix(in oklab, var(--sage) 22%, transparent); font-weight: 600; }
+  .seg-var  { color: #85b4dc; background: color-mix(in oklab, #85b4dc 20%, transparent); font-weight: 600; }
+  .seg-rand { color: var(--text-2); }
+  .uuid-legend { display: flex; flex-wrap: wrap; gap: 9px 20px; margin-top: 16px; }
+  .uuid-legend-item { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--text-3); }
+  .uuid-legend-item b { color: var(--text-1); font-weight: 500; }
+  .uuid-swatch { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
+  .sw-time { background: color-mix(in oklab, var(--accent) 60%, transparent); }
+  .sw-ver  { background: color-mix(in oklab, var(--sage) 70%, transparent); }
+  .sw-var  { background: color-mix(in oklab, #85b4dc 70%, transparent); }
+  .sw-rand { background: var(--wb-line-bright); }
+
+  .uuid-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; margin-top: 18px; background: var(--wb-line); border: 1px solid var(--wb-line); border-radius: 3px; overflow: hidden; }
+  .uuid-fact { padding: 13px 15px; background: #06060d; }
+  .uuid-fact dt { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--slate); }
+  .uuid-fact dd { font-family: var(--font-mono); font-size: 13px; color: var(--wb-ink); margin-top: 6px; word-break: break-all; line-height: 1.5; }
+
+  .uuid-inspect-body { padding: 18px; }
+  .uuid-inspect-body .tool-group { margin-bottom: 0; }
+  #inspect-placeholder { color: var(--text-3); font-size: 13px; padding: 6px 2px; }
+  .uuid-panel-actions { display: flex; align-items: center; gap: 8px; }
+</style>
+
+<!-- ============ GENERATE ============ -->
+<div class="uuid-controls">
+  <div class="tool-group">
+    <label id="ver-label">Version</label>
+    <div class="tool-options" role="group" aria-labelledby="ver-label">
+      <button class="tool-option active" data-version="v4" aria-pressed="true">v4 · random</button>
+      <button class="tool-option" data-version="v7" aria-pressed="false">v7 · time-ordered</button>
+    </div>
+  </div>
+  <div class="tool-group">
     <label for="uuid-quantity">Quantity</label>
-    <input type="number" id="uuid-quantity" min="1" max="100" value="1" style="width:80px;">
+    <input type="number" id="uuid-quantity" class="uuid-count-input" min="1" max="1000" value="1" inputmode="numeric" autocomplete="off">
   </div>
-  <div class="tool-group" style="flex:2;">
-    <label>Version</label>
-    <div class="tool-options" role="group" aria-label="UUID version">
-      <button class="tool-option active" data-version="v4" aria-pressed="true">v4 (random)</button>
-      <button class="tool-option" data-version="v7" aria-pressed="false">v7 (time-ordered)</button>
-    </div>
-  </div>
-  <div class="tool-group" style="flex:2;">
-    <label>Format</label>
-    <div class="tool-options" role="group" aria-label="Hyphen format">
+  <div class="tool-group">
+    <label id="hyph-label">Format</label>
+    <div class="tool-options" role="group" aria-labelledby="hyph-label">
       <button class="tool-option active" data-hyphens="yes" aria-pressed="true">Hyphens</button>
-      <button class="tool-option" data-hyphens="no" aria-pressed="false">No hyphens</button>
+      <button class="tool-option" data-hyphens="no" aria-pressed="false">Raw</button>
     </div>
   </div>
-  <div class="tool-group" style="flex:2;">
-    <label>Case</label>
-    <div class="tool-options" role="group" aria-label="Case format">
-      <button class="tool-option active" data-case="lower" aria-pressed="true">Lowercase</button>
-      <button class="tool-option" data-case="upper" aria-pressed="false">Uppercase</button>
+  <div class="tool-group">
+    <label id="case-label">Case</label>
+    <div class="tool-options" role="group" aria-labelledby="case-label">
+      <button class="tool-option active" data-case="lower" aria-pressed="true">lower</button>
+      <button class="tool-option" data-case="upper" aria-pressed="false">UPPER</button>
     </div>
+  </div>
+  <div class="tool-group">
+    <label>&nbsp;</label>
+    <button class="btn btn--primary" id="btn-generate">Generate</button>
   </div>
 </div>
 
-<div class="tool-row">
-  <button class="btn btn--primary" id="btn-generate">Generate</button>
+<div class="uuid-meta" aria-hidden="true">
+  <span id="meta-count">1 UUID</span><span class="dot"></span>
+  <span id="meta-version">UUID v4</span><span class="dot"></span>
+  <span>cryptographically random · <b>crypto.getRandomValues</b></span>
 </div>
 
 <div class="output-area">
-  <button class="btn btn--copy" id="btn-copy" aria-label="Copy all UUIDs">Copy all</button>
-  <pre id="uuid-output" aria-label="Generated UUIDs"></pre>
+  <button class="btn btn--copy" id="btn-copy" aria-label="Copy all generated UUIDs">Copy all</button>
+  <pre id="uuid-output" aria-label="Generated UUIDs" aria-live="polite"></pre>
 </div>
 
-<script>
-(function () {
-  var outputEl   = document.getElementById('uuid-output');
-  var copyBtn    = document.getElementById('btn-copy');
-  var genBtn     = document.getElementById('btn-generate');
-  var qtyEl      = document.getElementById('uuid-quantity');
+<div class="wb-panel uuid-anatomy-wrap" style="margin-top:18px;">
+  <div class="wb-panel-bar">
+    Anatomy
+    <span class="wb-badge wb-badge--local" id="anatomy-ver-badge">v4</span>
+  </div>
+  <div class="uuid-anatomy" id="gen-anatomy"></div>
+</div>
 
-  var currentVersion = 'v4';
-  var useHyphens     = true;
-  var useUppercase   = false;
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--wb-line);">
 
-  function bytesToHex(bytes) {
-    var hex = '';
-    for (var i = 0; i < bytes.length; i++) {
-      hex += ('0' + bytes[i].toString(16)).slice(-2);
+<!-- ============ INSPECT ============ -->
+<div class="wb-panel">
+  <div class="wb-panel-bar">
+    Inspect a UUID
+    <span class="uuid-panel-actions">
+      <button class="btn" id="btn-example" type="button">Load example</button>
+    </span>
+  </div>
+  <div class="uuid-inspect-body">
+    <div class="tool-group">
+      <label for="inspect-input">Paste any UUID / GUID</label>
+      <input type="text" id="inspect-input" placeholder="017f22e2-79b0-7cc3-98c4-dc0c0c07398f" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" style="font-family:var(--font-mono);">
+    </div>
+    <div id="inspect-error" class="tool-error" role="alert" aria-live="polite" style="display:none; margin-top:12px;"></div>
+    <div id="inspect-result" aria-live="polite" style="margin-top:16px;">
+      <div id="inspect-placeholder">Version, variant, and — for v7 — the embedded timestamp will appear here.</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { uuidV4, uuidV7, uuidInspect } from '/js/tools-lib.js';
+
+const $ = (id) => document.getElementById(id);
+const outputEl   = $('uuid-output');
+const copyBtn    = $('btn-copy');
+const genBtn     = $('btn-generate');
+const qtyEl      = $('uuid-quantity');
+const metaCount  = $('meta-count');
+const metaVer    = $('meta-version');
+const genAnatomy = $('gen-anatomy');
+const anatomyBadge = $('anatomy-ver-badge');
+const inspectInput = $('inspect-input');
+const inspectError = $('inspect-error');
+const inspectResult = $('inspect-result');
+const exampleBtn = $('btn-example');
+
+let version   = 'v4';   // 'v4' | 'v7'
+let hyphens   = true;
+let upper     = false;
+
+const EXAMPLE_UUID = '017f22e2-79b0-7cc3-98c4-dc0c0c07398f';
+
+const VERSION_NAME = {
+  0: 'unused', 1: 'time + MAC', 2: 'DCE security', 3: 'MD5 name-based',
+  4: 'random', 5: 'SHA-1 name-based', 6: 'reordered time',
+  7: 'Unix time + random', 8: 'custom'
+};
+
+// ---- helpers ----
+function clampCount(v) {
+  let n = parseInt(v, 10);
+  if (!isFinite(n)) n = 1;
+  return Math.max(1, Math.min(1000, n));
+}
+
+function stripHex(uuid) { return String(uuid).replace(/[^0-9a-fA-F]/g, '').toLowerCase(); }
+
+function canonical(hex) {
+  return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20, 32);
+}
+
+function applyFormat(u) {
+  let out = u;
+  if (!hyphens) out = out.replace(/-/g, '');
+  if (upper) out = out.toUpperCase();
+  return out;
+}
+
+function describeVariant(nib) {
+  // top bits of the byte at hex index 16 decide the variant field
+  if (nib <= 7) return 'NCS (legacy, reserved)';
+  if (nib <= 0xb) return 'RFC 4122 / RFC 9562';
+  if (nib <= 0xd) return 'Microsoft (legacy)';
+  return 'reserved (future)';
+}
+
+function relTime(ms) {
+  const diff = Date.now() - ms;
+  const abs = Math.abs(diff);
+  const suffix = diff >= 0 ? 'ago' : 'from now';
+  const units = [['year', 31536e6], ['day', 864e5], ['hour', 36e5], ['minute', 6e4], ['second', 1e3]];
+  for (const [name, size] of units) {
+    const n = Math.floor(abs / size);
+    if (n >= 1) return n + ' ' + name + (n > 1 ? 's' : '') + ' ' + suffix;
+  }
+  return 'just now';
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function segClass(hexIndex, ver) {
+  if (ver === 7 && hexIndex < 12) return 'seg-time';
+  if (hexIndex === 12) return 'seg-ver';
+  if (hexIndex === 16) return 'seg-var';
+  return 'seg-rand';
+}
+
+// ---- anatomy renderer (shared by generate + inspect) ----
+function renderAnatomy(host, hex, opts) {
+  opts = opts || {};
+  host.textContent = '';
+  const ver = parseInt(hex[12], 16);
+  const varNib = parseInt(hex[16], 16);
+  const disp = canonical(hex);
+  const isNil = /^0{32}$/.test(hex);
+  const isMax = /^f{32}$/.test(hex);
+
+  // colored monospace line
+  const mono = el('div', 'uuid-mono');
+  let hi = 0;
+  for (const c of disp) {
+    if (c === '-') { mono.appendChild(document.createTextNode('-')); continue; }
+    const span = el('span', 'uuid-seg ' + segClass(hi, ver));
+    span.textContent = c;
+    mono.appendChild(span);
+    hi++;
+  }
+  host.appendChild(mono);
+
+  // legend
+  const legend = el('div', 'uuid-legend');
+  const addLeg = (swatch, label) => {
+    const item = el('div', 'uuid-legend-item');
+    item.appendChild(el('span', 'uuid-swatch ' + swatch));
+    const b = el('b'); b.textContent = label.head;
+    item.appendChild(b);
+    if (label.tail) item.appendChild(document.createTextNode(' ' + label.tail));
+    legend.appendChild(item);
+  };
+  let tsMs = null;
+  if (ver === 7) {
+    tsMs = parseInt(hex.slice(0, 12), 16);
+    addLeg('sw-time', { head: 'timestamp', tail: '48-bit · ' + new Date(tsMs).toISOString() });
+  }
+  addLeg('sw-ver', { head: 'version', tail: '· ' + hex[12] });
+  addLeg('sw-var', { head: 'variant', tail: '· ' + hex[16] });
+  addLeg('sw-rand', { head: 'random', tail: ver === 7 ? '74-bit' : '122-bit' });
+  host.appendChild(legend);
+
+  // facts grid
+  const facts = el('dl', 'uuid-facts');
+  const addFact = (k, v) => {
+    const f = el('div', 'uuid-fact');
+    f.appendChild(el('dt', null, k));
+    f.appendChild(el('dd', null, v));
+    facts.appendChild(f);
+  };
+  let verLabel;
+  if (isNil) verLabel = '0 · Nil UUID';
+  else if (isMax) verLabel = 'max · all-ones UUID';
+  else verLabel = ver + (VERSION_NAME[ver] ? ' · ' + VERSION_NAME[ver] : ' · unknown');
+  addFact('Version', verLabel);
+  addFact('Variant', describeVariant(varNib));
+  if (ver === 7 && !isNil && !isMax) {
+    addFact('Timestamp (UTC)', new Date(tsMs).toISOString());
+    addFact('When', relTime(tsMs) + ' · ' + new Date(tsMs).toLocaleString());
+  }
+  addFact('Layout', '128-bit · ' + (opts.form || 'canonical 8-4-4-4-12'));
+  host.appendChild(facts);
+
+  return { ver, varNib, tsMs, isNil, isMax };
+}
+
+// ---- generate ----
+function publishGenerate(list) {
+  if (!window.PF) return;
+  PF.ready({
+    output: list.join('\n'),
+    data: {
+      action: 'generate',
+      version: version === 'v7' ? 7 : 4,
+      count: list.length,
+      format: { hyphens: hyphens, case: upper ? 'upper' : 'lower' },
+      uuids: list
     }
-    return hex;
-  }
+  });
+}
 
-  function generateV4() {
-    var bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
-    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant bits
-    var hex = bytesToHex(bytes);
-    return [
-      hex.slice(0, 8),
-      hex.slice(8, 12),
-      hex.slice(12, 16),
-      hex.slice(16, 20),
-      hex.slice(20, 32)
-    ].join('-');
+function generate() {
+  const n = clampCount(qtyEl.value);
+  qtyEl.value = n;
+  const raws = [];
+  for (let i = 0; i < n; i++) {
+    raws.push(version === 'v7' ? uuidV7().output : uuidV4().output);
   }
+  const formatted = raws.map(applyFormat);
+  outputEl.textContent = formatted.join('\n');
 
-  function generateV7() {
-    var bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    var ms = Date.now();
-    // 48-bit millisecond timestamp in first 6 bytes
-    bytes[0] = (ms / 0x10000000000) & 0xff;
-    bytes[1] = (ms / 0x100000000) & 0xff;
-    bytes[2] = (ms / 0x1000000) & 0xff;
-    bytes[3] = (ms / 0x10000) & 0xff;
-    bytes[4] = (ms / 0x100) & 0xff;
-    bytes[5] = ms & 0xff;
-    bytes[6] = (bytes[6] & 0x0f) | 0x70; // version 7
-    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant bits
-    var hex = bytesToHex(bytes);
-    return [
-      hex.slice(0, 8),
-      hex.slice(8, 12),
-      hex.slice(12, 16),
-      hex.slice(16, 20),
-      hex.slice(20, 32)
-    ].join('-');
+  metaCount.textContent = n + (n === 1 ? ' UUID' : ' UUIDs');
+  metaVer.textContent = 'UUID ' + version;
+  anatomyBadge.textContent = version;
+
+  renderAnatomy(genAnatomy, stripHex(raws[0]), { form: (hyphens ? 'canonical 8-4-4-4-12' : 'raw 32-hex') });
+  publishGenerate(formatted);
+}
+
+// ---- inspect ----
+function clearInspect(msg) {
+  inspectError.style.display = 'none';
+  inspectResult.textContent = '';
+  const ph = el('div', null, msg || 'Version, variant, and — for v7 — the embedded timestamp will appear here.');
+  ph.id = 'inspect-placeholder';
+  inspectResult.appendChild(ph);
+}
+
+function showInspectError(msg) {
+  inspectResult.textContent = '';
+  inspectError.textContent = msg;
+  inspectError.style.display = '';
+}
+
+function buildInspectSummary(hex, info) {
+  const lines = ['UUID:     ' + canonical(hex), 'Valid:    yes'];
+  const verName = info.isNil ? 'Nil UUID' : info.isMax ? 'Max UUID'
+    : info.ver + (VERSION_NAME[info.ver] ? ' (' + VERSION_NAME[info.ver] + ')' : '');
+  lines.push('Version:  ' + verName);
+  lines.push('Variant:  ' + describeVariant(info.varNib));
+  if (info.ver === 7 && !info.isNil && !info.isMax) {
+    lines.push('Time:     ' + new Date(info.tsMs).toISOString() + ' (' + relTime(info.tsMs) + ')');
   }
+  return lines.join('\n');
+}
 
-  function applyFormat(uuid) {
-    var result = uuid;
-    if (!useHyphens) result = result.replace(/-/g, '');
-    if (useUppercase) result = result.toUpperCase();
-    return result;
+// Returns { ok, hex, info } — updates the UI only. Never throws.
+function inspectRender(value) {
+  const val = String(value == null ? '' : value).trim();
+  if (!val) { clearInspect(); return { ok: false, empty: true }; }
+  let info;
+  try {
+    // tools-lib is the source of truth (throws on anything but 32 hex)
+    info = uuidInspect(val);
+  } catch (e) {
+    showInspectError('Not a valid UUID — expected 32 hex digits (128 bits). Braces, urn:, and mixed case are fine.');
+    return { ok: false, error: 'Not a valid UUID.' };
   }
+  const hex = stripHex(val);
+  inspectError.style.display = 'none';
+  inspectResult.textContent = '';
+  const anatomy = el('div', 'uuid-anatomy');
+  anatomy.style.padding = '4px 2px 2px';
+  inspectResult.appendChild(anatomy);
+  const meta = renderAnatomy(anatomy, hex, { form: 'canonical 8-4-4-4-12' });
+  return { ok: true, hex, info, meta };
+}
 
-  function generate() {
-    var qty = Math.min(100, Math.max(1, parseInt(qtyEl.value, 10) || 1));
-    var lines = [];
-    for (var i = 0; i < qty; i++) {
-      var raw = currentVersion === 'v7' ? generateV7() : generateV4();
-      lines.push(applyFormat(raw));
-    }
-    outputEl.textContent = lines.join('\n');
+function publishInspect(hex, meta, libInfo) {
+  if (!window.PF) return;
+  const data = {
+    action: 'inspect',
+    input: canonical(hex),
+    valid: true,
+    version: libInfo.version,
+    versionName: meta.isNil ? 'Nil UUID' : meta.isMax ? 'Max UUID' : (VERSION_NAME[meta.ver] || 'unknown'),
+    variant: libInfo.variant,
+    variantLabel: describeVariant(meta.varNib)
+  };
+  if (libInfo.timestamp) { data.timestamp = libInfo.timestamp; data.timestampRelative = relTime(meta.tsMs); }
+  PF.ready({ output: buildInspectSummary(hex, meta), data: data });
+}
+
+function runInspect(value, publish) {
+  const r = inspectRender(value);
+  if (r.ok && publish && window.PF) {
+    // re-derive lib info for the exact structured payload
+    let libInfo;
+    try { libInfo = uuidInspect(value); } catch (e) { libInfo = { version: r.meta.ver, variant: r.meta.varNib >= 8 ? 'RFC 4122' : 'other' }; }
+    publishInspect(r.hex, r.meta, libInfo);
+  } else if (r.error && publish && window.PF) {
+    PF.fail(r.error);
   }
+  return r;
+}
 
-  // Version toggle
-  var versionBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-version]'));
-  versionBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      versionBtns.forEach(function (b) {
-        b.classList.remove('active');
-        b.setAttribute('aria-pressed', 'false');
-      });
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
-      currentVersion = btn.getAttribute('data-version');
+// ---- segmented control wiring ----
+function selectSegment(attr, value) {
+  const btns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-' + attr + ']'));
+  btns.forEach((b) => {
+    const on = b.getAttribute('data-' + attr) === value;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+}
+
+function wireSegments(attr, onPick) {
+  const btns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-' + attr + ']'));
+  btns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectSegment(attr, btn.getAttribute('data-' + attr));
+      onPick(btn.getAttribute('data-' + attr));
     });
   });
+}
 
-  // Hyphens toggle
-  var hyphenBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-hyphens]'));
-  hyphenBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      hyphenBtns.forEach(function (b) {
-        b.classList.remove('active');
-        b.setAttribute('aria-pressed', 'false');
-      });
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
-      useHyphens = btn.getAttribute('data-hyphens') === 'yes';
-    });
-  });
+wireSegments('version', (v) => { version = v; generate(); });
+wireSegments('hyphens', (v) => { hyphens = (v === 'yes'); generate(); });
+wireSegments('case', (v) => { upper = (v === 'upper'); generate(); });
 
-  // Case toggle
-  var caseBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-case]'));
-  caseBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      caseBtns.forEach(function (b) {
-        b.classList.remove('active');
-        b.setAttribute('aria-pressed', 'false');
-      });
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
-      useUppercase = btn.getAttribute('data-case') === 'upper';
-    });
-  });
+genBtn.addEventListener('click', generate);
+qtyEl.addEventListener('change', generate);
+qtyEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') generate(); });
 
-  genBtn.addEventListener('click', generate);
+// ---- inspect wiring (live, no PF spam on partial typing) ----
+let inspectTimer = null;
+inspectInput.addEventListener('input', () => {
+  clearTimeout(inspectTimer);
+  inspectTimer = setTimeout(() => {
+    const val = inspectInput.value.trim();
+    if (!val) { clearInspect(); return; }
+    // Only publish once it's a fully valid 32-hex value; otherwise just render.
+    runInspect(val, stripHex(val).length === 32);
+  }, 120);
+});
 
-  copyBtn.addEventListener('click', function () {
-    var text = outputEl.textContent;
-    if (!text) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () {
-        copyBtn.textContent = 'Copied!';
-        setTimeout(function () { copyBtn.textContent = 'Copy all'; }, 2000);
-      }).catch(function () {
-        copyBtn.textContent = 'Failed';
-        setTimeout(function () { copyBtn.textContent = 'Copy all'; }, 2000);
-      });
-    } else {
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      try {
-        document.execCommand('copy');
-        copyBtn.textContent = 'Copied!';
-      } catch (e) {
-        copyBtn.textContent = 'Failed';
-      }
-      document.body.removeChild(ta);
-      setTimeout(function () { copyBtn.textContent = 'Copy all'; }, 2000);
-    }
-  });
+exampleBtn.addEventListener('click', () => {
+  inspectInput.value = EXAMPLE_UUID;
+  runInspect(EXAMPLE_UUID, true);
+  inspectInput.focus();
+});
 
-  // Generate one on load
-  generate();
+// ---- copy all ----
+function flashCopy(ok) {
+  copyBtn.textContent = ok ? 'Copied!' : 'Failed';
+  copyBtn.classList.toggle('copied', ok);
+  setTimeout(() => { copyBtn.textContent = 'Copy all'; copyBtn.classList.remove('copied'); }, 1800);
+}
+copyBtn.addEventListener('click', () => {
+  const text = outputEl.textContent;
+  if (!text) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => flashCopy(true), () => flashCopy(false));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    flashCopy(ok);
+  }
+});
+
+// ---- Agent I/O + URL-invoke ----
+(function boot() {
+  const p = (window.PF && PF.input()) || {};
+
+  // apply generation params from the URL / agent
+  if (p.v != null) {
+    version = (String(p.v) === '7' || String(p.v) === 'v7') ? 'v7' : 'v4';
+    selectSegment('version', version);
+  }
+  if (p.count != null) qtyEl.value = clampCount(p.count);
+
+  generate(); // always populate + demo (publishes a generate result)
+
+  // if an inspection was requested (?in= / ?uuid=), it runs last and becomes the primary result
+  const target = (p.in != null && String(p.in).trim() !== '') ? String(p.in).trim()
+    : (p.uuid != null && String(p.uuid).trim() !== '') ? String(p.uuid).trim() : '';
+  if (target) {
+    inspectInput.value = target;
+    runInspect(target, true);
+  }
 })();
 </script>

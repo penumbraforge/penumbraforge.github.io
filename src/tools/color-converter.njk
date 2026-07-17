@@ -3,44 +3,164 @@ toolSlug: color-converter
 permalink: /tools/color-converter/
 ---
 
-<div class="tool-row" style="gap:1rem; align-items:flex-start; flex-wrap:wrap;">
-  <div class="tool-group" style="flex:1; min-width:220px;">
-    <label for="color-input">Color value</label>
-    <div class="tool-row" style="gap:0.5rem;">
-      <input type="text" id="color-input" placeholder="#ff5733 or rgb(255,87,51) or hsl(14,100%,60%)" autocomplete="off" style="flex:1; font-family:var(--font-mono,monospace);">
-      <input type="color" id="color-picker" value="#ff5733" title="Color picker" style="width:2.75rem; height:2.5rem; padding:2px; border-radius:4px; cursor:pointer;">
-    </div>
-    <div id="color-error" style="display:none; margin-top:0.4rem;" role="alert" aria-live="polite" class="tool-error"></div>
+<div class="cc-hero">
+  <div class="cc-preview">
+    <span class="cc-preview-label">Preview</span>
+    <div id="color-swatch" style="background:#ff5733;" aria-label="Color preview" role="img"></div>
   </div>
 
-  <div id="color-swatch" style="width:5rem; height:5rem; border-radius:8px; background:#ff5733; flex-shrink:0; border:1px solid rgba(0,0,0,0.1); align-self:flex-end; margin-bottom:0.1rem;" aria-label="Color preview" role="img"></div>
+  <div class="cc-hero-controls">
+    <label for="color-input">Color value</label>
+    <div class="cc-field">
+      <input type="color" id="color-picker" value="#ff5733" title="Color picker">
+      <input type="text" id="color-input" placeholder="#ff5733   ·   rgb(255,87,51)   ·   hsl(14,100%,60%)" autocomplete="off">
+    </div>
+    <p class="cc-hint">Accepts HEX, RGB, HSL, or any CSS color name.</p>
+    <div id="color-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+  </div>
 </div>
 
-<div id="color-outputs" style="margin-top:1rem; display:none;">
-  <div class="tool-group" style="margin-bottom:0;">
-    <label style="margin-bottom:0.5rem; display:block;">Formats</label>
+<div id="color-outputs" style="display:none;">
+  <div class="wb-panel">
+    <div class="wb-panel-bar"><span>Formats</span><span class="cc-panel-note">Copy any value</span></div>
     <div id="format-rows"></div>
   </div>
 </div>
 
-<div class="tool-group" style="margin-top:1.5rem;">
-  <label>Contrast Ratio Checker (WCAG)</label>
-  <div class="tool-row" style="gap:0.5rem; align-items:center; flex-wrap:wrap;">
-    <div style="display:flex; align-items:center; gap:0.4rem; flex:1; min-width:180px;">
-      <div id="contrast-swatch-a" style="width:2rem; height:2rem; border-radius:4px; background:#ff5733; border:1px solid rgba(0,0,0,0.1); flex-shrink:0;"></div>
-      <input type="text" id="contrast-a" placeholder="Color A (auto-filled)" autocomplete="off" style="flex:1; font-family:var(--font-mono,monospace); font-size:0.875rem;">
+<div class="cc-contrast">
+  <div class="cc-section-label">Contrast Checker <span>WCAG</span></div>
+  <div class="cc-contrast-row">
+    <div class="cc-color-field">
+      <div id="contrast-swatch-a" style="background:#ff5733;"></div>
+      <input type="text" id="contrast-a" placeholder="Color A (auto-filled)" autocomplete="off">
     </div>
-    <span style="color:var(--color-muted,#666); font-size:0.85rem;">vs</span>
-    <div style="display:flex; align-items:center; gap:0.4rem; flex:1; min-width:180px;">
-      <div id="contrast-swatch-b" style="width:2rem; height:2rem; border-radius:4px; background:#ffffff; border:1px solid rgba(0,0,0,0.1); flex-shrink:0;"></div>
-      <input type="text" id="contrast-b" value="#ffffff" autocomplete="off" style="flex:1; font-family:var(--font-mono,monospace); font-size:0.875rem;">
+    <span class="cc-vs">vs</span>
+    <div class="cc-color-field">
+      <div id="contrast-swatch-b" style="background:#ffffff;"></div>
+      <input type="text" id="contrast-b" value="#ffffff" autocomplete="off">
     </div>
   </div>
-  <div id="contrast-result" style="margin-top:0.75rem; display:none;">
-    <div id="contrast-ratio" style="font-size:1.5rem; font-weight:700; font-family:var(--font-mono,monospace);"></div>
-    <div id="contrast-badges" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.4rem;"></div>
+  <div id="contrast-result" style="display:none;">
+    <div class="cc-ratio-wrap">
+      <span id="contrast-ratio"></span>
+      <span class="cc-ratio-unit">contrast ratio</span>
+    </div>
+    <div id="contrast-badges"></div>
   </div>
 </div>
+
+<style>
+  /* ── Color Converter — premium visual pass ── */
+
+  /* Hero: live preview beside the input controls */
+  .tool-content .cc-hero {
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  }
+  .tool-content .cc-preview {
+    display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+  }
+  .tool-content .cc-preview-label {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--slate);
+  }
+  .tool-content #color-swatch {
+    width: 128px; height: 128px; border-radius: 12px;
+    border: 1px solid var(--wb-line);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 20px 44px -24px rgba(0,0,0,0.9);
+  }
+  .tool-content .cc-hero-controls {
+    flex: 1; min-width: 260px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .tool-content .cc-field { display: flex; align-items: center; gap: 12px; }
+  .tool-content .cc-field #color-input { flex: 1; }
+  .tool-content #color-picker {
+    -webkit-appearance: none; appearance: none;
+    width: 46px; height: 46px; flex-shrink: 0; padding: 0; cursor: pointer;
+    background: transparent; border: 1px solid var(--wb-line); border-radius: 8px;
+    transition: border-color 160ms;
+  }
+  .tool-content #color-picker:hover { border-color: var(--wb-line-bright); }
+  .tool-content #color-picker::-webkit-color-swatch-wrapper { padding: 4px; }
+  .tool-content #color-picker::-webkit-color-swatch { border: none; border-radius: 5px; }
+  .tool-content #color-picker::-moz-color-swatch { border: none; border-radius: 5px; }
+  .tool-content .cc-hint {
+    margin: 0; font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.2px; color: var(--text-3);
+  }
+  .tool-content #color-error { margin: 0; }
+
+  /* Formats output panel */
+  .tool-content #color-outputs { margin-top: 26px; }
+  .tool-content #color-outputs .wb-panel-bar .cc-panel-note {
+    text-transform: none; letter-spacing: 0.3px; color: var(--text-3); font-size: 10px;
+  }
+  .tool-content #format-rows { padding: 4px 16px 8px; }
+  .tool-content #format-rows > div {
+    gap: 16px !important; margin-bottom: 0 !important;
+    padding: 13px 0 !important;
+    border-bottom: 1px solid var(--wb-line);
+  }
+  .tool-content #format-rows > div:last-child { border-bottom: 0; }
+  .tool-content #format-rows > div > span:first-child {
+    width: 3.25rem !important; flex-shrink: 0;
+    font-family: var(--font-mono); font-size: 10px !important;
+    letter-spacing: 1.5px; text-transform: uppercase; color: var(--slate) !important;
+  }
+  .tool-content #format-rows > div > span:nth-child(2) {
+    font-size: 13.5px; color: var(--wb-ink); letter-spacing: 0.2px;
+  }
+
+  /* Contrast checker */
+  .tool-content .cc-contrast {
+    margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--wb-line);
+  }
+  .tool-content .cc-section-label {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--slate);
+  }
+  .tool-content .cc-section-label span {
+    font-size: 9px; letter-spacing: 1.5px; color: var(--accent);
+    border: 1px solid var(--wb-line-bright); border-radius: 2px; padding: 2px 7px;
+  }
+  .tool-content .cc-contrast-row {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .tool-content .cc-color-field {
+    display: flex; align-items: center; gap: 11px; flex: 1; min-width: 190px;
+  }
+  .tool-content .cc-color-field input { flex: 1; }
+  .tool-content #contrast-swatch-a,
+  .tool-content #contrast-swatch-b {
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 8px;
+    border: 1px solid var(--wb-line);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.35);
+  }
+  .tool-content .cc-vs {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--text-3);
+  }
+  .tool-content #contrast-result {
+    display: flex; flex-direction: column; align-items: flex-start;
+    gap: 16px; margin-top: 22px;
+  }
+  .tool-content .cc-ratio-wrap { display: flex; align-items: baseline; gap: 12px; }
+  .tool-content #contrast-ratio {
+    font-family: var(--font-mono); font-size: 46px; font-weight: 600; line-height: 1;
+    color: var(--wb-ink); letter-spacing: -1.5px; font-variant-numeric: tabular-nums;
+  }
+  .tool-content .cc-ratio-unit {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text-3);
+  }
+  .tool-content #contrast-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  @media (max-width: 560px) {
+    .tool-content #color-swatch { width: 104px; height: 104px; }
+    .tool-content #contrast-ratio { font-size: 38px; }
+  }
+</style>
 
 <script>
 (function () {

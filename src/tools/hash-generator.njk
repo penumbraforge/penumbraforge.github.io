@@ -398,5 +398,20 @@ permalink: /tools/hash-generator/
       setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
     }
   });
+
+  // ---- Agent I/O + URL-invoke (window.PF from /js/tool-io.js) ----
+  if (window.PF) {
+    var mo = new MutationObserver(function () {
+      var out = outputEl.textContent;
+      if (out) PF.ready({ output: out, data: { algorithm: currentAlgo, input: fileBytes ? '(file)' : inputEl.value } });
+    });
+    mo.observe(outputEl, { childList: true, characterData: true, subtree: true });
+    var p = PF.input();
+    if (p.in != null) {
+      inputEl.value = p.in;
+      if (p.algo) { var ab = document.querySelector('.tool-option[data-algo="' + p.algo + '"]'); if (ab) ab.click(); }
+      hashText(inputEl.value);
+    }
+  }
 })();
 </script>

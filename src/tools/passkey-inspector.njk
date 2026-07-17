@@ -1,0 +1,820 @@
+---
+toolSlug: passkey-inspector
+permalink: /tools/passkey-inspector/
+---
+
+<div class="tool-options" role="group" aria-label="Inspector mode">
+  <button class="tool-option active" id="pk-mode-decode" data-mode="decode" aria-pressed="true">Decode existing</button>
+  <button class="tool-option" id="pk-mode-create" data-mode="create" aria-pressed="false">Create a passkey (live)</button>
+</div>
+
+<p class="pk-note">Everything runs locally in your browser — nothing is uploaded. Decode a WebAuthn / FIDO2 <span class="pk-code">attestationObject</span>, <span class="pk-code">authenticatorData</span>, or <span class="pk-code">clientDataJSON</span>, or mint a real passkey and inspect exactly what your authenticator returns.</p>
+
+<!-- ============ DECODE MODE ============ -->
+<div id="pk-panel-decode">
+  <div class="tool-group">
+    <label for="pk-att">attestationObject &mdash; base64 or base64url</label>
+    <textarea id="pk-att" rows="4" placeholder="o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVik..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+
+  <div class="tool-group">
+    <label for="pk-ad">authenticatorData &mdash; base64 / base64url (optional)</label>
+    <textarea id="pk-ad" rows="3" placeholder="Paste a raw authenticatorData blob (e.g. from an assertion) to parse it standalone..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+
+  <div class="tool-group">
+    <label for="pk-cd">clientDataJSON &mdash; base64url or raw JSON (optional)</label>
+    <textarea id="pk-cd" rows="3" placeholder="eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwi...  — or paste the raw { ... } JSON" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+
+  <div class="tool-row">
+    <button class="btn btn--primary" id="pk-decode-btn">Decode</button>
+    <button class="btn" id="pk-sample-btn">Load sample</button>
+    <button class="btn" id="pk-clear-btn">Clear</button>
+  </div>
+</div>
+
+<!-- ============ CREATE MODE ============ -->
+<div id="pk-panel-create" style="display:none;">
+  <p class="pk-note" id="pk-support-note">Checking WebAuthn support&hellip;</p>
+  <div class="tool-row">
+    <button class="btn btn--primary" id="pk-create-btn">Create passkey and inspect</button>
+  </div>
+  <p class="pk-note pk-note--dim">This calls <span class="pk-code">navigator.credentials.create()</span> with a random 32-byte challenge, ES256 + RS256 params, resident-key preferred, and <span class="pk-code">attestation: "direct"</span>. Your authenticator (Touch ID, Windows Hello, a security key, or your phone) will prompt you. The credential is decoded and discarded &mdash; it is never sent anywhere.</p>
+</div>
+
+<div id="pk-error" class="tool-error" role="alert" aria-live="assertive" style="display:none;"></div>
+
+<div id="pk-results-toolbar" class="tool-row" style="display:none; justify-content:flex-end; margin-top:4px;">
+  <button class="btn" id="pk-copy-btn">Copy JSON summary</button>
+</div>
+
+<div id="pk-results" aria-live="polite"></div>
+
+<style>
+  .tool-content .pk-note {
+    font-family: var(--font-sans);
+    font-size: 12.5px;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin: 0 0 20px;
+  }
+  .tool-content .pk-note--dim {
+    color: var(--text-3);
+    font-size: 11.5px;
+    margin-top: 12px;
+  }
+  .tool-content .pk-code {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    color: var(--accent);
+    background: rgba(184, 165, 214, 0.06);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .tool-content .pk-section {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    border-left: 3px solid rgba(184, 165, 214, 0.35);
+  }
+  .tool-content .pk-section > h3 {
+    margin: 0;
+    padding: 10px 14px;
+    background: var(--surface-0);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(184, 165, 214, 0.6);
+    font-weight: 400;
+  }
+  .tool-content .pk-section-body {
+    padding: 14px;
+    background: var(--surface-0);
+  }
+  .tool-content .pk-kv { margin-bottom: 15px; }
+  .tool-content .pk-kv:last-child { margin-bottom: 0; }
+  .tool-content .pk-kv-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(184, 165, 214, 0.42);
+    margin-bottom: 6px;
+  }
+  .tool-content .pk-kv-val {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: #cfc8dc;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+  .tool-content .pk-hint {
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    color: var(--text-3);
+    margin-top: 5px;
+    line-height: 1.5;
+  }
+  .tool-content .pk-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 2px 0 4px;
+  }
+  .tool-content .pk-flag {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 11px;
+    min-width: 66px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .tool-content .pk-flag-bit {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .tool-content .pk-flag-name {
+    font-family: var(--font-sans);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+  .tool-content .pk-flag.on {
+    border-color: rgba(107, 207, 143, 0.3);
+    background: rgba(107, 207, 143, 0.06);
+  }
+  .tool-content .pk-flag.on .pk-flag-bit { color: var(--sage); }
+  .tool-content .pk-flag.off { opacity: 0.4; }
+  .tool-content .pk-flag.off .pk-flag-bit { color: var(--text-3); }
+  .tool-content .pk-section .output-area { margin-top: 4px; }
+  .tool-content .pk-section .output-area pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: #cfc8dc;
+    line-height: 1.6;
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- element refs ---------- */
+  var modeDecodeBtn = document.getElementById('pk-mode-decode');
+  var modeCreateBtn = document.getElementById('pk-mode-create');
+  var panelDecode   = document.getElementById('pk-panel-decode');
+  var panelCreate   = document.getElementById('pk-panel-create');
+  var attInput      = document.getElementById('pk-att');
+  var adInput       = document.getElementById('pk-ad');
+  var cdInput       = document.getElementById('pk-cd');
+  var decodeBtn     = document.getElementById('pk-decode-btn');
+  var sampleBtn     = document.getElementById('pk-sample-btn');
+  var clearBtn      = document.getElementById('pk-clear-btn');
+  var supportNote   = document.getElementById('pk-support-note');
+  var createBtn     = document.getElementById('pk-create-btn');
+  var errorEl       = document.getElementById('pk-error');
+  var toolbarEl     = document.getElementById('pk-results-toolbar');
+  var copyBtn       = document.getElementById('pk-copy-btn');
+  var resultsEl     = document.getElementById('pk-results');
+
+  var currentSummary = '';
+
+  /* ---------- stable samples (real structure, verified offline) ---------- */
+  var SAMPLE_ATT = 'o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVik-ZdW_CDhrz2pINcchEYvXm5M0RyxDEnQ20GdZaL_Kk1dAAAAAAAAAAAAAAAAAAAAAAAAAAAAIBRzXk5n6BjDy7TzrxhiO6jvqlflTTBZszgHGwRw9WexpQECAyYgASFYIOaYUYpzVWL6phADFSA9kJnQ9cHSPykB8oQirKErrwsrIlggA5tZOWlBzpHQL4AXKpKrFPzT_UH97pY8gBqyIShmsu4';
+  var SAMPLE_CD  = 'eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoia1E4eDJ2TjBwUjdzVDF1VzN5WjViQzhkRTBmRzJoSjRrTDZtTjhwUTByIiwib3JpZ2luIjoiaHR0cHM6Ly9wZW51bWJyYWZvcmdlLmNvbSIsImNyb3NzT3JpZ2luIjpmYWxzZX0';
+
+  /* ================= binary + base64 helpers ================= */
+  function b64ToBytes(str) {
+    var s = String(str).replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4 !== 0) { s += '='; }
+    var bin;
+    try { bin = atob(s); }
+    catch (e) { throw new Error('invalid base64 / base64url encoding.'); }
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) { out[i] = bin.charCodeAt(i); }
+    return out;
+  }
+  function bytesToB64url(bytes) {
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) { bin += String.fromCharCode(bytes[i]); }
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function toHex(bytes) {
+    var h = '';
+    for (var i = 0; i < bytes.length; i++) { h += ('0' + bytes[i].toString(16)).slice(-2); }
+    return h;
+  }
+  function hex2(b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }
+  function bin8(b) {
+    var s = (b & 0xff).toString(2);
+    while (s.length < 8) { s = '0' + s; }
+    return s;
+  }
+  function formatUuid(bytes16) {
+    var h = toHex(bytes16);
+    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+  }
+  function beBytesToNumber(bytes) {
+    var n = 0;
+    for (var i = 0; i < bytes.length; i++) { n = (n * 256) + bytes[i]; }
+    return n;
+  }
+  function utf8Decode(bytes) {
+    return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+  }
+
+  /* ================= CBOR decoder =================
+     Supports major types 0,1,2,3,4,5,6(tag),7(simple/float) — enough for
+     WebAuthn attestation objects and COSE keys. */
+  function CborMap() { this.keys = []; this.vals = []; }
+  CborMap.prototype.set = function (k, v) { this.keys.push(k); this.vals.push(v); };
+  CborMap.prototype.get = function (k) {
+    for (var i = 0; i < this.keys.length; i++) { if (this.keys[i] === k) { return this.vals[i]; } }
+    return undefined;
+  };
+
+  function cborDecode(bytes) {
+    var view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    var offset = 0;
+    function need(n) { if (offset + n > bytes.length) { throw new Error('CBOR: unexpected end of data.'); } }
+    function readLen(ai) {
+      if (ai < 24) { return ai; }
+      if (ai === 24) { need(1); var a = view.getUint8(offset); offset += 1; return a; }
+      if (ai === 25) { need(2); var b = view.getUint16(offset); offset += 2; return b; }
+      if (ai === 26) { need(4); var c = view.getUint32(offset); offset += 4; return c; }
+      if (ai === 27) { need(8); var hi = view.getUint32(offset); var lo = view.getUint32(offset + 4); offset += 8; return (hi * 4294967296) + lo; }
+      throw new Error('CBOR: indefinite-length items are not supported.');
+    }
+    function readFloat16() {
+      need(2);
+      var h = view.getUint16(offset); offset += 2;
+      var sign = (h & 0x8000) ? -1 : 1;
+      var exp = (h & 0x7c00) >> 10;
+      var frac = h & 0x03ff;
+      if (exp === 0) { return sign * Math.pow(2, -14) * (frac / 1024); }
+      if (exp === 0x1f) { return frac ? NaN : sign * Infinity; }
+      return sign * Math.pow(2, exp - 15) * (1 + (frac / 1024));
+    }
+    function item() {
+      need(1);
+      var ib = view.getUint8(offset); offset += 1;
+      var major = ib >> 5;
+      var ai = ib & 0x1f;
+      if (major === 0) { return readLen(ai); }
+      if (major === 1) { return -1 - readLen(ai); }
+      if (major === 2) { var len2 = readLen(ai); need(len2); var bs = bytes.slice(offset, offset + len2); offset += len2; return bs; }
+      if (major === 3) { var len3 = readLen(ai); need(len3); var ts = bytes.subarray(offset, offset + len3); offset += len3; return utf8Decode(ts); }
+      if (major === 4) { var len4 = readLen(ai); var arr = []; for (var i4 = 0; i4 < len4; i4++) { arr.push(item()); } return arr; }
+      if (major === 5) { var len5 = readLen(ai); var m = new CborMap(); for (var i5 = 0; i5 < len5; i5++) { var key = item(); m.set(key, item()); } return m; }
+      if (major === 6) { readLen(ai); return item(); }
+      if (major === 7) {
+        if (ai === 20) { return false; }
+        if (ai === 21) { return true; }
+        if (ai === 22) { return null; }
+        if (ai === 23) { return undefined; }
+        if (ai === 24) { need(1); var sv = view.getUint8(offset); offset += 1; return sv; }
+        if (ai === 25) { return readFloat16(); }
+        if (ai === 26) { need(4); var f4 = view.getFloat32(offset); offset += 4; return f4; }
+        if (ai === 27) { need(8); var f8 = view.getFloat64(offset); offset += 8; return f8; }
+        throw new Error('CBOR: unsupported simple value ' + ai + '.');
+      }
+      throw new Error('CBOR: unknown major type ' + major + '.');
+    }
+    var value = item();
+    return { value: value, bytesUsed: offset };
+  }
+
+  /* ================= authenticatorData parser ================= */
+  function parseAuthData(bytes) {
+    if (bytes.length < 37) { throw new Error('authenticatorData too short: ' + bytes.length + ' bytes (minimum 37).'); }
+    var rpIdHash = bytes.slice(0, 32);
+    var flags = bytes[32];
+    var flagBits = {
+      UP: !!(flags & 0x01), RFU1: !!(flags & 0x02), UV: !!(flags & 0x04),
+      BE: !!(flags & 0x08), BS: !!(flags & 0x10), RFU2: !!(flags & 0x20),
+      AT: !!(flags & 0x40), ED: !!(flags & 0x80)
+    };
+    var signCount = ((bytes[33] << 24) | (bytes[34] << 16) | (bytes[35] << 8) | bytes[36]) >>> 0;
+    var offset = 37;
+    var out = { rpIdHash: rpIdHash, flags: flags, flagBits: flagBits, signCount: signCount, totalLength: bytes.length };
+    if (flagBits.AT) {
+      if (bytes.length < offset + 18) { throw new Error('attested credential data is truncated.'); }
+      var aaguid = bytes.slice(offset, offset + 16); offset += 16;
+      var credIdLen = (bytes[offset] << 8) | bytes[offset + 1]; offset += 2;
+      if (bytes.length < offset + credIdLen) { throw new Error('credentialId truncated (declared ' + credIdLen + ' bytes).'); }
+      var credId = bytes.slice(offset, offset + credIdLen); offset += credIdLen;
+      var dec = cborDecode(bytes.subarray(offset));
+      offset += dec.bytesUsed;
+      out.attestedCredentialData = { aaguid: aaguid, credIdLen: credIdLen, credId: credId, coseKey: dec.value };
+    }
+    if (flagBits.ED) {
+      var dec2 = cborDecode(bytes.subarray(offset));
+      offset += dec2.bytesUsed;
+      out.extensions = dec2.value;
+    }
+    out.trailingBytes = bytes.length - offset;
+    return out;
+  }
+
+  /* ================= naming tables ================= */
+  var KTY = { 1: 'OKP (Octet Key Pair)', 2: 'EC2 (two-coordinate elliptic curve)', 3: 'RSA', 4: 'Symmetric' };
+  var ALG = {
+    '-7': 'ES256 (ECDSA w/ SHA-256)', '-35': 'ES384 (ECDSA w/ SHA-384)', '-36': 'ES512 (ECDSA w/ SHA-512)',
+    '-8': 'EdDSA', '-47': 'ES256K (ECDSA secp256k1 w/ SHA-256)',
+    '-257': 'RS256 (RSASSA-PKCS1-v1_5 w/ SHA-256)', '-258': 'RS384 (RSASSA-PKCS1-v1_5 w/ SHA-384)', '-259': 'RS512 (RSASSA-PKCS1-v1_5 w/ SHA-512)',
+    '-37': 'PS256 (RSASSA-PSS w/ SHA-256)', '-38': 'PS384 (RSASSA-PSS w/ SHA-384)', '-39': 'PS512 (RSASSA-PSS w/ SHA-512)',
+    '-65535': 'RS1 (RSASSA-PKCS1-v1_5 w/ SHA-1)'
+  };
+  var CRV = { 1: 'P-256 (secp256r1)', 2: 'P-384 (secp384r1)', 3: 'P-521 (secp521r1)', 4: 'X25519', 5: 'X448', 6: 'Ed25519', 7: 'Ed448' };
+  function algName(a) { return ALG['' + a] || 'unrecognized COSE algorithm'; }
+  function ktyName(k) { return KTY[k] || 'unrecognized key type'; }
+  function crvName(c) { return CRV[c] || 'unrecognized curve'; }
+  function fmtHint(fmt) {
+    switch (fmt) {
+      case 'none': return 'No attestation. The authenticator makes no verifiable claim about its make/model — the most privacy-preserving option and very common for passkeys.';
+      case 'packed': return 'Compact FIDO2 attestation. attStmt carries an algorithm, a signature, and optionally an x5c certificate chain proving the authenticator model.';
+      case 'fido-u2f': return 'Legacy U2F attestation format, produced by older security keys.';
+      case 'tpm': return 'Attestation backed by a Trusted Platform Module (Windows Hello).';
+      case 'android-key': return 'Android hardware keystore attestation.';
+      case 'android-safetynet': return 'Android SafetyNet attestation (deprecated in favor of Play Integrity).';
+      case 'apple': return 'Apple Anonymous Attestation, produced by Apple platform authenticators.';
+      default: return 'Attestation statement format identifier.';
+    }
+  }
+
+  /* ================= DOM builders (textContent only) ================= */
+  function elem(tag, cls, txt) {
+    var e = document.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (txt !== undefined && txt !== null) { e.textContent = txt; }
+    return e;
+  }
+  function sectionEl(title) {
+    var root = elem('div', 'pk-section');
+    root.appendChild(elem('h3', null, title));
+    var body = elem('div', 'pk-section-body');
+    root.appendChild(body);
+    return { root: root, body: body };
+  }
+  function kvEl(label, value, hint) {
+    var k = elem('div', 'pk-kv');
+    k.appendChild(elem('div', 'pk-kv-label', label));
+    k.appendChild(elem('div', 'pk-kv-val', value));
+    if (hint) { k.appendChild(elem('div', 'pk-hint', hint)); }
+    return k;
+  }
+  function monoAreaEl(text) {
+    var wrap = elem('div', 'output-area');
+    var btn = elem('button', 'btn btn--copy', 'Copy');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Copy block');
+    btn.addEventListener('click', function () { copyText(text, btn, 'Copy'); });
+    var pre = elem('pre', null, text);
+    wrap.appendChild(btn);
+    wrap.appendChild(pre);
+    return wrap;
+  }
+  function flagsEl(flagBits) {
+    var wrap = elem('div', 'pk-flags');
+    var defs = [
+      ['UP', 'User Present'], ['UV', 'User Verified'], ['BE', 'Backup Eligible'],
+      ['BS', 'Backup State'], ['AT', 'Attested Cred Data'], ['ED', 'Extension Data']
+    ];
+    for (var i = 0; i < defs.length; i++) {
+      var on = !!flagBits[defs[i][0]];
+      var chip = elem('div', 'pk-flag ' + (on ? 'on' : 'off'));
+      chip.appendChild(elem('div', 'pk-flag-bit', defs[i][0] + (on ? '  1' : '  0')));
+      chip.appendChild(elem('div', 'pk-flag-name', defs[i][1]));
+      wrap.appendChild(chip);
+    }
+    return wrap;
+  }
+  function backupNote(f) {
+    if (!f.BE) { return 'Backup Eligible is OFF — this is a single-device (hardware-bound) credential that cannot be synced or copied off the authenticator.'; }
+    if (f.BE && f.BS) { return 'Backup Eligible + Backup State are ON — this is a multi-device passkey currently backed up / synced to a credential provider (e.g. iCloud Keychain, Google Password Manager).'; }
+    return 'Backup Eligible is ON but Backup State is OFF — the credential is allowed to sync but has not been backed up yet.';
+  }
+  function cborShort(val) {
+    if (val instanceof Uint8Array) {
+      var head = val.length > 32 ? val.subarray(0, 32) : val;
+      return val.length + ' bytes: ' + toHex(head) + (val.length > 32 ? '…' : '');
+    }
+    if (Array.isArray(val)) { return '[array, ' + val.length + ' items]'; }
+    if (val instanceof CborMap) { return '{map, ' + val.keys.length + ' entries}'; }
+    if (val === undefined) { return 'undefined'; }
+    if (val === null) { return 'null'; }
+    return String(val);
+  }
+
+  /* ================= renderers ================= */
+  function renderOverview(opts, summary) {
+    var sec = sectionEl('Credential overview');
+    if (opts.credentialId) {
+      sec.body.appendChild(kvEl('Credential ID (base64url)', opts.credentialId, 'The credential handle. Store this and send it back in allowCredentials on future logins.'));
+      summary.credentialId = opts.credentialId;
+    }
+    if (opts.credType) {
+      sec.body.appendChild(kvEl('type', opts.credType));
+      summary.type = opts.credType;
+    }
+    if (opts.transports && opts.transports.length) {
+      sec.body.appendChild(kvEl('transports', opts.transports.join(', '), 'How this authenticator can be reached: usb, nfc, ble, internal (platform), or hybrid (a nearby phone).'));
+      summary.transports = opts.transports;
+    } else if (opts.transports) {
+      sec.body.appendChild(kvEl('transports', '(none reported)'));
+    }
+    if (opts.pubKeyAlg !== undefined && opts.pubKeyAlg !== null) {
+      sec.body.appendChild(kvEl('getPublicKeyAlgorithm()', opts.pubKeyAlg + ' — ' + algName(opts.pubKeyAlg)));
+    }
+    resultsEl.appendChild(sec.root);
+  }
+
+  function renderCose(cose, body, summary) {
+    if (!(cose instanceof CborMap)) {
+      body.appendChild(kvEl('Credential public key', '(unparseable COSE key)'));
+      return;
+    }
+    var kty = cose.get(1);
+    var alg = cose.get(3);
+    var pk = { kty: kty, ktyName: ktyName(kty), alg: alg, algName: algName(alg) };
+    body.appendChild(kvEl('Public key — kty', kty + ' — ' + ktyName(kty), 'COSE key type of the credential public key.'));
+    body.appendChild(kvEl('Public key — alg', alg + ' — ' + algName(alg), 'The signature algorithm this credential signs assertions with.'));
+    if (kty === 2) {
+      var crv = cose.get(-1), x = cose.get(-2), y = cose.get(-3);
+      body.appendChild(kvEl('crv', crv + ' — ' + crvName(crv)));
+      if (x instanceof Uint8Array) { body.appendChild(kvEl('x (' + x.length + ' bytes)', toHex(x))); pk.x = toHex(x); }
+      if (y instanceof Uint8Array) { body.appendChild(kvEl('y (' + y.length + ' bytes)', toHex(y))); pk.y = toHex(y); }
+      pk.crv = crv; pk.crvName = crvName(crv);
+    } else if (kty === 1) {
+      var crvo = cose.get(-1), xo = cose.get(-2);
+      body.appendChild(kvEl('crv', crvo + ' — ' + crvName(crvo)));
+      if (xo instanceof Uint8Array) { body.appendChild(kvEl('x (' + xo.length + ' bytes)', toHex(xo))); pk.x = toHex(xo); }
+      pk.crv = crvo; pk.crvName = crvName(crvo);
+    } else if (kty === 3) {
+      var n = cose.get(-1), e = cose.get(-2);
+      if (n instanceof Uint8Array) { body.appendChild(kvEl('n — modulus (' + n.length + ' bytes)', toHex(n))); pk.n = toHex(n); }
+      if (e instanceof Uint8Array) { body.appendChild(kvEl('e — exponent', toHex(e) + '  (' + beBytesToNumber(e) + ')')); pk.e = beBytesToNumber(e); }
+    } else {
+      for (var i = 0; i < cose.keys.length; i++) {
+        if (cose.keys[i] === 1 || cose.keys[i] === 3) { continue; }
+        body.appendChild(kvEl('COSE[' + cose.keys[i] + ']', cborShort(cose.vals[i])));
+      }
+    }
+    summary.publicKey = pk;
+  }
+
+  function renderAttestedCred(acd, summary) {
+    var sec = sectionEl('Attested credential data');
+    var zero = true;
+    for (var i = 0; i < acd.aaguid.length; i++) { if (acd.aaguid[i] !== 0) { zero = false; break; } }
+    var uuid = formatUuid(acd.aaguid);
+    sec.body.appendChild(kvEl('AAGUID', uuid, zero
+      ? 'All-zero AAGUID — the authenticator is deliberately not disclosing its make/model. This is expected for privacy-preserving or "none" attestation.'
+      : 'Globally unique identifier of the authenticator model/vendor. Look it up in the FIDO Metadata Service to see the device.'));
+    sec.body.appendChild(kvEl('Credential ID (' + acd.credIdLen + ' bytes, base64url)', bytesToB64url(acd.credId),
+      'The opaque credential handle stored by the Relying Party and echoed back on login.'));
+    renderCose(acd.coseKey, sec.body, summary);
+    resultsEl.appendChild(sec.root);
+    summary.attestedCredentialData = { aaguid: uuid, credentialId: bytesToB64url(acd.credId), credentialIdLength: acd.credIdLen };
+  }
+
+  function renderAuthData(bytes, summary, title) {
+    var p = parseAuthData(bytes);
+    var sec = sectionEl(title || 'Authenticator data');
+    sec.body.appendChild(kvEl('rpIdHash (32 bytes)', toHex(p.rpIdHash),
+      'SHA-256 hash of the Relying Party ID (the site’s domain). The RP recomputes this to confirm the credential belongs to it.'));
+
+    var flagsKv = elem('div', 'pk-kv');
+    flagsKv.appendChild(elem('div', 'pk-kv-label', 'flags — 0x' + hex2(p.flags) + '  (0b' + bin8(p.flags) + ')'));
+    flagsKv.appendChild(flagsEl(p.flagBits));
+    flagsKv.appendChild(elem('div', 'pk-hint', backupNote(p.flagBits)));
+    sec.body.appendChild(flagsKv);
+
+    sec.body.appendChild(kvEl('signCount', String(p.signCount),
+      'Signature counter used for cloned-authenticator detection. 0 is normal and expected for synced passkeys and most platform authenticators.'));
+
+    if (p.trailingBytes > 0 && !p.attestedCredentialData) {
+      sec.body.appendChild(kvEl('trailing bytes', String(p.trailingBytes), 'Unexpected leftover bytes after parsing.'));
+    }
+    resultsEl.appendChild(sec.root);
+
+    summary.authenticatorData = {
+      rpIdHash: toHex(p.rpIdHash),
+      flags: '0x' + hex2(p.flags),
+      flagBits: { UP: p.flagBits.UP, UV: p.flagBits.UV, BE: p.flagBits.BE, BS: p.flagBits.BS, AT: p.flagBits.AT, ED: p.flagBits.ED },
+      signCount: p.signCount,
+      byteLength: p.totalLength
+    };
+
+    if (p.attestedCredentialData) { renderAttestedCred(p.attestedCredentialData, summary); }
+
+    if (p.extensions !== undefined) {
+      var esec = sectionEl('Extensions');
+      if (p.extensions instanceof CborMap && p.extensions.keys.length) {
+        for (var i = 0; i < p.extensions.keys.length; i++) {
+          esec.body.appendChild(kvEl(String(p.extensions.keys[i]), cborShort(p.extensions.vals[i])));
+        }
+      } else {
+        esec.body.appendChild(kvEl('extensions', cborShort(p.extensions)));
+      }
+      resultsEl.appendChild(esec.root);
+    }
+    return p;
+  }
+
+  function renderAttestation(bytes, summary) {
+    var dec = cborDecode(bytes);
+    if (!(dec.value instanceof CborMap)) { throw new Error('top-level CBOR is not a map — this is not a valid attestationObject.'); }
+    var map = dec.value;
+    var fmt = map.get('fmt');
+    var attStmt = map.get('attStmt');
+    var authData = map.get('authData');
+
+    var sec = sectionEl('Attestation statement');
+    sec.body.appendChild(kvEl('fmt', String(fmt), fmtHint(fmt)));
+
+    var attSummary = { fmt: fmt };
+    if (attStmt instanceof CborMap) {
+      if (attStmt.keys.length === 0) {
+        sec.body.appendChild(kvEl('attStmt', '(empty)', 'An empty statement — this attestation makes no verifiable provenance claim.'));
+      } else {
+        attSummary.attStmt = {};
+        for (var i = 0; i < attStmt.keys.length; i++) {
+          var key = attStmt.keys[i];
+          var val = attStmt.vals[i];
+          if (key === 'alg' && typeof val === 'number') {
+            sec.body.appendChild(kvEl('attStmt.alg', val + ' — ' + algName(val)));
+            attSummary.attStmt.alg = val;
+          } else if (key === 'x5c' && Array.isArray(val)) {
+            var lines = [];
+            for (var c = 0; c < val.length; c++) {
+              var certLen = (val[c] instanceof Uint8Array) ? val[c].length : 0;
+              lines.push('Certificate ' + (c + 1) + ': ' + certLen + ' bytes (DER)');
+            }
+            sec.body.appendChild(kvEl('attStmt.x5c (certificate chain)', lines.join('\n'),
+              'X.509 chain attesting the authenticator model. The leaf certificate identifies the device.'));
+            attSummary.attStmt.x5c = val.length + ' certificate(s)';
+          } else {
+            sec.body.appendChild(kvEl('attStmt.' + key, cborShort(val)));
+            attSummary.attStmt[key] = cborShort(val);
+          }
+        }
+      }
+    } else if (attStmt !== undefined) {
+      sec.body.appendChild(kvEl('attStmt', cborShort(attStmt)));
+    }
+    resultsEl.appendChild(sec.root);
+    summary.attestation = attSummary;
+
+    if (authData instanceof Uint8Array) {
+      renderAuthData(authData, summary, 'Authenticator data');
+    } else {
+      throw new Error('attestationObject has no authData byte string.');
+    }
+  }
+
+  function renderClientData(input, summary) {
+    var trimmed = String(input).trim();
+    var text;
+    if (trimmed.charAt(0) === '{') { text = trimmed; }
+    else { text = utf8Decode(b64ToBytes(trimmed)); }
+    var json;
+    try { json = JSON.parse(text); }
+    catch (e) { throw new Error('clientDataJSON is not valid JSON.'); }
+
+    var sec = sectionEl('Client data JSON');
+    if (json.type !== undefined) {
+      var typeHint = json.type === 'webauthn.create'
+        ? 'Registration ceremony (credential creation).'
+        : (json.type === 'webauthn.get' ? 'Authentication ceremony (assertion / login).' : 'WebAuthn ceremony type.');
+      sec.body.appendChild(kvEl('type', String(json.type), typeHint));
+    }
+    if (json.challenge !== undefined) {
+      sec.body.appendChild(kvEl('challenge (base64url)', String(json.challenge),
+        'The server-issued random nonce. The Relying Party must confirm it exactly matches the challenge it sent, to prevent replay.'));
+    }
+    if (json.origin !== undefined) {
+      sec.body.appendChild(kvEl('origin', String(json.origin),
+        'The origin that invoked WebAuthn. The Relying Party must verify this is its own origin.'));
+    }
+    if (json.crossOrigin !== undefined) {
+      sec.body.appendChild(kvEl('crossOrigin', String(json.crossOrigin),
+        json.crossOrigin ? 'The ceremony ran inside a cross-origin iframe.' : 'The ceremony ran in a same-origin, top-level context.'));
+    }
+    if (json.topOrigin !== undefined) {
+      sec.body.appendChild(kvEl('topOrigin', String(json.topOrigin), 'Origin of the top-level document (present for cross-origin calls).'));
+    }
+    var rawKv = elem('div', 'pk-kv');
+    rawKv.appendChild(elem('div', 'pk-kv-label', 'Raw (pretty-printed)'));
+    rawKv.appendChild(monoAreaEl(JSON.stringify(json, null, 2)));
+    sec.body.appendChild(rawKv);
+    resultsEl.appendChild(sec.root);
+    summary.clientData = json;
+  }
+
+  /* ================= flow control ================= */
+  function clearResults() {
+    while (resultsEl.firstChild) { resultsEl.removeChild(resultsEl.firstChild); }
+    toolbarEl.style.display = 'none';
+    currentSummary = '';
+  }
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+  }
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+  function finish(summary) {
+    if (resultsEl.firstChild) {
+      currentSummary = JSON.stringify(summary, null, 2);
+      toolbarEl.style.display = '';
+    }
+  }
+
+  function decodeManual() {
+    clearResults();
+    hideError();
+    var attStr = attInput.value.trim();
+    var adStr = adInput.value.trim();
+    var cdStr = cdInput.value.trim();
+    if (!attStr && !adStr && !cdStr) { return; }
+
+    var summary = {};
+    var errors = [];
+
+    if (attStr) {
+      try { renderAttestation(b64ToBytes(attStr), summary); }
+      catch (e) { errors.push('attestationObject — ' + e.message); }
+    }
+    if (adStr) {
+      try { renderAuthData(b64ToBytes(adStr), summary, 'Authenticator data (standalone)'); }
+      catch (e) { errors.push('authenticatorData — ' + e.message); }
+    }
+    if (cdStr) {
+      try { renderClientData(cdStr, summary); }
+      catch (e) { errors.push('clientDataJSON — ' + e.message); }
+    }
+
+    if (errors.length) { showError(errors.join('  |  ')); }
+    finish(summary);
+  }
+
+  /* ================= live create ================= */
+  function mapCreateError(err) {
+    var name = err && err.name;
+    if (name === 'NotAllowedError') { return 'Passkey creation was cancelled, timed out, or blocked. Re-run and complete the authenticator prompt (a user gesture is required).'; }
+    if (name === 'SecurityError') { return 'Security error — live passkey creation requires a secure context (https:// or localhost) and the page origin must match the Relying Party ID. You can still use Decode mode below.'; }
+    if (name === 'NotSupportedError') { return 'No authenticator available that supports the requested algorithms (ES256 / RS256).'; }
+    if (name === 'InvalidStateError') { return 'An authenticator already holds a credential for this account and declined to create a duplicate (InvalidStateError).'; }
+    if (name === 'AbortError') { return 'The operation was aborted.'; }
+    if (name === 'ConstraintError') { return 'The authenticator could not satisfy the requested constraints (e.g. user verification).'; }
+    return (name ? name + ': ' : '') + ((err && err.message) ? err.message : 'Unknown error creating the passkey.');
+  }
+
+  function doCreate() {
+    hideError();
+    clearResults();
+    if (!window.PublicKeyCredential) { showError('WebAuthn (PublicKeyCredential) is not available in this browser.'); return; }
+    if (!window.isSecureContext) { showError('This page is not a secure context. Live passkey creation needs https:// or localhost. Decode mode still works.'); return; }
+
+    createBtn.disabled = true;
+    var original = createBtn.textContent;
+    createBtn.textContent = 'Waiting for authenticator…';
+
+    var challenge = crypto.getRandomValues(new Uint8Array(32));
+    var userId = crypto.getRandomValues(new Uint8Array(16));
+    var publicKey = {
+      rp: { name: 'Penumbra Forge' },
+      user: { id: userId, name: 'inspector@penumbraforge.com', displayName: 'Passkey Inspector' },
+      challenge: challenge,
+      pubKeyCredParams: [ { type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 } ],
+      authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
+      attestation: 'direct',
+      timeout: 60000
+    };
+
+    navigator.credentials.create({ publicKey: publicKey }).then(function (cred) {
+      createBtn.disabled = false;
+      createBtn.textContent = original;
+      try { renderCredential(cred); }
+      catch (e) { showError('Decoded the credential but hit an error rendering it: ' + e.message); }
+    }).catch(function (err) {
+      createBtn.disabled = false;
+      createBtn.textContent = original;
+      showError(mapCreateError(err));
+    });
+  }
+
+  function renderCredential(cred) {
+    clearResults();
+    hideError();
+    var summary = {};
+    var resp = cred.response;
+
+    var transports = null;
+    if (resp && typeof resp.getTransports === 'function') {
+      try { transports = resp.getTransports(); } catch (e) { transports = null; }
+    }
+    var pubKeyAlg = null;
+    if (resp && typeof resp.getPublicKeyAlgorithm === 'function') {
+      try { pubKeyAlg = resp.getPublicKeyAlgorithm(); } catch (e) { pubKeyAlg = null; }
+    }
+
+    renderOverview({ credentialId: cred.id, credType: cred.type, transports: transports, pubKeyAlg: pubKeyAlg }, summary);
+
+    if (resp && resp.attestationObject) {
+      renderAttestation(new Uint8Array(resp.attestationObject), summary);
+    }
+    if (resp && resp.clientDataJSON) {
+      renderClientData(utf8Decode(new Uint8Array(resp.clientDataJSON)), summary);
+    }
+    finish(summary);
+  }
+
+  /* ================= clipboard ================= */
+  function copyText(text, btn, label) {
+    if (!text) { return; }
+    function ok() { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 2000); }
+    function fail() { btn.textContent = 'Failed'; setTimeout(function () { btn.textContent = label; }, 2000); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(ok).catch(fail);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand('copy'); ok(); } catch (e) { fail(); }
+      document.body.removeChild(ta);
+    }
+  }
+
+  /* ================= mode switching + support ================= */
+  function setMode(mode) {
+    var decode = mode === 'decode';
+    modeDecodeBtn.classList.toggle('active', decode);
+    modeCreateBtn.classList.toggle('active', !decode);
+    modeDecodeBtn.setAttribute('aria-pressed', decode ? 'true' : 'false');
+    modeCreateBtn.setAttribute('aria-pressed', decode ? 'false' : 'true');
+    panelDecode.style.display = decode ? '' : 'none';
+    panelCreate.style.display = decode ? 'none' : '';
+    clearResults();
+    hideError();
+  }
+
+  function initSupportNote() {
+    if (!window.PublicKeyCredential) {
+      supportNote.textContent = 'WebAuthn is not available in this browser. Use Decode mode instead.';
+      createBtn.disabled = true;
+      return;
+    }
+    var base = window.isSecureContext
+      ? 'WebAuthn is available.'
+      : 'Heads up: this page is not a secure context, so live creation will fail (needs https:// or localhost). Decode mode still works.';
+    supportNote.textContent = base;
+    if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function (avail) {
+        supportNote.textContent = base + (avail
+          ? ' A built-in platform authenticator (Touch ID / Windows Hello / Android) is present.'
+          : ' No built-in platform authenticator detected — you can still use a roaming security key or your phone.');
+      }).catch(function () {});
+    }
+  }
+
+  /* ================= wiring ================= */
+  modeDecodeBtn.addEventListener('click', function () { setMode('decode'); });
+  modeCreateBtn.addEventListener('click', function () { setMode('create'); });
+  decodeBtn.addEventListener('click', decodeManual);
+  createBtn.addEventListener('click', doCreate);
+  clearBtn.addEventListener('click', function () {
+    attInput.value = ''; adInput.value = ''; cdInput.value = '';
+    clearResults(); hideError(); attInput.focus();
+  });
+  sampleBtn.addEventListener('click', function () {
+    attInput.value = SAMPLE_ATT;
+    adInput.value = '';
+    cdInput.value = SAMPLE_CD;
+    decodeManual();
+  });
+  copyBtn.addEventListener('click', function () { copyText(currentSummary, copyBtn, 'Copy JSON summary'); });
+
+  var reDecode = function () { if (panelDecode.style.display !== 'none') { decodeManual(); } };
+  attInput.addEventListener('input', reDecode);
+  adInput.addEventListener('input', reDecode);
+  cdInput.addEventListener('input', reDecode);
+
+  initSupportNote();
+})();
+</script>

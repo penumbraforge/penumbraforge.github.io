@@ -1,0 +1,1001 @@
+---
+toolSlug: exif-scrubber
+permalink: /tools/exif-scrubber/
+---
+
+<style>
+  .exif-tool .exif-controls-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:12px; }
+  .exif-tool .exif-hint { font-family:var(--font-mono); font-size:11px; letter-spacing:.4px; color:var(--text-3); }
+  .exif-tool .exif-status { font-family:var(--font-mono); font-size:12px; color:var(--text-2); min-height:1em; margin-top:14px; }
+  .exif-tool .exif-status.busy::after { content:"\2026"; }
+
+  .exif-tool .exif-empty {
+    margin-top:18px; padding:34px 24px; text-align:center;
+    border:1px dashed var(--wb-line); border-radius:6px;
+    background:color-mix(in oklab, var(--accent) 3%, transparent);
+  }
+  .exif-tool .exif-empty svg { width:40px; height:40px; color:color-mix(in oklab,var(--accent) 70%, var(--slate)); margin-bottom:10px; }
+  .exif-tool .exif-empty h3 { font-family:var(--font-sans); font-weight:500; font-size:16px; color:var(--wb-ink); margin-bottom:6px; }
+  .exif-tool .exif-empty p { font-size:13px; line-height:1.65; color:var(--text-3); max-width:52ch; margin:0 auto; }
+
+  #exif-result { margin-top:20px; }
+
+  .exif-tool .exif-verdict {
+    display:flex; gap:14px; align-items:flex-start;
+    padding:16px 18px; border-radius:4px; border:1px solid var(--wb-line); margin-bottom:18px;
+  }
+  .exif-tool .exif-verdict .ic { flex-shrink:0; width:22px; height:22px; margin-top:1px; }
+  .exif-tool .exif-verdict h3 { font-family:var(--font-sans); font-weight:600; font-size:15px; color:var(--wb-ink); margin-bottom:4px; letter-spacing:-.01em; }
+  .exif-tool .exif-verdict p { font-size:13px; line-height:1.6; color:var(--text-2); }
+  .exif-tool .exif-verdict--danger { border-color:color-mix(in oklab,#e5765f 48%,transparent); background:color-mix(in oklab,#e5765f 8%,transparent); }
+  .exif-tool .exif-verdict--danger .ic { color:#e5765f; }
+  .exif-tool .exif-verdict--warn { border-color:color-mix(in oklab,#e0a458 42%,transparent); background:color-mix(in oklab,#e0a458 7%,transparent); }
+  .exif-tool .exif-verdict--warn .ic { color:#e0a458; }
+  .exif-tool .exif-verdict--ok { border-color:color-mix(in oklab,var(--sage) 38%,transparent); background:color-mix(in oklab,var(--sage) 6%,transparent); }
+  .exif-tool .exif-verdict--ok .ic { color:var(--sage); }
+
+  .exif-tool .exif-gps { margin-top:12px; padding:12px 14px; border:1px solid color-mix(in oklab,#e5765f 38%,transparent); border-radius:3px; background:color-mix(in oklab,#e5765f 6%,transparent); }
+  .exif-tool .exif-gps .lbl { font-family:var(--font-mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#e5765f; }
+  .exif-tool .exif-gps .coord { font-family:var(--font-mono); font-size:17px; color:var(--wb-ink); margin:5px 0; user-select:all; }
+  .exif-tool .exif-gps .sub { font-family:var(--font-mono); font-size:11.5px; color:var(--text-2); }
+  .exif-tool .exif-gps .btn { margin-top:9px; }
+
+  .exif-tool .exif-previews { margin-bottom:18px; }
+  .exif-tool .exif-canvaswrap {
+    display:flex; align-items:center; justify-content:center; padding:14px; min-height:150px;
+    background-color:#0a0a12;
+    background-image:linear-gradient(45deg,#12121c 25%,transparent 25%),linear-gradient(-45deg,#12121c 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#12121c 75%),linear-gradient(-45deg,transparent 75%,#12121c 75%);
+    background-size:16px 16px; background-position:0 0,0 8px,8px -8px,-8px 0;
+  }
+  .exif-tool .exif-canvaswrap img { max-width:100%; max-height:300px; display:block; border-radius:2px; box-shadow:0 8px 30px -12px rgba(0,0,0,.8); }
+  .exif-tool .exif-cleanhint { font-family:var(--font-mono); font-size:11.5px; color:var(--text-3); text-align:center; line-height:1.7; }
+
+  .exif-tool .exif-strip-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .exif-tool .exif-quality-row { margin:14px 0 4px; }
+  .exif-tool .exif-quality-row label { display:block; }
+  .exif-tool .exif-quality-row input[type=range] { width:100%; max-width:340px; accent-color:var(--accent); }
+  .exif-tool .exif-quality-row.off { opacity:.4; pointer-events:none; }
+  .exif-tool .exif-actions .tool-row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+
+  .exif-tool .exif-removed { margin-top:22px; }
+  .exif-tool .exif-removed .rlabel { font-family:var(--font-mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--slate); margin-bottom:10px; }
+  .exif-tool .exif-chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .exif-tool .exif-chip { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:11px; padding:5px 10px; border-radius:2px; border:1px solid var(--wb-line); color:var(--text-2); }
+  .exif-tool .exif-chip.risk { color:#e5765f; border-color:color-mix(in oklab,#e5765f 38%,transparent); background:color-mix(in oklab,#e5765f 6%,transparent); }
+  .exif-tool .exif-chip.none { color:var(--sage); border-color:color-mix(in oklab,var(--sage) 32%,transparent); }
+
+  .exif-tool .exif-group { margin-top:24px; }
+  .exif-tool .exif-group > h4 { font-family:var(--font-mono); font-size:10.5px; letter-spacing:2px; text-transform:uppercase; color:var(--slate); margin-bottom:9px; display:flex; align-items:center; gap:10px; }
+  .exif-tool .exif-group > h4::after { content:""; flex:1; height:1px; background:linear-gradient(90deg,var(--wb-line),transparent); }
+  .exif-tool table.exif-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .exif-tool table.exif-table td { padding:8px 10px; border-bottom:1px solid color-mix(in oklab,var(--border) 55%,transparent); vertical-align:top; }
+  .exif-tool table.exif-table tr:last-child td { border-bottom:0; }
+  .exif-tool table.exif-table td.k { font-family:var(--font-mono); color:var(--slate); white-space:nowrap; width:40%; }
+  .exif-tool table.exif-table td.v { font-family:var(--font-mono); color:var(--text-1); word-break:break-word; }
+  .exif-tool table.exif-table tr.risk td.k { color:#e5765f; }
+  .exif-tool .risk-tag { display:inline-block; margin-left:8px; font-size:9.5px; letter-spacing:.6px; text-transform:uppercase; color:#e5765f; border:1px solid color-mix(in oklab,#e5765f 40%,transparent); border-radius:2px; padding:1px 5px; vertical-align:1px; }
+
+  #exif-raw-wrap { margin-top:22px; }
+  #exif-raw-wrap summary { cursor:pointer; font-family:var(--font-mono); font-size:11px; letter-spacing:.5px; color:var(--text-2); }
+  #exif-raw-wrap pre { margin-top:12px; max-height:280px; overflow:auto; white-space:pre-wrap; word-break:break-word; font-size:11px; line-height:1.6; color:var(--text-2); }
+</style>
+
+<div class="exif-tool">
+  <div class="tool-group">
+    <label>Image file</label>
+    <div id="drop-zone" style="border:2px dashed var(--border); border-radius:8px; padding:1.6rem; text-align:center; cursor:pointer; transition:border-color .2s, background .2s; user-select:none;" role="button" tabindex="0" aria-label="Drop an image or click to browse">
+      <span id="drop-label">Drop a JPEG, PNG or WebP here or <u>click to browse</u></span>
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" style="display:none;" aria-hidden="true">
+    </div>
+    <div id="file-info" style="margin-top:.45rem; font-size:.85rem; color:var(--text-3); font-family:var(--font-mono);"></div>
+    <div class="exif-controls-row">
+      <button class="btn" id="btn-example" type="button">Load example photo</button>
+      <span class="exif-hint">JPEG &middot; PNG &middot; WebP &middot; up to 30&nbsp;MB &middot; nothing is uploaded</span>
+    </div>
+  </div>
+
+  <div id="exif-status" class="exif-status" role="status" aria-live="polite"></div>
+  <div id="exif-error" class="tool-error" role="alert" aria-live="assertive" style="display:none;"></div>
+
+  <div id="exif-empty" class="exif-empty">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>
+    <h3>Drop a photo to inspect its hidden metadata</h3>
+    <p>Cameras and phones bake data into your photos &mdash; exact GPS location, device model, serial numbers and timestamps. This tool reads all of it <strong>on your device</strong>, then lets you download a clean copy with every trace removed. No upload, ever.</p>
+  </div>
+
+  <div id="exif-result" hidden>
+    <div id="exif-verdict"></div>
+
+    <div class="wb-split exif-previews">
+      <div class="wb-panel">
+        <div class="wb-panel-bar"><span>Original</span><span id="orig-size" class="wb-badge">&mdash;</span></div>
+        <div class="exif-canvaswrap"><img id="orig-img" alt="Original image preview"></div>
+      </div>
+      <div class="wb-panel">
+        <div class="wb-panel-bar"><span>Cleaned</span><span id="clean-size" class="wb-badge wb-badge--local">&mdash;</span></div>
+        <div class="exif-canvaswrap" id="clean-wrap"><div class="exif-cleanhint">Strip metadata below<br>to preview the clean copy</div></div>
+      </div>
+    </div>
+
+    <div class="exif-actions">
+      <div class="exif-strip-row">
+        <button class="btn btn--primary" id="btn-strip" type="button">Strip all metadata</button>
+        <div class="tool-options" id="fmt-opts" role="group" aria-label="Output format">
+          <button class="tool-option active" data-fmt="orig" type="button" aria-pressed="true">Same format</button>
+          <button class="tool-option" data-fmt="image/jpeg" type="button" aria-pressed="false">JPEG</button>
+          <button class="tool-option" data-fmt="image/png" type="button" aria-pressed="false">PNG</button>
+          <button class="tool-option" data-fmt="image/webp" type="button" aria-pressed="false">WebP</button>
+        </div>
+      </div>
+      <div class="exif-quality-row" id="quality-row">
+        <label for="quality">Quality (JPEG / WebP) &mdash; <span id="quality-val">92</span></label>
+        <input type="range" id="quality" min="40" max="100" value="92">
+      </div>
+      <div class="tool-row">
+        <a class="btn btn--primary" id="btn-download" hidden download>Download clean image</a>
+        <button class="btn btn--copy" id="btn-copy-json" type="button">Copy metadata JSON</button>
+      </div>
+    </div>
+
+    <div id="exif-removed"></div>
+    <div id="exif-meta"></div>
+
+    <details id="exif-raw-wrap" hidden>
+      <summary>Raw XMP / text payload</summary>
+      <pre id="exif-raw"></pre>
+    </details>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var MAX_BYTES = 30 * 1024 * 1024;
+
+  var dropZone   = document.getElementById('drop-zone');
+  var fileInput  = document.getElementById('file-input');
+  var fileInfo   = document.getElementById('file-info');
+  var exampleBtn = document.getElementById('btn-example');
+  var statusEl   = document.getElementById('exif-status');
+  var errorEl    = document.getElementById('exif-error');
+  var emptyEl    = document.getElementById('exif-empty');
+  var resultEl   = document.getElementById('exif-result');
+  var verdictEl  = document.getElementById('exif-verdict');
+  var origImg    = document.getElementById('orig-img');
+  var origSize   = document.getElementById('orig-size');
+  var cleanSize  = document.getElementById('clean-size');
+  var cleanWrap  = document.getElementById('clean-wrap');
+  var stripBtn   = document.getElementById('btn-strip');
+  var fmtOpts    = document.getElementById('fmt-opts');
+  var qualityRow = document.getElementById('quality-row');
+  var qualityEl  = document.getElementById('quality');
+  var qualityVal = document.getElementById('quality-val');
+  var downloadEl = document.getElementById('btn-download');
+  var copyJsonEl = document.getElementById('btn-copy-json');
+  var removedEl  = document.getElementById('exif-removed');
+  var metaEl     = document.getElementById('exif-meta');
+  var rawWrap    = document.getElementById('exif-raw-wrap');
+  var rawEl      = document.getElementById('exif-raw');
+
+  var current = null;      // { blob, name, mime, report }
+  var origUrl = null, cleanUrl = null, outFmt = 'orig';
+
+  // ---------- tiny DOM helpers (all user text via textContent) ----------
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  function setStatus(msg, busy) { statusEl.textContent = msg || ''; statusEl.classList.toggle('busy', !!busy); }
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = ''; setStatus(''); }
+  function hideError() { errorEl.textContent = ''; errorEl.style.display = 'none'; }
+  function fmtBytes(n) {
+    if (n == null) return '—';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+  function round(x, p) { var f = Math.pow(10, p || 0); return Math.round(x * f) / f; }
+
+  // ================= EXIF / TIFF parsing =================
+  var TYPE_SIZE = { 1:1, 2:1, 3:2, 4:4, 5:8, 6:1, 7:1, 8:2, 9:4, 10:8, 11:4, 12:8 };
+  var TAGS = {
+    0x0100:'ImageWidth',0x0101:'ImageHeight',0x0102:'BitsPerSample',0x010E:'ImageDescription',
+    0x010F:'Make',0x0110:'Model',0x0112:'Orientation',0x011A:'XResolution',0x011B:'YResolution',
+    0x0128:'ResolutionUnit',0x0131:'Software',0x0132:'ModifyDate',0x013B:'Artist',
+    0x8298:'Copyright',0x8769:'ExifOffset',0x8825:'GPSInfo',
+    0x829A:'ExposureTime',0x829D:'FNumber',0x8822:'ExposureProgram',0x8827:'ISO',
+    0x9003:'DateTimeOriginal',0x9004:'DateTimeDigitized',0x9010:'OffsetTime',
+    0x9201:'ShutterSpeedValue',0x9202:'ApertureValue',0x9204:'ExposureCompensation',
+    0x9207:'MeteringMode',0x9208:'LightSource',0x9209:'Flash',0x920A:'FocalLength',
+    0x9291:'SubSecTimeOriginal',0xA001:'ColorSpace',0xA002:'ExifImageWidth',0xA003:'ExifImageHeight',
+    0xA402:'ExposureMode',0xA403:'WhiteBalance',0xA404:'DigitalZoomRatio',
+    0xA405:'FocalLengthIn35mmFormat',0xA406:'SceneCaptureType',
+    0xA430:'CameraOwnerName',0xA431:'BodySerialNumber',0xA432:'LensInfo',
+    0xA433:'LensMake',0xA434:'LensModel',0xA435:'LensSerialNumber',0x927C:'MakerNote'
+  };
+  var GPS_TAGS = {
+    0x0000:'GPSVersionID',0x0001:'GPSLatitudeRef',0x0002:'GPSLatitude',0x0003:'GPSLongitudeRef',
+    0x0004:'GPSLongitude',0x0005:'GPSAltitudeRef',0x0006:'GPSAltitude',0x0007:'GPSTimeStamp',
+    0x0008:'GPSSatellites',0x0009:'GPSStatus',0x0010:'GPSImgDirectionRef',0x0011:'GPSImgDirection',
+    0x0012:'GPSMapDatum',0x001B:'GPSProcessingMethod',0x001D:'GPSDateStamp'
+  };
+  var ENUM = {
+    Orientation: { 1:'Normal', 2:'Mirror horizontal', 3:'Rotate 180°', 4:'Mirror vertical', 5:'Mirror + rotate 270° CW', 6:'Rotate 90° CW', 7:'Mirror + rotate 90° CW', 8:'Rotate 270° CW' },
+    ResolutionUnit: { 1:'None', 2:'inches', 3:'cm' },
+    ExposureProgram: { 0:'Not defined', 1:'Manual', 2:'Program AE', 3:'Aperture-priority', 4:'Shutter-priority', 5:'Creative', 6:'Action', 7:'Portrait', 8:'Landscape' },
+    MeteringMode: { 0:'Unknown', 1:'Average', 2:'Center-weighted', 3:'Spot', 4:'Multi-spot', 5:'Multi-segment', 6:'Partial', 255:'Other' },
+    WhiteBalance: { 0:'Auto', 1:'Manual' },
+    ExposureMode: { 0:'Auto', 1:'Manual', 2:'Auto bracket' },
+    ColorSpace: { 1:'sRGB', 2:'Adobe RGB', 65535:'Uncalibrated' },
+    SceneCaptureType: { 0:'Standard', 1:'Landscape', 2:'Portrait', 3:'Night' },
+    LightSource: { 0:'Unknown', 1:'Daylight', 2:'Fluorescent', 3:'Tungsten', 4:'Flash', 9:'Fine weather', 10:'Cloudy', 11:'Shade' },
+    Flash: { 0:'No flash', 1:'Fired', 5:'Fired, no return', 7:'Fired, return detected', 9:'On, fired', 13:'On, no return', 15:'On, return', 16:'Off, did not fire', 24:'Auto, did not fire', 25:'Auto, fired', 29:'Auto, fired, no return', 31:'Auto, fired, return' }
+  };
+  var GROUP = {
+    Make:'Camera', Model:'Camera', LensMake:'Camera', LensModel:'Camera', LensInfo:'Camera',
+    BodySerialNumber:'Camera', LensSerialNumber:'Camera', CameraOwnerName:'Camera', Artist:'Camera',
+    Copyright:'Camera', MakerNote:'Camera', Software:'Software',
+    ExposureTime:'Exposure', FNumber:'Exposure', ISO:'Exposure', FocalLength:'Exposure',
+    FocalLengthIn35mmFormat:'Exposure', ExposureProgram:'Exposure', ExposureMode:'Exposure',
+    ExposureCompensation:'Exposure', MeteringMode:'Exposure', Flash:'Exposure', WhiteBalance:'Exposure',
+    ApertureValue:'Exposure', ShutterSpeedValue:'Exposure', SceneCaptureType:'Exposure',
+    ColorSpace:'Exposure', DigitalZoomRatio:'Exposure', LightSource:'Exposure',
+    DateTimeOriginal:'Timestamps', DateTimeDigitized:'Timestamps', ModifyDate:'Timestamps',
+    OffsetTime:'Timestamps', SubSecTimeOriginal:'Timestamps',
+    ImageDescription:'Image', ExifImageWidth:'Image', ExifImageHeight:'Image', Orientation:'Image',
+    ImageWidth:'Image', ImageHeight:'Image', XResolution:'Image', YResolution:'Image',
+    ResolutionUnit:'Image', BitsPerSample:'Image'
+  };
+  var RISK = { BodySerialNumber:1, LensSerialNumber:1, CameraOwnerName:1, Artist:1, MakerNote:1 };
+  var SKIP = { ExifOffset:1, GPSInfo:1 };
+  var GROUP_ORDER = ['Location', 'Camera', 'Exposure', 'Timestamps', 'Software', 'Image', 'Other'];
+
+  function latin1(bytes, off, len) {
+    var s = '';
+    for (var i = 0; i < len; i++) { var b = bytes[off + i]; if (b === 0) break; s += String.fromCharCode(b); }
+    return s.replace(/[ -]+$/, '').trim();
+  }
+  function utf8(bytes) { try { return new TextDecoder('utf-8', { fatal: false }).decode(bytes); } catch (e) { return latin1(bytes, 0, bytes.length); } }
+
+  // Read one IFD. dv is a DataView based at the TIFF header (offset 0 == TIFF start).
+  function parseIFD(dv, bytes, base, ifdOff, little, tagMap, out) {
+    if (ifdOff < 0 || ifdOff + 2 > dv.byteLength) return 0;
+    var n = dv.getUint16(ifdOff, little);
+    if (n > 512) return 0; // sanity
+    var entryBase = ifdOff + 2;
+    for (var i = 0; i < n; i++) {
+      var e = entryBase + i * 12;
+      if (e + 12 > dv.byteLength) break;
+      var tag = dv.getUint16(e, little);
+      var type = dv.getUint16(e + 2, little);
+      var count = dv.getUint32(e + 4, little);
+      var comp = TYPE_SIZE[type]; if (!comp) continue;
+      var byteLen = comp * count;
+      if (byteLen > 4 * 1024 * 1024) continue;
+      var valOff = byteLen <= 4 ? e + 8 : dv.getUint32(e + 8, little);
+      if (valOff < 0 || valOff + byteLen > dv.byteLength) continue;
+      out.push({ tag: tag, name: tagMap[tag], type: type, count: count, values: readValues(dv, bytes, base, valOff, type, count, little) });
+    }
+    var nextOff = entryBase + n * 12;
+    return nextOff + 4 <= dv.byteLength ? dv.getUint32(nextOff, little) : 0;
+  }
+
+  function readValues(dv, bytes, base, off, type, count, little) {
+    if (type === 2) return latin1(bytes, base + off, count);            // ASCII
+    if (type === 7 || type === 1 || type === 6) {                        // BYTE / UNDEFINED
+      var arr = []; for (var i = 0; i < Math.min(count, 64); i++) arr.push(bytes[base + off + i]); return arr;
+    }
+    var vals = [];
+    for (var j = 0; j < count && j < 64; j++) {
+      if (type === 3) vals.push(dv.getUint16(off + j * 2, little));
+      else if (type === 8) vals.push(dv.getInt16(off + j * 2, little));
+      else if (type === 4) vals.push(dv.getUint32(off + j * 4, little));
+      else if (type === 9) vals.push(dv.getInt32(off + j * 4, little));
+      else if (type === 5) vals.push([dv.getUint32(off + j * 8, little), dv.getUint32(off + j * 8 + 4, little)]);
+      else if (type === 10) vals.push([dv.getInt32(off + j * 8, little), dv.getInt32(off + j * 8 + 4, little)]);
+      else if (type === 11) vals.push(dv.getFloat32(off + j * 4, little));
+      else if (type === 12) vals.push(dv.getFloat64(off + j * 8, little));
+    }
+    return vals;
+  }
+
+  function ratio(p) { return Array.isArray(p) ? (p[1] ? p[0] / p[1] : p[0]) : p; }
+
+  function formatValue(name, type, values) {
+    if (type === 2) return String(values);
+    var v0 = Array.isArray(values) ? values[0] : values;
+    var r = ratio(v0);
+    switch (name) {
+      case 'ExposureTime': if (r > 0 && r < 1) return '1/' + Math.round(1 / r) + ' s'; return round(r, 3) + ' s';
+      case 'ShutterSpeedValue': { var st = Math.pow(2, -r); return st < 1 ? '1/' + Math.round(1 / st) + ' s' : round(st, 1) + ' s'; }
+      case 'FNumber': return 'f/' + round(r, 2);
+      case 'ApertureValue': return 'f/' + round(Math.pow(2, r / 2), 2);
+      case 'FocalLength': return round(r, 1) + ' mm';
+      case 'FocalLengthIn35mmFormat': return v0 + ' mm';
+      case 'ExposureCompensation': return (r > 0 ? '+' : '') + round(r, 2) + ' EV';
+      case 'DigitalZoomRatio': return round(r, 2) + '×';
+      case 'GPSAltitude': return round(r, 1) + ' m';
+      case 'XResolution': case 'YResolution': return round(r, 0) + '';
+      case 'GPSImgDirection': return round(r, 1) + '°';
+      case 'ISO': return String(v0);
+    }
+    if (ENUM[name]) { var m = ENUM[name][v0]; return m != null ? m : String(v0); }
+    if (type === 5 || type === 10) return String(round(r, 4));
+    if (Array.isArray(values)) return values.map(function (x) { return Array.isArray(x) ? (x[1] ? round(x[0] / x[1], 3) : x[0]) : x; }).join(', ');
+    return String(values);
+  }
+
+  // Parse a full EXIF TIFF block starting at `tiffStart` within bytes.
+  function parseExifTiff(bytes, tiffStart, report) {
+    try {
+      if (tiffStart + 8 > bytes.length) return;
+      var dv = new DataView(bytes.buffer, bytes.byteOffset + tiffStart, bytes.byteLength - tiffStart);
+      var bo = dv.getUint16(0, false);
+      var little = bo === 0x4949; if (!little && bo !== 0x4d4d) return;
+      if (dv.getUint16(2, little) !== 42) return;
+      var ifd0 = dv.getUint32(4, little);
+      var view = new Uint8Array(bytes.buffer, bytes.byteOffset + tiffStart, bytes.byteLength - tiffStart);
+
+      var ifd0Entries = [];
+      var next = parseIFD(dv, view, 0, ifd0, little, TAGS, ifd0Entries);
+      report.hasExif = true;
+      if (next) report.thumbnail = true; // IFD1 == embedded thumbnail
+
+      var exifPtr = null, gpsPtr = null;
+      ifd0Entries.forEach(function (en) {
+        if (en.name === 'ExifOffset') exifPtr = ratio(en.values[0]);
+        else if (en.name === 'GPSInfo') gpsPtr = ratio(en.values[0]);
+      });
+
+      var exifEntries = [];
+      if (exifPtr) parseIFD(dv, view, 0, exifPtr, little, TAGS, exifEntries);
+      var gpsEntries = [];
+      if (gpsPtr) parseIFD(dv, view, 0, gpsPtr, little, GPS_TAGS, gpsEntries);
+
+      addRows(report, ifd0Entries);
+      addRows(report, exifEntries);
+      parseGps(report, gpsEntries);
+      report.exifTagCount = (report.exifTagCount || 0) + ifd0Entries.length + exifEntries.length + gpsEntries.length;
+    } catch (e) { /* never throw on malformed input */ }
+  }
+
+  function addRows(report, entries) {
+    entries.forEach(function (en) {
+      if (!en.name || SKIP[en.name]) return;
+      if (en.name === 'MakerNote') { report.makerNote = true; return; }
+      var group = GROUP[en.name] || 'Other';
+      var label = en.name;
+      var val;
+      try { val = formatValue(en.name, en.type, en.values); } catch (e) { val = String(en.values); }
+      if (val == null || val === '') return;
+      if (val.length > 300) val = val.slice(0, 300) + '…';
+      report.rows.push({ group: group, label: label, value: val, risk: !!RISK[en.name] });
+    });
+  }
+
+  function parseGps(report, entries) {
+    if (!entries.length) return;
+    var g = {};
+    entries.forEach(function (en) {
+      if (!en.name) return;
+      g[en.name] = en.values;
+      var val, risk = true;
+      if (en.name === 'GPSLatitude' || en.name === 'GPSLongitude') val = dmsString(en.values);
+      else if (en.name === 'GPSVersionID') { val = (en.values || []).join('.'); risk = false; }
+      else { try { val = formatValue(en.name, en.type, en.values); } catch (e) { val = String(en.values); } }
+      if (val != null && val !== '') report.rows.push({ group: 'Location', label: en.name, value: val, risk: risk });
+    });
+    if (g.GPSLatitude && g.GPSLongitude) {
+      var latRef = typeof g.GPSLatitudeRef === 'string' ? g.GPSLatitudeRef : 'N';
+      var lonRef = typeof g.GPSLongitudeRef === 'string' ? g.GPSLongitudeRef : 'E';
+      var lat = dmsToDec(g.GPSLatitude, latRef);
+      var lon = dmsToDec(g.GPSLongitude, lonRef);
+      if (isFinite(lat) && isFinite(lon)) {
+        report.gps = { lat: lat, lon: lon, latRef: latRef, lonRef: lonRef };
+        if (g.GPSAltitude) report.gps.alt = round(ratio(g.GPSAltitude[0]), 1);
+      }
+    }
+  }
+  function dmsToDec(parts, ref) {
+    if (!parts || parts.length < 3) return NaN;
+    var dec = ratio(parts[0]) + ratio(parts[1]) / 60 + ratio(parts[2]) / 3600;
+    if (ref === 'S' || ref === 'W') dec = -dec;
+    return dec;
+  }
+  function dmsString(parts) {
+    if (!parts || parts.length < 3) return '';
+    return ratio(parts[0]) + '° ' + ratio(parts[1]) + "' " + round(ratio(parts[2]), 2) + '"';
+  }
+
+  // ================= container format parsers =================
+  function scanJpeg(bytes, report) {
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    if (dv.getUint16(0, false) !== 0xffd8) return false;
+    var off = 2, EXIF_SIG = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00];
+    var XMP_SIG = 'http://ns.adobe.com/xap/1.0/\0';
+    while (off + 4 <= bytes.length) {
+      if (bytes[off] !== 0xff) { off++; continue; }
+      var marker = bytes[off + 1];
+      if (marker === 0xd9 || marker === 0xda) break; // EOI / start of scan
+      if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { off += 2; continue; }
+      var len = dv.getUint16(off + 2, false);
+      var dStart = off + 4, dEnd = off + 2 + len;
+      if (dEnd > bytes.length) break;
+      if (marker === 0xe1) {
+        if (matchSig(bytes, dStart, EXIF_SIG)) parseExifTiff(bytes, dStart + 6, report);
+        else if (matchAscii(bytes, dStart, XMP_SIG)) captureXmp(bytes, dStart + XMP_SIG.length, dEnd, report);
+      } else if (marker === 0xe2 && matchAscii(bytes, dStart, 'ICC_PROFILE\0')) report.icc = true;
+      else if (marker === 0xed) report.iptc = true;                 // Photoshop / IPTC
+      else if (marker === 0xee) report.adobe = true;                // Adobe APP14
+      else if (marker === 0xfe) report.comment = latin1(bytes, dStart, dEnd - dStart); // COM
+      off = dEnd;
+    }
+    return true;
+  }
+  function matchSig(bytes, off, sig) { for (var i = 0; i < sig.length; i++) if (bytes[off + i] !== sig[i]) return false; return true; }
+  function matchAscii(bytes, off, str) { for (var i = 0; i < str.length; i++) if (bytes[off + i] !== str.charCodeAt(i)) return false; return true; }
+  function captureXmp(bytes, start, end, report) {
+    var s = utf8(new Uint8Array(bytes.buffer, bytes.byteOffset + start, Math.max(0, end - start)));
+    report.xmp = s;
+    if (/GPS(Latitude|Longitude)/i.test(s)) report.xmpGps = true;
+  }
+
+  var PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  function scanPng(bytes, report) {
+    for (var i = 0; i < 8; i++) if (bytes[i] !== PNG_SIG[i]) return false;
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    var off = 8, jobs = [];
+    while (off + 8 <= bytes.length) {
+      var len = dv.getUint32(off, false);
+      var type = String.fromCharCode(bytes[off + 4], bytes[off + 5], bytes[off + 6], bytes[off + 7]);
+      var dStart = off + 8, dEnd = dStart + len;
+      if (dEnd + 4 > bytes.length) break;
+      var chunk = new Uint8Array(bytes.buffer, bytes.byteOffset + dStart, len);
+      if (type === 'tEXt') pushText(report, chunk, 'latin1');
+      else if (type === 'zTXt') jobs.push({ kind: 'zTXt', chunk: chunk });
+      else if (type === 'iTXt') jobs.push({ kind: 'iTXt', chunk: chunk });
+      else if (type === 'eXIf') parseExifTiff(bytes, dStart, report);
+      else if (type === 'tIME' && len >= 7) report.pngTime = pad(dv.getUint16(dStart, false)) + '-' + pad(bytes[dStart + 2]) + '-' + pad(bytes[dStart + 3]) + ' ' + pad(bytes[dStart + 4]) + ':' + pad(bytes[dStart + 5]) + ':' + pad(bytes[dStart + 6]);
+      else if (type === 'iCCP') report.icc = true;
+      if (type === 'IEND') break;
+      off = dEnd + 4;
+    }
+    return jobs;
+  }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function pushText(report, chunk, enc, keyword, text) {
+    if (keyword == null) {
+      var nul = chunk.indexOf(0);
+      if (nul < 0) return;
+      keyword = latin1(chunk, 0, nul);
+      text = latin1(chunk, nul + 1, chunk.length - nul - 1);
+    }
+    if (/xmp/i.test(keyword) || /^<\?xpacket/.test(text)) { report.xmp = text; if (/GPS(Latitude|Longitude)/i.test(text)) report.xmpGps = true; }
+    report.pngText = report.pngText || [];
+    report.pngText.push({ keyword: keyword, text: text });
+    report.rows.push({ group: 'Other', label: keyword, value: text.length > 300 ? text.slice(0, 300) + '…' : text, risk: /gps|location|serial|author|owner/i.test(keyword) });
+  }
+
+  async function runPngJobs(report, jobs) {
+    for (var i = 0; i < jobs.length; i++) {
+      var j = jobs[i];
+      try {
+        if (j.kind === 'zTXt') {
+          var nul = j.chunk.indexOf(0);
+          if (nul < 0) continue;
+          var kw = latin1(j.chunk, 0, nul);
+          var comp = j.chunk.subarray(nul + 2); // skip keyword\0 + method byte
+          var out = await inflate(comp);
+          pushText(report, null, 'latin1', kw, out ? latin1(out, 0, out.length) : '[compressed text — preview unavailable]');
+        } else {
+          // iTXt: keyword \0 compFlag compMethod langTag \0 transKeyword \0 text
+          var c = j.chunk, p = 0;
+          var kwEnd = c.indexOf(0, p); if (kwEnd < 0) continue;
+          var kw2 = latin1(c, 0, kwEnd);
+          var compFlag = c[kwEnd + 1]; p = kwEnd + 3;
+          var langEnd = c.indexOf(0, p); if (langEnd < 0) continue;
+          var transEnd = c.indexOf(0, langEnd + 1); if (transEnd < 0) continue;
+          var textBytes = c.subarray(transEnd + 1);
+          var txt;
+          if (compFlag === 1) { var inf = await inflate(textBytes); txt = inf ? utf8(inf) : '[compressed text — preview unavailable]'; }
+          else txt = utf8(textBytes);
+          pushText(report, null, 'utf8', kw2, txt);
+        }
+      } catch (e) { /* skip bad chunk */ }
+    }
+  }
+
+  async function inflate(bytes) {
+    if (typeof DecompressionStream === 'undefined') return null;
+    try {
+      var ds = new DecompressionStream('deflate');
+      var stream = new Blob([bytes]).stream().pipeThrough(ds);
+      var buf = await new Response(stream).arrayBuffer();
+      return new Uint8Array(buf);
+    } catch (e) { return null; }
+  }
+
+  function scanWebp(bytes, report) {
+    if (!(matchAscii(bytes, 0, 'RIFF') && matchAscii(bytes, 8, 'WEBP'))) return false;
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    var off = 12;
+    while (off + 8 <= bytes.length) {
+      var fourcc = String.fromCharCode(bytes[off], bytes[off + 1], bytes[off + 2], bytes[off + 3]);
+      var size = dv.getUint32(off + 4, true);
+      var dStart = off + 8, dEnd = dStart + size;
+      if (dEnd > bytes.length) break;
+      if (fourcc === 'EXIF') {
+        var ts = dStart;
+        if (matchSig(bytes, dStart, [0x45, 0x78, 0x69, 0x66, 0x00, 0x00])) ts = dStart + 6;
+        parseExifTiff(bytes, ts, report);
+      } else if (fourcc === 'XMP ') {
+        report.xmp = utf8(new Uint8Array(bytes.buffer, bytes.byteOffset + dStart, size));
+        if (/GPS(Latitude|Longitude)/i.test(report.xmp)) report.xmpGps = true;
+      }
+      off = dEnd + (size & 1); // chunks are padded to even size
+    }
+    return true;
+  }
+
+  function detectFormat(bytes) {
+    if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8) return 'jpeg';
+    if (bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50) return 'png';
+    if (bytes.length > 12 && matchAscii(bytes, 0, 'RIFF') && matchAscii(bytes, 8, 'WEBP')) return 'webp';
+    return null;
+  }
+
+  // ================= analyze pipeline =================
+  async function analyze(blob, name) {
+    hideError();
+    if (!blob) return;
+    if (blob.size > MAX_BYTES) { showError('That file is ' + fmtBytes(blob.size) + '. This tool caps at 30 MB so everything stays fast and in-memory. Try a smaller image.'); return; }
+    setStatus('Reading file…', true);
+    var bytes;
+    try { bytes = new Uint8Array(await blob.arrayBuffer()); }
+    catch (e) { showError('Could not read that file.'); return; }
+
+    var fmt = detectFormat(bytes);
+    if (!fmt) { showError('That does not look like a JPEG, PNG or WebP image. Only those formats carry the metadata this tool reads.'); setStatus(''); return; }
+
+    var report = { format: fmt, size: blob.size, rows: [], gps: null };
+    try {
+      if (fmt === 'jpeg') scanJpeg(bytes, report);
+      else if (fmt === 'png') { var jobs = scanPng(bytes, report); if (jobs && jobs.length) await runPngJobs(report, jobs); }
+      else if (fmt === 'webp') scanWebp(bytes, report);
+    } catch (e) { /* keep whatever we parsed */ }
+
+    current = { blob: blob, name: name || ('image.' + (fmt === 'jpeg' ? 'jpg' : fmt)), mime: blob.type || ('image/' + (fmt === 'jpeg' ? 'jpeg' : fmt)), report: report };
+    setStatus('');
+    render(report, blob);
+    publishResult(report);
+  }
+
+  // ================= rendering =================
+  function render(report, blob) {
+    emptyEl.hidden = true;
+    resultEl.hidden = false;
+
+    // original preview
+    if (origUrl) URL.revokeObjectURL(origUrl);
+    origUrl = URL.createObjectURL(blob);
+    origImg.src = origUrl;
+    origSize.textContent = fmtBytes(report.size);
+
+    // reset clean panel
+    resetClean();
+
+    renderVerdict(report);
+    renderRemoved(report);
+    renderMeta(report);
+    renderRaw(report);
+    updateQualityRow();
+  }
+
+  function iconFor(kind) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.7');
+    svg.setAttribute('class', 'ic'); svg.setAttribute('aria-hidden', 'true');
+    var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    if (kind === 'ok') p.setAttribute('d', 'M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z M9 12l2 2 4-4');
+    else p.setAttribute('d', 'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z M12 9v4 M12 17h.01');
+    svg.appendChild(p);
+    return svg;
+  }
+
+  function renderVerdict(report) {
+    verdictEl.innerHTML = '';
+    var hasRisk = report.rows.some(function (r) { return r.risk; });
+    var kind, title, msg;
+    if (report.gps) {
+      kind = 'danger'; title = 'This photo reveals a GPS location';
+      msg = 'Embedded coordinates pinpoint where this image was captured. Anyone you share the original with can read them. Strip the metadata before posting it anywhere public.';
+    } else if (hasRisk || report.makerNote) {
+      kind = 'warn'; title = 'This photo carries identifying metadata';
+      msg = 'It includes device, owner or serial information that can tie the file back to you or your equipment. Consider stripping it before sharing.';
+    } else if (report.rows.length || report.xmp || report.icc || report.comment || report.pngText) {
+      kind = 'warn'; title = 'This photo contains embedded metadata';
+      msg = 'Camera settings, timestamps and software details are baked in. No GPS was found, but you can still remove everything below.';
+    } else {
+      kind = 'ok'; title = 'No embedded metadata found';
+      msg = 'This image is already clean — no EXIF, GPS, XMP or text chunks were detected. You can still re-encode a fresh copy if you like.';
+    }
+    verdictEl.className = 'exif-verdict exif-verdict--' + kind;
+    verdictEl.appendChild(iconFor(kind === 'ok' ? 'ok' : 'warn'));
+    var body = el('div');
+    body.appendChild(el('h3', null, title));
+    body.appendChild(el('p', null, msg));
+    if (report.gps) body.appendChild(gpsCard(report.gps));
+    verdictEl.appendChild(body);
+  }
+
+  function gpsCard(gps) {
+    var card = el('div', 'exif-gps');
+    card.appendChild(el('div', 'lbl', 'Decoded coordinates'));
+    var coordStr = round(gps.lat, 6) + ', ' + round(gps.lon, 6);
+    card.appendChild(el('div', 'coord', coordStr));
+    var sub = gps.latRef + ' / ' + gps.lonRef + (gps.alt != null ? '  ·  altitude ' + gps.alt + ' m' : '');
+    card.appendChild(el('div', 'sub', sub));
+    var btn = el('button', 'btn', 'Copy coordinates'); btn.type = 'button';
+    btn.addEventListener('click', function () { copyText(coordStr, btn, 'Copy coordinates'); });
+    card.appendChild(btn);
+    var note = el('div', 'sub', 'Nothing here is sent anywhere — paste these into a map yourself if you want to check the location.');
+    note.style.marginTop = '8px'; note.style.opacity = '.75';
+    card.appendChild(note);
+    return card;
+  }
+
+  function renderRemoved(report) {
+    removedEl.innerHTML = '';
+    var items = [];
+    if (report.hasExif) items.push({ t: 'EXIF / camera data', risk: false });
+    if (report.gps) items.push({ t: 'GPS location', risk: true });
+    if (report.makerNote) items.push({ t: 'Maker note (proprietary)', risk: true });
+    if (report.thumbnail) items.push({ t: 'Embedded thumbnail', risk: false });
+    if (report.xmp) items.push({ t: 'XMP' + (report.xmpGps ? ' (contains GPS)' : ''), risk: !!report.xmpGps });
+    if (report.icc) items.push({ t: 'ICC colour profile', risk: false });
+    if (report.iptc) items.push({ t: 'IPTC / Photoshop block', risk: false });
+    if (report.comment) items.push({ t: 'JPEG comment', risk: false });
+    if (report.pngTime) items.push({ t: 'PNG timestamp', risk: false });
+    if (report.pngText) report.pngText.forEach(function (t) { items.push({ t: 'PNG text: ' + t.keyword, risk: /gps|location|serial|author|owner/i.test(t.keyword) }); });
+
+    var wrap = el('div', 'exif-removed');
+    wrap.appendChild(el('div', 'rlabel', 'Metadata found — removed on strip'));
+    var chips = el('div', 'exif-chips');
+    if (!items.length) {
+      chips.appendChild(el('span', 'exif-chip none', 'None detected'));
+    } else {
+      items.forEach(function (it) {
+        var c = el('span', 'exif-chip' + (it.risk ? ' risk' : ''), it.t);
+        chips.appendChild(c);
+      });
+    }
+    wrap.appendChild(chips);
+    removedEl.appendChild(wrap);
+  }
+
+  function renderMeta(report) {
+    metaEl.innerHTML = '';
+    if (!report.rows.length) return;
+    var byGroup = {};
+    report.rows.forEach(function (r) { (byGroup[r.group] = byGroup[r.group] || []).push(r); });
+    GROUP_ORDER.forEach(function (g) {
+      var rows = byGroup[g]; if (!rows || !rows.length) return;
+      var sec = el('div', 'exif-group');
+      sec.appendChild(el('h4', null, g === 'Location' ? 'Location — privacy risk' : g));
+      var table = el('table', 'exif-table');
+      rows.forEach(function (r) {
+        var tr = el('tr', r.risk ? 'risk' : null);
+        var td1 = el('td', 'k'); td1.appendChild(document.createTextNode(prettyLabel(r.label)));
+        if (r.risk) { var tag = el('span', 'risk-tag', 'sensitive'); td1.appendChild(tag); }
+        var td2 = el('td', 'v', r.value);
+        tr.appendChild(td1); tr.appendChild(td2); table.appendChild(tr);
+      });
+      sec.appendChild(table);
+      metaEl.appendChild(sec);
+    });
+  }
+  function prettyLabel(name) { return String(name).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^GPS /, 'GPS '); }
+
+  function renderRaw(report) {
+    if (report.xmp) { rawEl.textContent = report.xmp; rawWrap.hidden = false; }
+    else { rawEl.textContent = ''; rawWrap.hidden = true; }
+  }
+
+  // ================= strip / re-encode =================
+  function resetClean() {
+    if (cleanUrl) { URL.revokeObjectURL(cleanUrl); cleanUrl = null; }
+    cleanWrap.innerHTML = '';
+    var hint = el('div', 'exif-cleanhint'); hint.innerHTML = 'Strip metadata below<br>to preview the clean copy';
+    cleanWrap.appendChild(hint);
+    cleanSize.textContent = '—';
+    downloadEl.hidden = true; downloadEl.removeAttribute('href');
+  }
+
+  function pickMime(fmt, srcMime) {
+    if (fmt === 'orig') {
+      if (/png/.test(srcMime)) return 'image/png';
+      if (/webp/.test(srcMime)) return 'image/webp';
+      return 'image/jpeg';
+    }
+    return fmt;
+  }
+  function extFor(mime) { return mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg'; }
+  function isLossy(mime) { return mime === 'image/jpeg' || mime === 'image/webp'; }
+
+  async function strip() {
+    if (!current) return;
+    hideError();
+    var mime = pickMime(outFmt, current.mime);
+    var quality = isLossy(mime) ? parseInt(qualityEl.value, 10) / 100 : undefined;
+    setStatus('Re-encoding a clean copy…', true);
+    stripBtn.disabled = true;
+    try {
+      var bitmap;
+      try { bitmap = await createImageBitmap(current.blob, { imageOrientation: 'from-image' }); }
+      catch (e) { bitmap = await createImageBitmap(current.blob); }
+      var canvas = document.createElement('canvas');
+      canvas.width = bitmap.width; canvas.height = bitmap.height;
+      var ctx = canvas.getContext('2d');
+      if (mime === 'image/jpeg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+      ctx.drawImage(bitmap, 0, 0);
+      if (bitmap.close) bitmap.close();
+
+      var blob = await toBlob(canvas, mime, quality);
+      if (!blob && mime !== 'image/png') { mime = 'image/png'; blob = await toBlob(canvas, mime, undefined); }
+      if (!blob) throw new Error('encode failed');
+
+      if (cleanUrl) URL.revokeObjectURL(cleanUrl);
+      cleanUrl = URL.createObjectURL(blob);
+      cleanWrap.innerHTML = '';
+      var img = new Image(); img.alt = 'Cleaned image preview'; img.src = cleanUrl;
+      cleanWrap.appendChild(img);
+
+      var delta = current.report.size - blob.size;
+      var pct = current.report.size ? Math.round(delta / current.report.size * 100) : 0;
+      cleanSize.textContent = fmtBytes(blob.size) + (delta > 0 ? '  (−' + pct + '%)' : delta < 0 ? '  (+' + Math.abs(pct) + '%)' : '');
+
+      var base = current.name.replace(/\.[^.]+$/, '') || 'image';
+      downloadEl.href = cleanUrl;
+      downloadEl.download = base + '-clean.' + extFor(mime);
+      downloadEl.hidden = false;
+      setStatus('Clean copy ready — metadata removed. Download or preview above.');
+      current.cleanBlob = blob; current.cleanMime = mime;
+      publishResult(current.report, blob);
+    } catch (e) {
+      showError('Could not re-encode this image in the browser (it may be too large for a canvas, or the format is unsupported). Your file was not modified.');
+    } finally {
+      stripBtn.disabled = false;
+    }
+  }
+
+  function toBlob(canvas, mime, quality) {
+    return new Promise(function (resolve) {
+      try { canvas.toBlob(function (b) { resolve(b); }, mime, quality); }
+      catch (e) { resolve(null); }
+    });
+  }
+
+  function updateQualityRow() {
+    var mime = current ? pickMime(outFmt, current.mime) : 'image/jpeg';
+    qualityRow.classList.toggle('off', !isLossy(mime));
+  }
+
+  // ================= example generator =================
+  // Draws a small scene on a canvas (canvas export has NO metadata), then splices
+  // a hand-built EXIF APP1 segment (camera + lens + GPS) into the JPEG bytes.
+  async function loadExample() {
+    hideError();
+    setStatus('Generating an example photo with embedded EXIF + GPS…', true);
+    try {
+      var w = 480, h = 320;
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      var ctx = c.getContext('2d');
+      var sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, '#2a2350'); sky.addColorStop(0.6, '#7a5b8e'); sky.addColorStop(1, '#e0a458');
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = 'rgba(255,236,190,0.95)'; ctx.beginPath(); ctx.arc(w * 0.72, h * 0.34, 34, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#171226';
+      ctx.beginPath(); ctx.moveTo(0, h);
+      ctx.lineTo(0, h * 0.72); ctx.lineTo(w * 0.22, h * 0.6); ctx.lineTo(w * 0.42, h * 0.74);
+      ctx.lineTo(w * 0.63, h * 0.56); ctx.lineTo(w * 0.85, h * 0.7); ctx.lineTo(w, h * 0.62); ctx.lineTo(w, h);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(184,165,214,0.9)'; ctx.font = '12px monospace';
+      ctx.fillText('penumbra forge — sample EXIF photo', 12, h - 14);
+
+      var jpegBlob = await toBlob(c, 'image/jpeg', 0.9);
+      if (!jpegBlob) throw new Error('canvas encode failed');
+      var jpegBytes = new Uint8Array(await jpegBlob.arrayBuffer());
+      var app1 = buildExifApp1();
+      // insert APP1 right after SOI (first two bytes 0xFFD8)
+      var out = new Uint8Array(2 + app1.length + (jpegBytes.length - 2));
+      out.set(jpegBytes.subarray(0, 2), 0);
+      out.set(app1, 2);
+      out.set(jpegBytes.subarray(2), 2 + app1.length);
+      var blob = new Blob([out], { type: 'image/jpeg' });
+      fileInput.value = '';
+      fileInfo.textContent = 'example-photo.jpg (' + fmtBytes(blob.size) + ')  ·  generated locally';
+      await analyze(blob, 'example-photo.jpg');
+    } catch (e) {
+      showError('Could not generate the example in this browser.');
+    }
+  }
+
+  // Build a little-endian TIFF (IFD0 + Exif SubIFD + GPS IFD) wrapped as an APP1 segment.
+  function buildExifApp1() {
+    var buf = new ArrayBuffer(4096);
+    var dv = new DataView(buf);
+    var u8 = new Uint8Array(buf);
+    function strBytes(s) { var a = []; for (var i = 0; i < s.length; i++) a.push(s.charCodeAt(i) & 0xff); a.push(0); return a; }
+    function encode(entry) {
+      var t = entry.type, v = entry.val, bytes = [], count;
+      if (t === 2) { bytes = strBytes(v); count = bytes.length; }
+      else if (t === 3) { count = v.length; v.forEach(function (x) { bytes.push(x & 0xff, (x >> 8) & 0xff); }); }
+      else if (t === 4) { count = v.length; v.forEach(function (x) { bytes.push(x & 0xff, (x >> 8) & 0xff, (x >> 16) & 0xff, (x >> 24) & 0xff); }); }
+      else if (t === 1) { count = v.length; bytes = v.slice(); }
+      else if (t === 5 || t === 10) { count = v.length; v.forEach(function (pair) { [pair[0], pair[1]].forEach(function (x) { bytes.push(x & 0xff, (x >> 8) & 0xff, (x >> 16) & 0xff, (x >> 24) & 0xff); }); }); }
+      return { bytes: bytes, count: count };
+    }
+    function size(n) { return 2 + 12 * n + 4; }
+
+    var ifd0 = [
+      { tag: 0x010F, type: 2, val: 'Canon' },
+      { tag: 0x0110, type: 2, val: 'Canon EOS 5D Mark IV' },
+      { tag: 0x0112, type: 3, val: [1] },
+      { tag: 0x011A, type: 5, val: [[72, 1]] },
+      { tag: 0x011B, type: 5, val: [[72, 1]] },
+      { tag: 0x0128, type: 3, val: [2] },
+      { tag: 0x0131, type: 2, val: 'Adobe Photoshop 26.0 (Macintosh)' },
+      { tag: 0x0132, type: 2, val: '2026:06:14 09:41:22' },
+      { tag: 0x013B, type: 2, val: 'Jane Photographer' },
+      { tag: 0x8298, type: 2, val: '© 2026 Jane Photographer' },
+      { tag: 0x8769, type: 4, val: [0] },  // ExifOffset  (patched below)
+      { tag: 0x8825, type: 4, val: [0] }   // GPSInfo     (patched below)
+    ];
+    var exif = [
+      { tag: 0x829A, type: 5, val: [[1, 200]] },
+      { tag: 0x829D, type: 5, val: [[28, 10]] },
+      { tag: 0x8822, type: 3, val: [3] },
+      { tag: 0x8827, type: 3, val: [100] },
+      { tag: 0x9003, type: 2, val: '2026:06:14 09:41:22' },
+      { tag: 0x9004, type: 2, val: '2026:06:14 09:41:22' },
+      { tag: 0x9207, type: 3, val: [5] },
+      { tag: 0x9209, type: 3, val: [16] },
+      { tag: 0x920A, type: 5, val: [[50, 1]] },
+      { tag: 0xA001, type: 3, val: [1] },
+      { tag: 0xA402, type: 3, val: [0] },
+      { tag: 0xA403, type: 3, val: [0] },
+      { tag: 0xA405, type: 3, val: [50] },
+      { tag: 0xA434, type: 2, val: 'EF24-70mm f/2.8L II USM' },
+      { tag: 0xA435, type: 2, val: '000024011000771' }
+    ];
+    var gps = [
+      { tag: 0x0000, type: 1, val: [2, 3, 0, 0] },
+      { tag: 0x0001, type: 2, val: 'N' },
+      { tag: 0x0002, type: 5, val: [[48, 1], [51, 1], [3024, 100]] },
+      { tag: 0x0003, type: 2, val: 'E' },
+      { tag: 0x0004, type: 5, val: [[2, 1], [17, 1], [4020, 100]] },
+      { tag: 0x0005, type: 1, val: [0] },
+      { tag: 0x0006, type: 5, val: [[33, 1]] },
+      { tag: 0x001D, type: 2, val: '2026:06:14' }
+    ];
+
+    var ifd0Off = 8;
+    var exifOff = ifd0Off + size(ifd0.length);
+    var gpsOff = exifOff + size(exif.length);
+    var dataStart = gpsOff + size(gps.length);
+    ifd0[10].val = [exifOff];
+    ifd0[11].val = [gpsOff];
+
+    // TIFF header (little-endian "II")
+    u8[0] = 0x49; u8[1] = 0x49; dv.setUint16(2, 42, true); dv.setUint32(4, ifd0Off, true);
+
+    var dataPtr = dataStart;
+    function writeIFD(offset, entries, next) {
+      entries.sort(function (a, b) { return a.tag - b.tag; });
+      dv.setUint16(offset, entries.length, true);
+      var e = offset + 2;
+      entries.forEach(function (entry) {
+        var enc = encode(entry);
+        dv.setUint16(e, entry.tag, true);
+        dv.setUint16(e + 2, entry.type, true);
+        dv.setUint32(e + 4, enc.count, true);
+        if (enc.bytes.length <= 4) {
+          for (var i = 0; i < 4; i++) u8[e + 8 + i] = i < enc.bytes.length ? enc.bytes[i] : 0;
+        } else {
+          dv.setUint32(e + 8, dataPtr, true);
+          for (var j = 0; j < enc.bytes.length; j++) u8[dataPtr + j] = enc.bytes[j];
+          dataPtr += enc.bytes.length; if (dataPtr & 1) dataPtr++;
+        }
+        e += 12;
+      });
+      dv.setUint32(e, next || 0, true);
+    }
+    writeIFD(ifd0Off, ifd0, 0);
+    writeIFD(exifOff, exif, 0);
+    writeIFD(gpsOff, gps, 0);
+
+    var tiff = u8.subarray(0, dataPtr);
+    var payloadLen = 6 + tiff.length;                 // "Exif\0\0" + TIFF
+    var segLen = payloadLen + 2;                       // + length field
+    var app1 = new Uint8Array(2 + segLen);
+    app1[0] = 0xff; app1[1] = 0xe1;
+    app1[2] = (segLen >> 8) & 0xff; app1[3] = segLen & 0xff;
+    var exifSig = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00];
+    for (var k = 0; k < 6; k++) app1[4 + k] = exifSig[k];
+    app1.set(tiff, 10);
+    return app1;
+  }
+
+  // ================= clipboard + agent I/O =================
+  function copyText(text, btn, label) {
+    if (!text) return;
+    var done = function (ok) { if (btn) { btn.textContent = ok ? 'Copied!' : 'Copy failed'; btn.classList.toggle('copied', ok); setTimeout(function () { btn.textContent = label; btn.classList.remove('copied'); }, 1800); } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    else { try { var ta = el('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(true); } catch (e) { done(false); } }
+  }
+
+  function reportToJson(report) {
+    var meta = {};
+    report.rows.forEach(function (r) { (meta[r.group] = meta[r.group] || {})[r.label] = r.value; });
+    return {
+      format: report.format, bytes: report.size,
+      hasExif: !!report.hasExif, hasGps: !!report.gps,
+      gps: report.gps ? { lat: round(report.gps.lat, 6), lon: round(report.gps.lon, 6), altitude: report.gps.alt } : null,
+      hasXmp: !!report.xmp, hasIcc: !!report.icc, hasThumbnail: !!report.thumbnail,
+      makerNote: !!report.makerNote, tagCount: report.exifTagCount || 0, metadata: meta
+    };
+  }
+
+  copyJsonEl.addEventListener('click', function () {
+    if (!current) return;
+    copyText(JSON.stringify(reportToJson(current.report), null, 2), copyJsonEl, 'Copy metadata JSON');
+  });
+
+  function publishResult(report, cleanBlob) {
+    if (!window.PF) return;
+    try {
+      var summary;
+      if (report.gps) summary = 'GPS location found: ' + round(report.gps.lat, 6) + ', ' + round(report.gps.lon, 6) + '. ' + (report.exifTagCount || 0) + ' EXIF tag(s).';
+      else if (report.rows.length) summary = 'No GPS. ' + (report.exifTagCount || report.rows.length) + ' metadata field(s) found (' + report.format.toUpperCase() + ').';
+      else summary = 'No embedded metadata found (' + report.format.toUpperCase() + ').';
+      if (cleanBlob) summary += ' Clean copy: ' + fmtBytes(cleanBlob.size) + '.';
+      PF.ready({ output: summary, data: reportToJson(report) });
+    } catch (e) {}
+  }
+
+  // ================= wiring =================
+  function handleFile(file) {
+    if (!file) return;
+    fileInfo.textContent = file.name + ' (' + fmtBytes(file.size) + ')';
+    analyze(file, file.name);
+  }
+
+  dropZone.addEventListener('click', function () { fileInput.click(); });
+  dropZone.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+  fileInput.addEventListener('change', function () { if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]); });
+  dropZone.addEventListener('dragover', function (e) { e.preventDefault(); dropZone.style.borderColor = 'var(--accent, #b8a5d6)'; dropZone.style.background = 'color-mix(in oklab, var(--accent) 5%, transparent)'; });
+  dropZone.addEventListener('dragleave', function () { dropZone.style.borderColor = ''; dropZone.style.background = ''; });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault(); dropZone.style.borderColor = ''; dropZone.style.background = '';
+    var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  exampleBtn.addEventListener('click', function () { loadExample(); });
+  stripBtn.addEventListener('click', function () { strip(); });
+
+  Array.prototype.slice.call(fmtOpts.querySelectorAll('.tool-option')).forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      fmtOpts.querySelectorAll('.tool-option').forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      outFmt = btn.getAttribute('data-fmt');
+      updateQualityRow();
+    });
+  });
+  qualityEl.addEventListener('input', function () { qualityVal.textContent = qualityEl.value; });
+
+  // ---- agent invoke: /tools/exif-scrubber/?example=1 loads the demo ----
+  if (window.PF) {
+    var p = PF.input();
+    if (p.example != null || p.demo != null) loadExample();
+  }
+})();
+</script>

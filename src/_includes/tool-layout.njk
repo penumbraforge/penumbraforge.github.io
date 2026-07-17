@@ -2,7 +2,6 @@
 {% set toolData = tools | find("slug", toolSlug) %}
 
 {% block title %}{{ toolData.name }} — Free Online Tool | Penumbra Forge{% endblock %}
-
 {% block description %}{{ toolData.longDescription }}{% endblock %}
 
 {% block head %}
@@ -14,7 +13,15 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ toolData.name }} — Free Online Tool | Penumbra Forge">
 <meta name="twitter:description" content="{{ toolData.longDescription }}">
+<meta name="theme-color" content="#050509">
 {% endblock %}
+
+{% block headExtra %}<link rel="stylesheet" href="/css/tools.css?v=2">
+<link rel="alternate" type="text/markdown" href="/llms.txt" title="Penumbra Forge tools — for AI agents">
+<meta name="pf-tool" content="{{ toolSlug }}">
+<script src="/js/tool-io.js"></script>{% if toolData.category == "ai" %}
+<script src="/js/ai-engine.js"></script>
+<script src="/js/ai-ui.js"></script>{% endif %}{% endblock %}
 
 {% block jsonld %}
 <script type="application/ld+json">
@@ -26,16 +33,8 @@
   "url": "{{ site.url }}{{ page.url }}",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Any (browser-based)",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  },
-  "author": {
-    "@type": "Organization",
-    "name": "Penumbra Forge",
-    "url": "{{ site.url }}"
-  }
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Organization", "name": "Penumbra Forge", "url": "{{ site.url }}" }
 }
 </script>
 <script type="application/ld+json">
@@ -43,121 +42,135 @@
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Home",
-      "item": "{{ site.url }}/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "Tools",
-      "item": "{{ site.url }}/tools/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": "{{ toolData.category | capitalize }}",
-      "item": "{{ site.url }}/tools/?cat={{ toolData.category }}"
-    },
-    {
-      "@type": "ListItem",
-      "position": 4,
-      "name": "{{ toolData.name }}",
-      "item": "{{ site.url }}{{ page.url }}"
-    }
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "{{ site.url }}/" },
+    { "@type": "ListItem", "position": 2, "name": "Tools", "item": "{{ site.url }}/tools/" },
+    { "@type": "ListItem", "position": 3, "name": "{{ toolData.category | capitalize }}", "item": "{{ site.url }}/tools/?cat={{ toolData.category }}" },
+    { "@type": "ListItem", "position": 4, "name": "{{ toolData.name }}", "item": "{{ site.url }}{{ page.url }}" }
   ]
 }
 </script>
 {% endblock %}
 
 {% block body %}
-<div class="tool-page">
+<script type="application/json" id="pf-tool">{"slug":"{{ toolSlug }}","name":"{{ toolData.name | replace('"','') }}","category":"{{ toolData.category }}","url":"{{ site.url }}{{ page.url }}","description":"{{ toolData.description | replace('"','') }}"{% if toolData.invoke %},"invoke":{{ toolData.invoke | dump | safe }}{% endif %}}</script>
+<div class="wb-page" data-slug="{{ toolSlug }}">
 
-  <header class="site-header" id="site-header">
-    <div class="site-header-sidebar">
-      <a href="/" class="site-header-brand" title="Penumbra Forge">
-        <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
-              </a>
-    </div>
-    <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
-    <div class="site-header-main">
-      <nav class="site-header-nav">
-        <a href="/">Home</a>
-        <a href="/tools/" class="active">Tools</a>
-        <a href="/labs/">Labs</a>
-        <a href="/blog/">Blog</a>
-        <a href="/gate/">Gate</a>
-        <a href="/librarian/">Librarian</a>
-        <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
-      </nav>
-    </div>
+  <header class="wb-top">
+    <a href="/" class="wb-brand"><span class="wb-dot" aria-hidden="true"></span>Penumbra&nbsp;Forge</a>
+    <nav>
+      <a href="/tools/" class="active">Tools</a>
+      <a href="/blog/">Blog</a>
+      <button class="wb-open-palette" data-open-palette aria-label="Search tools">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Search <kbd>&#8984;K</kbd>
+      </button>
+    </nav>
   </header>
 
-  <div class="tools-layout">
-    {% include "sidebar.njk" %}
+  <div class="wb-shell">
+    <nav class="wb-breadcrumb" aria-label="Breadcrumb">
+      <a href="/tools/">Tools</a><span class="sep">/</span>
+      <a href="/tools/?cat={{ toolData.category }}">{{ toolData.category | capitalize }}</a><span class="sep">/</span>
+      <span class="cur">{{ toolData.name }}</span>
+    </nav>
 
-    <div class="tools-content">
-      <nav class="tool-nav" aria-label="Breadcrumb">
-        <a href="/tools/">Tools</a>
-        <span class="tool-nav-sep">&rsaquo;</span>
-        <a href="/tools/?cat={{ toolData.category }}">{{ toolData.category | capitalize }}</a>
-        <span class="tool-nav-sep">&rsaquo;</span>
-        <span class="tool-nav-current">{{ toolData.name }}</span>
-      </nav>
-
-      <div class="tool-header">
-        <h1>{{ toolData.name }}</h1>
-        {% if toolData.badge %}
-        <span class="tool-badge tool-badge--{{ toolData.badge }}">{{ toolData.badge }}</span>
-        {% endif %}
+    <div class="wb-head">
+      <div class="wb-head-main">
+        <h1>{{ toolData.name }}
+          {% if toolData.category == "ai" %}<span class="wb-chip">AI · local</span>{% elif toolData.badge == "worker" %}<span class="wb-chip">edge worker</span>{% elif toolData.badge == "cloud" %}<span class="wb-chip">cloud-assisted</span>{% else %}<span class="wb-chip">runs in browser</span>{% endif %}
+        </h1>
+        <p class="wb-about">{{ toolData.longDescription }}</p>
       </div>
-
-      <p class="tool-about">{{ toolData.longDescription }}</p>
-
-      <div class="tool-content">
-        {{ content | safe }}
+      <div class="wb-toolbar">
+        <button class="wb-tbtn" id="wbFav" aria-pressed="false" title="Pin to favorites">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <span id="wbFavLabel">Pin</span>
+        </button>
+        <button class="wb-tbtn" id="wbShare" title="Copy link to this tool">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>
+          Share
+        </button>
       </div>
-
-      {% if toolData.relatedTools and toolData.relatedTools.length %}
-      <section class="tool-related" style="margin-top: 40px;">
-        <div class="section-divider"><span>Related tools</span></div>
-        <div class="tool-related-grid">
-          {% for relatedSlug in toolData.relatedTools %}
-            {% set relatedTool = tools | find("slug", relatedSlug) %}
-            {% if relatedTool and relatedTool.status == "live" %}
-            <a href="/tools/{{ relatedTool.slug }}/" class="t-card tool-related-card">
-              <h4>{{ relatedTool.name }}</h4>
-              <p>{{ relatedTool.description }}</p>
-            </a>
-            {% endif %}
-          {% endfor %}
-        </div>
-      </section>
-      {% endif %}
-
-      <footer class="footer tool-footer-unified">
-        <div class="footer-left">
-          <span>&copy; 2026 Penumbra Forge</span>
-        </div>
-        <div class="footer-center">
-          <a href="/">Home</a>
-          <a href="/tools/">Tools</a>
-          <a href="/labs/">Labs</a>
-          <a href="/blog/">Blog</a>
-          <a href="/gate/">Gate</a>
-          <a href="/librarian/">Librarian</a>
-        </div>
-        <div class="footer-right">
-          <a href="https://github.com/penumbraforge">GitHub</a>
-          <a href="/privacy.html">Privacy</a>
-          <a href="/terms.html">Terms</a>
-        </div>
-      </footer>
     </div>
+
+    {% if toolData.category == "ai" %}<div id="aiBar"></div>{% endif %}
+
+    <div class="tool-content">
+      {{ content | safe }}
+    </div>
+
+    {% if toolData.category != "ai" %}
+    <div class="wb-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/><path d="M9 12l2 2 4-4"/></svg>
+      <p><strong>Private by design.</strong> {% if toolData.badge == "worker" %}This tool scans via a stateless edge worker — nothing is stored or logged.{% elif toolData.badge == "cloud" %}This tool is cloud-assisted for the lookup step only; your other inputs stay in your browser.{% else %}Everything runs entirely in your browser. No accounts, no tracking, nothing uploaded.{% endif %}</p>
+    </div>
+    {% endif %}
+
+    {% if toolData.relatedTools and toolData.relatedTools.length %}
+    <section class="wb-related">
+      <div class="wb-related-label">Related tools</div>
+      <div class="wb-related-grid">
+        {% for relatedSlug in toolData.relatedTools %}
+          {% set relatedTool = tools | find("slug", relatedSlug) %}
+          {% if relatedTool and relatedTool.status == "live" %}
+          <a href="/tools/{{ relatedTool.slug }}/" class="wb-related-card">
+            <h4>{{ relatedTool.name }}</h4>
+            <p>{{ relatedTool.description }}</p>
+          </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
   </div>
+
+  <footer class="wb-foot">
+    <span>&copy; 2026 Penumbra Forge · 0 servers · 0 tracking</span>
+    <div class="links">
+      <a href="/tools/">All tools</a>
+      <a href="/blog/">Blog</a>
+      <a href="https://github.com/penumbraforge">GitHub</a>
+      <a href="/privacy.html">Privacy</a>
+    </div>
+  </footer>
+
+  {% include "command-palette.njk" %}
+  <div class="wb-toast" id="wbToast" role="status" aria-live="polite"></div>
 </div>
 
-{% include "sidebar-js.njk" %}
+{% if toolData.category == "ai" %}
+<script>(function(){ var b=document.getElementById('aiBar'); if(b && window.PenumbraAIUI) PenumbraAIUI.mountBar(b); })();</script>
+{% endif %}
+
+<script>
+(function () {
+  var slug = document.querySelector('.wb-page').getAttribute('data-slug');
+
+  function get(k){ try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch(e){ return []; } }
+  function set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  function toast(msg){ var t=document.getElementById('wbToast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove('show');},1800); }
+
+  // record recent visit
+  var rec = get('pf:recent').filter(function(s){ return s !== slug; });
+  rec.unshift(slug); set('pf:recent', rec.slice(0, 16));
+
+  // favorites
+  var favBtn = document.getElementById('wbFav'), favLabel = document.getElementById('wbFavLabel');
+  function isFav(){ return get('pf:favs').indexOf(slug) !== -1; }
+  function paint(){ var on=isFav(); favBtn.classList.toggle('is-on', on); favBtn.setAttribute('aria-pressed', String(on)); favLabel.textContent = on ? 'Pinned' : 'Pin'; }
+  paint();
+  favBtn.addEventListener('click', function(){
+    var f = get('pf:favs'); var i = f.indexOf(slug);
+    if(i===-1){ f.push(slug); toast('Pinned to your tools'); } else { f.splice(i,1); toast('Unpinned'); }
+    set('pf:favs', f); paint();
+  });
+
+  // share
+  document.getElementById('wbShare').addEventListener('click', function(){
+    var url = location.href.split('#')[0];
+    if(navigator.clipboard) navigator.clipboard.writeText(url).then(function(){ toast('Link copied'); }, function(){ toast(url); });
+    else toast(url);
+  });
+})();
+</script>
 {% endblock %}

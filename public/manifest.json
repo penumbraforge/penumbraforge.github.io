@@ -1,7 +1,7 @@
 {
   "name": "Penumbra Forge",
   "short_name": "Penumbra Forge",
-  "description": "Security tools, labs & software — forged by Shadoe",
+  "description": "Privacy-first security tools and developer software \u2014 no accounts, no tracking",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#050509",

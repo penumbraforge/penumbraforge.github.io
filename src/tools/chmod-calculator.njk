@@ -3,228 +3,579 @@ toolSlug: chmod-calculator
 permalink: /tools/chmod-calculator/
 ---
 
-<div class="tool-row" style="flex-wrap:wrap;gap:16px;align-items:flex-start;">
+<style>
+  .pa-wrap { display:flex; flex-wrap:wrap; gap:18px; align-items:flex-start; }
+  .pa-col { flex:1; min-width:280px; display:flex; flex-direction:column; gap:14px; }
 
-  <div style="flex:1;min-width:280px;">
-    <div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:0;border:1px solid var(--border);border-radius:4px;overflow:hidden;">
+  .pa-matrix {
+    display:grid; grid-template-columns:auto 1fr 1fr 1fr; gap:0;
+    border:1px solid var(--wb-line); border-radius:4px; overflow:hidden;
+  }
+  .pa-matrix .h {
+    padding:9px 0; background:var(--surface-1); border-bottom:1px solid var(--wb-line);
+    font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:2px;
+    color:var(--slate); text-align:center;
+  }
+  .pa-matrix .h.who { padding-left:13px; text-align:left; }
+  .pa-matrix .rl {
+    padding:11px 13px; border-bottom:1px solid var(--wb-line); border-right:1px solid var(--wb-line);
+    font-family:var(--font-mono); font-size:11px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--text-1); display:flex; align-items:center; gap:8px;
+  }
+  .pa-matrix .rl small { color:var(--text-3); font-size:10px; }
+  .pa-matrix .cell {
+    border-bottom:1px solid var(--wb-line); border-right:1px solid var(--wb-line);
+    display:flex; align-items:center; justify-content:center; padding:11px 0;
+  }
+  .pa-matrix .cell:nth-child(4n) { border-right:0; }
+  .pa-matrix > *:nth-last-child(-n+4) { border-bottom:0; }
 
-      <!-- Header row -->
-      <div style="padding:8px 12px;background:var(--surface-1);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);"></div>
-      <div style="padding:8px 0;background:var(--surface-1);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);text-align:center;">Read</div>
-      <div style="padding:8px 0;background:var(--surface-1);border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);text-align:center;">Write</div>
-      <div style="padding:8px 0;background:var(--surface-1);border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);text-align:center;">Execute</div>
+  .chmod-cb {
+    -webkit-appearance:none; appearance:none; margin:0;
+    width:20px; height:20px; border:1px solid var(--wb-line); border-radius:4px;
+    background:#06060d; cursor:pointer; position:relative; transition:border-color 140ms, background 140ms;
+  }
+  .chmod-cb:hover { border-color:color-mix(in oklab, var(--accent) 45%, transparent); }
+  .chmod-cb:focus-visible { outline:none; box-shadow:0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent); }
+  .chmod-cb:checked { background:var(--accent); border-color:var(--accent); }
+  .chmod-cb:checked::after {
+    content:""; position:absolute; left:6px; top:2px; width:5px; height:10px;
+    border:solid #17121f; border-width:0 2px 2px 0; transform:rotate(43deg);
+  }
 
-      <!-- Owner row -->
-      <div style="padding:10px 12px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:12px;color:var(--text-1);font-weight:500;display:flex;align-items:center;">Owner</div>
-      <div style="padding:10px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
-        <input type="checkbox" id="cb-or" class="chmod-cb" data-who="o" data-perm="r" data-bit="256" checked aria-label="Owner read">
-      </div>
-      <div style="padding:10px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
-        <input type="checkbox" id="cb-ow" class="chmod-cb" data-who="o" data-perm="w" data-bit="128" checked aria-label="Owner write">
-      </div>
-      <div style="padding:10px 0;border-bottom:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
-        <input type="checkbox" id="cb-ox" class="chmod-cb" data-who="o" data-perm="x" data-bit="64" aria-label="Owner execute">
-      </div>
+  .pa-special { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; border:1px solid var(--wb-line); border-radius:4px; overflow:hidden; }
+  .pa-special label {
+    display:flex; align-items:center; gap:9px; padding:11px 13px; cursor:pointer; margin:0;
+    border-right:1px solid var(--wb-line);
+    font-family:var(--font-mono); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--text-1);
+  }
+  .pa-special label:last-child { border-right:0; }
+  .pa-special label em { color:var(--text-3); font-style:normal; font-size:10px; margin-left:auto; }
 
-      <!-- Group row -->
-      <div style="padding:10px 12px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:12px;color:var(--text-1);font-weight:500;display:flex;align-items:center;">Group</div>
-      <div style="padding:10px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
-        <input type="checkbox" id="cb-gr" class="chmod-cb" data-who="g" data-perm="r" data-bit="32" checked aria-label="Group read">
-      </div>
-      <div style="padding:10px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
-        <input type="checkbox" id="cb-gw" class="chmod-cb" data-who="g" data-perm="w" data-bit="16" aria-label="Group write">
-      </div>
-      <div style="padding:10px 0;border-bottom:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
-        <input type="checkbox" id="cb-gx" class="chmod-cb" data-who="g" data-perm="x" data-bit="8" aria-label="Group execute">
-      </div>
+  .pa-big { font-family:var(--font-mono); font-size:22px; letter-spacing:0.12em; width:110px; }
+  .pa-symstr { font-family:var(--font-mono); font-size:18px; letter-spacing:0.14em; color:var(--text-1); }
+  .pa-inline-copy { position:static !important; }
 
-      <!-- Other row -->
-      <div style="padding:10px 12px;border-right:1px solid var(--border);font-size:12px;color:var(--text-1);font-weight:500;display:flex;align-items:center;">Other</div>
-      <div style="padding:10px 0;border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
-        <input type="checkbox" id="cb-wr" class="chmod-cb" data-who="w" data-perm="r" data-bit="4" checked aria-label="Other read">
-      </div>
-      <div style="padding:10px 0;border-right:1px solid var(--border);text-align:center;display:flex;align-items:center;justify-content:center;">
-        <input type="checkbox" id="cb-ww" class="chmod-cb" data-who="w" data-perm="w" data-bit="2" aria-label="Other write">
-      </div>
-      <div style="padding:10px 0;text-align:center;display:flex;align-items:center;justify-content:center;">
-        <input type="checkbox" id="cb-wx" class="chmod-cb" data-who="w" data-perm="x" data-bit="1" aria-label="Other execute">
-      </div>
+  .pa-audit { margin-top:6px; }
+  .pa-summary {
+    font-family:var(--font-sans); font-size:13.5px; line-height:1.7; color:var(--text-1);
+    padding:14px 16px; background:#06060d; border:1px solid var(--wb-line); border-radius:4px;
+  }
+  .pa-summary b { color:var(--accent); font-weight:600; }
+  .pa-findings { list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .pa-finding {
+    display:flex; gap:11px; align-items:flex-start;
+    padding:11px 14px; border:1px solid var(--wb-line); border-radius:4px; background:var(--surface-1);
+  }
+  .pa-finding.crit { border-color:color-mix(in oklab, #eb5757 45%, transparent); background:color-mix(in oklab, #eb5757 8%, transparent); }
+  .pa-finding.warn { border-color:color-mix(in oklab, #e8a87c 40%, transparent); background:color-mix(in oklab, #e8a87c 7%, transparent); }
+  .pa-finding.ok   { border-color:color-mix(in oklab, var(--sage) 32%, transparent); background:color-mix(in oklab, var(--sage) 6%, transparent); }
+  .pa-dot { width:9px; height:9px; border-radius:50%; margin-top:5px; flex:none; }
+  .pa-dot.crit { background:#eb5757; box-shadow:0 0 8px 0 color-mix(in oklab,#eb5757 60%,transparent); }
+  .pa-dot.warn { background:#e8a87c; }
+  .pa-dot.ok   { background:var(--sage); }
+  .pa-ftext { font-size:13px; line-height:1.6; color:var(--text-1); }
+  .pa-ftext code { font-family:var(--font-mono); font-size:11.5px; color:var(--accent); background:color-mix(in oklab, var(--accent) 9%, transparent); padding:1px 5px; border-radius:2px; }
+  .pa-sev {
+    font-family:var(--font-mono); font-size:9px; letter-spacing:1.5px; text-transform:uppercase;
+    padding:2px 6px; border-radius:2px; margin-right:8px; vertical-align:middle;
+  }
+  .pa-sev.crit { color:#eb5757; border:1px solid color-mix(in oklab,#eb5757 40%,transparent); }
+  .pa-sev.warn { color:#e8a87c; border:1px solid color-mix(in oklab,#e8a87c 40%,transparent); }
+  .pa-sev.ok   { color:var(--sage); border:1px solid color-mix(in oklab,var(--sage) 35%,transparent); }
+  .pa-presets { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .pa-mini { font-family:var(--font-mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--slate); }
+</style>
 
+<div class="pa-wrap">
+
+  <!-- ── Left: permission matrix + special bits ── -->
+  <div class="pa-col" style="max-width:420px;">
+    <div class="pa-matrix" role="group" aria-label="Permission matrix">
+      <div class="h who">Class</div>
+      <div class="h">Read</div>
+      <div class="h">Write</div>
+      <div class="h">Exec</div>
+
+      <div class="rl">Owner <small>u</small></div>
+      <div class="cell"><input type="checkbox" class="chmod-cb" data-bit="256" checked aria-label="Owner read"></div>
+      <div class="cell"><input type="checkbox" class="chmod-cb" data-bit="128" checked aria-label="Owner write"></div>
+      <div class="cell"><input type="checkbox" class="chmod-cb" data-bit="64" aria-label="Owner execute"></div>
+
+      <div class="rl">Group <small>g</small></div>
+      <div class="cell"><input type="checkbox" class="chmod-cb" data-bit="32" checked aria-label="Group read"></div>
+      <div class="cell"><input type="checkbox" class="chmod-cb" data-bit="16" aria-label="Group write"></div>
+      <div class="cell"><input type="checkbox" class="chmod-cb" data-bit="8" aria-label="Group execute"></div>
+
+      <div class="rl">Other <small>o</small></div>
+      <div class="cell"><input type="checkbox" class="chmod-cb" data-bit="4" checked aria-label="Other read"></div>
+      <div class="cell"><input type="checkbox" class="chmod-cb" data-bit="2" aria-label="Other write"></div>
+      <div class="cell"><input type="checkbox" class="chmod-cb" data-bit="1" aria-label="Other execute"></div>
+    </div>
+
+    <div>
+      <div class="pa-mini" style="margin-bottom:8px;">Special bits</div>
+      <div class="pa-special" role="group" aria-label="Special permission bits">
+        <label><input type="checkbox" class="chmod-cb" data-bit="2048" aria-label="Setuid bit"> setuid <em>4000</em></label>
+        <label><input type="checkbox" class="chmod-cb" data-bit="1024" aria-label="Setgid bit"> setgid <em>2000</em></label>
+        <label><input type="checkbox" class="chmod-cb" data-bit="512" aria-label="Sticky bit"> sticky <em>1000</em></label>
+      </div>
+    </div>
+
+    <div class="tool-group" style="margin-bottom:0;">
+      <label>Target type <span style="color:var(--text-3);">(tunes the audit)</span></label>
+      <div class="tool-options" role="group" aria-label="Target type">
+        <button class="tool-option active" data-type="file" aria-pressed="true">File</button>
+        <button class="tool-option" data-type="script" aria-pressed="false">Script</button>
+        <button class="tool-option" data-type="dir" aria-pressed="false">Directory</button>
+      </div>
     </div>
   </div>
 
-  <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:12px;">
-
+  <!-- ── Right: octal / symbolic / command ── -->
+  <div class="pa-col">
     <div class="tool-group" style="margin-bottom:0;">
-      <label for="chmod-numeric" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Numeric (Octal)</label>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input type="text" id="chmod-numeric" value="644" maxlength="4" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);font-size:20px;width:90px;letter-spacing:0.1em;">
-        <button class="btn btn--copy" id="copy-numeric" aria-label="Copy numeric value" style="position:static;">Copy</button>
+      <label for="pa-octal">Numeric (octal)</label>
+      <div class="tool-row" style="gap:8px;align-items:center;">
+        <input type="text" id="pa-octal" class="pa-big" value="644" maxlength="4" inputmode="numeric" spellcheck="false" autocomplete="off" aria-label="Octal permission value">
+        <button class="btn btn--copy pa-inline-copy" id="pa-copy-octal" aria-label="Copy octal value">Copy</button>
       </div>
     </div>
 
     <div class="tool-group" style="margin-bottom:0;">
-      <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Symbolic</label>
-      <div id="chmod-symbolic" style="font-family:var(--font-mono);font-size:16px;color:var(--text-1);padding:8px 0;letter-spacing:0.06em;"></div>
-    </div>
-
-    <div class="tool-group" style="margin-bottom:0;">
-      <label for="chmod-filename" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Filename</label>
-      <input type="text" id="chmod-filename" value="filename" spellcheck="false" autocomplete="off">
-    </div>
-
-    <div class="tool-group" style="margin-bottom:0;">
-      <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Command</label>
-      <div class="output-area" style="min-height:auto;padding:10px 70px 10px 12px;">
-        <button class="btn btn--copy" id="copy-command" aria-label="Copy chmod command">Copy</button>
-        <span id="chmod-command" style="font-family:var(--font-mono);font-size:13px;"></span>
+      <label>Symbolic notation</label>
+      <div class="tool-row" style="gap:8px;align-items:center;">
+        <span id="pa-symstr" class="pa-symstr" aria-live="polite" aria-label="Symbolic notation"></span>
+        <button class="btn btn--copy pa-inline-copy" id="pa-copy-sym" aria-label="Copy symbolic notation" style="margin-left:auto;">Copy</button>
       </div>
     </div>
 
+    <div class="tool-group" style="margin-bottom:0;">
+      <label for="pa-ops">Apply symbolic ops <span style="color:var(--text-3);">or paste rwxr-xr-x</span></label>
+      <div class="tool-row" style="gap:8px;align-items:stretch;">
+        <input type="text" id="pa-ops" placeholder="u+x, go-w" spellcheck="false" autocomplete="off" style="flex:1;" aria-label="Symbolic operations">
+        <button class="btn" id="pa-apply">Apply</button>
+      </div>
+    </div>
+
+    <div class="tool-group" style="margin-bottom:0;">
+      <label for="pa-filename">Filename</label>
+      <input type="text" id="pa-filename" value="filename" spellcheck="false" autocomplete="off">
+    </div>
+
+    <div class="tool-group" style="margin-bottom:0;">
+      <label>Command</label>
+      <div class="output-area" style="padding:12px 72px 12px 14px; position:relative;">
+        <button class="btn btn--copy" id="pa-copy-cmd" aria-label="Copy chmod command">Copy</button>
+        <span id="pa-command" style="font-family:var(--font-mono);font-size:13px;"></span>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="tool-row" style="align-items:center;flex-wrap:wrap;gap:8px;margin-top:4px;">
-  <span style="font-size:12px;color:var(--text-2);margin-right:4px;">Presets:</span>
+<div class="tool-row pa-presets" style="margin-top:16px;">
+  <span class="pa-mini" style="margin-right:2px;">Presets</span>
   <button class="tool-option" data-mode="644">644</button>
   <button class="tool-option" data-mode="755">755</button>
   <button class="tool-option" data-mode="700">700</button>
   <button class="tool-option" data-mode="600">600</button>
   <button class="tool-option" data-mode="777">777</button>
   <button class="tool-option" data-mode="400">400</button>
+  <button class="tool-option" data-mode="4755">4755</button>
+  <button class="tool-option" data-mode="2755">2755</button>
+  <button class="tool-option" data-mode="1777">1777</button>
+  <button class="btn" id="pa-example" style="margin-left:auto;">Load example</button>
+</div>
+
+<div id="pa-error" role="alert" aria-live="assertive" class="tool-error" style="display:none;margin-top:14px;"></div>
+
+<div class="pa-audit">
+  <div class="pa-mini" style="margin:22px 0 10px;">Security audit</div>
+  <div id="pa-summary" class="pa-summary" aria-live="polite"></div>
+  <ul id="pa-findings" class="pa-findings" aria-live="polite"></ul>
 </div>
 
 <script>
 (function () {
-  var numericEl  = document.getElementById('chmod-numeric');
-  var symbolicEl = document.getElementById('chmod-symbolic');
-  var commandEl  = document.getElementById('chmod-command');
-  var filenameEl = document.getElementById('chmod-filename');
-  var copyNum    = document.getElementById('copy-numeric');
-  var copyCmd    = document.getElementById('copy-command');
+  var octalEl   = document.getElementById('pa-octal');
+  var symEl     = document.getElementById('pa-symstr');
+  var opsEl     = document.getElementById('pa-ops');
+  var applyBtn  = document.getElementById('pa-apply');
+  var cmdEl     = document.getElementById('pa-command');
+  var fnameEl   = document.getElementById('pa-filename');
+  var errEl     = document.getElementById('pa-error');
+  var sumEl     = document.getElementById('pa-summary');
+  var findEl    = document.getElementById('pa-findings');
+  var exampleBtn= document.getElementById('pa-example');
+  var cbs       = Array.prototype.slice.call(document.querySelectorAll('.chmod-cb'));
+  var typeBtns  = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-type]'));
+  var presetBtns= Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
 
-  var checkboxes = Array.prototype.slice.call(document.querySelectorAll('.chmod-cb'));
+  var SU = 2048, SG = 1024, ST = 512; // 04000, 02000, 01000
+  var targetType = 'file';
 
-  /* bits: Owner=256/128/64, Group=32/16/8, Other=4/2/1 */
-
-  function getValueFromCheckboxes() {
-    var val = 0;
-    checkboxes.forEach(function (cb) {
-      if (cb.checked) val += parseInt(cb.getAttribute('data-bit'), 10);
-    });
-    return val;
+  // ---------- model ----------
+  function getMode() {
+    var v = 0;
+    cbs.forEach(function (cb) { if (cb.checked) v += parseInt(cb.getAttribute('data-bit'), 10); });
+    return v;
   }
-
-  function setCheckboxesFromValue(val) {
-    checkboxes.forEach(function (cb) {
+  function setMode(mode) {
+    cbs.forEach(function (cb) {
       var bit = parseInt(cb.getAttribute('data-bit'), 10);
-      cb.checked = (val & bit) !== 0;
+      cb.checked = (mode & bit) !== 0;
+    });
+  }
+  function octalStr(mode) {
+    var s = (mode & 4095).toString(8);
+    while (s.length < 3) s = '0' + s;
+    return s;
+  }
+  function triad(r, w, x, special, ch) {
+    var s = (r ? 'r' : '-') + (w ? 'w' : '-');
+    if (special) s += x ? ch : ch.toUpperCase();
+    else s += x ? 'x' : '-';
+    return s;
+  }
+  function toSymbolic(m) {
+    return triad(m & 256, m & 128, m & 64,  m & SU, 's')
+         + triad(m & 32,  m & 16,  m & 8,   m & SG, 's')
+         + triad(m & 4,   m & 2,   m & 1,   m & ST, 't');
+  }
+
+  // ---------- symbolic parsing ----------
+  function tryPermString(v) {
+    var s = v.replace(/\s+/g, '');
+    if (s.length === 10) s = s.slice(1); // drop leading file-type char
+    if (s.length !== 9) return null;
+    var m = 0;
+    // owner
+    if (s[0] === 'r') m |= 256; else if (s[0] !== '-') return null;
+    if (s[1] === 'w') m |= 128; else if (s[1] !== '-') return null;
+    if (s[2] === 'x') m |= 64;
+    else if (s[2] === 's') { m |= 64; m |= SU; }
+    else if (s[2] === 'S') { m |= SU; }
+    else if (s[2] !== '-') return null;
+    // group
+    if (s[3] === 'r') m |= 32; else if (s[3] !== '-') return null;
+    if (s[4] === 'w') m |= 16; else if (s[4] !== '-') return null;
+    if (s[5] === 'x') m |= 8;
+    else if (s[5] === 's') { m |= 8; m |= SG; }
+    else if (s[5] === 'S') { m |= SG; }
+    else if (s[5] !== '-') return null;
+    // other
+    if (s[6] === 'r') m |= 4; else if (s[6] !== '-') return null;
+    if (s[7] === 'w') m |= 2; else if (s[7] !== '-') return null;
+    if (s[8] === 'x') m |= 1;
+    else if (s[8] === 't') { m |= 1; m |= ST; }
+    else if (s[8] === 'T') { m |= ST; }
+    else if (s[8] !== '-') return null;
+    return m;
+  }
+
+  function applyOps(base, expr) {
+    var st = {
+      u: { r: !!(base & 256), w: !!(base & 128), x: !!(base & 64) },
+      g: { r: !!(base & 32),  w: !!(base & 16),  x: !!(base & 8) },
+      o: { r: !!(base & 4),   w: !!(base & 2),   x: !!(base & 1) },
+      suid: !!(base & SU), sgid: !!(base & SG), sticky: !!(base & ST)
+    };
+    var clauses = expr.split(',');
+    for (var i = 0; i < clauses.length; i++) {
+      var clause = clauses[i].trim();
+      if (!clause) continue;
+      var mm = clause.match(/^([ugoa]*)([+\-=])([rwxXst]*)$/);
+      if (!mm) throw new Error('unrecognized clause "' + clause + '"');
+      var who = mm[1] || 'a';
+      if (who.indexOf('a') !== -1) who = 'ugo';
+      var op = mm[2], perms = mm[3];
+      var hasR = perms.indexOf('r') !== -1;
+      var hasW = perms.indexOf('w') !== -1;
+      var hasX = perms.indexOf('x') !== -1;
+      var hasCapX = perms.indexOf('X') !== -1;
+      var hasS = perms.indexOf('s') !== -1;
+      var hasT = perms.indexOf('t') !== -1;
+      var anyX = st.u.x || st.g.x || st.o.x;
+      var setX = hasX || (hasCapX && (anyX || targetType === 'dir'));
+
+      var classes = [];
+      if (who.indexOf('u') !== -1) classes.push('u');
+      if (who.indexOf('g') !== -1) classes.push('g');
+      if (who.indexOf('o') !== -1) classes.push('o');
+
+      for (var c = 0; c < classes.length; c++) {
+        var k = classes[c];
+        if (op === '=') { st[k].r = false; st[k].w = false; st[k].x = false; }
+        if (op === '+' || op === '=') {
+          if (hasR) st[k].r = true;
+          if (hasW) st[k].w = true;
+          if (setX) st[k].x = true;
+        } else if (op === '-') {
+          if (hasR) st[k].r = false;
+          if (hasW) st[k].w = false;
+          if (setX) st[k].x = false;
+        }
+      }
+      // special bits
+      if (hasS) {
+        if (op === '-') {
+          if (who.indexOf('u') !== -1) st.suid = false;
+          if (who.indexOf('g') !== -1) st.sgid = false;
+        } else {
+          if (who.indexOf('u') !== -1) st.suid = true;
+          if (who.indexOf('g') !== -1) st.sgid = true;
+        }
+      } else if (op === '=') {
+        if (who.indexOf('u') !== -1) st.suid = false;
+        if (who.indexOf('g') !== -1) st.sgid = false;
+      }
+      if (hasT) {
+        st.sticky = (op !== '-');
+      } else if (op === '=' && who.indexOf('o') !== -1) {
+        st.sticky = false;
+      }
+    }
+    var mode = 0;
+    if (st.u.r) mode |= 256; if (st.u.w) mode |= 128; if (st.u.x) mode |= 64;
+    if (st.g.r) mode |= 32;  if (st.g.w) mode |= 16;  if (st.g.x) mode |= 8;
+    if (st.o.r) mode |= 4;   if (st.o.w) mode |= 2;   if (st.o.x) mode |= 1;
+    if (st.suid) mode |= SU; if (st.sgid) mode |= SG; if (st.sticky) mode |= ST;
+    return mode;
+  }
+
+  function parseSymbolic(v, base) {
+    var ps = tryPermString(v);
+    if (ps !== null) return ps;
+    return applyOps(base, v);
+  }
+
+  // ---------- audit ----------
+  function classPhrase(r, w, x) {
+    var words = targetType === 'dir'
+      ? { r: 'list', w: 'add/remove files', x: 'enter' }
+      : { r: 'read', w: 'write', x: 'execute' };
+    var parts = [];
+    if (r) parts.push(words.r);
+    if (w) parts.push(words.w);
+    if (x) parts.push(words.x);
+    return parts.length ? parts.join(', ') : 'no access';
+  }
+
+  function buildAudit(m) {
+    var su = !!(m & SU), sg = !!(m & SG), st = !!(m & ST);
+    var ow = !!(m & 2);            // world-writable
+    var low9 = m & 511;
+    var ownerX = !!(m & 64);
+    var findings = [];
+    function add(level, txt) { findings.push({ level: level, text: txt }); }
+
+    // CRITICAL
+    if (su && ow) add('crit', 'Setuid + world-writable: any user can overwrite this file, and it executes with the owner’s privileges. Classic privilege-escalation path.');
+    if (sg && ow) add('crit', 'Setgid + world-writable: any user can overwrite this file, and it runs with its group’s privileges.');
+    if ((su || sg) && targetType === 'script') add('crit', 'Setuid/setgid on a script: ignored by most modern kernels, and a serious escalation risk where honored. Wrap the logic in a compiled binary instead.');
+    if (low9 === 511) add('crit', '0777 — full read, write, and execute for everyone. Any account on the host can modify or replace this.');
+
+    // WARNING
+    if (su && !ow && targetType !== 'script') add('warn', 'Setuid bit set — this always runs as its owner (often root). Verify the binary is trusted and cannot be tampered with.');
+    if (sg && !ow && targetType !== 'script') add('warn', targetType === 'dir'
+      ? 'Setgid on a directory — new files inherit the directory’s group. Intentional for shared project folders, otherwise review.'
+      : 'Setgid bit set — this runs with the file’s group. Verify that is intended.');
+    if (ow && targetType === 'dir' && !st) add('warn', 'World-writable directory without the sticky bit — any user can delete or rename other users’ files. Add the sticky bit: chmod +t.');
+    if (ow && targetType !== 'dir' && !su && !sg && low9 !== 511) add('warn', 'World-writable — any user on the system can modify this file’s contents.');
+    if (targetType === 'script' && !ownerX) add('warn', 'Marked as a script but the owner has no execute bit — it can’t be run as ./file.');
+    if (targetType === 'dir' && (m & 128) && !(m & 64)) add('warn', 'Owner can write to the directory but not enter it — without the execute (search) bit you can’t create or delete entries.');
+
+    // INFO / OK
+    if (st && targetType === 'dir') add('ok', 'Sticky bit — only a file’s owner (or root) can delete or rename entries. Correct for shared directories like /tmp.');
+    if (st && targetType !== 'dir') add('ok', 'Sticky bit set on a non-directory — modern systems ignore it on regular files.');
+    if (low9 === 0 && !su && !sg && !st) add('ok', 'No permission bits set — only root can access this.');
+
+    var hasIssue = findings.some(function (f) { return f.level === 'crit' || f.level === 'warn'; });
+    if (!hasIssue) {
+      var label = targetType === 'dir' ? 'directory' : targetType;
+      add('ok', 'No obvious permission risks for a ' + label + '.');
+    }
+
+    var order = { crit: 0, warn: 1, ok: 2 };
+    findings.sort(function (a, b) { return order[a.level] - order[b.level]; });
+    return findings;
+  }
+
+  function summaryText(m) {
+    var s = 'Owner can ' + classPhrase(m & 256, m & 128, m & 64)
+          + '. Group can ' + classPhrase(m & 32, m & 16, m & 8)
+          + '. Others can ' + classPhrase(m & 4, m & 2, m & 1) + '.';
+    var extra = [];
+    if (m & SU) extra.push('runs as the file owner (setuid)');
+    if (m & SG) extra.push(targetType === 'dir' ? 'new files inherit the group (setgid)' : 'runs with the file group (setgid)');
+    if (m & ST) extra.push(targetType === 'dir' ? 'entries deletable only by their owner (sticky)' : 'sticky bit set');
+    if (extra.length) s += ' Also: ' + extra.join('; ') + '.';
+    return s;
+  }
+
+  // ---------- render ----------
+  function sanitizeName(v) {
+    var n = (v || '').trim();
+    return n || 'filename';
+  }
+  function showError(msg) { errEl.textContent = msg; errEl.style.display = ''; }
+  function hideError() { errEl.textContent = ''; errEl.style.display = 'none'; }
+
+  function render(src) {
+    var mode = getMode();
+    var oct = octalStr(mode);
+    if (src !== 'octal') octalEl.value = oct;
+    var sym = toSymbolic(mode);
+    symEl.textContent = sym;
+    var cmd = 'chmod ' + oct + ' ' + sanitizeName(fnameEl.value);
+    cmdEl.textContent = cmd;
+
+    // audit
+    var findings = buildAudit(mode);
+    sumEl.textContent = summaryText(mode);
+    findEl.textContent = '';
+    findings.forEach(function (f) {
+      var li = document.createElement('li');
+      li.className = 'pa-finding ' + f.level;
+      var dot = document.createElement('span');
+      dot.className = 'pa-dot ' + f.level;
+      li.appendChild(dot);
+      var wrap = document.createElement('span');
+      wrap.className = 'pa-ftext';
+      var sev = document.createElement('span');
+      sev.className = 'pa-sev ' + f.level;
+      sev.textContent = f.level === 'crit' ? 'critical' : (f.level === 'warn' ? 'warning' : 'ok');
+      wrap.appendChild(sev);
+      wrap.appendChild(document.createTextNode(f.text));
+      li.appendChild(wrap);
+      findEl.appendChild(li);
+    });
+
+    publish(mode, oct, sym, cmd, findings);
+  }
+
+  function publish(mode, oct, sym, cmd, findings) {
+    if (!window.PF) return;
+    var warnings = findings.filter(function (f) { return f.level !== 'ok'; }).map(function (f) { return f.text; });
+    PF.ready({
+      output: oct + '  ' + sym,
+      data: {
+        octal: oct,
+        symbolic: sym,
+        special: { setuid: !!(mode & SU), setgid: !!(mode & SG), sticky: !!(mode & ST) },
+        target: targetType,
+        command: cmd,
+        summary: summaryText(mode),
+        warnings: warnings,
+        findings: findings.map(function (f) { return { severity: f.level, message: f.text }; })
+      }
     });
   }
 
-  function numericToSymbolic(val) {
-    var chars = '';
-    var bits = [[256, 'r'], [128, 'w'], [64, 'x'],
-                [32,  'r'], [16,  'w'], [8,  'x'],
-                [4,   'r'], [2,   'w'], [1,  'x']];
-    for (var i = 0; i < bits.length; i++) {
-      chars += (val & bits[i][0]) ? bits[i][1] : '-';
-    }
-    return chars;
+  // ---------- input handlers ----------
+  cbs.forEach(function (cb) { cb.addEventListener('change', function () { hideError(); render(); }); });
+
+  function applyOctal(raw, keepField) {
+    var v = String(raw).trim().replace(/^0o/i, '');
+    if (v === '') { hideError(); return; }
+    if (!/^[0-7]{1,4}$/.test(v)) { showError('Octal must be 1–4 digits, each 0–7 (e.g. 755 or 4755).'); return; }
+    hideError();
+    setMode(parseInt(v, 8));
+    render(keepField ? 'octal' : undefined);
   }
+  octalEl.addEventListener('input', function () { applyOctal(octalEl.value, true); });
+  octalEl.addEventListener('blur', function () { if (/^[0-7]{1,4}$/.test(octalEl.value.trim())) applyOctal(octalEl.value, false); });
 
-  function updateOutputs() {
-    var val     = getValueFromCheckboxes();
-    var octal   = val.toString(8).padStart ? val.toString(8) : val.toString(8);
-    /* ensure 3-digit octal */
-    while (octal.length < 3) octal = '0' + octal;
-    numericEl.value = octal;
-
-    var sym = numericToSymbolic(val);
-    symbolicEl.textContent = sym;
-
-    var fname = filenameEl.value.trim() || 'filename';
-    commandEl.textContent = 'chmod ' + octal + ' ' + fname;
-  }
-
-  function applyNumericInput() {
-    var raw = numericEl.value.trim();
-    /* accept 3-digit octal, possibly prefixed with 0 */
-    if (/^0?[0-7]{3}$/.test(raw)) {
-      var val = parseInt(raw, 8);
-      setCheckboxesFromValue(val);
-      var octal = val.toString(8);
-      while (octal.length < 3) octal = '0' + octal;
-      numericEl.value = octal;
-      symbolicEl.textContent = numericToSymbolic(val);
-      var fname = filenameEl.value.trim() || 'filename';
-      commandEl.textContent = 'chmod ' + octal + ' ' + fname;
+  function doApplyOps() {
+    var v = opsEl.value.trim();
+    if (!v) { hideError(); return; }
+    try {
+      var mode = parseSymbolic(v, getMode());
+      hideError();
+      setMode(mode);
+      render();
+    } catch (e) {
+      showError('Symbolic error: ' + e.message + '. Use clauses like u+x, go-w, a=r, or paste rwxr-xr-x.');
     }
   }
+  applyBtn.addEventListener('click', doApplyOps);
+  opsEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doApplyOps(); } });
 
-  /* Checkbox events */
-  checkboxes.forEach(function (cb) {
-    cb.addEventListener('change', updateOutputs);
-  });
+  fnameEl.addEventListener('input', function () { render(octalEl.value === octalStr(getMode()) ? undefined : 'octal'); });
 
-  /* Numeric input */
-  numericEl.addEventListener('input', applyNumericInput);
-
-  /* Filename input */
-  filenameEl.addEventListener('input', function () {
-    var octal = numericEl.value;
-    var fname = filenameEl.value.trim() || 'filename';
-    commandEl.textContent = 'chmod ' + octal + ' ' + fname;
-  });
-
-  /* Presets */
-  var presetBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
-  presetBtns.forEach(function (btn) {
+  typeBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
-      presetBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      typeBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
       btn.classList.add('active');
       btn.setAttribute('aria-pressed', 'true');
-
-      var octal = btn.getAttribute('data-mode');
-      numericEl.value = octal;
-      applyNumericInput();
+      targetType = btn.getAttribute('data-type');
+      render();
     });
   });
 
-  function copyText(text, btn, originalLabel) {
+  presetBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () { applyOctal(btn.getAttribute('data-mode'), false); });
+  });
+
+  exampleBtn.addEventListener('click', function () {
+    fnameEl.value = 'backup.sh';
+    var scriptBtn = document.querySelector('.tool-option[data-type="script"]');
+    if (scriptBtn) scriptBtn.click(); // sets targetType=script, renders
+    opsEl.value = 'u+s,go+w';
+    applyOctal('4757', false); // setuid + world-writable → critical demo
+  });
+
+  // ---------- copy ----------
+  function copyText(text, btn) {
     if (!text) return;
+    var done = function (ok) {
+      btn.textContent = ok ? 'Copied!' : 'Failed';
+      if (ok) btn.classList.add('copied');
+      setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+    };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () {
-        btn.textContent = 'Copied!';
-        setTimeout(function () { btn.textContent = originalLabel; }, 2000);
-      }).catch(function () {
-        btn.textContent = 'Failed';
-        setTimeout(function () { btn.textContent = originalLabel; }, 2000);
-      });
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
     } else {
       var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      try { document.execCommand('copy'); btn.textContent = 'Copied!'; }
-      catch (e) { btn.textContent = 'Failed'; }
-      document.body.removeChild(ta);
-      setTimeout(function () { btn.textContent = originalLabel; }, 2000);
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta); done(ok);
     }
   }
+  document.getElementById('pa-copy-octal').addEventListener('click', function () { copyText(octalEl.value, this); });
+  document.getElementById('pa-copy-sym').addEventListener('click', function () { copyText(symEl.textContent, this); });
+  document.getElementById('pa-copy-cmd').addEventListener('click', function () { copyText(cmdEl.textContent, this); });
 
-  copyNum.addEventListener('click', function () {
-    copyText(numericEl.value, copyNum, 'Copy');
-  });
+  // ---------- agent I/O + URL-invoke ----------
+  function setType(t) {
+    if (t !== 'file' && t !== 'script' && t !== 'dir') return;
+    var b = document.querySelector('.tool-option[data-type="' + t + '"]');
+    if (b) { typeBtns.forEach(function (x) { x.classList.remove('active'); x.setAttribute('aria-pressed', 'false'); }); b.classList.add('active'); b.setAttribute('aria-pressed', 'true'); targetType = t; }
+  }
 
-  copyCmd.addEventListener('click', function () {
-    copyText(commandEl.textContent, copyCmd, 'Copy');
-  });
+  render(); // initial (defaults to 644)
 
-  /* Initial render — match default checkboxes (Owner r+w = 644) */
-  updateOutputs();
+  if (window.PF) {
+    var p = PF.input();
+    if (p.type) setType(p.type);
+    if (p.name) fnameEl.value = String(p.name);
+    if (p.in != null && String(p.in).trim() !== '') {
+      var v = String(p.in).trim();
+      if (/^0?[0-7]{1,4}$/.test(v.replace(/^0o/i, ''))) {
+        applyOctal(v, false);
+      } else {
+        try {
+          var mode = parseSymbolic(v, getMode());
+          setMode(mode);
+          render();
+        } catch (e) {
+          PF.fail('Could not parse "' + v + '" as octal or symbolic permissions.');
+        }
+      }
+    } else {
+      render(); // republish with any type/name applied
+    }
+  }
 })();
 </script>

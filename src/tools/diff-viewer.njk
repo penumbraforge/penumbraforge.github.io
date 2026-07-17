@@ -4,61 +4,136 @@ permalink: /tools/diff-viewer/
 ---
 
 <style>
-  .dv-split { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem; }
-  @media(max-width:680px) { .dv-split { grid-template-columns:1fr; } }
-  .dv-diff-area { border:1px solid var(--color-border,#334155); border-radius:8px; overflow:auto; font-family:var(--font-mono,monospace); font-size:0.82rem; line-height:1.6; max-height:60vh; }
-  .dv-line { display:flex; min-width:max-content; }
-  .dv-line:hover { filter:brightness(1.15); }
-  .dv-linenum { min-width:3em; padding:0 0.5rem; text-align:right; color:var(--color-muted,#94a3b8); background:var(--color-surface-2,#1e293b); border-right:1px solid var(--color-border,#334155); user-select:none; flex-shrink:0; }
-  .dv-content { padding:0 0.75rem; white-space:pre; flex:1; }
-  .dv-add { background:rgba(34,197,94,0.12); }
-  .dv-add .dv-linenum { background:rgba(34,197,94,0.08); }
-  .dv-add .dv-content::before { content:'+'; color:#4ade80; margin-right:0.3em; }
-  .dv-del { background:rgba(248,113,113,0.12); }
-  .dv-del .dv-linenum { background:rgba(248,113,113,0.08); }
-  .dv-del .dv-content::before { content:'-'; color:#f87171; margin-right:0.3em; }
-  .dv-unchanged { background:transparent; }
-  .dv-unchanged .dv-content::before { content:' '; margin-right:0.3em; }
-  .dv-char-add { background:rgba(34,197,94,0.35); border-radius:2px; }
-  .dv-char-del { background:rgba(248,113,113,0.35); border-radius:2px; text-decoration:line-through; }
-  .dv-stats { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.75rem; font-size:0.82rem; }
-  .dv-stat-added { color:#4ade80; }
-  .dv-stat-removed { color:#f87171; }
-  .dv-stat-unchanged { color:var(--color-muted,#94a3b8); }
-  .dv-diff-header { padding:0.4rem 0.75rem; background:var(--color-surface-2,#1e293b); border-bottom:1px solid var(--color-border,#334155); font-size:0.75rem; color:var(--color-muted,#94a3b8); display:flex; gap:1rem; }
+  .dv-tool {
+    /* diff semantics, tuned to the workbench palette */
+    --dv-add: #6bcf8f;
+    --dv-del: #e0728f;
+    /* map the script's legacy --color-* fallbacks onto the workbench tokens
+       so the JS-drawn side-by-side divider stays cohesive */
+    --color-border: var(--wb-line);
+    --color-surface-2: #0c0c16;
+    --color-muted: var(--text-3);
+    --color-accent: var(--accent);
+  }
+  .dv-tool .tool-group { margin-bottom: 0; }
+
+  /* ---------- control bar ---------- */
+  .dv-bar { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin: 18px 0 20px; }
+  .dv-toggles { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .dv-bar .btn--primary { margin-left: auto; }
+
+  /* refined pill switches — the checkbox stays, the script still reads .checked */
+  .tool-content .dv-toggle {
+    display: inline-flex; align-items: center; gap: 10px; margin: 0;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.4px;
+    text-transform: none; color: var(--text-2); cursor: pointer; user-select: none;
+    transition: color 160ms;
+  }
+  .tool-content .dv-toggle:hover { color: var(--wb-ink); }
+  .dv-toggle input { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
+  .dv-switch {
+    position: relative; width: 34px; height: 18px; flex-shrink: 0;
+    background: #06060d; border: 1px solid var(--wb-line); border-radius: 20px;
+    transition: background 180ms var(--wb-ease), border-color 180ms var(--wb-ease);
+  }
+  .dv-switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--slate);
+    transition: transform 200ms var(--wb-ease), background 180ms;
+  }
+  .dv-toggle input:checked + .dv-switch {
+    background: color-mix(in oklab, var(--accent) 20%, transparent);
+    border-color: color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+  .dv-toggle input:checked + .dv-switch::after { transform: translateX(16px); background: var(--accent); }
+  .dv-toggle input:focus-visible + .dv-switch { box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 14%, transparent); }
+
+  /* ---------- result panel ---------- */
+  .dv-result { margin-top: 4px; }
+  .dv-result .wb-panel-bar { text-transform: none; }
+  .dv-panel-title { letter-spacing: 2px; text-transform: uppercase; color: var(--slate); }
+
+  .dv-stats {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.3px; text-transform: none;
+  }
+  .dv-stat-added    { color: var(--dv-add); }
+  .dv-stat-removed  { color: var(--dv-del); }
+  .dv-stat-unchanged { color: var(--text-3); }
+
+  /* ---------- diff surface ---------- */
+  .dv-diff-area {
+    border: 0; border-radius: 0; overflow: auto; max-height: 62vh;
+    background: #06060d; color: var(--text-1);
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.65;
+  }
+  .dv-line { display: flex; min-width: max-content; }
+  .dv-line:hover { filter: brightness(1.1); }
+  .dv-linenum {
+    min-width: 3.2em; padding: 0 0.7rem; text-align: right; flex-shrink: 0;
+    font-size: 11px; color: var(--text-3); user-select: none;
+    background: color-mix(in oklab, #fff 2.5%, transparent);
+    border-right: 1px solid var(--wb-line);
+  }
+  .dv-content { flex: 1; padding: 0 0.85rem; white-space: pre; }
+
+  .dv-add { background: color-mix(in oklab, var(--dv-add) 10%, transparent); }
+  .dv-add .dv-linenum { background: color-mix(in oklab, var(--dv-add) 16%, transparent); color: var(--dv-add); }
+  .dv-add .dv-content::before { content: '+'; color: var(--dv-add); margin-right: 0.6em; opacity: 0.8; }
+  .dv-del { background: color-mix(in oklab, var(--dv-del) 10%, transparent); }
+  .dv-del .dv-linenum { background: color-mix(in oklab, var(--dv-del) 16%, transparent); color: var(--dv-del); }
+  .dv-del .dv-content::before { content: '-'; color: var(--dv-del); margin-right: 0.6em; opacity: 0.8; }
+  .dv-unchanged { background: transparent; }
+  .dv-unchanged .dv-content::before { content: ' '; margin-right: 0.6em; }
+
+  .dv-char-add { background: color-mix(in oklab, var(--dv-add) 30%, transparent); border-radius: 2px; color: #eafff2; }
+  .dv-char-del { background: color-mix(in oklab, var(--dv-del) 28%, transparent); border-radius: 2px; text-decoration: line-through; color: #ffe9ef; }
+
+  @media (max-width: 680px) {
+    .dv-bar { gap: 12px; }
+    .dv-bar .btn--primary { margin-left: 0; width: 100%; }
+  }
 </style>
 
-<div class="dv-split">
-  <div class="tool-group" style="margin-bottom:0;">
-    <label for="dv-orig">Original</label>
-    <textarea id="dv-orig" rows="12" placeholder="Paste original text here…&#10;&#10;Example:&#10;The quick brown fox jumps over the lazy dog.&#10;This is the second line." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+<div class="dv-tool">
+  <div class="wb-split">
+    <div class="tool-group">
+      <label for="dv-orig">Original</label>
+      <textarea id="dv-orig" rows="10" placeholder="Paste original text here…&#10;&#10;Example:&#10;The quick brown fox jumps over the lazy dog.&#10;This is the second line." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+    </div>
+    <div class="tool-group">
+      <label for="dv-mod">Modified</label>
+      <textarea id="dv-mod" rows="10" placeholder="Paste modified text here…&#10;&#10;Example:&#10;The quick brown cat jumps over the lazy dog.&#10;This is the modified second line." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+    </div>
   </div>
-  <div class="tool-group" style="margin-bottom:0;">
-    <label for="dv-mod">Modified</label>
-    <textarea id="dv-mod" rows="12" placeholder="Paste modified text here…&#10;&#10;Example:&#10;The quick brown cat jumps over the lazy dog.&#10;This is the modified second line." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+
+  <div class="dv-bar">
+    <div class="tool-options" role="group" aria-label="Diff view">
+      <button class="tool-option active" data-view="unified" aria-pressed="true">Unified</button>
+      <button class="tool-option" data-view="split" aria-pressed="false">Side-by-side</button>
+    </div>
+    <div class="dv-toggles">
+      <label class="dv-toggle">
+        <input type="checkbox" id="dv-char-diff" checked>
+        <span class="dv-switch" aria-hidden="true"></span>
+        Character diff
+      </label>
+      <label class="dv-toggle">
+        <input type="checkbox" id="dv-ignore-whitespace">
+        <span class="dv-switch" aria-hidden="true"></span>
+        Ignore whitespace
+      </label>
+    </div>
+    <button class="btn btn--primary" id="dv-compare">Compare</button>
   </div>
-</div>
 
-<div class="tool-row" style="margin-bottom:0.75rem; gap:0.5rem; align-items:center; flex-wrap:wrap;">
-  <div class="tool-options" role="group" aria-label="View">
-    <button class="tool-option active" data-view="unified" aria-pressed="true">Unified</button>
-    <button class="tool-option" data-view="split" aria-pressed="false">Side-by-side</button>
+  <div id="dv-output" class="wb-panel dv-result" style="display:none;">
+    <div class="wb-panel-bar">
+      <span class="dv-panel-title">Diff</span>
+      <div id="dv-stats" class="dv-stats" aria-live="polite" style="display:none;"></div>
+    </div>
+    <div class="dv-diff-area" id="dv-diff"></div>
   </div>
-  <label style="font-size:0.82rem; display:flex; align-items:center; gap:0.4rem;">
-    <input type="checkbox" id="dv-char-diff" style="accent-color:var(--color-accent,#6366f1);" checked>
-    Character diff
-  </label>
-  <label style="font-size:0.82rem; display:flex; align-items:center; gap:0.4rem;">
-    <input type="checkbox" id="dv-ignore-whitespace" style="accent-color:var(--color-accent,#6366f1);">
-    Ignore whitespace
-  </label>
-  <button class="btn btn--primary" id="dv-compare" style="margin-left:auto;">Compare</button>
-</div>
-
-<div id="dv-stats" style="display:none;" class="dv-stats" aria-live="polite"></div>
-
-<div id="dv-output" style="display:none;">
-  <div class="dv-diff-area" id="dv-diff"></div>
 </div>
 
 <script>

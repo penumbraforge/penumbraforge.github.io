@@ -1,0 +1,29 @@
+---
+permalink: /tools/index.json
+eleventyExcludeFromCollections: true
+---
+{%- set list = [] -%}
+{%- for t in tools -%}{%- if t.status == "live" -%}{%- set list = (list.push(t), list) -%}{%- endif -%}{%- endfor -%}
+{
+  "site": "Penumbra Forge",
+  "description": "Privacy-first, client-side developer & security tools, usable by humans and AI agents.",
+  "agentContract": {
+    "descriptor": "script#pf-tool (application/json) on each /tools/<slug>/ page",
+    "result": "script#pf-result (application/json) and window.PF_RESULT after run; html[data-pf-ready=1]",
+    "invoke": "URL-invocable tools accept ?in=<text> or ?inb64=<base64url> plus tool params, auto-running on load"
+  },
+  "count": {{ list.length }},
+  "tools": [
+{%- for t in list %}
+    {
+      "slug": {{ t.slug | dump | safe }},
+      "name": {{ t.name | dump | safe }},
+      "category": {{ t.category | dump | safe }},
+      "url": "https://penumbraforge.com/tools/{{ t.slug }}/",
+      "description": {{ t.description | dump | safe }},
+      "keywords": {{ (t.keywords or []) | dump | safe }}{% if t.invoke %},
+      "invoke": {{ t.invoke | dump | safe }}{% endif %}
+    }{% if not loop.last %},{% endif %}
+{%- endfor %}
+  ]
+}

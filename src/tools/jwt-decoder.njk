@@ -3,135 +3,182 @@ toolSlug: jwt-decoder
 permalink: /tools/jwt-decoder/
 ---
 
-<div class="tool-group">
-  <label for="jwt-input">Paste JWT</label>
-  <textarea id="jwt-input" rows="5" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-</div>
+<div class="jwt-grid">
 
-<p class="jwt-notice" id="jwt-notice">This tool decodes JWTs without verifying the signature.</p>
-
-<div id="jwt-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
-
-<div id="jwt-sections" style="display:none;">
-
-  <div class="jwt-section jwt-section--header">
-    <div class="jwt-section-title">
-      <span>Header</span>
-      <button class="btn btn--copy" id="btn-copy-header" aria-label="Copy header JSON">Copy</button>
+  <div class="jwt-in">
+    <div class="tool-group">
+      <label for="jwt-input">Encoded token</label>
+      <textarea id="jwt-input" rows="8" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
     </div>
-    <pre id="jwt-header-output" aria-label="JWT header"></pre>
+
+    <div class="wb-note jwt-trust">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2"></rect><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"></path></svg>
+      <p id="jwt-notice">Decoded <strong>entirely in your browser</strong> — nothing is uploaded. This reads the token; it does <strong>not</strong> verify the signature.</p>
+    </div>
   </div>
 
-  <div class="jwt-section jwt-section--payload">
-    <div class="jwt-section-title">
-      <span>Payload</span>
-      <button class="btn btn--copy" id="btn-copy-payload" aria-label="Copy payload JSON">Copy</button>
-    </div>
-    <pre id="jwt-payload-output" aria-label="JWT payload"></pre>
-    <div id="jwt-claims" class="jwt-claims"></div>
-  </div>
+  <div class="jwt-out">
 
-  <div class="jwt-section jwt-section--signature">
-    <div class="jwt-section-title">
-      <span>Signature</span>
-      <button class="btn btn--copy" id="btn-copy-sig" aria-label="Copy signature">Copy</button>
+    <div id="jwt-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+    <div id="jwt-sections" style="display:none;">
+
+      <div class="wb-panel jwt-panel jwt-panel--header">
+        <div class="wb-panel-bar">
+          <span class="jwt-bar-title"><i class="jwt-dot" aria-hidden="true"></i>Header</span>
+          <button class="btn btn--copy" id="btn-copy-header" aria-label="Copy header JSON">Copy</button>
+        </div>
+        <pre id="jwt-header-output" aria-label="JWT header"></pre>
+      </div>
+
+      <div class="wb-panel jwt-panel jwt-panel--payload">
+        <div class="wb-panel-bar">
+          <span class="jwt-bar-title"><i class="jwt-dot" aria-hidden="true"></i>Payload</span>
+          <button class="btn btn--copy" id="btn-copy-payload" aria-label="Copy payload JSON">Copy</button>
+        </div>
+        <pre id="jwt-payload-output" aria-label="JWT payload"></pre>
+        <div id="jwt-claims" class="jwt-claims"></div>
+      </div>
+
+      <div class="wb-panel jwt-panel jwt-panel--signature">
+        <div class="wb-panel-bar">
+          <span class="jwt-bar-title"><i class="jwt-dot" aria-hidden="true"></i>Signature</span>
+          <button class="btn btn--copy" id="btn-copy-sig" aria-label="Copy signature">Copy</button>
+        </div>
+        <pre id="jwt-sig-output" aria-label="JWT signature (raw base64url)"></pre>
+      </div>
+
     </div>
-    <pre id="jwt-sig-output" aria-label="JWT signature (raw base64url)"></pre>
+
+    <div class="jwt-empty" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
+      <span>Paste a token to reveal its header, payload &amp; signature.</span>
+    </div>
+
   </div>
 
 </div>
 
 <style>
-  .jwt-notice {
-    font-size: 12px;
-    color: var(--text-3, #888);
-    margin: 0 0 16px;
-    font-family: var(--font-sans);
+  /* ---------- Layout: encoded (input) | decoded (output) ---------- */
+  .jwt-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 760px) {
+    .jwt-grid { grid-template-columns: 1fr; }
+  }
+  @media (min-width: 761px) {
+    .jwt-in { position: sticky; top: 84px; }
   }
 
-  .jwt-section {
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    margin-bottom: 16px;
-    overflow: hidden;
-  }
+  .jwt-grid .tool-group { margin-bottom: 16px; }
+  .jwt-grid textarea { min-height: 208px; line-height: 1.65; }
+  .jwt-trust { margin-top: 0; }
 
-  .jwt-section--header {
-    border-left: 3px solid #e07070;
-  }
+  /* ---------- Decoded panels ---------- */
+  .jwt-panel { margin-bottom: 14px; }
+  .jwt-panel:last-child { margin-bottom: 0; }
 
-  .jwt-section--payload {
-    border-left: 3px solid #9b7fd4;
+  .jwt-bar-title { display: inline-flex; align-items: center; }
+  .jwt-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    margin-right: 9px; flex: 0 0 auto;
+    box-shadow: 0 0 8px currentColor;
   }
+  .jwt-panel--header    { box-shadow: inset 2px 0 0 color-mix(in oklab, #e0728f 55%, transparent); }
+  .jwt-panel--payload   { box-shadow: inset 2px 0 0 color-mix(in oklab, var(--accent) 60%, transparent); }
+  .jwt-panel--signature { box-shadow: inset 2px 0 0 color-mix(in oklab, var(--slate) 65%, transparent); }
+  .jwt-panel--header    .jwt-dot { background: #e0728f; color: #e0728f; }
+  .jwt-panel--payload   .jwt-dot { background: var(--accent); color: var(--accent); }
+  .jwt-panel--signature .jwt-dot { background: var(--slate); color: var(--slate); }
 
-  .jwt-section--signature {
-    border-left: 3px solid #5b8db8;
-  }
-
-  .jwt-section-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: var(--surface-0);
-    border-bottom: 1px solid var(--border);
-    font-family: var(--font-sans);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-2);
-    position: relative;
-  }
-
-  .jwt-section-title .btn--copy {
+  /* Compact copy button inside the panel bar (base .btn--copy is absolute) */
+  .jwt-panel .wb-panel-bar .btn--copy {
     position: static;
-    margin-left: auto;
+    padding: 5px 12px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    border-radius: 3px;
   }
 
-  .jwt-section pre {
+  /* JSON / signature body */
+  .jwt-panel pre {
     margin: 0;
-    padding: 12px;
+    padding: 15px 16px;
+    background: transparent;
     font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--text-1);
-    background: var(--surface-0);
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #d7d2e6;
     white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 360px;
+    overflow: auto;
+  }
+  .jwt-panel--signature pre {
+    color: color-mix(in oklab, var(--slate) 55%, #d7d2e6);
     word-break: break-all;
   }
 
+  /* ---------- Registered-claim chips ---------- */
   .jwt-claims {
-    border-top: 1px solid var(--border);
-    padding: 10px 12px;
-    font-family: var(--font-sans);
-    font-size: 12px;
-    color: var(--text-2);
-    background: var(--surface-0);
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 7px;
+    padding: 12px 14px;
+    border-top: 1px solid var(--wb-line);
+    background: color-mix(in oklab, var(--surface-1) 30%, transparent);
   }
-
-  .jwt-claims:empty {
-    display: none;
-  }
-
+  .jwt-claims:empty { display: none; }
   .jwt-claim {
-    background: rgba(155, 127, 212, 0.08);
-    border: 1px solid rgba(155, 127, 212, 0.25);
-    border-radius: 3px;
-    padding: 3px 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.2px;
+    color: var(--text-2);
+    background: color-mix(in oklab, var(--accent) 8%, transparent);
+    border: 1px solid color-mix(in oklab, var(--accent) 22%, transparent);
+    border-radius: 20px;
+    padding: 4px 11px;
     white-space: nowrap;
   }
-
   .jwt-claim--expired {
-    background: rgba(224, 112, 112, 0.1);
-    border-color: rgba(224, 112, 112, 0.3);
-    color: #e07070;
+    color: #e0728f;
+    background: color-mix(in oklab, #e0728f 10%, transparent);
+    border-color: color-mix(in oklab, #e0728f 32%, transparent);
+  }
+  .jwt-claim--valid {
+    color: var(--sage);
+    background: color-mix(in oklab, var(--sage) 10%, transparent);
+    border-color: color-mix(in oklab, var(--sage) 30%, transparent);
   }
 
-  .jwt-claim--valid {
-    background: rgba(100, 180, 130, 0.1);
-    border-color: rgba(100, 180, 130, 0.3);
-    color: #5aaa78;
+  /* ---------- Empty state (decoded column, before input) ---------- */
+  .jwt-empty {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 220px;
+    padding: 40px 24px;
+    text-align: center;
+    border: 1px dashed var(--wb-line);
+    border-radius: 4px;
+    color: var(--text-3);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .jwt-empty svg {
+    width: 26px; height: 26px;
+    color: color-mix(in oklab, var(--accent) 55%, var(--slate));
+    opacity: 0.7;
+  }
+  .jwt-empty span { max-width: 30ch; }
+  .jwt-out:has(#jwt-error[style*="none"]):has(#jwt-sections[style*="none"]) .jwt-empty {
+    display: flex;
   }
 </style>
 

@@ -1,0 +1,58 @@
+[
+  {
+    "from": "slug-generator",
+    "to": "/tools/"
+  },
+  {
+    "from": "lorem-ipsum",
+    "to": "/tools/"
+  },
+  {
+    "from": "markdown-preview",
+    "to": "/tools/"
+  },
+  {
+    "from": "ascii-unicode-table",
+    "to": "/tools/"
+  },
+  {
+    "from": "html-entity-encoder",
+    "to": "/tools/"
+  },
+  {
+    "from": "http-status-codes",
+    "to": "/tools/"
+  },
+  {
+    "from": "git-branch-visualizer",
+    "to": "/tools/"
+  },
+  {
+    "from": "view-lock",
+    "to": "/tools/secret-lock/"
+  },
+  {
+    "from": "entropy-calculator",
+    "to": "/tools/entropy-xray/"
+  },
+  {
+    "from": "cron-explainer",
+    "to": "/tools/cron-builder/"
+  },
+  {
+    "from": "shell-explainer",
+    "to": "/tools/ai-command-explainer/"
+  },
+  {
+    "from": "json-yaml-converter",
+    "to": "/tools/"
+  },
+  {
+    "from": "yaml-linter",
+    "to": "/tools/"
+  },
+  {
+    "from": "hcl-formatter",
+    "to": "/tools/"
+  }
+]

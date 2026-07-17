@@ -4,120 +4,244 @@ permalink: /tools/totp-generator/
 ---
 
 <div class="tool-group">
-  <label for="totp-secret">Base32 secret key</label>
-  <input type="text" id="totp-secret" placeholder="JBSWY3DPEHPK3PXP" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="font-family:monospace;letter-spacing:0.08em;">
-  <span style="font-size:0.75rem;color:var(--text-3,#888);margin-top:0.3rem;display:block;">Enter the secret key from your authenticator setup QR code (Base32, e.g. JBSWY3DPEHPK3PXP). All computation is local — this key never leaves your browser.</span>
+  <label for="totp-secret">Secret key</label>
+  <input type="text" id="totp-secret" placeholder="JBSWY3DPEHPK3PXP" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+  <p class="totp-help">Base32, exactly as shown in your authenticator's setup QR code &mdash; e.g. <span class="totp-mono">JBSWY3DPEHPK3PXP</span>.</p>
 </div>
 
-<div class="tool-row">
-  <div class="tool-options" role="group" aria-label="Digits">
-    <button class="tool-option active" data-digits="6" aria-pressed="true">6 digits</button>
-    <button class="tool-option" data-digits="8" aria-pressed="false">8 digits</button>
+<div class="totp-controls">
+  <div class="totp-ctl">
+    <span class="totp-ctl-label">Digits</span>
+    <div class="tool-options" role="group" aria-label="Digits">
+      <button class="tool-option active" data-digits="6" aria-pressed="true">6</button>
+      <button class="tool-option" data-digits="8" aria-pressed="false">8</button>
+    </div>
   </div>
-  <div class="tool-options" role="group" aria-label="Period" style="margin-left:0.75rem;">
-    <button class="tool-option active" data-period="30" aria-pressed="true">30s</button>
-    <button class="tool-option" data-period="60" aria-pressed="false">60s</button>
+  <div class="totp-ctl">
+    <span class="totp-ctl-label">Period</span>
+    <div class="tool-options" role="group" aria-label="Period">
+      <button class="tool-option active" data-period="30" aria-pressed="true">30s</button>
+      <button class="tool-option" data-period="60" aria-pressed="false">60s</button>
+    </div>
   </div>
 </div>
 
 <div id="totp-error" style="display:none;" class="tool-error" role="alert" aria-live="polite"></div>
 
 <div id="totp-display" style="display:none;">
-  <div class="totp-card-row">
-    <div class="totp-card totp-card--prev">
-      <span class="totp-card-label">Previous</span>
-      <span class="totp-card-code" id="totp-prev"></span>
+  <div class="wb-panel totp-main">
+    <div class="wb-panel-bar">
+      <span>Current code</span>
+      <button class="btn btn--copy" id="totp-copy-btn">Copy</button>
     </div>
-    <div class="totp-card totp-card--current">
-      <span class="totp-card-label">Current code</span>
-      <span class="totp-card-code" id="totp-current"></span>
-      <div class="totp-timer-wrap">
+    <div class="totp-main-body">
+      <span class="totp-code" id="totp-current"></span>
+      <div class="totp-timer-wrap" title="Seconds until this code rotates">
         <svg class="totp-ring" viewBox="0 0 44 44" aria-hidden="true">
           <circle class="totp-ring-bg" cx="22" cy="22" r="18"/>
           <circle class="totp-ring-fill" id="totp-ring-fill" cx="22" cy="22" r="18"/>
         </svg>
-        <span class="totp-timer-num" id="totp-timer">—</span>
+        <span class="totp-timer-num" id="totp-timer">&mdash;</span>
       </div>
-      <button class="btn btn--copy" id="totp-copy-btn" style="margin-top:0.5rem;">Copy</button>
     </div>
-    <div class="totp-card totp-card--next">
-      <span class="totp-card-label">Next</span>
-      <span class="totp-card-code" id="totp-next"></span>
+    <div class="totp-progress-bar-wrap" aria-hidden="true">
+      <div class="totp-progress-bar" id="totp-progress-bar"></div>
     </div>
   </div>
 
-  <div class="totp-progress-bar-wrap" aria-hidden="true">
-    <div class="totp-progress-bar" id="totp-progress-bar"></div>
+  <div class="totp-adjacent">
+    <div class="totp-adj">
+      <span class="totp-adj-label">Previous</span>
+      <span class="totp-adj-code" id="totp-prev"></span>
+    </div>
+    <div class="totp-adj">
+      <span class="totp-adj-label">Next</span>
+      <span class="totp-adj-code" id="totp-next"></span>
+    </div>
   </div>
 </div>
 
-<div id="totp-empty" class="totp-empty-msg">Enter a valid Base32 secret key above to generate TOTP codes.</div>
+<div id="totp-empty" class="totp-empty">
+  <span class="totp-empty-dot" aria-hidden="true"></span>
+  <span>Enter a Base32 secret above to generate live TOTP codes.</span>
+</div>
+
+<div class="wb-note">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 2l7 4v5c0 4.5-3 8.5-7 9.5C8 19.5 5 15.5 5 11V6l7-4z"/>
+    <path d="M9.4 11.8l1.9 1.9 3.3-3.6"/>
+  </svg>
+  <p><strong>Computed locally.</strong> Your secret is decoded and each code is generated with the browser's Web Crypto API. The key never leaves this page &mdash; nothing is uploaded.</p>
+</div>
 
 <style>
-  .totp-card-row {
-    display: grid;
-    grid-template-columns: 1fr 1.4fr 1fr;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+  /* ---------- Secret input ---------- */
+  #totp-secret { letter-spacing: 0.08em; }
+  .totp-help {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-3);
+    margin: 9px 0 0;
   }
-  @media (max-width: 480px) {
-    .totp-card-row { grid-template-columns: 1fr; }
+  .totp-mono {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    color: var(--accent);
+    background: color-mix(in oklab, var(--accent) 10%, transparent);
+    border-radius: 3px;
+    padding: 1px 5px;
   }
-  .totp-card {
-    background: var(--surface-1,#1a1a2e);
-    border: 1px solid var(--border,#2a2a3a);
-    border-radius: 10px;
-    padding: 1rem;
-    text-align: center;
+
+  /* ---------- Configuration controls ---------- */
+  .totp-controls {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 26px;
+    align-items: flex-end;
+    margin-bottom: 26px;
+  }
+  .totp-ctl { display: flex; flex-direction: column; gap: 10px; }
+  .totp-ctl-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--slate);
+  }
+  .totp-ctl .tool-options { margin-bottom: 0; }
+
+  /* ---------- Current code (hero) ---------- */
+  .totp-main { margin-bottom: 14px; }
+  .totp-main .wb-panel-bar .btn--copy {
+    position: static; top: auto; right: auto;
+    padding: 5px 13px; font-size: 10.5px;
+  }
+  .totp-main-body {
+    display: flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 26px 26px 24px;
   }
-  .totp-card--current {
-    border-color: rgba(99,102,241,0.4);
-    background: rgba(99,102,241,0.07);
-  }
-  .totp-card-label { font-size: 0.75rem; font-weight: 600; color: var(--text-3,#888); text-transform: uppercase; letter-spacing: 0.06em; }
-  .totp-card-code { font-size: 2rem; font-weight: 800; font-family: var(--font-mono,monospace); color: var(--text-1,#e2e8f0); letter-spacing: 0.12em; }
-  .totp-card--prev .totp-card-code, .totp-card--next .totp-card-code {
-    font-size: 1.5rem;
-    color: var(--text-3,#888);
+  .totp-code {
+    font-family: var(--font-mono);
+    font-size: clamp(2.3rem, 7vw, 3rem);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    color: var(--wb-ink, var(--text-1));
+    font-variant-numeric: tabular-nums;
   }
   .totp-timer-wrap {
     position: relative;
-    width: 44px;
-    height: 44px;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  .totp-ring { position: absolute; top: 0; left: 0; width: 44px; height: 44px; transform: rotate(-90deg); }
-  .totp-ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 4; }
+  .totp-ring { position: absolute; inset: 0; width: 46px; height: 46px; transform: rotate(-90deg); }
+  .totp-ring-bg { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 3.5; }
   .totp-ring-fill {
     fill: none;
-    stroke: #818cf8;
-    stroke-width: 4;
+    stroke: var(--accent);
+    stroke-width: 3.5;
     stroke-linecap: round;
     stroke-dasharray: 113.1;
     stroke-dashoffset: 0;
     transition: stroke-dashoffset 0.9s linear, stroke 0.3s;
   }
-  .totp-timer-num { font-size: 0.9rem; font-weight: 700; font-family: var(--font-mono,monospace); color: var(--text-1,#e2e8f0); position: relative; z-index: 1; }
+  .totp-timer-num {
+    position: relative;
+    z-index: 1;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
   .totp-progress-bar-wrap {
-    height: 4px;
+    height: 3px;
     background: rgba(255,255,255,0.06);
-    border-radius: 2px;
     overflow: hidden;
-    margin-bottom: 0.5rem;
   }
   .totp-progress-bar {
     height: 100%;
-    background: #818cf8;
-    border-radius: 2px;
+    width: 100%;
+    background: var(--accent);
     transition: width 0.9s linear, background 0.3s;
   }
-  .totp-empty-msg { text-align: center; padding: 2.5rem; color: var(--text-3,#888); font-size: 0.9rem; }
+
+  /* ---------- Adjacent codes (context) ---------- */
+  .totp-adjacent {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .totp-adj {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 16px;
+    border: 1px solid var(--wb-line, var(--border));
+    border-radius: 4px;
+    background: var(--wb-panel, var(--surface-1));
+  }
+  .totp-adj-label {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--slate);
+  }
+  .totp-adj-code {
+    font-family: var(--font-mono);
+    font-size: 1.15rem;
+    letter-spacing: 0.1em;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Empty / waiting state ---------- */
+  .totp-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 46px 24px;
+    border: 1px solid var(--wb-line, var(--border));
+    border-radius: 4px;
+    background: var(--wb-panel, var(--surface-1));
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    letter-spacing: 0.4px;
+  }
+  .totp-empty-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--accent) 55%, transparent);
+    box-shadow: 0 0 10px color-mix(in oklab, var(--accent) 45%, transparent);
+    animation: totp-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes totp-pulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .totp-empty-dot { animation: none; }
+    .totp-ring-fill, .totp-progress-bar { transition: none; }
+  }
+  @media (max-width: 460px) {
+    .totp-adjacent { grid-template-columns: 1fr; }
+    .totp-main-body { padding: 22px 20px; }
+    .totp-code { font-size: clamp(2rem, 11vw, 2.6rem); }
+  }
 </style>
 
 <script>

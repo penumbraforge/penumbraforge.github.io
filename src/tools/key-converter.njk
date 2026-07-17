@@ -1,0 +1,765 @@
+---
+toolSlug: key-converter
+permalink: /tools/key-converter/
+---
+
+<div class="kc-safety-note" role="note">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  Everything runs locally in your browser with the Web Crypto API. No keys are uploaded or logged. Treat any generated or pasted private key as a secret.
+</div>
+
+<div class="tool-row">
+  <div class="tool-options" role="group" aria-label="Mode">
+    <button class="tool-option active" type="button" data-mode="generate" aria-pressed="true">Generate keypair</button>
+    <button class="tool-option" type="button" data-mode="pem2jwk" aria-pressed="false">PEM &rarr; JWK</button>
+    <button class="tool-option" type="button" data-mode="jwk2pem" aria-pressed="false">JWK &rarr; PEM</button>
+  </div>
+</div>
+
+<div class="tool-group" id="kc-algo-row" style="margin-bottom:16px;">
+  <label id="kc-algo-label" for="kc-algo-group">Algorithm</label>
+  <div class="tool-options" id="kc-algo-group" role="group" aria-label="Algorithm" style="margin-bottom:0;">
+    <button class="tool-option active" type="button" data-algo="RSA" aria-pressed="true">RSA 2048 &middot; RS256</button>
+    <button class="tool-option" type="button" data-algo="EC-P256" aria-pressed="false">EC P-256 &middot; ES256</button>
+    <button class="tool-option" type="button" data-algo="EC-P384" aria-pressed="false">EC P-384 &middot; ES384</button>
+  </div>
+</div>
+
+<p class="kc-hint" id="kc-hint"></p>
+
+<div class="kc-panel" id="kc-panel-generate">
+  <div class="tool-row">
+    <button class="btn btn--primary" type="button" id="kc-generate-btn">Generate &amp; show</button>
+    <span id="kc-generating" style="display:none; font-size:0.8125rem; color:var(--text-3); align-self:center;">Generating&hellip;</span>
+  </div>
+</div>
+
+<div class="kc-panel" id="kc-panel-pem2jwk" style="display:none;">
+  <div class="tool-group">
+    <label for="kc-pem-input">Paste PEM &mdash; SPKI public or PKCS#8 private</label>
+    <textarea id="kc-pem-input" rows="8" placeholder="-----BEGIN PUBLIC KEY-----&#10;MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...&#10;-----END PUBLIC KEY-----" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+  <div class="tool-row">
+    <button class="btn btn--primary" type="button" id="kc-pem2jwk-btn">Convert to JWK</button>
+  </div>
+</div>
+
+<div class="kc-panel" id="kc-panel-jwk2pem" style="display:none;">
+  <div class="tool-group">
+    <label for="kc-jwk-input">Paste JWK JSON</label>
+    <textarea id="kc-jwk-input" rows="8" placeholder='{ "kty": "EC", "crv": "P-256", "x": "...", "y": "..." }' spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+  <div class="tool-row">
+    <button class="btn btn--primary" type="button" id="kc-jwk2pem-btn">Convert to PEM</button>
+  </div>
+</div>
+
+<div id="kc-error" style="display:none;" class="tool-error" role="alert" aria-live="polite"></div>
+<div id="kc-note" style="display:none;" class="kc-detect-note" role="status" aria-live="polite"></div>
+
+<div id="kc-results" aria-live="polite"></div>
+
+<style>
+  .kc-safety-note {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    background: rgba(107, 207, 143, 0.06);
+    border: 1px solid rgba(107, 207, 143, 0.2);
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    color: var(--sage, #6bcf8f);
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+    font-family: var(--font-sans);
+  }
+  .kc-hint {
+    font-size: 12px;
+    color: var(--text-3, #666);
+    margin: 0 0 16px;
+    line-height: 1.6;
+    font-family: var(--font-sans);
+  }
+  .kc-detect-note {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent, #b8a5d6);
+    background: rgba(184, 165, 214, 0.06);
+    border: 1px solid rgba(184, 165, 214, 0.15);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+  .kc-block {
+    border: 1px solid var(--border, #1e1e35);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .kc-block--secret { border-left: 3px solid #e07070; }
+  .kc-block--public { border-left: 3px solid #6b8db8; }
+  .kc-block-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface-0, #050509);
+    border-bottom: 1px solid var(--border, #1e1e35);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2, #999);
+  }
+  .kc-block-title { flex-shrink: 0; }
+  .kc-block-header .kc-block-btns { margin-left: auto; display: flex; gap: 8px; }
+  .kc-block-header .btn--copy { position: static; }
+  .kc-secret-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    color: #e07070;
+    background: rgba(224, 112, 112, 0.1);
+    border: 1px solid rgba(224, 112, 112, 0.3);
+    border-radius: 3px;
+    padding: 2px 6px;
+  }
+  .kc-pre {
+    margin: 0;
+    padding: 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-1, #e8e4ef);
+    background: var(--surface-0, #050509);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .kc-inspect {
+    border: 1px solid var(--border, #1e1e35);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    background: var(--surface-0, #050509);
+  }
+  .kc-inspect-title {
+    padding: 8px 12px;
+    background: rgba(184, 165, 214, 0.04);
+    border-bottom: 1px solid var(--border, #1e1e35);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent, #b8a5d6);
+  }
+  .kc-inspect-grid {
+    display: grid;
+    grid-template-columns: minmax(120px, max-content) 1fr;
+    gap: 1px;
+    background: var(--border, #1e1e35);
+    border-bottom: 1px solid var(--border, #1e1e35);
+  }
+  .kc-il, .kc-iv {
+    padding: 8px 12px;
+    background: var(--surface-0, #050509);
+    font-size: 12px;
+  }
+  .kc-il {
+    font-family: var(--font-mono);
+    color: rgba(184, 165, 214, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 10px;
+    align-self: center;
+  }
+  .kc-iv {
+    font-family: var(--font-sans);
+    color: var(--text-1, #e8e4ef);
+    word-break: break-word;
+  }
+  .kc-params { padding: 4px 0; }
+  .kc-param { padding: 8px 12px; }
+  .kc-param-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-2, #999);
+    margin-bottom: 4px;
+  }
+  .kc-param-val {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-1, #e8e4ef);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+  .kc-param--secret .kc-param-val { color: #e59a9a; }
+</style>
+
+<script>
+(function () {
+  var subtle = (window.crypto && window.crypto.subtle) ? window.crypto.subtle : null;
+
+  var modeBtns    = Array.prototype.slice.call(document.querySelectorAll('[data-mode]'));
+  var algoBtns    = Array.prototype.slice.call(document.querySelectorAll('[data-algo]'));
+  var algoRow     = document.getElementById('kc-algo-row');
+  var hintEl      = document.getElementById('kc-hint');
+  var errorEl     = document.getElementById('kc-error');
+  var noteEl      = document.getElementById('kc-note');
+  var resultsEl   = document.getElementById('kc-results');
+  var generateBtn = document.getElementById('kc-generate-btn');
+  var generatingEl= document.getElementById('kc-generating');
+  var pemInput    = document.getElementById('kc-pem-input');
+  var jwkInput    = document.getElementById('kc-jwk-input');
+  var pem2jwkBtn  = document.getElementById('kc-pem2jwk-btn');
+  var jwk2pemBtn  = document.getElementById('kc-jwk2pem-btn');
+  var panels = {
+    generate: document.getElementById('kc-panel-generate'),
+    pem2jwk:  document.getElementById('kc-panel-pem2jwk'),
+    jwk2pem:  document.getElementById('kc-panel-jwk2pem')
+  };
+
+  var ALGOS = {
+    'RSA': {
+      label: 'RSA 2048 (RS256)',
+      gen: { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+      importAlgo: { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }
+    },
+    'EC-P256': {
+      label: 'EC P-256 (ES256)',
+      gen: { name: 'ECDSA', namedCurve: 'P-256' },
+      importAlgo: { name: 'ECDSA', namedCurve: 'P-256' }
+    },
+    'EC-P384': {
+      label: 'EC P-384 (ES384)',
+      gen: { name: 'ECDSA', namedCurve: 'P-384' },
+      importAlgo: { name: 'ECDSA', namedCurve: 'P-384' }
+    }
+  };
+  var ALGO_ORDER = ['RSA', 'EC-P256', 'EC-P384'];
+
+  var HINTS = {
+    generate: 'Generates a fresh extractable keypair and shows both PEM (SPKI / PKCS#8) and JWK for the public and private keys.',
+    pem2jwk: 'Auto-detects SPKI vs PKCS#8 from the PEM header. Pick the algorithm the key uses — if the pick is wrong, the converter tries the other algorithms automatically.',
+    jwk2pem: 'The algorithm and curve are read directly from the JWK’s own fields. Keys with a "d" parameter export to a PKCS#8 private-key PEM; otherwise SPKI public.'
+  };
+
+  var currentMode = 'generate';
+  var currentAlgo = 'RSA';
+
+  // ---------- encoding helpers ----------
+  function bufToBytes(buf) {
+    return (buf instanceof Uint8Array) ? buf : new Uint8Array(buf);
+  }
+  function bytesToBase64(buf) {
+    var bytes = bufToBytes(buf);
+    var binary = '';
+    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+  function base64ToBytes(b64) {
+    var clean = b64.replace(/\s+/g, '');
+    var binary = atob(clean); // throws on invalid input
+    var arr = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+    return arr;
+  }
+  function base64urlToBytes(s) {
+    var t = String(s).replace(/-/g, '+').replace(/_/g, '/').replace(/\s+/g, '');
+    while (t.length % 4 !== 0) t += '=';
+    var binary = atob(t);
+    var arr = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+    return arr;
+  }
+  function wrap64(str) {
+    var out = [];
+    for (var i = 0; i < str.length; i += 64) out.push(str.slice(i, i + 64));
+    return out.join('\n');
+  }
+  function derToPem(derBuf, label) {
+    var b64 = bytesToBase64(derBuf);
+    return '-----BEGIN ' + label + '-----\n' + wrap64(b64) + '\n-----END ' + label + '-----';
+  }
+  function parsePem(pemText) {
+    var begin = pemText.match(/-----BEGIN ([A-Za-z0-9 ]+?)-----/);
+    var end = pemText.match(/-----END ([A-Za-z0-9 ]+?)-----/);
+    if (!begin || !end) {
+      throw new Error('No PEM header/footer found. Expected a block like -----BEGIN PUBLIC KEY-----.');
+    }
+    var label = begin[1].trim();
+    var startIdx = pemText.indexOf(begin[0]) + begin[0].length;
+    var endIdx = pemText.indexOf(end[0]);
+    if (endIdx < startIdx) throw new Error('Malformed PEM: END marker appears before BEGIN.');
+    var body = pemText.substring(startIdx, endIdx).replace(/[^A-Za-z0-9+/=]/g, '');
+    if (!body) throw new Error('PEM body is empty.');
+    var der;
+    try {
+      der = base64ToBytes(body);
+    } catch (e) {
+      throw new Error('PEM body is not valid base64.');
+    }
+    return { label: label, der: der };
+  }
+
+  // ---------- UI helpers ----------
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+    noteEl.style.display = 'none';
+  }
+  function hideError() {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+  function showNote(msg) {
+    noteEl.textContent = msg;
+    noteEl.style.display = '';
+  }
+  function hideNote() {
+    noteEl.textContent = '';
+    noteEl.style.display = 'none';
+  }
+  function clearResults() {
+    while (resultsEl.firstChild) resultsEl.removeChild(resultsEl.firstChild);
+  }
+
+  function copyText(text, btn) {
+    if (!text) return;
+    function done(label) {
+      btn.textContent = label;
+      btn.classList.add('copied');
+      setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done('Copied!'); }, function () { done('Failed'); });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done('Copied!'); } catch (e) { done('Failed'); }
+      document.body.removeChild(ta);
+    }
+  }
+
+  function makeBlock(title, text, opts) {
+    opts = opts || {};
+    var block = document.createElement('div');
+    block.className = 'kc-block' + (opts.secret ? ' kc-block--secret' : (opts.pub ? ' kc-block--public' : ''));
+
+    var header = document.createElement('div');
+    header.className = 'kc-block-header';
+
+    var titleSpan = document.createElement('span');
+    titleSpan.className = 'kc-block-title';
+    titleSpan.textContent = title;
+    header.appendChild(titleSpan);
+
+    if (opts.secret) {
+      var tag = document.createElement('span');
+      tag.className = 'kc-secret-tag';
+      tag.textContent = 'SECRET';
+      header.appendChild(tag);
+    }
+
+    var btns = document.createElement('div');
+    btns.className = 'kc-block-btns';
+    var copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'btn btn--copy';
+    copyBtn.textContent = 'Copy';
+    copyBtn.setAttribute('aria-label', 'Copy ' + title);
+    copyBtn.addEventListener('click', function () { copyText(text, copyBtn); });
+    btns.appendChild(copyBtn);
+    header.appendChild(btns);
+
+    block.appendChild(header);
+
+    var pre = document.createElement('pre');
+    pre.className = 'kc-pre';
+    pre.textContent = text;
+    block.appendChild(pre);
+
+    return block;
+  }
+
+  function describeJwk(jwk) {
+    var d = { typeLabel: '', algoLabel: '', sizeLabel: '' };
+    if (jwk.kty === 'RSA') {
+      d.typeLabel = 'RSA';
+      d.algoLabel = 'RSASSA-PKCS1-v1_5';
+      var bits = jwk.n ? base64urlToBytes(jwk.n).length * 8 : null;
+      d.sizeLabel = bits ? (bits + '-bit modulus') : '—';
+    } else if (jwk.kty === 'EC') {
+      d.typeLabel = 'Elliptic Curve';
+      d.algoLabel = 'ECDSA';
+      d.sizeLabel = jwk.crv || '—';
+    } else if (jwk.kty === 'OKP') {
+      d.typeLabel = 'Edwards curve (OKP)';
+      d.algoLabel = 'EdDSA';
+      d.sizeLabel = jwk.crv || '—';
+    } else {
+      d.typeLabel = jwk.kty || 'Unknown';
+      d.algoLabel = '—';
+      d.sizeLabel = '—';
+    }
+    if (jwk.alg) d.algoLabel += ' · ' + jwk.alg;
+    return d;
+  }
+
+  function makeInspect(jwk, opts) {
+    opts = opts || {};
+    var desc = describeJwk(jwk);
+    var isPrivate = (jwk.d !== undefined && jwk.d !== null && jwk.d !== '');
+
+    var panel = document.createElement('div');
+    panel.className = 'kc-inspect';
+
+    var title = document.createElement('div');
+    title.className = 'kc-inspect-title';
+    title.textContent = 'Key inspector';
+    panel.appendChild(title);
+
+    var grid = document.createElement('div');
+    grid.className = 'kc-inspect-grid';
+
+    function row(label, value) {
+      var l = document.createElement('div');
+      l.className = 'kc-il';
+      l.textContent = label;
+      var v = document.createElement('div');
+      v.className = 'kc-iv';
+      v.textContent = value;
+      grid.appendChild(l);
+      grid.appendChild(v);
+    }
+
+    var visibility;
+    if (opts.pair) visibility = 'Key pair (public + private)';
+    else visibility = isPrivate ? 'Private key' : 'Public key';
+
+    var usages;
+    if (jwk.key_ops && jwk.key_ops.length) usages = jwk.key_ops.join(', ');
+    else if (jwk.use) usages = jwk.use;
+    else usages = isPrivate ? 'sign' : 'verify';
+
+    row('Type', desc.typeLabel);
+    row('Visibility', visibility);
+    row('Algorithm', desc.algoLabel);
+    row(jwk.kty === 'EC' || jwk.kty === 'OKP' ? 'Curve' : 'Key size', desc.sizeLabel);
+    row('Usages', usages);
+    panel.appendChild(grid);
+
+    var params = document.createElement('div');
+    params.className = 'kc-params';
+
+    function param(name, value, secret) {
+      if (value === undefined || value === null || value === '') return;
+      var wrapEl = document.createElement('div');
+      wrapEl.className = 'kc-param' + (secret ? ' kc-param--secret' : '');
+      var nameEl = document.createElement('div');
+      nameEl.className = 'kc-param-name';
+      var nameText = document.createElement('span');
+      nameText.textContent = name;
+      nameEl.appendChild(nameText);
+      if (secret) {
+        var st = document.createElement('span');
+        st.className = 'kc-secret-tag';
+        st.textContent = 'SECRET';
+        nameEl.appendChild(st);
+      }
+      var valEl = document.createElement('code');
+      valEl.className = 'kc-param-val';
+      valEl.textContent = value;
+      wrapEl.appendChild(nameEl);
+      wrapEl.appendChild(valEl);
+      params.appendChild(wrapEl);
+    }
+
+    if (jwk.kty === 'RSA') {
+      param('n (modulus)', jwk.n);
+      param('e (public exponent)', jwk.e);
+      if (isPrivate) param('d (private exponent)', jwk.d, true);
+    } else if (jwk.kty === 'EC' || jwk.kty === 'OKP') {
+      param('x', jwk.x);
+      param('y', jwk.y);
+      if (isPrivate) param('d (private scalar)', jwk.d, true);
+    }
+
+    if (params.childNodes.length) panel.appendChild(params);
+    return panel;
+  }
+
+  function setActive(list, attr, value) {
+    list.forEach(function (b) {
+      var on = b.getAttribute(attr) === value;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  // ---------- mode / algo switching ----------
+  function applyMode() {
+    Object.keys(panels).forEach(function (m) {
+      panels[m].style.display = (m === currentMode) ? '' : 'none';
+    });
+    algoRow.style.display = (currentMode === 'jwk2pem') ? 'none' : '';
+    hintEl.textContent = HINTS[currentMode];
+    hideError();
+    hideNote();
+    clearResults();
+  }
+
+  modeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentMode = btn.getAttribute('data-mode');
+      setActive(modeBtns, 'data-mode', currentMode);
+      applyMode();
+    });
+  });
+
+  algoBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      currentAlgo = btn.getAttribute('data-algo');
+      setActive(algoBtns, 'data-algo', currentAlgo);
+    });
+  });
+
+  // ---------- capability guard ----------
+  function ensureSubtle() {
+    if (!subtle) {
+      showError('This browser does not expose the Web Crypto API (window.crypto.subtle). Try a modern browser over HTTPS.');
+      return false;
+    }
+    return true;
+  }
+
+  // ---------- 1. Generate ----------
+  function doGenerate() {
+    if (!ensureSubtle()) return;
+    hideError();
+    hideNote();
+    clearResults();
+    generateBtn.disabled = true;
+    generatingEl.style.display = '';
+
+    var algo = ALGOS[currentAlgo];
+    var keyPair;
+
+    subtle.generateKey(algo.gen, true, ['sign', 'verify']).then(function (kp) {
+      keyPair = kp;
+      return Promise.all([
+        subtle.exportKey('spki', kp.publicKey),
+        subtle.exportKey('pkcs8', kp.privateKey),
+        subtle.exportKey('jwk', kp.publicKey),
+        subtle.exportKey('jwk', kp.privateKey)
+      ]);
+    }).then(function (out) {
+      var spki = out[0], pkcs8 = out[1], pubJwk = out[2], privJwk = out[3];
+      generateBtn.disabled = false;
+      generatingEl.style.display = 'none';
+
+      var pubPem = derToPem(spki, 'PUBLIC KEY');
+      var privPem = derToPem(pkcs8, 'PRIVATE KEY');
+
+      resultsEl.appendChild(makeInspect(privJwk, { pair: true }));
+      resultsEl.appendChild(makeBlock('Public key · PEM (SPKI)', pubPem, { pub: true }));
+      resultsEl.appendChild(makeBlock('Private key · PEM (PKCS#8)', privPem, { secret: true }));
+      resultsEl.appendChild(makeBlock('Public key · JWK', JSON.stringify(pubJwk, null, 2), { pub: true }));
+      resultsEl.appendChild(makeBlock('Private key · JWK', JSON.stringify(privJwk, null, 2), { secret: true }));
+    }).catch(function (e) {
+      generateBtn.disabled = false;
+      generatingEl.style.display = 'none';
+      showError('Key generation failed: ' + (e && e.message ? e.message : e));
+    });
+  }
+
+  // ---------- 2. PEM -> JWK ----------
+  function importPemTryingAlgos(format, der, primary) {
+    var order = [primary];
+    ALGO_ORDER.forEach(function (k) { if (k !== primary) order.push(k); });
+    var usages = (format === 'spki') ? ['verify'] : ['sign'];
+    var firstErr = null;
+    var idx = 0;
+
+    function attempt() {
+      if (idx >= order.length) {
+        return Promise.reject(new Error(
+          'Could not import this key as RSA, EC P-256, or EC P-384.' +
+          (firstErr ? ' (' + firstErr + ')' : '')
+        ));
+      }
+      var key = order[idx++];
+      return subtle.importKey(format, der, ALGOS[key].importAlgo, true, usages).then(
+        function (ck) { return { cryptoKey: ck, algoKey: key }; },
+        function (err) {
+          if (!firstErr) firstErr = (err && err.message) ? err.message : String(err);
+          return attempt();
+        }
+      );
+    }
+    return attempt();
+  }
+
+  function doPem2Jwk() {
+    if (!ensureSubtle()) return;
+    hideError();
+    hideNote();
+    clearResults();
+
+    var raw = pemInput.value.trim();
+    if (!raw) { showError('Paste a PEM-encoded key first.'); return; }
+
+    var parsed;
+    try {
+      parsed = parsePem(raw);
+    } catch (e) {
+      showError(e.message);
+      return;
+    }
+
+    var label = parsed.label.toUpperCase();
+    var format;
+    if (label === 'PUBLIC KEY') format = 'spki';
+    else if (label === 'PRIVATE KEY') format = 'pkcs8';
+    else if (label === 'ENCRYPTED PRIVATE KEY') {
+      showError('This is an encrypted PKCS#8 key. Decrypt it first (e.g. "openssl pkcs8 -in key.pem") — the Web Crypto API cannot import encrypted keys.');
+      return;
+    } else if (label === 'RSA PRIVATE KEY' || label === 'RSA PUBLIC KEY') {
+      showError('This is a legacy PKCS#1 "' + parsed.label + '". Convert it to PKCS#8/SPKI first, e.g. "openssl pkey -in key.pem" or "openssl rsa -pubin -in key.pem -pubout".');
+      return;
+    } else if (label === 'EC PRIVATE KEY') {
+      showError('This is a legacy SEC1 "EC PRIVATE KEY". Convert it to PKCS#8 first, e.g. "openssl pkcs8 -topk8 -nocrypt -in key.pem".');
+      return;
+    } else if (label === 'CERTIFICATE') {
+      showError('This is an X.509 certificate, not a bare key. Extract the public key first, e.g. "openssl x509 -in cert.pem -pubkey -noout".');
+      return;
+    } else {
+      showError('Unsupported PEM type "' + parsed.label + '". Provide a "PUBLIC KEY" (SPKI) or "PRIVATE KEY" (PKCS#8) block.');
+      return;
+    }
+
+    importPemTryingAlgos(format, parsed.der, currentAlgo).then(function (res) {
+      if (res.algoKey !== currentAlgo) {
+        setActive(algoBtns, 'data-algo', res.algoKey);
+        currentAlgo = res.algoKey;
+        showNote('Selection did not match — imported as ' + ALGOS[res.algoKey].label + '.');
+      } else {
+        hideNote();
+      }
+      return subtle.exportKey('jwk', res.cryptoKey);
+    }).then(function (jwk) {
+      var isPriv = (format === 'pkcs8');
+      resultsEl.appendChild(makeInspect(jwk, {}));
+      resultsEl.appendChild(makeBlock(
+        (isPriv ? 'Private key · JWK' : 'Public key · JWK'),
+        JSON.stringify(jwk, null, 2),
+        isPriv ? { secret: true } : { pub: true }
+      ));
+    }).catch(function (e) {
+      showError('Conversion failed: ' + (e && e.message ? e.message : e));
+    });
+  }
+
+  // ---------- 3. JWK -> PEM ----------
+  function algoForJwk(jwk) {
+    if (jwk.kty === 'RSA') {
+      var hash = 'SHA-256';
+      if (jwk.alg === 'RS384' || jwk.alg === 'PS384') hash = 'SHA-384';
+      else if (jwk.alg === 'RS512' || jwk.alg === 'PS512') hash = 'SHA-512';
+      return { name: 'RSASSA-PKCS1-v1_5', hash: hash };
+    }
+    if (jwk.kty === 'EC') {
+      if (!jwk.crv) throw new Error('EC JWK is missing the "crv" field.');
+      return { name: 'ECDSA', namedCurve: jwk.crv };
+    }
+    if (jwk.kty === 'OKP') {
+      throw new Error('OKP keys (Ed25519 / Ed448) are not supported by the Web Crypto API in most browsers.');
+    }
+    throw new Error('Unsupported or missing "kty". Expected "RSA" or "EC".');
+  }
+
+  function sanitizeForImport(jwk) {
+    var clone = {};
+    for (var k in jwk) {
+      if (Object.prototype.hasOwnProperty.call(jwk, k)) clone[k] = jwk[k];
+    }
+    // Strip fields that constrain usage/extractability so conversion isn't blocked.
+    delete clone.key_ops;
+    delete clone.use;
+    delete clone.ext;
+    return clone;
+  }
+
+  function doJwk2Pem() {
+    if (!ensureSubtle()) return;
+    hideError();
+    hideNote();
+    clearResults();
+
+    var raw = jwkInput.value.trim();
+    if (!raw) { showError('Paste a JWK JSON object first.'); return; }
+
+    var jwk;
+    try {
+      jwk = JSON.parse(raw);
+    } catch (e) {
+      showError('Invalid JSON: ' + e.message);
+      return;
+    }
+    if (!jwk || typeof jwk !== 'object' || Array.isArray(jwk)) {
+      showError('Expected a single JWK object (with a "kty" field).');
+      return;
+    }
+
+    var importAlgo;
+    try {
+      importAlgo = algoForJwk(jwk);
+    } catch (e) {
+      showError(e.message);
+      return;
+    }
+
+    var isPrivate = (jwk.d !== undefined && jwk.d !== null && jwk.d !== '');
+    var usages = isPrivate ? ['sign'] : ['verify'];
+    var exportFormat = isPrivate ? 'pkcs8' : 'spki';
+    var pemLabel = isPrivate ? 'PRIVATE KEY' : 'PUBLIC KEY';
+
+    subtle.importKey('jwk', sanitizeForImport(jwk), importAlgo, true, usages).then(function (key) {
+      return subtle.exportKey(exportFormat, key);
+    }).then(function (der) {
+      var pem = derToPem(der, pemLabel);
+      resultsEl.appendChild(makeInspect(jwk, {}));
+      resultsEl.appendChild(makeBlock(
+        (isPrivate ? 'Private key · PEM (PKCS#8)' : 'Public key · PEM (SPKI)'),
+        pem,
+        isPrivate ? { secret: true } : { pub: true }
+      ));
+    }).catch(function (e) {
+      showError('Conversion failed: ' + (e && e.message ? e.message : e) +
+        '. Check that the JWK fields match the key type (RSA private keys need n, e, d, p, q, dp, dq, qi).');
+    });
+  }
+
+  // ---------- wire up ----------
+  generateBtn.addEventListener('click', doGenerate);
+  pem2jwkBtn.addEventListener('click', doPem2Jwk);
+  jwk2pemBtn.addEventListener('click', doJwk2Pem);
+
+  hintEl.textContent = HINTS[currentMode];
+
+  // Default: show a generated keypair so the page isn't empty.
+  if (subtle) {
+    doGenerate();
+  } else {
+    showError('This browser does not expose the Web Crypto API (window.crypto.subtle). Try a modern browser over HTTPS.');
+  }
+})();
+</script>

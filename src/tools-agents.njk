@@ -1,0 +1,125 @@
+---
+layout: base.njk
+title: "Tools for AI agents — MCP, llms.txt & URL-invoke | Penumbra Forge"
+description: "Penumbra Forge tools are built for AI agents: connect via MCP (remote or local), discover via llms.txt, or invoke any tool by URL and read a machine-readable result. Client-side, private, no accounts."
+permalink: /tools/agents/
+hideAtmosphere: true
+---
+<link rel="stylesheet" href="/css/tools.css?v=2">
+
+<div class="wb-page">
+  <header class="wb-top">
+    <a href="/" class="wb-brand"><span class="wb-dot" aria-hidden="true"></span>Penumbra&nbsp;Forge</a>
+    <nav>
+      <a href="/tools/">Tools</a>
+      <a href="/tools/agents/" class="active">For Agents</a>
+      <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="wb-shell">
+    <nav class="wb-breadcrumb" aria-label="Breadcrumb"><a href="/tools/">Tools</a><span class="sep">/</span><span class="cur">For AI agents</span></nav>
+
+    <div class="wb-head">
+      <div class="wb-head-main">
+        <h1>Tools for AI agents <span class="wb-chip">MCP · llms.txt · URL</span></h1>
+        <p class="wb-about">Point your terminal AI at Penumbra Forge and give it {{ (tools | length) }}+ privacy-first dev &amp; security tools. Three ways in — a native <strong>MCP server</strong>, a machine index at <strong>/llms.txt</strong>, or invoke any tool <strong>by URL</strong> and read a structured result. Everything runs client-side or on your own machine; nothing is uploaded.</p>
+      </div>
+    </div>
+
+    <section class="wb-agents">
+      <article class="wb-agent-card">
+        <div class="wb-agent-n">01</div>
+        <h2>Connect via MCP</h2>
+        <p>The native way. Add Penumbra Forge as a Model Context Protocol server and your agent (Claude Code, Cursor, Claude Desktop, any MCP client) gets every deterministic tool as a callable function — hash, HMAC, base64/hex/url, JWT decode, UUID, entropy, CIDR, and more.</p>
+        <div class="wb-panel">
+          <div class="wb-panel-bar">local — runs on your machine <span class="wb-badge wb-badge--local">private</span></div>
+          <pre data-copy><span class="hl-dim"># nothing leaves your machine</span>
+claude mcp add penumbra -- node ./workers/mcp/local.mjs</pre>
+        </div>
+        <div class="wb-panel">
+          <div class="wb-panel-bar">remote — hosted edge worker <span class="wb-badge wb-badge--local">live</span></div>
+          <pre data-copy>claude mcp add --transport http penumbra https://penumbra-mcp.penumbraforge.workers.dev</pre>
+        </div>
+      </article>
+
+      <article class="wb-agent-card">
+        <div class="wb-agent-n">02</div>
+        <h2>Discover via llms.txt</h2>
+        <p>Tell your agent to read <a href="/llms.txt"><code>penumbraforge.com/llms.txt</code></a> — a machine-readable catalog of every tool, its purpose, and its invoke pattern. The full JSON index is at <a href="/tools/index.json"><code>/tools/index.json</code></a>.</p>
+        <div class="wb-panel">
+          <div class="wb-panel-bar">agent prompt</div>
+          <pre data-copy>Read https://penumbraforge.com/llms.txt and use the tools there.</pre>
+        </div>
+      </article>
+
+      <article class="wb-agent-card">
+        <div class="wb-agent-n">03</div>
+        <h2>Invoke any tool by URL</h2>
+        <p>Every tool page takes input from the URL, runs client-side, and publishes a machine-readable result — a browser-using agent just navigates and reads it. Same links are shareable for humans.</p>
+        <div class="wb-panel">
+          <div class="wb-panel-bar">GET a tool</div>
+          <pre data-copy>GET https://penumbraforge.com/tools/hash-generator/?in=hello&amp;algo=SHA-256</pre>
+        </div>
+        <div class="wb-panel">
+          <div class="wb-panel-bar">read the result (after html[data-pf-ready="1"])</div>
+          <pre>document.querySelector('#pf-result').textContent   <span class="hl-dim">// JSON</span>
+window.PF_RESULT   <span class="hl-dim">// { tool, ok, output, data }</span></pre>
+        </div>
+      </article>
+    </section>
+
+    <section class="wb-related">
+      <div class="wb-related-label">Tools available to agents right now (via MCP)</div>
+      <div class="wb-mcp-grid" id="mcpGrid"></div>
+    </section>
+
+    <div class="wb-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/><path d="M9 12l2 2 4-4"/></svg>
+      <p><strong>Why this is safe.</strong> The local MCP server and every URL-invoke tool run on your machine or in your browser — pure functions over your input, no data stored or sent to us. The hosted worker is stateless and open source.</p>
+    </div>
+  </div>
+
+  <footer class="wb-foot">
+    <span>&copy; 2026 Penumbra Forge · 0 servers · 0 tracking</span>
+    <div class="links"><a href="/tools/">All tools</a><a href="/llms.txt">llms.txt</a><a href="/tools/index.json">index.json</a><a href="https://github.com/penumbraforge">GitHub</a></div>
+  </footer>
+  <div class="wb-toast" id="wbToast" role="status" aria-live="polite"></div>
+</div>
+
+<style>
+.wb-agents { display: grid; gap: 14px; margin-top: 26px; }
+.wb-agent-card { border: 1px solid var(--wb-line); border-radius: 6px; background: var(--wb-panel); padding: 26px 28px; position: relative; overflow: hidden; }
+.wb-agent-n { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; color: var(--accent); }
+.wb-agent-card h2 { font-family: var(--font-display); font-size: 26px; font-weight: 300; letter-spacing: -0.02em; color: var(--wb-ink); margin: 6px 0 10px; }
+.wb-agent-card > p { font-size: 14px; line-height: 1.7; color: var(--text-2); max-width: 70ch; margin-bottom: 16px; }
+.wb-agent-card code { font-family: var(--font-mono); font-size: 0.9em; color: var(--accent); }
+.wb-agent-card .wb-panel { margin-top: 10px; }
+.wb-agent-card pre { margin: 0; padding: 14px 16px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; color: var(--text-1); overflow-x: auto; cursor: pointer; }
+.wb-agent-card pre[data-copy]:hover { background: color-mix(in oklab, var(--accent) 6%, transparent); }
+.wb-agent-card .hl-dim { color: var(--text-3); }
+.wb-mcp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.wb-mcp-tool { border: 1px solid var(--wb-line); border-radius: 3px; padding: 11px 13px; background: #06060d; }
+.wb-mcp-tool b { font-family: var(--font-mono); font-size: 12px; color: var(--accent); display: block; }
+.wb-mcp-net { font-family: var(--font-mono); font-size: 8px; letter-spacing: 1px; color: var(--slate); border: 1px solid var(--wb-line); padding: 1px 4px; border-radius: 2px; vertical-align: middle; }
+.wb-mcp-tool span { font-size: 11px; color: var(--text-3); line-height: 1.4; display: block; margin-top: 3px; }
+</style>
+
+<script src="/js/tool-io.js"></script>
+<script type="module">
+import { TOOLS } from '/js/tools-lib.js';
+import { NET_TOOLS } from '/js/tools-net.js';
+var grid = document.getElementById('mcpGrid');
+function card(k, reg, net) { return '<div class="wb-mcp-tool"><b>' + k + (net ? ' <span class="wb-mcp-net">net</span>' : '') + '</b><span>' + reg[k].description + '</span></div>'; }
+grid.innerHTML = Object.keys(TOOLS).map(function (k) { return card(k, TOOLS); }).join('')
+  + Object.keys(NET_TOOLS).map(function (k) { return card(k, NET_TOOLS, true); }).join('');
+// click-to-copy code blocks
+document.querySelectorAll('pre[data-copy]').forEach(function (pre) {
+  pre.addEventListener('click', function () {
+    var t = pre.textContent.replace(/^#.*$/gm, '').trim();
+    if (navigator.clipboard) navigator.clipboard.writeText(t);
+    var toast = document.getElementById('wbToast'); toast.textContent = 'Copied'; toast.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { toast.classList.remove('show'); }, 1500);
+  });
+});
+</script>

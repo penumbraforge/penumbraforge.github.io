@@ -3,98 +3,304 @@ toolSlug: cron-builder
 permalink: /tools/cron-builder/
 ---
 
-<div class="tool-group">
-  <label for="cron-expression">Cron Expression</label>
-  <input type="text" id="cron-expression" value="* * * * *" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="font-family:var(--font-mono);font-size:15px;letter-spacing:0.04em;">
+<div class="cb">
+
+  <!-- Expression hero -->
+  <div class="cb-hero">
+    <label for="cron-expression">Cron expression</label>
+    <input type="text" id="cron-expression" class="cb-expr" value="* * * * *" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+    <div id="cron-description" class="cb-readout" aria-live="polite"></div>
+  </div>
+
+  <div class="cb-grid">
+
+    <!-- Builder -->
+    <div class="cb-build">
+
+      <div class="cb-sec-label">Fields</div>
+      <div class="cb-fields">
+        <div class="cb-field">
+          <label for="cron-minute">Minute</label>
+          <input type="text" id="cron-minute" class="cb-in" value="*" spellcheck="false" autocomplete="off">
+          <select id="cron-minute-helper" class="cb-pick" aria-label="Minute quick pick">
+            <option value="">— quick pick —</option>
+            <option value="*">Every minute (*)</option>
+            <option value="0">Top of hour (0)</option>
+            <option value="*/5">Every 5 min (*/5)</option>
+            <option value="*/10">Every 10 min (*/10)</option>
+            <option value="*/15">Every 15 min (*/15)</option>
+            <option value="*/30">Every 30 min (*/30)</option>
+          </select>
+        </div>
+        <div class="cb-field">
+          <label for="cron-hour">Hour</label>
+          <input type="text" id="cron-hour" class="cb-in" value="*" spellcheck="false" autocomplete="off">
+          <select id="cron-hour-helper" class="cb-pick" aria-label="Hour quick pick">
+            <option value="">— quick pick —</option>
+            <option value="*">Every hour (*)</option>
+            <option value="0">Midnight (0)</option>
+            <option value="9">9am (9)</option>
+            <option value="12">Noon (12)</option>
+            <option value="17">5pm (17)</option>
+            <option value="*/6">Every 6h (*/6)</option>
+          </select>
+        </div>
+        <div class="cb-field">
+          <label for="cron-dom">Day of Month</label>
+          <input type="text" id="cron-dom" class="cb-in" value="*" spellcheck="false" autocomplete="off">
+          <select id="cron-dom-helper" class="cb-pick" aria-label="Day of month quick pick">
+            <option value="">— quick pick —</option>
+            <option value="*">Every day (*)</option>
+            <option value="1">1st of month (1)</option>
+            <option value="15">15th (15)</option>
+            <option value="L">Last day (L)</option>
+          </select>
+        </div>
+        <div class="cb-field">
+          <label for="cron-month">Month</label>
+          <input type="text" id="cron-month" class="cb-in" value="*" spellcheck="false" autocomplete="off">
+          <select id="cron-month-helper" class="cb-pick" aria-label="Month quick pick">
+            <option value="">— quick pick —</option>
+            <option value="*">Every month (*)</option>
+            <option value="1">January (1)</option>
+            <option value="6">June (6)</option>
+            <option value="12">December (12)</option>
+            <option value="*/3">Quarterly (*/3)</option>
+          </select>
+        </div>
+        <div class="cb-field">
+          <label for="cron-dow">Day of Week</label>
+          <input type="text" id="cron-dow" class="cb-in" value="*" spellcheck="false" autocomplete="off">
+          <select id="cron-dow-helper" class="cb-pick" aria-label="Day of week quick pick">
+            <option value="">— quick pick —</option>
+            <option value="*">Every day (*)</option>
+            <option value="1">Monday (1)</option>
+            <option value="5">Friday (5)</option>
+            <option value="6">Saturday (6)</option>
+            <option value="0">Sunday (0)</option>
+            <option value="1-5">Weekdays (1-5)</option>
+            <option value="0,6">Weekends (0,6)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="cb-sec-label cb-sec-label--gap">Presets</div>
+      <div class="cb-presets">
+        <button class="tool-option cb-preset" data-preset="* * * * *">Every minute</button>
+        <button class="tool-option cb-preset" data-preset="0 * * * *">Hourly</button>
+        <button class="tool-option cb-preset" data-preset="0 0 * * *">Daily midnight</button>
+        <button class="tool-option cb-preset" data-preset="0 9 * * 1">Mon 9am</button>
+        <button class="tool-option cb-preset" data-preset="0 0 1 * *">Monthly 1st</button>
+        <button class="tool-option cb-preset" data-preset="0 9 * * 1-5">Weekdays 9am</button>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <aside class="cb-out">
+      <div class="wb-panel cb-panel">
+        <div class="wb-panel-bar">
+          <span>Schedule</span>
+          <button class="btn btn--copy cb-copy" id="cron-copy" aria-label="Copy cron expression">Copy</button>
+        </div>
+        <div class="cb-panel-body">
+          <div class="cb-out-label">Expression</div>
+          <div id="cron-output" class="cb-out-expr"></div>
+          <div class="cb-out-label">Next 5 executions</div>
+          <div id="cron-next-times" class="cb-out-times" aria-label="Upcoming execution times"></div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
 </div>
 
-<div id="cron-description" style="margin-bottom:16px;padding:10px 14px;border-radius:4px;background:var(--surface-0);border:1px solid var(--border);font-size:13px;color:var(--text-1);min-height:38px;" aria-live="polite"></div>
+<style>
+  /* ---- Cron Builder — premium visual pass (layout + skin only) ---- */
+  .wb-page .tool-content .cb { --cb-inset: #06060d; }
 
-<div class="tool-row" style="gap:8px;flex-wrap:wrap;">
-  <div class="tool-group" style="flex:1;min-width:120px;margin-bottom:0;">
-    <label for="cron-minute" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Minute</label>
-    <input type="text" id="cron-minute" value="*" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
-    <select id="cron-minute-helper" style="margin-top:4px;width:100%;font-size:12px;">
-      <option value="">— quick pick —</option>
-      <option value="*">Every minute (*)</option>
-      <option value="0">Top of hour (0)</option>
-      <option value="*/5">Every 5 min (*/5)</option>
-      <option value="*/10">Every 10 min (*/10)</option>
-      <option value="*/15">Every 15 min (*/15)</option>
-      <option value="*/30">Every 30 min (*/30)</option>
-    </select>
-  </div>
-  <div class="tool-group" style="flex:1;min-width:120px;margin-bottom:0;">
-    <label for="cron-hour" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Hour</label>
-    <input type="text" id="cron-hour" value="*" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
-    <select id="cron-hour-helper" style="margin-top:4px;width:100%;font-size:12px;">
-      <option value="">— quick pick —</option>
-      <option value="*">Every hour (*)</option>
-      <option value="0">Midnight (0)</option>
-      <option value="9">9am (9)</option>
-      <option value="12">Noon (12)</option>
-      <option value="17">5pm (17)</option>
-      <option value="*/6">Every 6h (*/6)</option>
-    </select>
-  </div>
-  <div class="tool-group" style="flex:1;min-width:120px;margin-bottom:0;">
-    <label for="cron-dom" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Day of Month</label>
-    <input type="text" id="cron-dom" value="*" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
-    <select id="cron-dom-helper" style="margin-top:4px;width:100%;font-size:12px;">
-      <option value="">— quick pick —</option>
-      <option value="*">Every day (*)</option>
-      <option value="1">1st of month (1)</option>
-      <option value="15">15th (15)</option>
-      <option value="L">Last day (L)</option>
-    </select>
-  </div>
-  <div class="tool-group" style="flex:1;min-width:120px;margin-bottom:0;">
-    <label for="cron-month" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Month</label>
-    <input type="text" id="cron-month" value="*" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
-    <select id="cron-month-helper" style="margin-top:4px;width:100%;font-size:12px;">
-      <option value="">— quick pick —</option>
-      <option value="*">Every month (*)</option>
-      <option value="1">January (1)</option>
-      <option value="6">June (6)</option>
-      <option value="12">December (12)</option>
-      <option value="*/3">Quarterly (*/3)</option>
-    </select>
-  </div>
-  <div class="tool-group" style="flex:1;min-width:120px;margin-bottom:0;">
-    <label for="cron-dow" style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Day of Week</label>
-    <input type="text" id="cron-dow" value="*" spellcheck="false" autocomplete="off" style="font-family:var(--font-mono);">
-    <select id="cron-dow-helper" style="margin-top:4px;width:100%;font-size:12px;">
-      <option value="">— quick pick —</option>
-      <option value="*">Every day (*)</option>
-      <option value="1">Monday (1)</option>
-      <option value="5">Friday (5)</option>
-      <option value="6">Saturday (6)</option>
-      <option value="0">Sunday (0)</option>
-      <option value="1-5">Weekdays (1-5)</option>
-      <option value="0,6">Weekends (0,6)</option>
-    </select>
-  </div>
-</div>
+  /* Expression hero */
+  .wb-page .tool-content .cb-hero { margin-bottom: 30px; }
+  .wb-page .tool-content input.cb-expr {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 24px;
+    letter-spacing: 0.14em;
+    padding: 17px 20px;
+    color: var(--wb-ink);
+    border-radius: 5px;
+  }
+  .wb-page .tool-content .cb-readout {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 13px 16px;
+    min-height: 46px;
+    background: var(--cb-inset);
+    border: 1px solid var(--wb-line);
+    border-left: 2px solid color-mix(in oklab, var(--accent) 55%, transparent);
+    border-radius: 4px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-1);
+    font-weight: 300;
+  }
+  .wb-page .tool-content .cb-readout::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    margin-top: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px color-mix(in oklab, var(--accent) 70%, transparent);
+  }
 
-<div class="tool-row" style="align-items:center;flex-wrap:wrap;gap:8px;">
-  <span style="font-size:12px;color:var(--text-2);margin-right:4px;">Presets:</span>
-  <button class="tool-option" data-preset="* * * * *">Every minute</button>
-  <button class="tool-option" data-preset="0 * * * *">Hourly</button>
-  <button class="tool-option" data-preset="0 0 * * *">Daily midnight</button>
-  <button class="tool-option" data-preset="0 9 * * 1">Mon 9am</button>
-  <button class="tool-option" data-preset="0 0 1 * *">Monthly 1st</button>
-  <button class="tool-option" data-preset="0 9 * * 1-5">Weekdays 9am</button>
-</div>
+  /* Two-column builder / output split */
+  .wb-page .tool-content .cb-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(250px, 0.85fr);
+    gap: 26px;
+    align-items: start;
+  }
 
-<div class="output-area" style="margin-top:4px;">
-  <button class="btn btn--copy" id="cron-copy" aria-label="Copy cron expression">Copy</button>
-  <div style="padding-right:60px;">
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);margin-bottom:6px;">Expression</div>
-    <div id="cron-output" style="font-family:var(--font-mono);font-size:15px;letter-spacing:0.04em;margin-bottom:12px;"></div>
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-2);margin-bottom:6px;">Next 5 executions</div>
-    <div id="cron-next-times" style="font-family:var(--font-mono);font-size:12px;line-height:1.7;color:var(--text-1);"></div>
-  </div>
-</div>
+  /* Section labels */
+  .wb-page .tool-content .cb-sec-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 13px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--slate);
+  }
+  .wb-page .tool-content .cb-sec-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--wb-line), transparent);
+  }
+  .wb-page .tool-content .cb-sec-label--gap { margin-top: 28px; }
+
+  /* Field cards */
+  .wb-page .tool-content .cb-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    gap: 10px;
+  }
+  .wb-page .tool-content .cb-field {
+    display: flex;
+    flex-direction: column;
+    padding: 13px 13px 14px;
+    background: color-mix(in oklab, var(--wb-panel) 70%, #0c0c15);
+    border: 1px solid var(--wb-line);
+    border-radius: 6px;
+    transition: border-color 180ms var(--wb-ease);
+  }
+  .wb-page .tool-content .cb-field:focus-within {
+    border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+  }
+  .wb-page .tool-content .cb-field label { margin-bottom: 9px; }
+  .wb-page .tool-content input.cb-in {
+    padding: 11px 12px;
+    font-size: 14px;
+    text-align: center;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+  }
+  .wb-page .tool-content select.cb-pick {
+    margin-top: 9px;
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: var(--text-2);
+    background: var(--cb-inset);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  /* Preset pills */
+  .wb-page .tool-content .cb-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .wb-page .tool-content .cb-preset {
+    border: 1px solid var(--wb-line);
+    border-radius: 999px;
+    padding: 8px 15px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    color: var(--text-2);
+    background: transparent;
+    cursor: pointer;
+    transition: border-color 160ms, color 160ms, background 160ms;
+  }
+  .wb-page .tool-content .cb-preset:hover {
+    color: var(--wb-ink);
+    border-color: var(--wb-line-bright);
+    background: color-mix(in oklab, var(--accent) 6%, transparent);
+  }
+  .wb-page .tool-content .cb-preset.active {
+    color: #17121f;
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Output panel */
+  .wb-page .tool-content .cb-out { position: sticky; top: 78px; }
+  .wb-page .tool-content .cb-panel {
+    box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 4%, transparent), 0 24px 60px -44px rgba(0,0,0,0.85);
+  }
+  .wb-page .tool-content .cb-panel .wb-panel-bar { color: var(--slate); }
+  .wb-page .tool-content .cb-copy {
+    position: static;
+    top: auto;
+    right: auto;
+    padding: 5px 13px;
+    font-size: 10.5px;
+    letter-spacing: 0.5px;
+  }
+  .wb-page .tool-content .cb-panel-body { padding: 16px 16px 18px; }
+  .wb-page .tool-content .cb-out-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 9px;
+  }
+  .wb-page .tool-content .cb-out-expr {
+    padding: 13px 15px;
+    margin-bottom: 22px;
+    background: #0b0b13;
+    border: 1px solid var(--wb-line);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    word-break: break-all;
+  }
+  .wb-page .tool-content .cb-out-times {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.95;
+    color: var(--text-1);
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  @media (max-width: 820px) {
+    .wb-page .tool-content .cb-grid { grid-template-columns: 1fr; gap: 22px; }
+    .wb-page .tool-content .cb-out { position: static; }
+    .wb-page .tool-content input.cb-expr { font-size: 20px; }
+  }
+</style>
 
 <script>
 (function () {

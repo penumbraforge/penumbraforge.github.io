@@ -1,0 +1,16 @@
+---
+toolSlug: local-chat
+permalink: /tools/local-chat/
+---
+<div id="chatMount"></div>
+
+<script>
+(function () {
+  if (!window.PenumbraAIUI) return;
+  PenumbraAIUI.chat(document.getElementById('chatMount'), {
+    system: "You are a concise, helpful assistant running locally on the user's own machine. Be direct and practical.",
+    placeholder: "Ask anything — this runs on your machine…",
+    starter: "Hi. I'm a language model running entirely on your device — nothing you type here leaves your machine. Pick an engine with “Engine ▾” above (in-browser WebGPU, your own Ollama/LM Studio, or an API key), then ask me anything."
+  });
+})();
+</script>

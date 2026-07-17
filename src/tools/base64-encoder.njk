@@ -3,169 +3,645 @@ toolSlug: base64-encoder
 permalink: /tools/base64-encoder/
 ---
 
-<div class="tool-row" style="margin-bottom:1rem; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+<style>
+  #di-decode-fmt-row, #di-encode-fmt-row { align-items: center; gap: 10px 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .di-fmt-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--slate); }
+  .di-inputmeta { margin-top: 7px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 11px; color: var(--text-3); }
+  .di-inputmeta .di-ex-lead { letter-spacing: 0.5px; }
+  .di-example { background: none; border: 1px solid var(--wb-line, #2a2a3a); color: var(--text-2); font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.4px; padding: 3px 9px; border-radius: 2px; cursor: pointer; transition: border-color 150ms, color 150ms; }
+  .di-example:hover { border-color: var(--accent); color: var(--wb-ink, #fff); }
+  #di-drop { border: 2px dashed var(--wb-line, #2a2a3a); border-radius: 8px; padding: 1.4rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; user-select: none; color: var(--text-2); }
+  #di-drop.di-drag { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 8%, transparent); }
+  #di-fileinfo { margin-top: 0.4rem; font-size: 0.82rem; color: var(--text-3); font-family: var(--font-mono); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  #di-fileclear { background: none; border: 0; color: var(--accent); font-family: var(--font-mono); font-size: 11px; cursor: pointer; text-decoration: underline; padding: 0; }
+  .di-detect { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; min-height: 1px; }
+  .di-chip { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; padding: 6px 11px; border: 1px solid var(--wb-line, #2a2a3a); border-radius: 3px; background: #06060d; color: var(--text-3); }
+  .di-chip .di-k { text-transform: uppercase; letter-spacing: 1px; font-size: 9.5px; color: var(--slate); }
+  .di-chip .di-v { color: var(--wb-ink, #f2eff8); }
+  .di-chip--type { border-color: color-mix(in oklab, var(--accent) 42%, var(--border)); }
+  .di-chip--type .di-v { color: var(--accent); }
+  .di-split { margin-top: 8px; }
+  .di-pre { margin: 0; padding: 14px 15px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; color: var(--text-1); white-space: pre-wrap; word-break: break-word; max-height: 360px; overflow: auto; min-height: 68px; }
+  .di-hexpre { white-space: pre; word-break: normal; color: var(--sage); }
+  .di-pre.di-is-empty { color: var(--text-3); font-style: italic; }
+  #di-jwt { margin-top: 14px; }
+  .di-jwt-body { padding: 14px 16px; display: grid; gap: 14px; }
+  .di-jwt-seg > div:first-child { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
+  .di-jwt-body pre { margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 1.55; color: var(--text-1); white-space: pre-wrap; word-break: break-word; }
+  .di-jwt-notes { display: flex; flex-direction: column; gap: 4px; }
+  .di-jwt-note { font-family: var(--font-mono); font-size: 11px; color: #e8a87c; }
+  @media (max-width: 620px) { .di-split { grid-template-columns: 1fr; } }
+</style>
+
+<div class="tool-row" style="margin-bottom:14px; gap:12px; align-items:center; flex-wrap:wrap;">
   <div class="tool-options" role="group" aria-label="Mode">
-    <button class="tool-option active" data-mode="encode" aria-pressed="true">Encode</button>
-    <button class="tool-option" data-mode="decode" aria-pressed="false">Decode</button>
+    <button class="tool-option active" data-mode="decode" aria-pressed="true">Decode / Inspect</button>
+    <button class="tool-option" data-mode="encode" aria-pressed="false">Encode</button>
   </div>
-  <div class="tool-options" role="group" aria-label="Variant">
-    <button class="tool-option active" data-variant="standard" aria-pressed="true">Standard</button>
-    <button class="tool-option" data-variant="url-safe" aria-pressed="false">URL-safe</button>
+</div>
+
+<div class="tool-row" id="di-decode-fmt-row">
+  <span class="di-fmt-label">Read as</span>
+  <div class="tool-options" role="group" aria-label="Decode format">
+    <button class="tool-option active" data-fmt="auto" aria-pressed="true">Auto</button>
+    <button class="tool-option" data-fmt="base64" aria-pressed="false">Base64</button>
+    <button class="tool-option" data-fmt="base64url" aria-pressed="false">Base64URL</button>
+    <button class="tool-option" data-fmt="hex" aria-pressed="false">Hex</button>
+    <button class="tool-option" data-fmt="data-uri" aria-pressed="false">Data URI</button>
+    <button class="tool-option" data-fmt="jwt" aria-pressed="false">JWT</button>
+  </div>
+</div>
+
+<div class="tool-row" id="di-encode-fmt-row" style="display:none;">
+  <span class="di-fmt-label">Encode to</span>
+  <div class="tool-options" role="group" aria-label="Encode format">
+    <button class="tool-option active" data-enc="base64" aria-pressed="true">Base64</button>
+    <button class="tool-option" data-enc="base64url" aria-pressed="false">Base64URL</button>
+    <button class="tool-option" data-enc="hex" aria-pressed="false">Hex</button>
+    <button class="tool-option" data-enc="data-uri" aria-pressed="false">Data URI</button>
   </div>
 </div>
 
 <div class="tool-group">
-  <label for="b64-input" id="b64-input-label">Plain text to encode</label>
-  <textarea id="b64-input" rows="8" placeholder="Enter text to encode…" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-  <div style="margin-top:0.25rem; font-size:0.8rem; color:var(--text-3);">
-    <span id="b64-char-count">0</span> characters
+  <label for="di-input" id="di-input-label">Encoded input to inspect</label>
+  <textarea id="di-input" rows="6" placeholder="Paste Base64, Base64URL, hex, a data: URI, or a JWT…" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  <div class="di-inputmeta">
+    <span><span id="di-charcount">0</span> chars</span>
+    <span class="di-ex-lead">·  examples:</span>
+    <button type="button" class="di-example" data-ex="png">PNG (base64)</button>
+    <button type="button" class="di-example" data-ex="jwt">JWT</button>
+    <button type="button" class="di-example" data-ex="hex">hex → magic</button>
+    <button type="button" class="di-example" data-ex="datauri">data URI</button>
   </div>
 </div>
 
-<div id="b64-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
-
-<div class="output-area">
-  <button class="btn btn--copy" id="b64-copy" aria-label="Copy output">Copy</button>
-  <pre id="b64-output" aria-label="Base64 output"></pre>
+<div class="tool-group">
+  <label>Or drop a file to inspect its bytes</label>
+  <div id="di-drop" role="button" tabindex="0" aria-label="Drop a file or click to browse">
+    <span id="di-droplabel">Drop a file here or <u>click to browse</u></span>
+    <input type="file" id="di-file" style="display:none;" aria-hidden="true">
+  </div>
+  <div id="di-fileinfo"></div>
 </div>
 
-<script>
+<div id="di-error" style="display:none;" role="alert" aria-live="assertive" class="tool-error"></div>
+
+<div id="di-detect" class="di-detect" aria-live="polite" aria-label="Detection summary"></div>
+
+<div class="wb-split di-split">
+  <div class="wb-panel">
+    <div class="wb-panel-bar">
+      <span id="di-left-title">Decoded text</span>
+      <button class="btn btn--copy" id="di-copy-left" aria-label="Copy decoded output">Copy</button>
+    </div>
+    <pre id="di-left" class="di-pre di-is-empty" aria-live="polite">Paste or drop something to inspect it.</pre>
+  </div>
+  <div class="wb-panel">
+    <div class="wb-panel-bar">
+      <span>Hex + ASCII dump</span>
+      <button class="btn btn--copy" id="di-copy-hex" aria-label="Copy hex dump">Copy</button>
+    </div>
+    <pre id="di-hex" class="di-pre di-hexpre di-is-empty" aria-live="polite">offset    hex bytes                                            ascii</pre>
+  </div>
+</div>
+
+<div id="di-jwt" class="wb-panel" style="display:none;">
+  <div class="wb-panel-bar"><span>JWT header &amp; claims (signature not verified)</span></div>
+  <div class="di-jwt-body">
+    <div class="di-jwt-seg"><div>Header</div><pre id="di-jwt-header"></pre></div>
+    <div class="di-jwt-seg"><div>Payload</div><pre id="di-jwt-payload"></pre></div>
+    <div class="di-jwt-notes" id="di-jwt-notes"></div>
+  </div>
+</div>
+
+<script type="module">
+import {
+  b64ToBytes, hexToBytes, strToBytes,
+  bytesToStr, bytesToHex, bytesToB64,
+  jwtDecode
+} from '/js/tools-lib.js';
+
 (function () {
-  var inputEl    = document.getElementById('b64-input');
-  var outputEl   = document.getElementById('b64-output');
-  var errorEl    = document.getElementById('b64-error');
-  var copyBtn    = document.getElementById('b64-copy');
-  var labelEl    = document.getElementById('b64-input-label');
-  var charCount  = document.getElementById('b64-char-count');
-  var modeBtns   = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
-  var variantBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-variant]'));
+  var input      = document.getElementById('di-input');
+  var charcount  = document.getElementById('di-charcount');
+  var inputLabel = document.getElementById('di-input-label');
+  var errorEl    = document.getElementById('di-error');
+  var detectEl   = document.getElementById('di-detect');
+  var leftEl     = document.getElementById('di-left');
+  var leftTitle  = document.getElementById('di-left-title');
+  var hexEl      = document.getElementById('di-hex');
+  var jwtBox     = document.getElementById('di-jwt');
+  var jwtHeader  = document.getElementById('di-jwt-header');
+  var jwtPayload = document.getElementById('di-jwt-payload');
+  var jwtNotes   = document.getElementById('di-jwt-notes');
+  var dropZone   = document.getElementById('di-drop');
+  var fileInput  = document.getElementById('di-file');
+  var fileInfo   = document.getElementById('di-fileinfo');
+  var copyLeft   = document.getElementById('di-copy-left');
+  var copyHex    = document.getElementById('di-copy-hex');
 
-  var currentMode    = 'encode';
-  var currentVariant = 'standard';
+  var DUMP_CAP = 16384;
 
-  function showError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = '';
-  }
+  var state = {
+    mode: 'decode',        // 'decode' | 'encode'
+    fmt: 'auto',           // decode override
+    encFmt: 'base64',      // encode target
+    fileBytes: null,
+    fileName: '',
+    fileMime: '',
+    leftText: '',
+    hexText: ''
+  };
 
-  function hideError() {
-    errorEl.textContent = '';
-    errorEl.style.display = 'none';
-  }
+  // ---- magic-byte signatures ----
+  var MAGICS = [
+    { sig: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], label: 'PNG image' },
+    { sig: [0xff, 0xd8, 0xff], label: 'JPEG image' },
+    { sig: [0x47, 0x49, 0x46, 0x38], label: 'GIF image' },
+    { sig: [0x42, 0x4d], label: 'BMP image' },
+    { sig: [0x1f, 0x8b], label: 'gzip (compressed)' },
+    { sig: [0x42, 0x5a, 0x68], label: 'bzip2 (compressed)' },
+    { sig: [0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00], label: 'XZ (compressed)' },
+    { sig: [0x25, 0x50, 0x44, 0x46], label: 'PDF document' },
+    { sig: [0x50, 0x4b, 0x03, 0x04], label: 'ZIP archive (or docx/jar/apk)' },
+    { sig: [0x50, 0x4b, 0x05, 0x06], label: 'ZIP archive (empty)' },
+    { sig: [0x50, 0x4b, 0x07, 0x08], label: 'ZIP archive (spanned)' },
+    { sig: [0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c], label: '7-Zip archive' },
+    { sig: [0x52, 0x61, 0x72, 0x21, 0x1a, 0x07], label: 'RAR archive' },
+    { sig: [0x7f, 0x45, 0x4c, 0x46], label: 'ELF executable' },
+    { sig: [0x4d, 0x5a], label: 'DOS / PE executable' },
+    { sig: [0xca, 0xfe, 0xba, 0xbe], label: 'Java class / Mach-O fat binary' },
+    { sig: [0xcf, 0xfa, 0xed, 0xfe], label: 'Mach-O (64-bit)' },
+    { sig: [0x25, 0x21, 0x50, 0x53], label: 'PostScript' },
+    { sig: [0x00, 0x00, 0x01, 0x00], label: 'ICO icon' },
+    { sig: [0x49, 0x44, 0x33], label: 'MP3 audio (ID3)' },
+    { sig: [0x4f, 0x67, 0x67, 0x53], label: 'Ogg media' },
+    { sig: [0x38, 0x42, 0x50, 0x53], label: 'Photoshop PSD' },
+    { sig: [0xef, 0xbb, 0xbf], label: 'UTF-8 text (BOM)' }
+  ];
 
-  function toUrlSafe(b64) {
-    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-
-  function fromUrlSafe(b64) {
-    var s = b64.replace(/-/g, '+').replace(/_/g, '/');
-    var pad = s.length % 4;
-    if (pad === 2) s += '==';
-    else if (pad === 3) s += '=';
-    return s;
-  }
-
-  function encodeText(text) {
-    try {
-      var bytes = new TextEncoder().encode(text);
-      var binary = '';
-      bytes.forEach(function (b) { binary += String.fromCharCode(b); });
-      var b64 = btoa(binary);
-      return currentVariant === 'url-safe' ? toUrlSafe(b64) : b64;
-    } catch (e) {
-      throw new Error('Encoding failed: ' + e.message);
-    }
-  }
-
-  function decodeText(b64) {
-    try {
-      var normalized = currentVariant === 'url-safe' ? fromUrlSafe(b64) : b64;
-      var binary = atob(normalized);
-      var bytes = new Uint8Array(binary.length);
-      for (var i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
+  function detectMagic(bytes) {
+    for (var i = 0; i < MAGICS.length; i++) {
+      var m = MAGICS[i];
+      if (bytes.length >= m.sig.length) {
+        var ok = true;
+        for (var j = 0; j < m.sig.length; j++) { if (bytes[j] !== m.sig[j]) { ok = false; break; } }
+        if (ok) return m.label;
       }
-      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    } catch (e) {
-      throw new Error('Invalid Base64 input — ' + e.message);
+    }
+    if (bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+      var tag = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+      if (tag === 'WEBP') return 'WebP image';
+      if (tag === 'WAVE') return 'WAV audio';
+      if (tag === 'AVI ') return 'AVI video';
+      return 'RIFF container';
+    }
+    if (bytes.length >= 12 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+      return 'MP4 / ISO base media';
+    }
+    return null;
+  }
+
+  // ---- detection heuristics for pasted text ----
+  function stripWs(s) { return s.replace(/\s+/g, ''); }
+  function looksDataUri(s) { return /^data:/i.test(s.trim()); }
+  function looksHex(s) { var t = stripWs(s); return t.length > 0 && t.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(t); }
+
+  function looksJwt(s) {
+    var t = s.trim();
+    var parts = t.split('.');
+    if (parts.length < 2 || parts.length > 3) return false;
+    for (var i = 0; i < parts.length; i++) { if (!/^[A-Za-z0-9_-]*$/.test(parts[i])) return false; }
+    if (!parts[0] || !parts[1]) return false;
+    try {
+      var h = JSON.parse(bytesToStr(b64ToBytes(parts[0])));
+      return h && typeof h === 'object' && ('alg' in h || 'typ' in h);
+    } catch (e) { return false; }
+  }
+
+  function b64Charset(s) {
+    var t = stripWs(s);
+    if (/[-_]/.test(t) && !/[+/]/.test(t)) return 'base64url';
+    return 'base64';
+  }
+
+  // ---- decoders (each returns { format, bytes, ...extras }) ----
+  function decodeDataUri(t) {
+    var m = t.trim().match(/^data:([^,]*),([\s\S]*)$/i);
+    if (!m) throw new Error('Malformed data URI — expected "data:[<mime>][;base64],<data>".');
+    var meta = m[1] || '';
+    var isB64 = /;base64/i.test(meta);
+    var mime = meta.split(';')[0] || 'text/plain';
+    var payload = m[2];
+    var bytes = isB64 ? b64ToBytes(payload) : strToBytes(decodeURIComponent(payload));
+    return { format: 'data-uri', bytes: bytes, mime: mime, base64: isB64 };
+  }
+
+  function decodeJwt(t) {
+    var info = jwtDecode(t);
+    var pretty = JSON.stringify({ header: info.header, payload: info.payload }, null, 2);
+    var payloadBytes = b64ToBytes(t.trim().split('.')[1]);
+    return { format: 'jwt', bytes: payloadBytes, jwt: info, text: pretty };
+  }
+
+  function decodeAuto(text) {
+    var t = text.trim();
+    if (!t) return null;
+    if (looksDataUri(t)) return decodeDataUri(t);
+    if (looksJwt(t)) return decodeJwt(t);
+    if (looksHex(t)) return { format: 'hex', bytes: hexToBytes(t) };
+    return { format: b64Charset(t), bytes: b64ToBytes(t) };
+  }
+
+  function decodeAs(fmt, text) {
+    var t = text.trim();
+    if (fmt === 'hex') return { format: 'hex', bytes: hexToBytes(t) };
+    if (fmt === 'base64') return { format: 'base64', bytes: b64ToBytes(t) };
+    if (fmt === 'base64url') return { format: 'base64url', bytes: b64ToBytes(t) };
+    if (fmt === 'data-uri') return decodeDataUri(t);
+    if (fmt === 'jwt') return decodeJwt(t);
+    return decodeAuto(text);
+  }
+
+  function encodeBytes(bytes, fmt, mimeHint) {
+    if (fmt === 'hex') return bytesToHex(bytes);
+    if (fmt === 'base64url') return bytesToB64(bytes, true);
+    if (fmt === 'data-uri') return 'data:' + (mimeHint || 'application/octet-stream') + ';base64,' + bytesToB64(bytes);
+    return bytesToB64(bytes);
+  }
+
+  // ---- text / dump helpers ----
+  function tryText(bytes) {
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+    catch (e) { return null; }
+  }
+  function isMostlyPrintable(str) {
+    if (str == null) return false;
+    if (str.length === 0) return true;
+    var bad = 0, n = 0;
+    for (var i = 0; i < str.length; i++) {
+      var c = str.charCodeAt(i); n++;
+      if (c < 0x20 && c !== 9 && c !== 10 && c !== 13) bad++;
+    }
+    return bad / n < 0.15;
+  }
+
+  function hexDump(bytes, cap) {
+    var n = Math.min(bytes.length, cap);
+    var out = '';
+    for (var off = 0; off < n; off += 16) {
+      var hexPart = '', asciiPart = '';
+      for (var i = 0; i < 16; i++) {
+        if (off + i < n) {
+          var b = bytes[off + i];
+          hexPart += (b < 16 ? '0' : '') + b.toString(16) + ' ';
+          asciiPart += (b >= 0x20 && b < 0x7f) ? String.fromCharCode(b) : '.';
+        } else {
+          hexPart += '   ';
+          asciiPart += ' ';
+        }
+        if (i === 7) hexPart += ' ';
+      }
+      var offStr = ('00000000' + off.toString(16)).slice(-8);
+      out += offStr + '  ' + hexPart + ' |' + asciiPart + '|\n';
+    }
+    if (bytes.length > cap) out += '… ' + (bytes.length - cap) + ' more bytes not shown\n';
+    return out;
+  }
+
+  function prettyFmt(f) {
+    switch (f) {
+      case 'base64': return 'Base64';
+      case 'base64url': return 'Base64URL';
+      case 'hex': return 'Hex';
+      case 'data-uri': return 'Data URI';
+      case 'jwt': return 'JWT';
+      case 'raw file': return 'Raw file';
+      case 'utf-8 text': return 'UTF-8 text';
+      default: return f;
     }
   }
 
-  function convert() {
-    var raw = inputEl.value;
-    charCount.textContent = raw.length;
+  // ---- DOM plumbing (all user data via textContent) ----
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = ''; }
+  function hideError() { errorEl.textContent = ''; errorEl.style.display = 'none'; }
 
-    if (!raw.trim()) {
-      outputEl.textContent = '';
-      hideError();
+  function setPre(el, txt) { el.textContent = txt; el.classList.remove('di-is-empty'); }
+  function setEmptyPre(el, msg) { el.textContent = msg; el.classList.add('di-is-empty'); }
+
+  function renderChips(items) {
+    detectEl.textContent = '';
+    items.forEach(function (it) {
+      var chip = document.createElement('span');
+      chip.className = 'di-chip' + (it[2] === 'type' ? ' di-chip--type' : '');
+      var k = document.createElement('span'); k.className = 'di-k'; k.textContent = it[0];
+      var v = document.createElement('span'); v.className = 'di-v'; v.textContent = it[1];
+      chip.appendChild(k); chip.appendChild(v);
+      detectEl.appendChild(chip);
+    });
+  }
+
+  function hideJwt() { jwtBox.style.display = 'none'; }
+  function renderJwt(info) {
+    jwtHeader.textContent = JSON.stringify(info.header, null, 2);
+    jwtPayload.textContent = JSON.stringify(info.payload, null, 2);
+    jwtNotes.textContent = '';
+    var notes = (info.notes || []).slice();
+    notes.push('Signature is NOT verified — decode only.');
+    notes.forEach(function (nt) {
+      var d = document.createElement('div'); d.className = 'di-jwt-note'; d.textContent = '! ' + nt;
+      jwtNotes.appendChild(d);
+    });
+    jwtBox.style.display = '';
+  }
+
+  function pfReady(output, data) {
+    if (window.PF) window.PF.ready({ output: output, data: data });
+  }
+  function pfFail(msg) { if (window.PF) window.PF.fail(msg); }
+
+  function clearOutputs() {
+    renderChips([]);
+    setEmptyPre(leftEl, state.mode === 'encode' ? 'Type or drop something to encode it.' : 'Paste or drop something to inspect it.');
+    setEmptyPre(hexEl, 'offset    hex bytes                                            ascii');
+    state.leftText = ''; state.hexText = '';
+    hideJwt();
+  }
+
+  // ---- render paths ----
+  function renderDecode(bytes, info) {
+    var magic = detectMagic(bytes);
+    var txt = tryText(bytes);
+    var printable = isMostlyPrintable(txt);
+    var prefixLen = Math.min(8, bytes.length);
+    var magicHex = prefixLen ? bytesToHex(bytes.slice(0, prefixLen)) : '';
+
+    var contentType;
+    if (info.format === 'jwt') contentType = 'JWT (JSON claims)';
+    else if (magic) contentType = magic;
+    else if (printable) contentType = 'text / UTF-8';
+    else contentType = 'binary data';
+
+    var inputDesc = prettyFmt(info.format);
+    if (info.mime) inputDesc += ' · ' + info.mime;
+
+    renderChips([
+      ['read as', inputDesc],
+      ['bytes', String(bytes.length)],
+      ['content', contentType, 'type'],
+      ['magic', magicHex ? '0x' + magicHex : '—']
+    ]);
+
+    leftTitle.textContent = 'Decoded text';
+    var leftText;
+    if (info.format === 'jwt') leftText = info.text;
+    else if (printable) leftText = txt;
+    else leftText = null;
+
+    if (leftText != null && leftText !== '') { setPre(leftEl, leftText); state.leftText = leftText; }
+    else if (bytes.length === 0) { setEmptyPre(leftEl, '(decoded to zero bytes)'); state.leftText = ''; }
+    else { setEmptyPre(leftEl, 'Not printable as text — inspect the hex dump →'); state.leftText = ''; }
+
+    var dump = hexDump(bytes, DUMP_CAP);
+    if (dump) { setPre(hexEl, dump); state.hexText = dump; }
+    else { setEmptyPre(hexEl, '(no bytes)'); state.hexText = ''; }
+
+    if (info.format === 'jwt') renderJwt(info.jwt); else hideJwt();
+
+    var output = (info.format === 'jwt') ? info.text : (printable ? txt : dump);
+    pfReady(output, {
+      mode: 'decode',
+      format: info.format,
+      detectedType: contentType,
+      magic: magicHex ? '0x' + magicHex : '',
+      byteLength: bytes.length,
+      printable: !!printable
+    });
+  }
+
+  function renderEncode(bytes, sourceLabel, mimeHint) {
+    var encoded = encodeBytes(bytes, state.encFmt, mimeHint);
+    var magic = detectMagic(bytes);
+    var prefixLen = Math.min(8, bytes.length);
+    var magicHex = prefixLen ? bytesToHex(bytes.slice(0, prefixLen)) : '';
+
+    renderChips([
+      ['source', sourceLabel],
+      ['bytes', String(bytes.length)],
+      ['output', prettyFmt(state.encFmt) + ' · ' + encoded.length + ' chars', 'type'],
+      ['magic', magicHex ? '0x' + magicHex : '—']
+    ]);
+
+    leftTitle.textContent = 'Encoded output (' + prettyFmt(state.encFmt) + ')';
+    setPre(leftEl, encoded); state.leftText = encoded;
+
+    var dump = hexDump(bytes, DUMP_CAP);
+    if (dump) { setPre(hexEl, dump); state.hexText = dump; }
+    else { setEmptyPre(hexEl, '(no bytes)'); state.hexText = ''; }
+    hideJwt();
+
+    pfReady(encoded, { mode: 'encode', format: state.encFmt, byteLength: bytes.length });
+  }
+
+  // ---- main ----
+  function run() {
+    hideError();
+    charcount.textContent = input.value.length;
+
+    if (state.fileBytes) {
+      if (state.mode === 'encode') {
+        renderEncode(state.fileBytes, 'file: ' + state.fileName, state.fileMime || 'application/octet-stream');
+      } else {
+        renderDecode(state.fileBytes, { format: 'raw file', mime: state.fileMime || undefined });
+      }
       return;
     }
 
-    try {
-      if (currentMode === 'encode') {
-        outputEl.textContent = encodeText(raw);
-      } else {
-        outputEl.textContent = decodeText(raw.trim());
-      }
-      hideError();
-    } catch (e) {
-      showError(e.message);
-      outputEl.textContent = '';
+    var text = input.value;
+    if (!text.trim()) { clearOutputs(); return; }
+
+    if (state.mode === 'encode') {
+      renderEncode(strToBytes(text), 'text input', 'text/plain;charset=utf-8');
+      return;
+    }
+
+    var info;
+    try { info = decodeAs(state.fmt, text); }
+    catch (e) {
+      showError(e && e.message ? e.message : 'Could not decode input.');
+      renderChips([]);
+      setEmptyPre(leftEl, '—');
+      setEmptyPre(hexEl, '—');
+      hideJwt();
+      pfFail(e && e.message ? e.message : 'decode error');
+      return;
+    }
+    if (!info) { clearOutputs(); return; }
+    renderDecode(info.bytes, info);
+  }
+
+  // ---- mode / format toggles ----
+  function syncLabels() {
+    if (state.mode === 'encode') {
+      inputLabel.textContent = 'Text to encode';
+      input.placeholder = 'Enter text to encode…';
+    } else {
+      inputLabel.textContent = 'Encoded input to inspect';
+      input.placeholder = 'Paste Base64, Base64URL, hex, a data: URI, or a JWT…';
     }
   }
 
+  function setMode(m) {
+    state.mode = (m === 'encode') ? 'encode' : 'decode';
+    modeBtns.forEach(function (b) {
+      var on = b.getAttribute('data-mode') === state.mode;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    document.getElementById('di-decode-fmt-row').style.display = state.mode === 'decode' ? '' : 'none';
+    document.getElementById('di-encode-fmt-row').style.display = state.mode === 'encode' ? '' : 'none';
+    syncLabels();
+  }
+
+  var modeBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
   modeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () { setMode(btn.getAttribute('data-mode')); run(); });
+  });
+
+  var fmtBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-fmt]'));
+  fmtBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
-      currentMode = btn.getAttribute('data-mode');
-      modeBtns.forEach(function (b) {
-        b.classList.remove('active');
-        b.setAttribute('aria-pressed', 'false');
+      state.fmt = btn.getAttribute('data-fmt');
+      fmtBtns.forEach(function (b) {
+        var on = b === btn;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
       });
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
-      labelEl.textContent = currentMode === 'encode' ? 'Plain text to encode' : 'Base64 to decode';
-      inputEl.placeholder = currentMode === 'encode' ? 'Enter text to encode\u2026' : 'Paste Base64 to decode\u2026';
-      convert();
+      run();
     });
   });
 
-  variantBtns.forEach(function (btn) {
+  var encBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-enc]'));
+  encBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
-      currentVariant = btn.getAttribute('data-variant');
-      variantBtns.forEach(function (b) {
-        b.classList.remove('active');
-        b.setAttribute('aria-pressed', 'false');
+      state.encFmt = btn.getAttribute('data-enc');
+      encBtns.forEach(function (b) {
+        var on = b === btn;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
       });
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
-      convert();
+      run();
     });
   });
 
-  inputEl.addEventListener('input', convert);
+  // ---- input ----
+  input.addEventListener('input', function () {
+    if (state.fileBytes) { clearFile(); }
+    run();
+  });
 
-  copyBtn.addEventListener('click', function () {
-    var text = outputEl.textContent;
-    if (!text) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () {
-        copyBtn.textContent = 'Copied!';
-        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
-      }).catch(function () {
-        copyBtn.textContent = 'Failed';
-        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
-      });
-    } else {
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.cssText = 'position:fixed;opacity:0;';
-      document.body.appendChild(ta);
-      ta.focus(); ta.select();
-      try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; }
-      catch (e) { copyBtn.textContent = 'Failed'; }
-      document.body.removeChild(ta);
-      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+  // ---- file drop ----
+  function clearFile() {
+    state.fileBytes = null; state.fileName = ''; state.fileMime = '';
+    fileInfo.textContent = '';
+  }
+
+  function processFile(file) {
+    input.value = '';
+    charcount.textContent = '0';
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      state.fileBytes = new Uint8Array(e.target.result);
+      state.fileName = file.name;
+      state.fileMime = file.type || '';
+      fileInfo.textContent = '';
+      var label = document.createElement('span');
+      label.textContent = file.name + '  ·  ' + state.fileBytes.length + ' bytes' + (file.type ? '  ·  ' + file.type : '');
+      var clr = document.createElement('button');
+      clr.id = 'di-fileclear'; clr.type = 'button'; clr.textContent = 'clear';
+      clr.addEventListener('click', function () { clearFile(); clearOutputs(); });
+      fileInfo.appendChild(label); fileInfo.appendChild(clr);
+      run();
+    };
+    reader.onerror = function () { showError('Could not read that file.'); };
+    reader.readAsArrayBuffer(file);
+  }
+
+  dropZone.addEventListener('click', function () { fileInput.click(); });
+  dropZone.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) processFile(fileInput.files[0]);
+  });
+  dropZone.addEventListener('dragover', function (e) { e.preventDefault(); dropZone.classList.add('di-drag'); });
+  dropZone.addEventListener('dragleave', function () { dropZone.classList.remove('di-drag'); });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault(); dropZone.classList.remove('di-drag');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+  });
+
+  // ---- examples ----
+  var EXAMPLES = {
+    png: { mode: 'decode', fmt: 'auto', text: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' },
+    jwt: { mode: 'decode', fmt: 'auto', text: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlBlbnVtYnJhIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c' },
+    hex: { mode: 'decode', fmt: 'auto', text: '89504e470d0a1a0a0000000d49484452' },
+    datauri: { mode: 'decode', fmt: 'auto', text: 'data:text/plain;base64,SGVsbG8gZnJvbSBhIGRhdGEgVVJJ' }
+  };
+  Array.prototype.slice.call(document.querySelectorAll('.di-example')).forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var ex = EXAMPLES[btn.getAttribute('data-ex')];
+      if (!ex) return;
+      clearFile();
+      setMode(ex.mode);
+      if (ex.mode === 'decode') {
+        state.fmt = ex.fmt;
+        fmtBtns.forEach(function (b) {
+          var on = b.getAttribute('data-fmt') === ex.fmt;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-pressed', String(on));
+        });
+      }
+      input.value = ex.text;
+      run();
+    });
+  });
+
+  // ---- copy ----
+  function wireCopy(btn, getText) {
+    btn.addEventListener('click', function () {
+      var text = getText();
+      if (!text) return;
+      var done = function (ok) { btn.textContent = ok ? 'Copied!' : 'Failed'; btn.classList.toggle('copied', ok); setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(ta); done(ok);
+      }
+    });
+  }
+  wireCopy(copyLeft, function () { return state.leftText; });
+  wireCopy(copyHex, function () { return state.hexText; });
+
+  // ---- agent I/O + URL invoke ----
+  if (window.PF) {
+    var p = window.PF.input();
+    if (p.mode === 'encode') setMode('encode'); else setMode('decode');
+    if (p.fmt) {
+      if (state.mode === 'encode') {
+        var eb = document.querySelector('.tool-option[data-enc="' + p.fmt + '"]');
+        if (eb) eb.click();
+      } else {
+        var fb = document.querySelector('.tool-option[data-fmt="' + p.fmt + '"]');
+        if (fb) fb.click();
+      }
     }
-  });
+    if (p.in != null) { input.value = p.in; run(); }
+  }
 })();
 </script>

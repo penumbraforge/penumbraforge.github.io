@@ -4,59 +4,166 @@ permalink: /tools/word-counter/
 ---
 
 <style>
-  .wc-stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:0.6rem; margin:0.75rem 0 1rem; }
-  .wc-stat { background:var(--color-surface-2,#1e293b); border-radius:8px; padding:0.7rem 0.9rem; }
-  .wc-stat-val { font-size:1.5rem; font-weight:700; color:var(--color-accent,#6366f1); font-family:var(--font-mono,monospace); line-height:1; }
-  .wc-stat-label { font-size:0.72rem; color:var(--color-muted,#94a3b8); margin-top:0.25rem; text-transform:uppercase; letter-spacing:0.04em; }
-  .wc-freq-table { width:100%; border-collapse:collapse; font-size:0.83rem; }
-  .wc-freq-table th { text-align:left; padding:0.3rem 0.5rem; font-size:0.72rem; color:var(--color-muted,#94a3b8); font-weight:600; text-transform:uppercase; border-bottom:1px solid var(--color-border,#334155); }
-  .wc-freq-table td { padding:0.3rem 0.5rem; border-bottom:1px solid var(--color-border-subtle,#1e293b); }
-  .wc-freq-bar { height:6px; background:var(--color-accent,#6366f1); border-radius:3px; opacity:0.7; }
-  .wc-readability { background:var(--color-surface-2,#1e293b); border-radius:8px; padding:0.75rem 1rem; margin-top:0.75rem; }
+  /* Map legacy --color-* names (used by markup + script-set inline styles)
+     onto the workbench palette so nothing falls back to the old indigo/slate. */
+  .wc-tool {
+    --color-accent: var(--accent);
+    --color-muted: var(--slate);
+    --color-surface-2: var(--surface-2);
+    --color-border: var(--wb-line);
+    --color-border-subtle: color-mix(in oklab, var(--wb-line) 55%, transparent);
+  }
+
+  /* ---- Top split: source text | headline metrics ---- */
+  .wc-split { align-items: stretch; margin-top: 2px; }
+  .wc-input-cell { display: flex; flex-direction: column; margin: 0; }
+  .wc-input-cell textarea { flex: 1 1 auto; }
+
+  .wc-hero {
+    display: flex; flex-direction: column; justify-content: center; gap: 22px;
+    padding: 26px 28px;
+    background:
+      linear-gradient(180deg, color-mix(in oklab, var(--accent) 6%, transparent), transparent 62%),
+      #06060d;
+    border: 1px solid var(--wb-line);
+    border-radius: 6px;
+    box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 5%, transparent);
+  }
+  .wc-hero-num {
+    font-family: var(--font-display), var(--font-sans);
+    font-size: clamp(42px, 6vw, 60px); font-weight: 600; line-height: 1;
+    letter-spacing: -0.025em; color: var(--wb-ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .wc-hero-cap {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--slate); margin-top: 9px;
+  }
+  .wc-hero-rule { height: 1px; background: linear-gradient(90deg, var(--wb-line), transparent); }
+  .wc-hero-aside { display: flex; gap: 30px; flex-wrap: wrap; }
+  .wc-hero-mv {
+    font-family: var(--font-mono); font-size: 19px; font-weight: 500;
+    color: var(--wb-ink); letter-spacing: -0.01em; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .wc-hero-ml {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--slate); margin-top: 7px;
+  }
+
+  /* ---- Secondary stat grid ---- */
+  .wc-stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+    gap: 10px; margin-top: 14px;
+  }
+  .wc-stat {
+    background: #06060d; border: 1px solid var(--wb-line); border-radius: 6px;
+    padding: 15px 16px; transition: border-color 220ms var(--wb-ease);
+  }
+  .wc-stat:hover { border-color: var(--wb-line-bright); }
+  .wc-stat-val {
+    font-family: var(--font-mono); font-size: 20px; font-weight: 500;
+    color: var(--wb-ink); line-height: 1; font-variant-numeric: tabular-nums;
+  }
+  .wc-stat-label {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--slate); margin-top: 9px;
+  }
+
+  /* ---- Extra: readability + frequency ---- */
+  .wc-extra { display: grid; gap: 14px; margin-top: 22px; }
+  .wc-panel-body { padding: 18px 20px; }
+  .wc-bar-note { text-transform: none; letter-spacing: 0.3px; font-size: 10px; color: var(--text-3); }
+
+  .wc-read-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 20px;
+  }
+  .wc-read-val {
+    font-family: var(--font-mono); font-size: 17px; font-weight: 500;
+    color: var(--accent); line-height: 1.15; font-variant-numeric: tabular-nums;
+  }
+  .wc-read-label {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--slate); margin-top: 8px;
+  }
+
+  .wc-words-body { padding: 14px 18px 8px; }
+  .wc-freq-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 12.5px; }
+  .wc-freq-table th {
+    text-align: left; padding: 4px 10px 10px; font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--slate); font-weight: 400;
+    border-bottom: 1px solid var(--wb-line);
+  }
+  .wc-freq-table td {
+    padding: 9px 10px; color: var(--text-1);
+    border-bottom: 1px solid color-mix(in oklab, var(--wb-line) 55%, transparent);
+  }
+  .wc-freq-table tbody tr { transition: background 150ms; }
+  .wc-freq-table tbody tr:hover { background: color-mix(in oklab, var(--accent) 5%, transparent); }
+  .wc-freq-table tbody tr:last-child td { border-bottom: 0; }
+  .wc-freq-bar {
+    height: 8px; border-radius: 4px;
+    background: linear-gradient(90deg, color-mix(in oklab, var(--accent) 45%, transparent), var(--accent));
+    box-shadow: 0 0 10px -3px color-mix(in oklab, var(--accent) 70%, transparent);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .wc-extra { animation: wc-reveal 340ms var(--wb-ease); }
+    @keyframes wc-reveal { from { opacity: 0; transform: translateY(6px); } }
+  }
 </style>
 
-<div class="tool-group">
-  <label for="wc-input">Paste or type your text</label>
-  <textarea id="wc-input" rows="12" placeholder="Start typing or paste your text here to see word count, reading time, and more…" spellcheck="true"></textarea>
-</div>
+<div class="wc-tool">
+  <div class="wb-split wc-split">
+    <div class="tool-group wc-input-cell">
+      <label for="wc-input">Your text</label>
+      <textarea id="wc-input" rows="12" placeholder="Start typing or paste your text here to see word count, reading time, and more…" spellcheck="true"></textarea>
+    </div>
 
-<div class="wc-stats-grid" id="wc-stats">
-  <div class="wc-stat"><div class="wc-stat-val" id="wc-words">0</div><div class="wc-stat-label">Words</div></div>
-  <div class="wc-stat"><div class="wc-stat-val" id="wc-chars">0</div><div class="wc-stat-label">Characters</div></div>
-  <div class="wc-stat"><div class="wc-stat-val" id="wc-chars-nospace">0</div><div class="wc-stat-label">Chars (no spaces)</div></div>
-  <div class="wc-stat"><div class="wc-stat-val" id="wc-sentences">0</div><div class="wc-stat-label">Sentences</div></div>
-  <div class="wc-stat"><div class="wc-stat-val" id="wc-paragraphs">0</div><div class="wc-stat-label">Paragraphs</div></div>
-  <div class="wc-stat"><div class="wc-stat-val" id="wc-lines">0</div><div class="wc-stat-label">Lines</div></div>
-  <div class="wc-stat"><div class="wc-stat-val" id="wc-read-time">0 min</div><div class="wc-stat-label">Reading time</div></div>
-  <div class="wc-stat"><div class="wc-stat-val" id="wc-speak-time">0 min</div><div class="wc-stat-label">Speaking time</div></div>
-</div>
-
-<div id="wc-extra" style="display:none;">
-  <div class="wc-readability">
-    <div style="font-size:0.78rem; font-weight:600; color:var(--color-muted,#94a3b8); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.05em;">Readability</div>
-    <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
-      <div>
-        <div style="font-size:1.1rem; font-weight:700; color:var(--color-accent,#6366f1);" id="wc-fk-grade">—</div>
-        <div style="font-size:0.72rem; color:var(--color-muted,#94a3b8);">Flesch-Kincaid Grade</div>
+    <div class="wc-hero" aria-label="Primary metrics">
+      <div class="wc-hero-primary">
+        <div class="wc-hero-num" id="wc-words">0</div>
+        <div class="wc-hero-cap">Words</div>
       </div>
-      <div>
-        <div style="font-size:1.1rem; font-weight:700; color:var(--color-accent,#6366f1);" id="wc-fk-score">—</div>
-        <div style="font-size:0.72rem; color:var(--color-muted,#94a3b8);">Flesch Reading Ease</div>
-      </div>
-      <div>
-        <div style="font-size:1.1rem; font-weight:700; color:var(--color-accent,#6366f1);" id="wc-fk-level">—</div>
-        <div style="font-size:0.72rem; color:var(--color-muted,#94a3b8);">Difficulty</div>
-      </div>
-      <div>
-        <div style="font-size:1.1rem; font-weight:700; color:var(--color-accent,#6366f1);" id="wc-unique">—</div>
-        <div style="font-size:0.72rem; color:var(--color-muted,#94a3b8);">Unique words</div>
+      <div class="wc-hero-rule" aria-hidden="true"></div>
+      <div class="wc-hero-aside">
+        <div class="wc-hero-metric">
+          <div class="wc-hero-mv" id="wc-read-time">0 min</div>
+          <div class="wc-hero-ml">Reading &middot; 200 wpm</div>
+        </div>
+        <div class="wc-hero-metric">
+          <div class="wc-hero-mv" id="wc-speak-time">0 min</div>
+          <div class="wc-hero-ml">Speaking &middot; 130 wpm</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div style="margin-top:1rem;">
-    <div style="font-size:0.78rem; font-weight:600; color:var(--color-muted,#94a3b8); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.05em;">Top 10 Words</div>
-    <table class="wc-freq-table" id="wc-freq-table" aria-label="Top word frequencies"></table>
+  <div class="wc-stats-grid" id="wc-stats">
+    <div class="wc-stat"><div class="wc-stat-val" id="wc-chars">0</div><div class="wc-stat-label">Characters</div></div>
+    <div class="wc-stat"><div class="wc-stat-val" id="wc-chars-nospace">0</div><div class="wc-stat-label">No spaces</div></div>
+    <div class="wc-stat"><div class="wc-stat-val" id="wc-sentences">0</div><div class="wc-stat-label">Sentences</div></div>
+    <div class="wc-stat"><div class="wc-stat-val" id="wc-paragraphs">0</div><div class="wc-stat-label">Paragraphs</div></div>
+    <div class="wc-stat"><div class="wc-stat-val" id="wc-lines">0</div><div class="wc-stat-label">Lines</div></div>
+  </div>
+
+  <div id="wc-extra" class="wc-extra" style="display:none;">
+    <div class="wb-panel">
+      <div class="wb-panel-bar"><span>Readability</span><span class="wc-bar-note">Flesch&ndash;Kincaid</span></div>
+      <div class="wc-panel-body wc-read-grid">
+        <div class="wc-read-cell"><div class="wc-read-val" id="wc-fk-grade">&mdash;</div><div class="wc-read-label">Grade level</div></div>
+        <div class="wc-read-cell"><div class="wc-read-val" id="wc-fk-score">&mdash;</div><div class="wc-read-label">Reading ease</div></div>
+        <div class="wc-read-cell"><div class="wc-read-val" id="wc-fk-level">&mdash;</div><div class="wc-read-label">Difficulty</div></div>
+        <div class="wc-read-cell"><div class="wc-read-val" id="wc-unique">&mdash;</div><div class="wc-read-label">Unique words</div></div>
+      </div>
+    </div>
+
+    <div class="wb-panel">
+      <div class="wb-panel-bar"><span>Most frequent words</span><span class="wc-bar-note">excludes stop-words</span></div>
+      <div class="wc-panel-body wc-words-body">
+        <table class="wc-freq-table" id="wc-freq-table" aria-label="Top word frequencies"></table>
+      </div>
+    </div>
   </div>
 </div>
 

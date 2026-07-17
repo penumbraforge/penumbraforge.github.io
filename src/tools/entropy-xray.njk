@@ -1,0 +1,791 @@
+---
+toolSlug: entropy-xray
+permalink: /tools/entropy-xray/
+---
+
+<div class="tool-row" style="margin-bottom:0.75rem;">
+  <div class="tool-options" role="group" aria-label="Input source">
+    <button class="tool-option active" data-src="file" aria-pressed="true">File</button>
+    <button class="tool-option" data-src="paste" aria-pressed="false">Paste data</button>
+  </div>
+</div>
+
+<div id="ex-file-panel">
+  <div class="tool-group">
+    <label>Drop a file or click to browse</label>
+    <div id="ex-drop-zone" style="border:2px dashed var(--border);border-radius:8px;padding:2rem;text-align:center;cursor:pointer;transition:border-color 200ms ease;user-select:none;" role="button" tabindex="0" aria-label="Drop a file here or click to browse">
+      <span id="ex-drop-label">Drop any file here or <u>click to browse</u></span>
+      <input type="file" id="ex-file-input" style="display:none;" aria-hidden="true">
+    </div>
+    <div id="ex-file-info" style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-3);font-family:var(--font-mono);">Reads up to 8&nbsp;MB, entirely in your browser — nothing is uploaded.</div>
+  </div>
+</div>
+
+<div id="ex-paste-panel" style="display:none;">
+  <div class="tool-options" role="group" aria-label="Paste format">
+    <button class="tool-option active" data-fmt="utf8" aria-pressed="true">UTF-8 text</button>
+    <button class="tool-option" data-fmt="hex" aria-pressed="false">Hex</button>
+    <button class="tool-option" data-fmt="base64" aria-pressed="false">Base64</button>
+  </div>
+  <div class="tool-group">
+    <label for="ex-input">Paste bytes to x-ray</label>
+    <textarea id="ex-input" rows="7" placeholder="Paste text, hex (e.g. 89 50 4e 47 …), or Base64 — then pick the matching format above." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+</div>
+
+<div class="tool-row" style="margin-top:0.25rem;">
+  <span style="font-family:var(--font-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(184,165,214,0.4);align-self:center;">Load sample</span>
+  <button class="tool-option" type="button" data-sample="random">Random bytes</button>
+  <button class="tool-option" type="button" data-sample="english">English text</button>
+  <button class="tool-option" type="button" data-sample="pattern">Repeated pattern</button>
+  <button class="tool-option" type="button" data-sample="embedded">Embedded blob</button>
+</div>
+
+<div id="ex-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+
+<div id="ex-results" style="display:none;" aria-live="polite">
+
+  <!-- Verdict -->
+  <div class="ex-verdict" id="ex-verdict-box">
+    <span class="ex-verdict-dot" id="ex-verdict-dot" aria-hidden="true"></span>
+    <p class="ex-verdict-text" id="ex-verdict"></p>
+  </div>
+
+  <!-- Overall entropy meter -->
+  <div class="ex-meter-wrap">
+    <div class="ex-meter-top">
+      <div class="ex-meter-num">
+        <span class="ex-big" id="ex-bits">0.00</span>
+        <span class="ex-unit">bits / byte</span>
+      </div>
+      <span class="ex-band-pill" id="ex-band">—</span>
+    </div>
+    <div class="ex-meter-track" id="ex-meter-track" role="progressbar" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0" aria-label="Overall Shannon entropy, 0 to 8 bits per byte">
+      <div class="ex-meter-fill" id="ex-meter-fill"></div>
+      <div class="ex-meter-marker" id="ex-meter-marker"></div>
+    </div>
+    <div class="ex-meter-scale" aria-hidden="true">
+      <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span>
+    </div>
+  </div>
+
+  <!-- Stat tiles -->
+  <div class="ex-stats" id="ex-stats"></div>
+
+  <!-- Entropy sweep -->
+  <div class="ex-viz">
+    <div class="ex-viz-head">
+      <span class="ex-viz-title">Entropy sweep</span>
+      <span class="ex-viz-sub">Shannon entropy per block across file offset</span>
+    </div>
+    <div class="ex-canvas-holder">
+      <canvas id="ex-sweep" role="img" aria-label="Line graph of entropy across file offset"></canvas>
+    </div>
+    <p class="ex-viz-note" id="ex-sweep-note"></p>
+  </div>
+
+  <!-- Byte histogram -->
+  <div class="ex-viz">
+    <div class="ex-viz-head">
+      <span class="ex-viz-title">Byte histogram</span>
+      <span class="ex-viz-sub">Frequency of each 0x00–0xFF value · printable ASCII shaded</span>
+    </div>
+    <div class="ex-canvas-holder ex-canvas-holder--hist">
+      <canvas id="ex-hist" role="img" aria-label="Bar chart of byte-value frequency from 0x00 to 0xFF"></canvas>
+    </div>
+    <p class="ex-viz-note" id="ex-hist-note"></p>
+  </div>
+
+  <div class="output-area" style="margin-top:20px;min-height:auto;">
+    <button class="btn btn--copy" id="ex-copy" aria-label="Copy analysis summary">Copy report</button>
+    <pre id="ex-report" aria-label="Text summary of the entropy analysis"></pre>
+  </div>
+</div>
+
+<style>
+  #ex-results { margin-top: 24px; }
+
+  .ex-verdict {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #06060c;
+    border: 1px solid rgba(184,165,214,0.06);
+    border-left-width: 3px;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 22px;
+  }
+  .ex-verdict-dot {
+    flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%;
+    margin-top: 5px; background: var(--accent);
+    box-shadow: 0 0 10px currentColor;
+  }
+  .ex-verdict-text {
+    margin: 0; font-family: var(--font-sans); font-size: 14px;
+    line-height: 1.55; color: var(--text-1); font-weight: 300;
+  }
+
+  .ex-meter-wrap { margin-bottom: 24px; }
+  .ex-meter-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .ex-meter-num { display: flex; align-items: baseline; gap: 10px; }
+  .ex-big {
+    font-family: var(--font-display), var(--font-sans);
+    font-size: 52px; line-height: 1; font-weight: 600;
+    color: var(--text-1); letter-spacing: -1.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .ex-unit { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-3); }
+  .ex-band-pill {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px;
+    padding: 6px 12px; border-radius: 20px;
+    border: 1px solid currentColor; color: var(--accent);
+    background: rgba(184,165,214,0.05); white-space: nowrap;
+  }
+
+  .ex-meter-track {
+    position: relative; height: 16px; border-radius: 8px;
+    background:
+      linear-gradient(90deg,
+        rgba(104,122,142,0.28) 0%,
+        rgba(104,122,142,0.28) 12.5%,
+        rgba(107,207,143,0.28) 12.5%,
+        rgba(107,207,143,0.28) 62.5%,
+        rgba(232,192,124,0.28) 62.5%,
+        rgba(232,192,124,0.28) 87.5%,
+        rgba(232,168,124,0.28) 87.5%,
+        rgba(232,168,124,0.28) 93.75%,
+        rgba(224,114,143,0.3) 93.75%,
+        rgba(224,114,143,0.3) 100%);
+    border: 1px solid rgba(184,165,214,0.08);
+    overflow: hidden;
+  }
+  .ex-meter-fill {
+    position: absolute; top: 0; left: 0; bottom: 0; width: 0%;
+    background: var(--accent);
+    box-shadow: inset 0 0 12px rgba(255,255,255,0.25);
+    transition: width 500ms cubic-bezier(0.2,0.7,0.2,1), background-color 300ms ease;
+    opacity: 0.9;
+  }
+  .ex-meter-marker {
+    position: absolute; top: -3px; bottom: -3px; width: 2px;
+    background: var(--text-1); left: 0%;
+    box-shadow: 0 0 8px rgba(255,255,255,0.6);
+    transition: left 500ms cubic-bezier(0.2,0.7,0.2,1);
+  }
+  .ex-meter-scale {
+    display: flex; justify-content: space-between; margin-top: 6px;
+    font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+  }
+
+  .ex-stats {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+    margin-bottom: 26px;
+  }
+  .ex-stat {
+    background: #06060c; border: 1px solid rgba(184,165,214,0.05);
+    border-radius: 8px; padding: 12px 12px 11px;
+  }
+  .ex-stat-val {
+    font-family: var(--font-mono); font-size: 17px; color: var(--text-1);
+    font-weight: 400; font-variant-numeric: tabular-nums; line-height: 1.1;
+  }
+  .ex-stat-val small { font-size: 11px; color: var(--text-3); }
+  .ex-stat-label {
+    display: block; margin-top: 6px;
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: rgba(184,165,214,0.42);
+  }
+
+  .ex-viz { margin-bottom: 26px; }
+  .ex-viz-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .ex-viz-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+  .ex-viz-sub { font-family: var(--font-sans); font-size: 12px; color: var(--text-3); font-weight: 300; }
+  .ex-canvas-holder {
+    background: #06060c; border: 1px solid rgba(184,165,214,0.05);
+    border-radius: 8px; padding: 8px;
+  }
+  #ex-sweep { display: block; width: 100%; height: 200px; }
+  #ex-hist  { display: block; width: 100%; height: 150px; }
+  .ex-viz-note { margin: 8px 0 0; font-family: var(--font-sans); font-size: 12px; line-height: 1.5; color: var(--text-2); font-weight: 300; }
+
+  #ex-report { margin: 0; }
+
+  @media (max-width: 640px) {
+    .ex-stats { grid-template-columns: repeat(3, 1fr); }
+    .ex-big { font-size: 40px; }
+  }
+  @media (max-width: 380px) {
+    .ex-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+<script>
+(function () {
+  var MAX_BYTES = 8 * 1024 * 1024;
+
+  var srcBtns    = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-src]'));
+  var fmtBtns    = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-fmt]'));
+  var sampleBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-sample]'));
+  var filePanel  = document.getElementById('ex-file-panel');
+  var pastePanel = document.getElementById('ex-paste-panel');
+  var dropZone   = document.getElementById('ex-drop-zone');
+  var dropLabel  = document.getElementById('ex-drop-label');
+  var fileInput  = document.getElementById('ex-file-input');
+  var fileInfo   = document.getElementById('ex-file-info');
+  var inputEl    = document.getElementById('ex-input');
+  var errorEl    = document.getElementById('ex-error');
+  var resultsEl  = document.getElementById('ex-results');
+
+  var bitsEl     = document.getElementById('ex-bits');
+  var bandEl     = document.getElementById('ex-band');
+  var trackEl    = document.getElementById('ex-meter-track');
+  var fillEl     = document.getElementById('ex-meter-fill');
+  var markerEl   = document.getElementById('ex-meter-marker');
+  var statsEl    = document.getElementById('ex-stats');
+  var verdictBox = document.getElementById('ex-verdict-box');
+  var verdictDot = document.getElementById('ex-verdict-dot');
+  var verdictEl  = document.getElementById('ex-verdict');
+  var sweepCanvas= document.getElementById('ex-sweep');
+  var histCanvas = document.getElementById('ex-hist');
+  var sweepNote  = document.getElementById('ex-sweep-note');
+  var histNote   = document.getElementById('ex-hist-note');
+  var reportEl   = document.getElementById('ex-report');
+  var copyBtn    = document.getElementById('ex-copy');
+
+  var currentFmt = 'utf8';
+  var analysis   = null;   // holds everything needed to (re)draw
+
+  // ---------- core math ----------
+  function shannonEntropy(bytes, start, end) {
+    start = start || 0;
+    end = (end === undefined) ? bytes.length : end;
+    var len = end - start;
+    if (len <= 0) return 0;
+    var counts = new Uint32Array(256);
+    for (var i = start; i < end; i++) counts[bytes[i]]++;
+    var H = 0;
+    for (var v = 0; v < 256; v++) {
+      if (counts[v] === 0) continue;
+      var p = counts[v] / len;
+      H -= p * Math.log2(p);
+    }
+    return H;
+  }
+
+  function bandFor(H) {
+    if (H < 1)   return { label: 'Highly structured / padding', color: '#687a8e' };
+    if (H < 5)   return { label: 'Text, code, or structured',   color: '#6bcf8f' };
+    if (H < 7)   return { label: 'Compressed or mixed',         color: '#e8c07c' };
+    if (H < 7.5) return { label: 'Likely compressed',           color: '#e8a87c' };
+    return { label: 'Likely encrypted or random', color: '#e0728f' };
+  }
+
+  // vertical color ramp used by the sweep so the curve is colored by band
+  function sweepGradient(ctx, top, height) {
+    var g = ctx.createLinearGradient(0, top, 0, top + height); // top = H8, bottom = H0
+    g.addColorStop(0.000, '#e0728f'); // 8.0
+    g.addColorStop(0.0625, '#e8a87c'); // 7.5
+    g.addColorStop(0.250, '#e8c07c'); // 6.0
+    g.addColorStop(0.375, '#6bcf8f'); // 5.0
+    g.addColorStop(0.875, '#6bcf8f'); // 1.0
+    g.addColorStop(1.000, '#687a8e'); // 0.0
+    return g;
+  }
+
+  // ---------- input parsing ----------
+  function parsePaste(text, fmt) {
+    if (fmt === 'utf8') {
+      return new TextEncoder().encode(text);
+    }
+    if (fmt === 'hex') {
+      var clean = text.replace(/0x/gi, '').replace(/[^0-9a-fA-F]/g, '');
+      if (clean.length === 0) throw new Error('No hex digits found. Expected pairs like "89 50 4e 47".');
+      if (clean.length % 2 !== 0) throw new Error('Hex has an odd number of digits (' + clean.length + '). Each byte needs two hex characters.');
+      var out = new Uint8Array(clean.length / 2);
+      for (var i = 0; i < out.length; i++) {
+        out[i] = parseInt(clean.substr(i * 2, 2), 16);
+      }
+      return out;
+    }
+    // base64
+    var b64 = text.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    var pad = b64.length % 4;
+    if (pad === 2) b64 += '==';
+    else if (pad === 3) b64 += '=';
+    else if (pad === 1) throw new Error('Not valid Base64 — length is off by one character.');
+    var bin;
+    try { bin = atob(b64); }
+    catch (e) { throw new Error('Not valid Base64 — could not decode the input.'); }
+    var bytes = new Uint8Array(bin.length);
+    for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+    return bytes;
+  }
+
+  // ---------- verdict ----------
+  function buildVerdict(a) {
+    var H = a.entropy, std = a.blockStd, pr = a.printableRatio, spread = a.blockMax - a.blockMin;
+    var loc = '';
+    if (spread > 2.5 && a.blocks.length > 4) {
+      var pct = Math.round((a.peakOffset / a.length) * 100);
+      loc = ' A high-entropy region peaks around offset ~' + fmtBytes(a.peakOffset) + ' (' + pct + '% into the data).';
+    }
+    if (a.length < 64) {
+      return 'Only ' + a.length + ' bytes — too small for a reliable read; entropy estimates stabilize above a few hundred bytes.';
+    }
+    if (H >= 7.5 && std < 0.25) {
+      return 'High, uniform entropy across the whole file — consistent with encrypted data or an already-compressed archive.' + loc;
+    }
+    if (H >= 7.5 && std >= 0.25) {
+      return 'Very high overall entropy that varies across offsets — likely an encrypted or packed blob wrapped in lighter structure.' + loc;
+    }
+    if (H >= 7.0) {
+      return 'High entropy (7–7.5 bits) — most likely compressed content such as a zip, image, or media stream rather than plaintext.' + loc;
+    }
+    if (spread > 2.5) {
+      return 'Entropy shifts sharply between regions — mixed content, e.g. a structured header followed by a packed or encrypted section.' + loc;
+    }
+    if (pr > 0.85 && H >= 3.3 && H <= 5.2) {
+      return 'Mostly printable characters with text-like entropy — this reads as human-readable text, source code, or configuration.';
+    }
+    if (H < 1) {
+      return 'Very low entropy — long runs of a repeated or padding byte, not information-dense data.';
+    }
+    if (H < 3.3) {
+      return 'Low entropy — highly structured or repetitive data such as a bitmap, table, or format with lots of fixed fields.';
+    }
+    return 'Moderate entropy with an uneven byte distribution — structured or mixed data, not encrypted.' + loc;
+  }
+
+  // ---------- helpers ----------
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+  function pctStr(x) { return (x * 100).toFixed(x >= 0.9995 ? 0 : 1) + '%'; }
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = '';
+    resultsEl.style.display = 'none';
+    analysis = null;
+  }
+  function hideError() { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+
+  // ---------- analyze ----------
+  function analyze(bytes, sourceLabel) {
+    hideError();
+    if (!bytes || bytes.length === 0) {
+      resultsEl.style.display = 'none';
+      analysis = null;
+      return;
+    }
+
+    var len = bytes.length;
+    var counts = new Uint32Array(256);
+    for (var i = 0; i < len; i++) counts[bytes[i]]++;
+
+    var distinct = 0, printable = 0, nulls = 0, maxCount = 0;
+    for (var v = 0; v < 256; v++) {
+      var c = counts[v];
+      if (c > 0) distinct++;
+      if (c > maxCount) maxCount = c;
+      if (v === 0x00) nulls += c;
+      // printable ASCII: 0x20-0x7e plus tab(9) LF(10) CR(13)
+      if ((v >= 0x20 && v <= 0x7e) || v === 9 || v === 10 || v === 13) printable += c;
+    }
+
+    var overall = shannonEntropy(bytes, 0, len);
+
+    // block sweep
+    var blockSize = Math.max(16, Math.ceil(len / 1024));
+    var nBlocks = Math.ceil(len / blockSize);
+    var blocks = new Array(nBlocks);
+    var bMin = Infinity, bMax = -Infinity, bSum = 0, peakOffset = 0;
+    for (var b = 0; b < nBlocks; b++) {
+      var s = b * blockSize;
+      var e = Math.min(s + blockSize, len);
+      var h = shannonEntropy(bytes, s, e);
+      blocks[b] = h;
+      bSum += h;
+      if (h < bMin) bMin = h;
+      if (h > bMax) { bMax = h; peakOffset = s; }
+    }
+    var bMean = bSum / nBlocks;
+    var vsum = 0;
+    for (var k = 0; k < nBlocks; k++) { var d = blocks[k] - bMean; vsum += d * d; }
+    var bStd = Math.sqrt(vsum / nBlocks);
+
+    analysis = {
+      source: sourceLabel,
+      length: len,
+      counts: counts,
+      maxCount: maxCount,
+      distinct: distinct,
+      printableRatio: printable / len,
+      nullRatio: nulls / len,
+      entropy: overall,
+      blocks: blocks,
+      blockSize: blockSize,
+      blockMean: bMean,
+      blockStd: bStd,
+      blockMin: (bMin === Infinity ? 0 : bMin),
+      blockMax: (bMax === -Infinity ? 0 : bMax),
+      peakOffset: peakOffset
+    };
+
+    render();
+  }
+
+  function render() {
+    if (!analysis) return;
+    var a = analysis;
+    resultsEl.style.display = '';
+
+    // meter
+    var band = bandFor(a.entropy);
+    bitsEl.textContent = a.entropy.toFixed(2);
+    bandEl.textContent = band.label;
+    bandEl.style.color = band.color;
+    var pct = Math.max(0, Math.min(100, (a.entropy / 8) * 100));
+    fillEl.style.width = pct + '%';
+    fillEl.style.backgroundColor = band.color;
+    markerEl.style.left = pct + '%';
+    trackEl.setAttribute('aria-valuenow', a.entropy.toFixed(2));
+
+    // verdict
+    var verdict = buildVerdict(a);
+    verdictEl.textContent = verdict;
+    verdictBox.style.borderLeftColor = band.color;
+    verdictDot.style.color = band.color;
+    verdictDot.style.background = band.color;
+
+    // stats
+    var tiles = [
+      { v: fmtBytes(a.length), l: 'Size' },
+      { v: a.distinct + '<small> / 256</small>', l: 'Distinct bytes' },
+      { v: pctStr(a.printableRatio), l: 'Printable ASCII' },
+      { v: pctStr(a.nullRatio), l: 'Null bytes' },
+      { v: a.blockMean.toFixed(2), l: 'Mean block H' },
+      { v: '±' + a.blockStd.toFixed(2), l: 'Std deviation' }
+    ];
+    var html = '';
+    for (var t = 0; t < tiles.length; t++) {
+      html += '<div class="ex-stat"><span class="ex-stat-val">' + tiles[t].v + '</span>' +
+              '<span class="ex-stat-label">' + tiles[t].l + '</span></div>';
+    }
+    statsEl.innerHTML = html;
+
+    // notes (textContent — no user data injected, but keep consistent)
+    sweepNote.textContent = 'Data split into ' + a.blocks.length + ' block' + (a.blocks.length === 1 ? '' : 's') +
+      ' of ' + fmtBytes(a.blockSize) + ' each. Flat high line = encrypted/compressed; dips reveal headers or structure; a step = an embedded blob.';
+    var histShape = a.distinct <= 16 ? 'Only a handful of byte values are used — very structured data.' :
+      (a.printableRatio > 0.85 ? 'Energy is concentrated in the printable ASCII band — classic text signature.' :
+      (a.entropy > 7.5 ? 'Bars are near-uniform across all 256 values — the fingerprint of random or encrypted bytes.' :
+      'A mix of printable and binary values.'));
+    histNote.textContent = histShape;
+
+    // report
+    reportEl.textContent =
+      'ENTROPY X-RAY REPORT\n' +
+      (a.source ? 'Source: ' + a.source + '\n' : '') +
+      'Size: ' + a.length + ' bytes (' + fmtBytes(a.length) + ')\n' +
+      'Overall Shannon entropy: ' + a.entropy.toFixed(4) + ' bits/byte  [' + band.label + ']\n' +
+      'Distinct byte values: ' + a.distinct + ' / 256\n' +
+      'Printable ASCII: ' + pctStr(a.printableRatio) + '   Null bytes: ' + pctStr(a.nullRatio) + '\n' +
+      'Block entropy (size ' + a.blockSize + 'B): mean ' + a.blockMean.toFixed(3) +
+        ', std ' + a.blockStd.toFixed(3) + ', min ' + a.blockMin.toFixed(3) + ', max ' + a.blockMax.toFixed(3) + '\n' +
+      'Verdict: ' + verdict;
+
+    drawSweep();
+    drawHist();
+  }
+
+  // ---------- drawing ----------
+  function setupCanvas(canvas) {
+    var dpr = window.devicePixelRatio || 1;
+    var cssW = canvas.clientWidth || canvas.parentNode.clientWidth || 600;
+    var cssH = canvas.clientHeight || 180;
+    canvas.width = Math.max(1, Math.round(cssW * dpr));
+    canvas.height = Math.max(1, Math.round(cssH * dpr));
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    return { ctx: ctx, w: cssW, h: cssH };
+  }
+
+  function drawSweep() {
+    if (!analysis) return;
+    var s = setupCanvas(sweepCanvas);
+    var ctx = s.ctx, W = s.w, Hh = s.h;
+    var padL = 30, padR = 8, padT = 8, padB = 18;
+    var plotW = Math.max(1, W - padL - padR);
+    var plotH = Math.max(1, Hh - padT - padB);
+    var blocks = analysis.blocks;
+    var n = blocks.length;
+
+    function yFor(e) { return padT + (1 - e / 8) * plotH; }
+    function xFor(i) { return n <= 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW; }
+
+    // grid + y labels
+    ctx.font = '9px "JetBrains Mono", monospace';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right';
+    for (var g = 0; g <= 8; g += 2) {
+      var gy = yFor(g);
+      ctx.strokeStyle = 'rgba(184,165,214,0.06)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padL, gy + 0.5); ctx.lineTo(W - padR, gy + 0.5); ctx.stroke();
+      ctx.fillStyle = 'rgba(184,165,214,0.4)';
+      ctx.fillText(String(g), padL - 6, gy);
+    }
+    // encryption threshold line at 7.5
+    var ty = yFor(7.5);
+    ctx.strokeStyle = 'rgba(224,114,143,0.35)';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(padL, ty + 0.5); ctx.lineTo(W - padR, ty + 0.5); ctx.stroke();
+    ctx.setLineDash([]);
+
+    var grad = sweepGradient(ctx, padT, plotH);
+
+    // area fill
+    ctx.beginPath();
+    ctx.moveTo(xFor(0), yFor(blocks[0]));
+    for (var i = 1; i < n; i++) ctx.lineTo(xFor(i), yFor(blocks[i]));
+    ctx.lineTo(xFor(n - 1), padT + plotH);
+    ctx.lineTo(xFor(0), padT + plotH);
+    ctx.closePath();
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // line
+    ctx.beginPath();
+    ctx.moveTo(xFor(0), yFor(blocks[0]));
+    for (var j = 1; j < n; j++) ctx.lineTo(xFor(j), yFor(blocks[j]));
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // x axis offset labels
+    ctx.fillStyle = 'rgba(184,165,214,0.4)';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.fillText('0', padL, padT + plotH + 4);
+    ctx.textAlign = 'right';
+    ctx.fillText(fmtBytes(analysis.length), W - padR, padT + plotH + 4);
+  }
+
+  function drawHist() {
+    if (!analysis) return;
+    var s = setupCanvas(histCanvas);
+    var ctx = s.ctx, W = s.w, Hh = s.h;
+    var padL = 4, padR = 4, padT = 6, padB = 14;
+    var plotW = Math.max(1, W - padL - padR);
+    var plotH = Math.max(1, Hh - padT - padB);
+    var counts = analysis.counts;
+    var maxC = analysis.maxCount || 1;
+    var barW = plotW / 256;
+
+    // printable ASCII shaded region (0x20..0x7e)
+    var pstart = padL + 0x20 * barW;
+    var pend = padL + 0x7f * barW;
+    ctx.fillStyle = 'rgba(107,207,143,0.06)';
+    ctx.fillRect(pstart, padT, pend - pstart, plotH);
+
+    // baseline
+    ctx.strokeStyle = 'rgba(184,165,214,0.08)';
+    ctx.beginPath(); ctx.moveTo(padL, padT + plotH + 0.5); ctx.lineTo(W - padR, padT + plotH + 0.5); ctx.stroke();
+
+    for (var v = 0; v < 256; v++) {
+      var c = counts[v];
+      if (c === 0) continue;
+      var bh = (c / maxC) * plotH;
+      var x = padL + v * barW;
+      var printable = (v >= 0x20 && v <= 0x7e);
+      ctx.fillStyle = printable ? '#6bcf8f' : (v === 0 ? '#687a8e' : '#b8a5d6');
+      ctx.globalAlpha = printable ? 0.9 : 0.75;
+      ctx.fillRect(x, padT + plotH - bh, Math.max(0.6, barW - 0.3), bh);
+    }
+    ctx.globalAlpha = 1;
+
+    // x labels
+    ctx.font = '9px "JetBrains Mono", monospace';
+    ctx.fillStyle = 'rgba(184,165,214,0.4)';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.fillText('0x00', padL, padT + plotH + 3);
+    ctx.textAlign = 'center';
+    ctx.fillText('0x80', padL + 128 * barW, padT + plotH + 3);
+    ctx.textAlign = 'right';
+    ctx.fillText('0xFF', W - padR, padT + plotH + 3);
+  }
+
+  // ---------- file handling ----------
+  function processFile(file) {
+    hideError();
+    var truncated = file.size > MAX_BYTES;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      var buf = ev.target.result;
+      var bytes = new Uint8Array(buf);
+      if (bytes.length > MAX_BYTES) bytes = bytes.subarray(0, MAX_BYTES);
+      fileInfo.textContent = file.name + ' — ' + fmtBytes(file.size) +
+        (truncated ? ' (analyzing first 8 MB)' : '');
+      analyze(bytes, file.name + (truncated ? ' (first 8 MB)' : ''));
+    };
+    reader.onerror = function () { showError('Could not read that file.'); };
+    var slice = truncated ? file.slice(0, MAX_BYTES) : file;
+    reader.readAsArrayBuffer(slice);
+  }
+
+  // ---------- samples ----------
+  function loremBytes(targetLen) {
+    var lorem = 'The quick brown fox jumps over the lazy dog. Shannon entropy measures the average ' +
+      'information per byte in a stream, expressed in bits. Natural language sits near four bits ' +
+      'per byte because letters, spaces, and punctuation appear at very uneven rates. Reverse ' +
+      'engineers watch for the moment that curve flattens near eight — the fingerprint of packing, ' +
+      'compression, or encryption hiding inside an otherwise readable file. ';
+    var enc = new TextEncoder();
+    var one = enc.encode(lorem);
+    var reps = Math.ceil(targetLen / one.length);
+    var out = new Uint8Array(reps * one.length);
+    for (var i = 0; i < reps; i++) out.set(one, i * one.length);
+    return out.subarray(0, targetLen);
+  }
+
+  function randomBytes(n) {
+    var out = new Uint8Array(n);
+    var CHUNK = 65536;
+    for (var off = 0; off < n; off += CHUNK) {
+      crypto.getRandomValues(out.subarray(off, Math.min(off + CHUNK, n)));
+    }
+    return out;
+  }
+
+  function makeSample(kind) {
+    if (kind === 'random') {
+      return { bytes: randomBytes(8192), label: 'sample: random bytes (8 KB)' };
+    }
+    if (kind === 'english') {
+      return { bytes: loremBytes(6000), label: 'sample: English text (6 KB)' };
+    }
+    if (kind === 'pattern') {
+      // A padded, record-like structure: mostly 0x00 with a fixed marker — very low entropy.
+      var pat = new Uint8Array(6000);
+      var seq = [0x53, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+      for (var i = 0; i < pat.length; i++) pat[i] = seq[i % seq.length];
+      return { bytes: pat, label: 'sample: repeated pattern / padding (6 KB)' };
+    }
+    // embedded: text header + random blob + text footer
+    var head = loremBytes(2500);
+    var blob = randomBytes(4000);
+    var tail = loremBytes(2500);
+    var comb = new Uint8Array(head.length + blob.length + tail.length);
+    comb.set(head, 0);
+    comb.set(blob, head.length);
+    comb.set(tail, head.length + blob.length);
+    return { bytes: comb, label: 'sample: text with embedded random blob (9 KB)' };
+  }
+
+  // ---------- events ----------
+  srcBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      srcBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      var isPaste = btn.getAttribute('data-src') === 'paste';
+      pastePanel.style.display = isPaste ? '' : 'none';
+      filePanel.style.display = isPaste ? 'none' : '';
+      if (isPaste) runPaste();
+    });
+  });
+
+  fmtBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      fmtBtns.forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
+      currentFmt = btn.getAttribute('data-fmt');
+      inputEl.placeholder = currentFmt === 'hex'
+        ? 'Paste hex, e.g. 89 50 4e 47 0d 0a 1a 0a …'
+        : (currentFmt === 'base64' ? 'Paste Base64, e.g. iVBORw0KGgo… ' : 'Paste any UTF-8 text, source code, config, or a ciphertext…');
+      runPaste();
+    });
+  });
+
+  var pasteTimer = null;
+  function runPaste() {
+    var raw = inputEl.value;
+    if (!raw || !raw.trim()) { hideError(); resultsEl.style.display = 'none'; analysis = null; return; }
+    try {
+      var bytes = parsePaste(raw, currentFmt);
+      analyze(bytes, 'pasted ' + currentFmt);
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+  inputEl.addEventListener('input', function () {
+    if (pasteTimer) clearTimeout(pasteTimer);
+    pasteTimer = setTimeout(runPaste, 150);
+  });
+
+  sampleBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var sample = makeSample(btn.getAttribute('data-sample'));
+      // clear paste + file inputs so state is coherent
+      inputEl.value = '';
+      fileInput.value = '';
+      fileInfo.textContent = sample.label;
+      analyze(sample.bytes, sample.label);
+    });
+  });
+
+  // drop zone
+  dropZone.addEventListener('click', function () { fileInput.click(); });
+  dropZone.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) { inputEl.value = ''; processFile(fileInput.files[0]); }
+  });
+  dropZone.addEventListener('dragover', function (e) { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; });
+  dropZone.addEventListener('dragleave', function () { dropZone.style.borderColor = ''; });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropZone.style.borderColor = '';
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) { inputEl.value = ''; processFile(e.dataTransfer.files[0]); }
+  });
+
+  // copy report
+  copyBtn.addEventListener('click', function () {
+    var text = reportEl.textContent;
+    if (!text) return;
+    function ok() { copyBtn.textContent = 'Copied!'; copyBtn.classList.add('copied'); setTimeout(function () { copyBtn.textContent = 'Copy report'; copyBtn.classList.remove('copied'); }, 2000); }
+    function fail() { copyBtn.textContent = 'Failed'; setTimeout(function () { copyBtn.textContent = 'Copy report'; }, 2000); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(ok).catch(fail);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand('copy'); ok(); } catch (e) { fail(); }
+      document.body.removeChild(ta);
+    }
+  });
+
+  // responsive redraw
+  var rTimer = null;
+  function redraw() {
+    if (!analysis || resultsEl.style.display === 'none') return;
+    if (rTimer) clearTimeout(rTimer);
+    rTimer = setTimeout(function () { drawSweep(); drawHist(); }, 80);
+  }
+  window.addEventListener('resize', redraw);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(redraw);
+    ro.observe(sweepCanvas);
+    ro.observe(histCanvas);
+  }
+})();
+</script>

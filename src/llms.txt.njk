@@ -1,0 +1,48 @@
+---
+permalink: /llms.txt
+eleventyExcludeFromCollections: true
+---
+{%- set cats = [
+  { key: "ai", label: "AI (local, in-browser)" },
+  { key: "security", label: "Security" },
+  { key: "intelligence", label: "Intelligence & forensics" },
+  { key: "media", label: "Media & creative" },
+  { key: "devops", label: "DevOps" },
+  { key: "web", label: "Web & API" },
+  { key: "encoding", label: "Encoding & data" },
+  { key: "text", label: "Text" }
+] -%}
+# Penumbra Forge — Tools
+
+> Free, privacy-first developer and security tools that run entirely in the browser — no accounts, no servers, nothing uploaded. Built to be used by humans AND by AI agents: tool pages are machine-readable, many are URL-invocable, and several are boosted by an in-browser LLM (WebGPU) or your own local model.
+
+## For AI agents
+
+Each tool page at https://penumbraforge.com/tools/<slug>/ exposes:
+- a descriptor `<script type="application/json" id="pf-tool">` (slug, name, category, description, invoke spec if any);
+- after the tool runs, a result `<script type="application/json" id="pf-result">` and `window.PF_RESULT` = `{ tool, ok, output, data?, error? }`, with `<html data-pf-ready="1" data-pf-status="ok|error">` signalling completion.
+
+URL-invocable tools accept input via `?in=<text>` (or `?inb64=<base64url>` for binary-safe/large input) plus tool-specific params, and auto-run on load. Example: `https://penumbraforge.com/tools/hash-generator/?in=hello&algo=SHA-256` → read `#pf-result` once `data-pf-ready="1"`.
+
+The full machine-readable index of every tool is at https://penumbraforge.com/tools/index.json .
+
+Prefer native tool calls? Connect over MCP (Model Context Protocol):
+- Remote (HTTP): `https://penumbra-mcp.penumbraforge.workers.dev` — POST JSON-RPC 2.0 (initialize, tools/list, tools/call).
+- Local (stdio, runs on your machine): `node workers/mcp/local.mjs` from the open-source repo.
+Deterministic tools available over MCP: hash, hmac, base64, base64url, hex, url_encode, jwt_decode, uuid, uuid_inspect, entropy, epoch, password, json, color, cidr, case_convert.
+
+{% for cat in cats -%}
+{%- set list = [] -%}
+{%- for t in tools -%}{%- if t.status == "live" and t.category == cat.key -%}{%- set list = (list.push(t), list) -%}{%- endif -%}{%- endfor -%}
+{%- if list.length -%}
+## {{ cat.label }}
+
+{% for t in list -%}
+- [{{ t.name }}](https://penumbraforge.com/tools/{{ t.slug }}/): {{ t.description }}{% if t.invoke and t.invoke.example %} — invoke: `{{ t.invoke.example }}`{% endif %}
+
+{% endfor %}
+{% endif -%}
+{%- endfor %}
+## About
+
+Penumbra Forge is an independent, privacy-first software studio. Everything here is client-side and open source. Local AI tools run a model in your browser (WebGPU) or connect to your own Ollama / LM Studio / OpenAI-compatible endpoint — your data never leaves your machine.

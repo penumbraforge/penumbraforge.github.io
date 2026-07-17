@@ -1,0 +1,366 @@
+/* ============================================================
+   PENUMBRA FORGE — Tool Workbench design system
+   Loaded AFTER style.css on every tool page (scope: .wb-page).
+   Reskins the shared tool chrome (.tool-content and children)
+   without touching individual tool markup, and adds new
+   .wb-* / .ai-* components for upgraded & AI tools.
+   ============================================================ */
+
+.wb-page {
+  --wb-line: color-mix(in oklab, var(--border) 82%, transparent);
+  --wb-line-bright: color-mix(in oklab, var(--accent) 32%, var(--border));
+  --wb-ink: #f2eff8;
+  --wb-panel: color-mix(in oklab, var(--surface-1) 78%, transparent);
+  --wb-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  background:
+    radial-gradient(115% 70% at 82% -10%, color-mix(in oklab, var(--accent) 7%, transparent), transparent 55%),
+    var(--surface-0);
+  min-height: 100vh;
+  position: relative;
+}
+.wb-page::after { /* film grain, matches homepage */
+  content: ""; position: fixed; inset: 0; z-index: 90; pointer-events: none;
+  opacity: 0.4; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- Topbar (unified with homepage fx aesthetic) ---------- */
+.wb-top {
+  display: flex; align-items: stretch;
+  border-bottom: 1px solid var(--wb-line);
+  position: sticky; top: 0; z-index: 60;
+  background: color-mix(in oklab, var(--surface-0) 80%, transparent);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+.wb-brand {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 26px; border-right: 1px solid var(--wb-line);
+  font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 3.5px;
+  text-transform: uppercase; color: var(--wb-ink); white-space: nowrap;
+}
+.wb-dot {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #14101f, #000 70%);
+  box-shadow: 0 0 0 1.5px color-mix(in oklab, var(--accent) 75%, transparent), 0 0 12px 2px color-mix(in oklab, var(--accent) 50%, transparent);
+  flex-shrink: 0;
+}
+.wb-top nav { display: flex; align-items: stretch; margin-left: auto; }
+.wb-top nav a {
+  display: flex; align-items: center; padding: 0 20px;
+  border-left: 1px solid var(--wb-line);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--text-2);
+  transition: color 160ms, background 160ms;
+}
+.wb-top nav a:hover, .wb-top nav a.active { color: var(--wb-ink); background: color-mix(in oklab, var(--accent) 8%, transparent); }
+.wb-open-palette {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 18px; border: 0; border-left: 1px solid var(--wb-line);
+  background: none; color: var(--text-2); cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px;
+}
+.wb-open-palette:hover { color: var(--wb-ink); background: color-mix(in oklab, var(--accent) 8%, transparent); }
+.wb-open-palette kbd {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+  border: 1px solid var(--wb-line); border-radius: 3px; padding: 2px 6px;
+}
+
+/* ---------- Layout ---------- */
+.wb-shell { max-width: 1160px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px) 100px; position: relative; z-index: 1; }
+
+.wb-breadcrumb {
+  display: flex; align-items: center; gap: 9px; padding: 26px 0 4px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; color: var(--text-3);
+}
+.wb-breadcrumb a { color: var(--text-3); transition: color 150ms; }
+.wb-breadcrumb a:hover { color: var(--accent); }
+.wb-breadcrumb .sep { opacity: 0.5; }
+.wb-breadcrumb .cur { color: var(--text-2); }
+
+/* ---------- Tool header + toolbar ---------- */
+.wb-head { padding: 18px 0 8px; display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+.wb-head-main { flex: 1; min-width: 260px; }
+.wb-head h1 {
+  font-family: var(--font-display); font-size: clamp(30px, 4vw, 46px);
+  font-weight: 300; letter-spacing: -0.03em; color: var(--wb-ink);
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.wb-chip {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--accent); border: 1px solid var(--wb-line-bright);
+  padding: 5px 10px; border-radius: 2px; align-self: center;
+}
+.wb-about { margin-top: 12px; max-width: 66ch; font-size: 14.5px; line-height: 1.7; color: var(--text-2); }
+
+.wb-toolbar { display: flex; align-items: center; gap: 8px; }
+.wb-tbtn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 13px; border: 1px solid var(--wb-line); background: transparent;
+  color: var(--text-2); cursor: pointer; border-radius: 2px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px;
+  transition: border-color 160ms, color 160ms, background 160ms;
+}
+.wb-tbtn:hover { border-color: var(--wb-line-bright); color: var(--wb-ink); }
+.wb-tbtn.is-on { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, transparent); background: color-mix(in oklab, var(--accent) 10%, transparent); }
+.wb-tbtn svg { width: 15px; height: 15px; }
+
+/* ---------- Reskin the shared tool chrome (no markup changes) ---------- */
+.wb-page .tool-content {
+  background: var(--wb-panel);
+  border: 1px solid var(--wb-line);
+  border-radius: 4px;
+  padding: 26px;
+  margin-top: 22px;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 4%, transparent), 0 24px 60px -40px rgba(0,0,0,0.8);
+}
+.wb-page .tool-content::before { display: none; } /* drop the old accent line */
+
+.wb-page .tool-content label {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 2.5px;
+  text-transform: uppercase; color: var(--slate); margin-bottom: 9px; font-weight: 400;
+}
+
+.wb-page .tool-content textarea,
+.wb-page .tool-content input[type="text"],
+.wb-page .tool-content input[type="number"],
+.wb-page .tool-content input[type="url"],
+.wb-page .tool-content input[type="email"],
+.wb-page .tool-content input[type="password"],
+.wb-page .tool-content input[type="search"],
+.wb-page .tool-content input:not([type]),
+.wb-page .tool-content select {
+  background: #06060d;
+  border: 1px solid var(--wb-line);
+  border-radius: 3px;
+  color: var(--wb-ink);
+  font-family: var(--font-mono); font-size: 13px; padding: 13px 15px;
+  line-height: 1.7; font-weight: 400; outline: none;
+  transition: border-color 180ms, box-shadow 220ms;
+}
+.wb-page .tool-content textarea::placeholder,
+.wb-page .tool-content input::placeholder { color: var(--text-3); }
+.wb-page .tool-content textarea:focus,
+.wb-page .tool-content input:focus,
+.wb-page .tool-content select:focus {
+  border-color: color-mix(in oklab, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 8%, transparent);
+}
+.wb-page .tool-content textarea { min-height: 150px; resize: vertical; }
+
+.wb-page .tool-content .output-area {
+  background: #06060d; border: 1px solid var(--wb-line); border-radius: 3px;
+  color: var(--text-1); font-family: var(--font-mono); font-size: 12px;
+  padding: 16px; line-height: 1.75;
+}
+
+/* buttons */
+.wb-page .tool-content .btn {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.6px;
+  color: var(--wb-ink); background: color-mix(in oklab, var(--accent) 6%, transparent);
+  border: 1px solid var(--wb-line); border-radius: 2px; padding: 9px 18px; cursor: pointer;
+  transition: border-color 160ms, background 160ms, color 160ms;
+}
+.wb-page .tool-content .btn:hover { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 14%, transparent); color: #fff; }
+.wb-page .tool-content .btn--primary,
+.wb-page .tool-content .btn--generate {
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  border-color: var(--accent); color: #17121f; font-weight: 600;
+}
+.wb-page .tool-content .btn--primary:hover { box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--accent) 60%, transparent); color: #17121f; }
+.wb-page .tool-content .btn--copy.copied { color: var(--sage); border-color: color-mix(in oklab, var(--sage) 35%, transparent); background: color-mix(in oklab, var(--sage) 8%, transparent); }
+
+/* segmented control */
+.wb-page .tool-content .tool-options { gap: 0; border: 1px solid var(--wb-line); border-radius: 3px; width: fit-content; overflow: hidden; }
+.wb-page .tool-content .tool-option {
+  border: 0; border-right: 1px solid var(--wb-line); border-radius: 0;
+  padding: 9px 16px; font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.4px;
+  color: var(--text-2); background: transparent;
+}
+.wb-page .tool-content .tool-option:last-child { border-right: 0; }
+.wb-page .tool-content .tool-option:hover { color: var(--wb-ink); background: color-mix(in oklab, var(--accent) 6%, transparent); }
+.wb-page .tool-content .tool-option.active { color: #17121f; background: var(--accent); }
+
+.wb-page .tool-content .tool-error {
+  font-family: var(--font-mono); font-size: 12px; color: #e8a87c;
+  background: color-mix(in oklab, #e8a87c 8%, transparent);
+  border: 1px solid color-mix(in oklab, #e8a87c 22%, transparent);
+  border-left: 2px solid #e8a87c; border-radius: 2px; padding: 11px 14px;
+}
+.wb-page .tool-content input[type="range"]::-webkit-slider-thumb { background: var(--accent); border-color: #06060d; }
+.wb-page .tool-content hr { border-top: 1px solid var(--wb-line); }
+.wb-page .tool-content th { color: var(--slate); border-bottom-color: var(--wb-line); }
+.wb-page .tool-content td { color: var(--text-1); }
+
+/* ---------- Trust / how-it-works note ---------- */
+.wb-note {
+  margin-top: 20px; display: flex; align-items: flex-start; gap: 13px;
+  padding: 16px 18px; border: 1px solid var(--wb-line); border-radius: 4px;
+  background: color-mix(in oklab, var(--sage) 4%, transparent);
+}
+.wb-note svg { flex-shrink: 0; width: 18px; height: 18px; color: var(--sage); margin-top: 1px; }
+.wb-note p { font-size: 12.5px; line-height: 1.65; color: var(--text-2); }
+.wb-note strong { color: var(--wb-ink); font-weight: 500; }
+
+/* ---------- Related ---------- */
+.wb-related { margin-top: 48px; }
+.wb-related-label {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--slate); margin-bottom: 16px; display: flex; align-items: center; gap: 12px;
+}
+.wb-related-label::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--wb-line), transparent); }
+.wb-related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.wb-related-card {
+  display: block; padding: 16px 18px; border: 1px solid var(--wb-line); border-radius: 4px;
+  background: var(--wb-panel); transition: border-color 200ms, translate 200ms var(--wb-ease);
+}
+.wb-related-card:hover { border-color: var(--wb-line-bright); translate: 0 -2px; }
+.wb-related-card h4 { font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--wb-ink); margin-bottom: 5px; }
+.wb-related-card p { font-size: 12.5px; line-height: 1.55; color: var(--text-3); }
+
+/* ---------- Footer ---------- */
+.wb-foot {
+  margin-top: 64px; border-top: 1px solid var(--wb-line); padding: 26px clamp(20px,4vw,48px);
+  display: flex; gap: 20px; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; color: var(--text-3);
+  max-width: 1160px; margin-inline: auto;
+}
+.wb-foot a { color: var(--text-3); } .wb-foot a:hover { color: var(--accent); }
+.wb-foot .links { display: flex; gap: 18px; flex-wrap: wrap; }
+
+/* ---------- New optional components (upgraded tools opt in) ---------- */
+.wb-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@container (max-width: 620px) { .wb-split { grid-template-columns: 1fr; } }
+.wb-panel { border: 1px solid var(--wb-line); border-radius: 4px; background: #06060d; overflow: hidden; }
+.wb-panel-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 13px; border-bottom: 1px solid var(--wb-line);
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--slate);
+}
+.wb-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 7px; border-radius: 2px; border: 1px solid var(--wb-line);
+}
+.wb-badge--new { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 40%, transparent); }
+.wb-badge--ai { color: #e0a458; border-color: color-mix(in oklab, #e0a458 40%, transparent); }
+.wb-badge--local { color: var(--sage); border-color: color-mix(in oklab, var(--sage) 35%, transparent); }
+.wb-empty { padding: 40px 20px; text-align: center; color: var(--text-3); font-size: 13px; }
+@keyframes wb-shimmer { to { background-position: 200% 0; } }
+.wb-skeleton { border-radius: 3px; background: linear-gradient(90deg, #0c0c16 25%, #14141f 50%, #0c0c16 75%); background-size: 200% 100%; animation: wb-shimmer 1.4s infinite; }
+
+/* ---------- Toast ---------- */
+.wb-toast {
+  position: fixed; bottom: 24px; left: 50%; translate: -50% 0; z-index: 200;
+  background: #12121e; border: 1px solid var(--wb-line-bright); border-radius: 4px;
+  padding: 12px 20px; font-family: var(--font-mono); font-size: 12px; color: var(--wb-ink);
+  box-shadow: 0 20px 50px -20px rgba(0,0,0,0.9); opacity: 0; pointer-events: none;
+  transition: opacity 220ms, translate 220ms var(--wb-ease);
+}
+.wb-toast.show { opacity: 1; translate: -50% -6px; }
+
+.wb-page ::selection { background: color-mix(in oklab, var(--accent) 38%, transparent); color: #fff; }
+
+@media (max-width: 720px) {
+  .wb-top nav { display: none; }
+  .wb-shell { padding-bottom: 60px; }
+  .wb-split { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   AI components (local AI platform)
+   ============================================================ */
+.ai-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-top: 22px; padding: 12px 16px; border: 1px solid var(--wb-line); border-radius: 4px;
+  background: linear-gradient(100deg, color-mix(in oklab, #e0a458 8%, transparent), transparent 60%), var(--wb-panel);
+}
+.ai-shield { color: #e0a458; font-size: 15px; }
+.ai-bar-txt { font-size: 12.5px; color: var(--text-2); flex: 1; min-width: 220px; }
+.ai-bar-txt b { color: var(--wb-ink); font-weight: 600; }
+.ai-bar-engine { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.5px; color: var(--accent); border: 1px solid var(--wb-line-bright); padding: 4px 9px; border-radius: 2px; }
+.ai-bar-cog { font-family: var(--font-mono); font-size: 11px; color: var(--text-2); background: none; border: 1px solid var(--wb-line); border-radius: 2px; padding: 6px 12px; cursor: pointer; }
+.ai-bar-cog:hover { color: var(--wb-ink); border-color: var(--accent); }
+
+.ai-modal-bd { position: fixed; inset: 0; z-index: 400; background: rgba(3,3,7,0.72); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 20px; }
+.ai-modal { width: min(520px, 94vw); background: #0b0b14; border: 1px solid var(--wb-line-bright); border-radius: 8px; overflow: hidden; box-shadow: 0 40px 100px -30px rgba(0,0,0,0.9); }
+.ai-modal-h { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--wb-line); font-family: var(--font-mono); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--wb-ink); }
+.ai-x { background: none; border: 0; color: var(--text-3); font-size: 22px; cursor: pointer; line-height: 1; }
+.ai-x:hover { color: var(--wb-ink); }
+.ai-seg { display: flex; gap: 0; margin: 16px 18px 0; border: 1px solid var(--wb-line); border-radius: 3px; overflow: hidden; }
+.ai-seg button { flex: 1; padding: 10px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-2); background: none; border: 0; border-right: 1px solid var(--wb-line); cursor: pointer; }
+.ai-seg button:last-child { border-right: 0; }
+.ai-seg button.on { background: var(--accent); color: #17121f; }
+.ai-fields { padding: 16px 18px; display: grid; gap: 6px; }
+.ai-fields label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--slate); margin-top: 8px; }
+.ai-fields input, .ai-fields select { background: #06060d; border: 1px solid var(--wb-line); border-radius: 3px; color: var(--wb-ink); font-family: var(--font-mono); font-size: 13px; padding: 11px 13px; outline: none; }
+.ai-fields input:focus, .ai-fields select:focus { border-color: color-mix(in oklab, var(--accent) 45%, transparent); }
+.ai-hint { font-size: 12px; line-height: 1.6; color: var(--text-3); margin-top: 10px; }
+.ai-hint code { font-family: var(--font-mono); font-size: 11px; color: var(--accent); background: color-mix(in oklab, var(--accent) 8%, transparent); padding: 1px 5px; border-radius: 2px; }
+.ai-modal-f { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-top: 1px solid var(--wb-line); }
+.ai-test { font-family: var(--font-mono); font-size: 11px; color: var(--text-2); background: none; border: 1px solid var(--wb-line); border-radius: 2px; padding: 8px 14px; cursor: pointer; }
+.ai-test:hover { border-color: var(--accent); color: var(--wb-ink); }
+.ai-test-out { flex: 1; font-size: 11.5px; color: var(--text-3); }
+.ai-test-out.ok { color: var(--sage); } .ai-test-out.bad { color: #e8a87c; }
+.ai-save { margin-left: auto; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: #17121f; background: linear-gradient(180deg, var(--accent-strong), var(--accent)); border: 0; border-radius: 2px; padding: 9px 20px; cursor: pointer; }
+
+/* chat widget */
+.ai-chat { margin-top: 16px; display: flex; flex-direction: column; height: min(62vh, 620px); border: 1px solid var(--wb-line); border-radius: 6px; background: #06060d; overflow: hidden; }
+.ai-log { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+.ai-msg { display: flex; }
+.ai-msg.ai-user { justify-content: flex-end; }
+.ai-msg-body { max-width: 82%; padding: 12px 15px; border-radius: 10px; font-size: 14px; line-height: 1.65; white-space: pre-wrap; word-wrap: break-word; }
+.ai-user .ai-msg-body { background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--wb-ink); border-bottom-right-radius: 3px; }
+.ai-assistant .ai-msg-body { background: #12121e; color: var(--text-1); border: 1px solid var(--wb-line); border-bottom-left-radius: 3px; }
+.ai-status { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); padding: 0 15px; }
+.ai-status.working::after { content: "▍"; animation: ai-blink 1s steps(2) infinite; color: var(--accent); }
+@keyframes ai-blink { 50% { opacity: 0; } }
+.ai-inputrow { display: flex; gap: 10px; padding: 12px; border-top: 1px solid var(--wb-line); background: #0b0b14; align-items: flex-end; }
+.ai-in { flex: 1; resize: none; background: #06060d; border: 1px solid var(--wb-line); border-radius: 4px; color: var(--wb-ink); font-family: var(--font-sans); font-size: 14px; padding: 12px 14px; outline: none; line-height: 1.5; max-height: 200px; }
+.ai-in:focus { border-color: color-mix(in oklab, var(--accent) 45%, transparent); }
+.ai-send { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: #17121f; background: linear-gradient(180deg, var(--accent-strong), var(--accent)); border: 0; border-radius: 4px; padding: 12px 22px; cursor: pointer; }
+.ai-send:disabled { opacity: 0.5; cursor: default; }
+.ai-stop { font-family: var(--font-mono); font-size: 12px; color: #e8a87c; background: none; border: 1px solid color-mix(in oklab, #e8a87c 35%, transparent); border-radius: 4px; padding: 12px 18px; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .ai-status.working::after { animation: none; } }
+
+/* ============================================================
+   Premium pass — AI markdown output + richer depth & motion
+   ============================================================ */
+/* AI markdown rendering */
+.ai-md > *:first-child { margin-top: 0; }
+.ai-md > *:last-child { margin-bottom: 0; }
+.ai-md p { margin: 0 0 10px; }
+.ai-md h3, .ai-md h4, .ai-md h5 { font-family: var(--font-display); font-weight: 400; color: var(--wb-ink); margin: 16px 0 8px; letter-spacing: -0.01em; }
+.ai-md h3 { font-size: 17px; } .ai-md h4 { font-size: 15px; } .ai-md h5 { font-size: 13.5px; }
+.ai-md ul, .ai-md ol { margin: 0 0 10px; padding-left: 20px; }
+.ai-md li { margin: 3px 0; }
+.ai-md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.ai-md code { font-family: var(--font-mono); font-size: 0.88em; background: color-mix(in oklab, var(--accent) 12%, transparent); color: var(--accent-strong); padding: 1px 5px; border-radius: 3px; }
+.ai-md blockquote { border-left: 2px solid color-mix(in oklab, var(--accent) 45%, transparent); padding-left: 12px; margin: 0 0 10px; color: var(--text-2); }
+.ai-code { position: relative; margin: 0 0 12px; background: #06060d; border: 1px solid var(--wb-line); border-radius: 6px; overflow: hidden; }
+.ai-code code { display: block; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; color: #d7d2e6; background: none; padding: 14px 15px; overflow-x: auto; white-space: pre; border-radius: 0; }
+.ai-code[data-lang]::before { content: attr(data-lang); position: absolute; top: 0; right: 0; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--slate); padding: 5px 9px; border-left: 1px solid var(--wb-line); border-bottom: 1px solid var(--wb-line); border-bottom-left-radius: 5px; }
+.ai-streaming::after { content: "▍"; color: var(--accent); animation: ai-blink 1s steps(2) infinite; margin-left: 1px; }
+
+/* Richer panel depth (less flat, more premium) */
+.wb-page .tool-content {
+  background:
+    linear-gradient(180deg, color-mix(in oklab, #fff 3%, transparent), transparent 120px),
+    var(--wb-panel);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 6%, transparent), 0 30px 70px -46px rgba(0,0,0,0.9);
+}
+/* Refined focus ring */
+.wb-page .tool-content textarea:focus, .wb-page .tool-content input:focus, .wb-page .tool-content select:focus {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 10%, transparent), 0 0 24px -8px color-mix(in oklab, var(--accent) 40%, transparent);
+}
+/* Result reveal */
+@media (prefers-reduced-motion: no-preference) {
+  .wb-page .tool-content .output-area:not(:empty) { animation: wb-reveal 360ms cubic-bezier(0.16,1,0.3,1); }
+  @keyframes wb-reveal { from { opacity: 0; transform: translateY(6px); } }
+}
+/* Refined scrollbars inside tools */
+.wb-page .tool-content ::-webkit-scrollbar, .ai-log::-webkit-scrollbar, .ai-code code::-webkit-scrollbar { width: 9px; height: 9px; }
+.wb-page .tool-content ::-webkit-scrollbar-thumb, .ai-log::-webkit-scrollbar-thumb { background: color-mix(in oklab, var(--accent) 20%, var(--border)); border-radius: 5px; border: 2px solid transparent; background-clip: content-box; }
+/* Tame oversized agent-authored primary buttons for a refined feel */
+.wb-page .tool-content button { font-family: var(--font-sans); }
+.wb-page .tool-content .btn, .wb-page .tool-content button.btn { font-weight: 500; }

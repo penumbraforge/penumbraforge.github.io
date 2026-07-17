@@ -1,484 +1,353 @@
 ---
 layout: base.njk
+hideAtmosphere: true
 ---
-<nav class="home-nav reveal" id="home-nav">
-  <button class="home-nav-toggle" id="home-nav-toggle" aria-label="Toggle menu" aria-expanded="false">
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-      <line x1="3" y1="5" x2="17" y2="5" class="hamburger-top"/>
-      <line x1="3" y1="10" x2="17" y2="10" class="hamburger-mid"/>
-      <line x1="3" y1="15" x2="17" y2="15" class="hamburger-bot"/>
-    </svg>
-  </button>
-  <a href="/tools/">Tools</a>
-  <a href="/labs/">Labs</a>
-  <a href="/blog/">Blog</a>
-  <a href="/gate/">Gate</a>
-  <a href="/librarian/">Librarian</a>
-  <a href="/vexes/">Vexes</a>
-  <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
-</nav>
+<link rel="stylesheet" href="/css/home.css">
 
-<section class="hero">
-  <div class="eclipse-row reveal">
-    <div class="penumbra-mark">
-      <div class="penumbra-backlight"></div>
-      <div class="penumbra-corona"></div>
-      <div class="penumbra-light"></div>
-      <div class="penumbra-edge"></div>
-      <div class="penumbra-shadow"></div>
-      <canvas id="eclipse-particles" width="500" height="500"></canvas>
+{% set liveTools = [] %}
+{% for tool in tools %}{% if tool.status == "live" %}{% set liveTools = (liveTools.push(tool), liveTools) %}{% endif %}{% endfor %}
+
+<div class="fx-progress" id="fxProgress" aria-hidden="true"></div>
+
+<div class="fx-body">
+<div class="fx-frame">
+
+  <header class="fx-topbar">
+    <a href="/" class="fx-wordmark"><span class="fx-eclipse-dot" aria-hidden="true"></span>Penumbra&nbsp;Forge</a>
+    <button class="fx-menu-btn" id="fxMenuBtn" aria-label="Toggle menu" aria-expanded="false">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="6" x2="17" y2="6"/><line x1="3" y1="14" x2="17" y2="14"/></svg>
+    </button>
+    <nav class="fx-nav" id="fxNav">
+      <a href="/tools/">Tools</a>
+      <a href="/tools/agents/">For&nbsp;Agents</a>
+      <a href="/blog/">Blog</a>
+      <a href="#" data-open-palette title="Run any tool — ⌘K">⌘K&nbsp;Run</a>
+      <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-nav-cta">GitHub &nearr;</a>
+    </nav>
+  </header>
+
+  <section class="fx-hero" id="fxHero">
+    <canvas class="fx-hero-canvas" id="fxEclipse" aria-hidden="true"></canvas>
+    <div class="fx-hero-scrim" aria-hidden="true"></div>
+    <div class="fx-hero-eclipse" aria-hidden="true"></div>
+    <div class="fx-hero-inner">
+      <p class="fx-kicker reveal">Independent software studio</p>
+      <h1 class="reveal"><span class="fx-line">Security tooling,</span><span class="fx-line"><span class="fx-accent">zero surveillance.</span></span></h1>
+      <p class="fx-hero-sub reveal">Privacy-first developer utilities, supply-chain defenses, and open source security software — engineered to run on your hardware, with your data staying yours.</p>
+      <div class="fx-hero-actions reveal">
+        <a href="/tools/" class="fx-btn fx-btn--solid" data-magnetic><span>Browse {{ liveTools.length }} tools</span></a>
+        <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-btn" data-magnetic><span>Source on GitHub</span></a>
+      </div>
+    </div>
+  </section>
+
+  <div class="fx-ticker" aria-hidden="true">
+    <div class="fx-ticker-track">
+      {%- for tool in liveTools -%}<a href="/tools/{{ tool.slug }}/" tabindex="-1">{{ tool.name }}</a>{%- endfor -%}
+    </div>
+    <div class="fx-ticker-track">
+      {%- for tool in liveTools -%}<a href="/tools/{{ tool.slug }}/" tabindex="-1">{{ tool.name }}</a>{%- endfor -%}
     </div>
   </div>
 
-  <div class="hero-split">
-    <div>
-      <p class="hero-label reveal reveal-delay-1">Penumbra Forge</p>
-      <h1 class="reveal reveal-delay-2">Security tools, labs &amp; software<br>forged by <strong>Shadoe</strong></h1>
-      <p class="hero-subtitle reveal reveal-delay-3">Independent security studio. Privacy-first tools, hands-on offensive and defensive security labs, and open source software — built by a senior CIRT engineer.</p>
-      <div class="hero-stats reveal reveal-delay-4">
-        <div><div class="stat-num">78</div><div class="stat-label">Tools</div></div>
-        <div><div class="stat-num">12</div><div class="stat-label">Labs</div></div>
-        <div><div class="stat-num">4</div><div class="stat-label">Products</div></div>
-      </div>
-    </div>
-    <div class="reveal reveal-delay-3">
-      <div class="live-tool">
-        <div class="tool-titlebar">
-          <span class="tool-dot"></span><span class="tool-dot"></span><span class="tool-dot"></span>
-          <span class="tool-name" id="demo-tool-name">secrets-scanner</span>
-        </div>
-        <div class="tool-body" id="demo-carousel">
-          <pre class="demo-slide demo-slide--active" data-tool="secrets-scanner"><span class="hl-dim">$</span> <span class="hl-key">scanning input</span> <span class="hl-dim">...</span>
-
-<span class="hl-str">&#x2714; Line 3</span>  AWS Access Key detected
-  <span class="hl-dim">pattern:</span> <span class="hl-key">AKIA[0-9A-Z]{16}</span>
-  <span class="hl-dim">match:</span>   <span class="hl-str">AKIAIOSFODNN7EXAMPLE</span>
-
-<span class="hl-str">&#x2714; Line 7</span>  GitHub Token detected
-  <span class="hl-dim">pattern:</span> <span class="hl-key">ghp_[a-zA-Z0-9]{36}</span>
-  <span class="hl-dim">match:</span>   <span class="hl-str">ghp_xxxxxxxxxxxxxxxxxxxx</span>
-
-<span class="hl-dim">───────────────────────────</span>
-<span class="hl-warn">2 secrets found</span> in <span class="hl-warn">12ms</span></pre>
-          <pre class="demo-slide" data-tool="json-formatter"><span class="hl-dim">{</span>
-  <span class="hl-key">"name"</span><span class="hl-dim">:</span> <span class="hl-str">"gate"</span><span class="hl-dim">,</span>
-  <span class="hl-key">"version"</span><span class="hl-dim">:</span> <span class="hl-str">"2.0.0"</span><span class="hl-dim">,</span>
-  <span class="hl-key">"description"</span><span class="hl-dim">:</span> <span class="hl-str">"Pre-commit secret defense"</span><span class="hl-dim">,</span>
-  <span class="hl-key">"license"</span><span class="hl-dim">:</span> <span class="hl-str">"AGPL-3.0"</span><span class="hl-dim">,</span>
-  <span class="hl-key">"dependencies"</span><span class="hl-dim">:</span> <span class="hl-dim">{}</span>
-<span class="hl-dim">}</span></pre>
-          <pre class="demo-slide" data-tool="hash-generator"><span class="hl-dim">Input:</span>  <span class="hl-str">penumbraforge</span>
-<span class="hl-dim">Algorithm:</span> <span class="hl-key">SHA-256</span>
-
-<span class="hl-dim">Output:</span>
-<span class="hl-str">7f3a8c2e1d4b5690...</span>
-<span class="hl-str">a8e3f1c2d4b57698...</span>
-
-<span class="hl-str">&#x2714;</span> Hash computed in <span class="hl-warn">0.3ms</span></pre>
-        </div>
-        <div class="tool-footer">
-          <span class="tool-badge">privacy-first</span>
-          <div class="demo-dots" id="demo-dots">
-            <button class="demo-dot demo-dot--active" data-index="0" aria-label="Secrets Scanner demo"></button>
-            <button class="demo-dot" data-index="1" aria-label="JSON Formatter demo"></button>
-            <button class="demo-dot" data-index="2" aria-label="Hash Generator demo"></button>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="fx-section-head reveal">
+    <span class="fx-index">01</span>
+    <h2>Products</h2>
+    <span class="fx-rule"></span>
+    <span class="fx-count">4 in the forge</span>
   </div>
-</section>
 
-<div class="section-gap section-gap-lg"></div>
-
-<div class="section">
-  <div class="section-divider reveal"><span>From the Forge</span></div>
-
-  <div class="station reveal">
-    <div class="station-content">
-      <div class="station-tag">Pre-commit Defense</div>
-      <h2 class="station-title">Gate</h2>
+  <div class="fx-bento">
+    <div class="fx-cell fx-cell--gate reveal">
+      <div class="fx-cell-meta"><span>Pre-commit defense</span><span class="fx-status">shipping</span></div>
+      <h3>Gate</h3>
       <p>Catches secrets before they reach your repository — and fixes them automatically. Installs in one command, scans in milliseconds.</p>
-      <div class="station-features">
-        <span class="station-feature">148 secret detection rules</span>
-        <span class="station-feature">Auto-fix — redacts secrets in place</span>
-        <span class="station-feature">Pre-commit hook integration</span>
-        <span class="station-feature">Zero cloud dependency</span>
-      </div>
-      <a href="/gate/" class="station-cta">Learn more &rarr;</a>
-    </div>
-    <a href="/gate/" class="station-terminal">
-      <div class="terminal-bar">
-        <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
-        <span class="terminal-title">gate scan --fix</span>
-      </div>
-      <pre class="terminal-body"><span class="hl-dim">$</span> <span class="hl-key">gate scan --fix</span>
+      <div class="fx-term">
+        <div class="fx-term-bar">gate scan --fix</div>
+        <pre><span class="hl-dim">$</span> <span class="hl-key">gate scan --fix</span>
 
-<span class="hl-warn">&#x2718;</span> <span class="hl-str">config/db.yml</span><span class="hl-dim">:12</span>
-  AWS Secret Key detected
+<span class="hl-warn">&#x2718;</span> <span class="hl-str">config/db.yml</span><span class="hl-dim">:12</span>  AWS Secret Key
   <span class="hl-dim">before:</span> <span class="hl-warn">AKIAIOSFODNN7EXAMPLE</span>
   <span class="hl-dim"> after:</span> <span class="hl-str">REDACTED_AWS_SECRET_KEY</span>
 
-<span class="hl-warn">&#x2718;</span> <span class="hl-str">.env.production</span><span class="hl-dim">:4</span>
-  GitHub Token detected
-  <span class="hl-dim">before:</span> <span class="hl-warn">ghp_a1b2c3d4e5f6g7h8</span>
-  <span class="hl-dim"> after:</span> <span class="hl-str">REDACTED_GITHUB_TOKEN</span>
-
-<span class="hl-dim">───────────────────────────────</span>
-<span class="hl-str">&#x2714; 2 secrets found and fixed</span>
-<span class="hl-dim">  commit safe to proceed</span></pre>
-    </a>
-  </div>
-
-  <div class="station reveal">
-    <div class="station-content">
-      <div class="station-tag">MCP Skills Server</div>
-      <h2 class="station-title">mcp-librarian</h2>
-      <p>A self-growing knowledge library for AI coding agents. When no skill exists, it researches from authoritative sources and creates one permanently.</p>
-      <div class="station-features">
-        <span class="station-feature">Auto-research from official docs</span>
-        <span class="station-feature">Skills persist across sessions</span>
-        <span class="station-feature">Ed25519 signing &amp; content guard</span>
-        <span class="station-feature">Node.js built-ins only — zero deps</span>
+<span class="hl-str">&#x2714; 2 secrets found and fixed</span> <span class="hl-dim">— commit safe</span></pre>
       </div>
-      <a href="/librarian/" class="station-cta">Learn more &rarr;</a>
+      <a href="/gate/" class="fx-cell-link">Explore Gate <span>&rarr;</span></a>
     </div>
-    <a href="/librarian/" class="station-terminal">
-      <div class="terminal-bar">
-        <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
-        <span class="terminal-title">mcp-librarian</span>
-      </div>
-      <pre class="terminal-body"><span class="hl-dim">agent:</span> <span class="hl-key">find skill</span> <span class="hl-str">"react testing patterns"</span>
 
-<span class="hl-dim">&#x21BB;</span> searching local skills<span class="hl-dim">...</span>
-<span class="hl-dim">&#x21BB;</span> no match found
-
-<span class="hl-key">&#x21BB; researching</span> <span class="hl-str">testing-library.com</span><span class="hl-dim">...</span>
-<span class="hl-key">&#x21BB; researching</span> <span class="hl-str">react.dev/testing</span><span class="hl-dim">...</span>
-
-<span class="hl-str">&#x2714; skill created:</span> <span class="hl-key">react-testing-patterns</span>
-  <span class="hl-dim">sources:</span>  2 authoritative docs
-  <span class="hl-dim">patterns:</span> 7 extracted
-  <span class="hl-dim">signed:</span>  <span class="hl-str">Ed25519 &#x2714;</span>
-
-<span class="hl-dim">  skill permanently available</span></pre>
-    </a>
-  </div>
-
-  <div class="station reveal">
-    <div class="station-content">
-      <div class="station-tag">Dependency Security</div>
-      <h2 class="station-title">vexes</h2>
-      <p>Cross-ecosystem supply chain scanner. 4-layer behavioral analysis catches attacks that vulnerability databases miss — before they execute.</p>
-      <div class="station-features">
-        <span class="station-feature">AST code analysis + behavioral fingerprinting</span>
-        <span class="station-feature">Pre-install guard — blocks before execution</span>
-        <span class="station-feature">9 ecosystems, one scanner</span>
-        <span class="station-feature">Zero dependencies</span>
-      </div>
-      <a href="/vexes/" class="station-cta">Learn more &rarr;</a>
+    <div class="fx-cell fx-cell--librarian reveal">
+      <div class="fx-cell-meta"><span>MCP skills server</span><span class="fx-status">shipping</span></div>
+      <h3>mcp-librarian</h3>
+      <p>A self-growing knowledge library for AI coding agents. When no skill exists, it researches authoritative sources and creates one permanently.</p>
+      <div class="fx-featlist"><span>auto-research</span><span>Ed25519 signing</span><span>zero deps</span><span>persistent skills</span></div>
+      <a href="/librarian/" class="fx-cell-link">Explore Librarian <span>&rarr;</span></a>
     </div>
-    <a href="/vexes/" class="station-terminal">
-      <div class="terminal-bar">
-        <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
-        <span class="terminal-title">vexes analyze --deep</span>
-      </div>
-      <pre class="terminal-body"><span class="hl-dim">$</span> <span class="hl-key">vexes analyze --deep</span>
 
-<span class="hl-warn">&#x2718;</span> <span class="hl-str">axios 1.14.1</span> <span class="hl-dim">(npm)</span>
-  <span class="hl-dim">signal:</span> <span class="hl-warn">MAINTAINER_CHANGE</span>
-  <span class="hl-dim">detail:</span> publishing account changed 2d ago
-  <span class="hl-dim">signal:</span> <span class="hl-warn">CAPABILITY_ESCALATION</span>
-  <span class="hl-dim">detail:</span> gained net+exec capabilities
-
-<span class="hl-dim">───────────────────────────────</span>
-<span class="hl-warn">1 critical signal</span> <span class="hl-dim">in 847 packages</span>
-<span class="hl-dim">  npm, pypi, cargo — 4.2s</span></pre>
-    </a>
-  </div>
-
-  <div class="station station-umbra reveal">
-    <div class="station-content">
-      <div class="station-tag">Local AI Studio</div>
-      <h2 class="station-title">Umbra</h2>
-      <p>A local-first AI creation studio for Apple Silicon. Run large language models on your hardware. No cloud. No subscriptions.</p>
-      <div class="umbra-status">
-        <span class="status-dot"></span>
-        <span class="status-text">in development</span>
-      </div>
+    <div class="fx-cell fx-cell--vexes reveal">
+      <div class="fx-cell-meta"><span>Supply-chain security</span><span class="fx-status">shipping</span></div>
+      <h3>vexes</h3>
+      <p>Cross-ecosystem dependency scanner. 4-layer behavioral analysis catches attacks that vulnerability databases miss — before they execute.</p>
+      <div class="fx-featlist"><span>AST analysis</span><span>pre-install guard</span><span>9 ecosystems</span><span>zero deps</span></div>
+      <a href="/vexes/" class="fx-cell-link">Explore vexes <span>&rarr;</span></a>
     </div>
-    <div class="station-visual station-visual-umbra">
-      <div class="umbra-atmosphere"></div>
-      <span>umbra</span>
+
+    <div class="fx-cell fx-cell--umbra reveal">
+      <span class="fx-ghost" aria-hidden="true">☾</span>
+      <div class="fx-cell-meta"><span>Local AI studio</span><span class="fx-status fx-status--dev">in development</span></div>
+      <h3>Umbra</h3>
+      <p>A local-first AI creation studio for Apple Silicon. Run large language models on your own hardware. No cloud, no subscriptions, no data leaving the machine.</p>
+      <div class="fx-featlist"><span>Apple Silicon</span><span>MLX runtime</span><span>fully offline</span></div>
     </div>
   </div>
+
+  <div class="fx-section-head reveal">
+    <span class="fx-index">02</span>
+    <h2>Instruments</h2>
+    <span class="fx-rule"></span>
+    <span class="fx-count">{{ liveTools.length }} tools — zero tracking</span>
+  </div>
+
+  <div class="fx-tools-grid">
+    <a href="/tools/passkey-inspector/" class="fx-tool fx-tool--new reveal"><h4>Passkey Inspector</h4><p>Decode WebAuthn attestation &amp; COSE keys.</p><span class="fx-runtime">browser</span></a>
+    <a href="/tools/entropy-xray/" class="fx-tool fx-tool--new reveal"><h4>Entropy X-ray</h4><p>Spot encryption &amp; packing by byte entropy.</p><span class="fx-runtime">browser</span></a>
+    <a href="/tools/key-converter/" class="fx-tool fx-tool--new reveal"><h4>Key Converter</h4><p>JWK ↔ PEM, generate keypairs locally.</p><span class="fx-runtime">browser</span></a>
+    <a href="/tools/jwt-attack/" class="fx-tool reveal"><h4>JWT Attack Workbench</h4><p>Test tokens against real attack classes.</p><span class="fx-runtime">browser</span></a>
+    <a href="/tools/site-score/" class="fx-tool reveal"><h4>Site Score</h4><p>Scan any URL for security posture.</p><span class="fx-runtime fx-runtime--edge">edge worker</span></a>
+    <a href="/tools/env-analyzer/" class="fx-tool reveal"><h4>.env Exposure Analyzer</h4><p>Map the blast radius of leaked secrets.</p><span class="fx-runtime">browser</span></a>
+    <a href="/tools/redos-tester/" class="fx-tool reveal"><h4>ReDoS Tester</h4><p>Find catastrophic regex backtracking.</p><span class="fx-runtime">browser</span></a>
+    <a href="/tools/ioc-workbench/" class="fx-tool reveal"><h4>IOC Workbench</h4><p>Extract &amp; defang indicators from reports.</p><span class="fx-runtime">browser</span></a>
+  </div>
+  <a href="/tools/" class="fx-tools-cta reveal">View all {{ liveTools.length }} instruments &rarr;</a>
+
+  <div class="fx-section-head reveal">
+    <span class="fx-index">03</span>
+    <h2>The Forge Standard</h2>
+    <span class="fx-rule"></span>
+    <span class="fx-count">how we build</span>
+  </div>
+
+  <div class="fx-principles">
+    <div class="fx-principle reveal">
+      <span class="fx-glyph">A</span>
+      <h3>Client-side by default</h3>
+      <p>Your data stays on your machine. A tool only touches the network when its function demands it — and it says so on the label.</p>
+    </div>
+    <div class="fx-principle reveal">
+      <span class="fx-glyph">B</span>
+      <h3>Dependencies are attack surface</h3>
+      <p>Zero-dependency codebases built on platform primitives — Web Crypto, Workers, Node built-ins — instead of a framework stack that expires.</p>
+    </div>
+    <div class="fx-principle reveal">
+      <span class="fx-glyph">C</span>
+      <h3>Open and auditable</h3>
+      <p>Everything is open source and small enough to audit in an afternoon. No telemetry, no accounts, no dark patterns. Ever.</p>
+    </div>
+  </div>
+
+</div>
 </div>
 
-<div class="section-gap section-gap-lg labs-home-gap"></div>
-
-<div class="section labs-home-section">
-  <div class="section-divider reveal"><span>Security Labs</span></div>
-
-  <div class="section-head reveal">
-    <div>
-      <h2>Learn by breaking things</h2>
-      <p class="section-desc">Attack real vulnerabilities, then investigate the same incidents from the defender's chair. Red team meets blue team — no setup, no accounts, no risk.</p>
-    </div>
-    <span class="section-count">12 labs</span>
-  </div>
-
-  <div class="tools-grid">
-    <a href="/labs/red/xss-shopstack/" class="t-card reveal reveal-delay-1"><div class="t-icon" style="color:#eb5757;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><h4>Reflected XSS</h4><p>Steal session cookies via injection</p><span class="local-badge" style="color:rgba(235,87,87,0.5);">red team — beginner</span></a>
-    <a href="/labs/red/sqli-vaultbank/" class="t-card reveal reveal-delay-2"><div class="t-icon" style="color:#eb5757;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7V4a2 2 0 012-2h8.5L20 7.5V20a2 2 0 01-2 2H6a2 2 0 01-2-2v-3"/><path d="M14 2v6h6"/><path d="M2 15h10M8 12l3 3-3 3"/></svg></div><h4>SQL Injection</h4><p>Extract credentials from a real database</p><span class="local-badge" style="color:rgba(235,87,87,0.5);">red team — intermediate</span></a>
-    <a href="/labs/blue/alert-triage/" class="t-card reveal reveal-delay-3"><div class="t-icon" style="color:#82aaff;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div><h4>Alert Triage</h4><p>Classify SIEM alerts under pressure</p><span class="local-badge" style="color:rgba(130,170,255,0.5);">blue team — beginner</span></a>
-    <a href="/labs/blue/soar-playbook/" class="t-card reveal reveal-delay-4"><div class="t-icon" style="color:#82aaff;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><h4>Build the Playbook</h4><p>Design SOAR automation for phishing</p><span class="local-badge" style="color:rgba(130,170,255,0.5);">blue team — advanced</span></a>
-  </div>
-
-  <div class="tools-cta-row reveal">
-    <a href="/labs/" class="tools-cta">Browse all 12 labs &rarr;</a>
-  </div>
-</div>
-
-<div class="section-gap section-gap-lg"></div>
-
-<div class="section">
-  <div class="section-divider reveal"><span>Developer &amp; Security Tools</span></div>
-
-  <div class="section-head reveal">
-    <div>
-      <h2>78 tools, zero tracking</h2>
-      <p class="section-desc">Privacy-first developer and security utilities. No accounts, no tracking — most tools run entirely in your browser.</p>
-    </div>
-    <span class="section-count">78 tools &amp; counting</span>
-  </div>
-
-  <div class="tools-grid tools-grid--home">
-    <a href="/tools/env-analyzer/" class="t-card reveal reveal-delay-1"><div class="t-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg></div><h4>.env Exposure Analyzer</h4><p>Map blast radius of leaked secrets</p><span class="local-badge">intelligence tool</span></a>
-    <a href="/tools/header-analyzer/" class="t-card reveal reveal-delay-2"><div class="t-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/></svg></div><h4>Header Analyzer</h4><p>Paste headers, get a security grade</p><span class="local-badge">intelligence tool</span></a>
-    <a href="/tools/breach-checker/" class="t-card reveal reveal-delay-3"><div class="t-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div><h4>Breach Checker</h4><p>Check credentials via k-anonymity</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/jwt-attack/" class="t-card reveal reveal-delay-4"><div class="t-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div><h4>JWT Attack Workbench</h4><p>Test JWT vulnerabilities</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/site-score/" class="t-card reveal reveal-delay-5"><div class="t-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></div><h4>Site Score</h4><p>Scan any URL for security headers</p><span class="local-badge">scans via edge worker</span></a>
-    <a href="/tools/ir-timeline/" class="t-card reveal reveal-delay-6"><div class="t-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><h4>IR Timeline Builder</h4><p>Build incident response timelines</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/redos-tester/" class="t-card reveal reveal-delay-7"><div class="t-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><h4>ReDoS Tester</h4><p>Find catastrophic backtracking</p><span class="local-badge">runs in your browser</span></a>
-    <a href="/tools/json-formatter/" class="t-card reveal"><div class="t-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg></div><h4>JSON Formatter</h4><p>Pretty-print, minify, validate</p><span class="local-badge">runs in your browser</span></a>
-  </div>
-
-  <div class="tools-more-link">
-    <a href="/tools/">View all 78 tools &rarr;</a>
-  </div>
-
-  <div class="tools-cta-row reveal">
-    <a href="/tools/" class="tools-cta">Browse all 78 tools &rarr;</a>
-  </div>
-</div>
-
-<div class="section-gap"></div>
-
-<div class="section">
-  <div class="section-divider reveal"><span>About</span></div>
-  <div class="about-layout reveal">
-    <div>
-      <p class="about-name">Shadoe Myers</p>
-      <p class="about-role">Senior InfoSec Engineer</p>
-      <p class="about-location">Arizona</p>
-    </div>
-    <div>
-      <div class="about-body">
-        <p>Penumbra Forge is a one-person security studio. I'm a senior information security engineer on a CIRT team — focused on SOAR automation and building integrations my team uses to respond to real incidents. By night, I build the tools and training I wish existed.</p>
-        <p>I've been in tech since 2015 — hosting support, web development, datacenter operations, then incident response since 2019. These days I spend most of my time building SOAR automations and integrating the tools my team relies on. No certifications, no formal education. Everything here is built on what I've learned by doing the work.</p>
-      </div>
-      <div class="tech-row">
-        <span class="tech-chip">Python</span>
-        <span class="tech-chip">Swift</span>
-        <span class="tech-chip">TypeScript</span>
-        <span class="tech-chip">MLX</span>
-        <span class="tech-chip">Cloudflare Workers</span>
-      </div>
-    </div>
-  </div>
-</div>
+{% include "command-palette.njk" %}
 
 <script>
-// Eclipse corona — flowing light wisps
-// Light bleeding off the edge of shadow
-(function() {
-  const canvas = document.getElementById('eclipse-particles');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const cx = 250;
-  const cy = 250;
-  const eclipseR = 70;
+/* ---- Living eclipse: WebGL fragment shader ---- */
+(function () {
+  var canvas = document.getElementById('fxEclipse');
+  var hero = document.getElementById('fxHero');
+  if (!canvas || !hero) return;
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return; // CSS fallback eclipse stays
 
-  const wisps = [];
+  var gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false });
+  if (!gl) return; // CSS fallback stays
 
-  function spawnWisp() {
-    const angle = Math.random() * Math.PI * 2;
-    return {
-      angle: angle,
-      angleSpeed: (Math.random() - 0.5) * 0.001,
-      startR: eclipseR - 4,
-      r: eclipseR - 4,
-      driftSpeed: 0.03 + Math.random() * 0.08,
-      maxR: eclipseR + 20 + Math.random() * 60,
-      size: 16 + Math.random() * 35,
-      opacity: 0.015 + Math.random() * 0.03,
-      life: 0,
-      maxLife: 300 + Math.random() * 500,
-      hue: 260 + Math.random() * 25,
-      lightness: 60 + Math.random() * 15,
-      stretch: 0.5 + Math.random() * 0.7,
-    };
+  var vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
+  var fs = [
+'precision highp float;',
+'uniform vec2 u_res;uniform float u_time;uniform vec2 u_mouse;uniform vec2 u_center;uniform float u_radius;',
+'float hash(vec2 p){p=fract(p*vec2(123.34,345.45));p+=dot(p,p+34.345);return fract(p.x*p.y);}',
+'float noise(vec2 p){vec2 i=floor(p);vec2 f=fract(p);vec2 u=f*f*(3.0-2.0*f);',
+' float a=hash(i),b=hash(i+vec2(1.0,0.0)),c=hash(i+vec2(0.0,1.0)),d=hash(i+vec2(1.0,1.0));',
+' return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);}',
+'float fbm(vec2 p){float v=0.0,a=0.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);',
+' for(int i=0;i<5;i++){v+=a*noise(p);p=m*p;a*=0.5;}return v;}',
+'void main(){',
+' vec2 res=u_res;float mn=min(res.x,res.y);',
+' vec2 uv=gl_FragCoord.xy/res;',
+' vec2 pp=(uv-u_center)*res/mn;',
+' float r=length(pp);float ang=atan(pp.y,pp.x);',
+' float R=u_radius;float rr=r/R;',
+' vec2 mo=(u_mouse-u_center)*res/mn;',
+' float side=dot(normalize(pp+1e-5),normalize(mo+1e-5));',
+' float t=u_time*0.05;',
+' vec2 q=pp*2.2;',
+' vec2 w=vec2(fbm(q+vec2(0.0,t*3.0)),fbm(q+vec2(5.2,-t*2.6)));',
+' float flame=fbm(vec2(ang/3.14159*3.0,rr*2.5)+w*1.3+vec2(0.0,-t*4.0));',
+' flame=flame*0.7+0.3*fbm(vec2(ang/3.14159*6.0,rr*5.0)+w*2.0-t*3.0);',
+' float inner=smoothstep(R*0.80,R*1.0,r);',
+' float outer=1.0-smoothstep(R*1.02,R*2.5,r);',
+' float ring=inner*outer;',
+' float corona=ring*(0.20+0.92*flame);',
+' corona*=(1.0+0.5*max(0.0,side));',
+' corona=max(corona,0.0);',
+' float orbit=u_time*0.16;',
+' float hotspot=pow(max(0.0,cos(ang-orbit)),60.0);',
+' float bead=smoothstep(R*0.9,R*1.03,r)*(1.0-smoothstep(R*1.03,R*1.3,r))*hotspot*1.8;',
+' float rim=(smoothstep(R*0.985,R,r)-smoothstep(R,R*1.02,r));rim=max(rim,0.0);',
+' float halo=(1.0-smoothstep(R*1.0,R*3.4,r))*0.16;',
+' vec3 hot=vec3(1.0,0.94,1.0);vec3 vio=vec3(0.73,0.63,0.87);vec3 deep=vec3(0.36,0.24,0.52);',
+' float grad=smoothstep(R,R*1.9,r);',
+' vec3 cc=mix(hot,vio,smoothstep(0.0,0.45,grad));cc=mix(cc,deep,smoothstep(0.45,1.0,grad));',
+' vec3 col=cc*corona+vec3(1.0,0.97,1.0)*bead+vec3(0.92,0.86,1.0)*rim*0.9+vio*halo;',
+' vec2 sp=uv*res/mn*9.0;float hsr=hash(floor(sp));float star=0.0;',
+' if(hsr>0.99){float tw=0.5+0.5*sin(u_time*1.4+hsr*50.0);star=(hsr-0.99)/0.01*tw*0.45;}',
+' col+=star*vec3(0.85,0.85,1.0);',
+' float alpha=clamp(corona+bead+rim*0.9+halo+star,0.0,1.0);',
+' float g=(hash(uv*res+fract(u_time))*2.0-1.0)*0.03;col+=g*alpha;',
+' gl_FragColor=vec4(col,alpha);',
+'}'
+].join('\n');
+
+  function sh(type, src) {
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { return null; }
+    return s;
   }
+  var v = sh(gl.VERTEX_SHADER, vs), f = sh(gl.FRAGMENT_SHADER, fs);
+  if (!v || !f) return;
+  var prog = gl.createProgram();
+  gl.attachShader(prog, v); gl.attachShader(prog, f); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
+  gl.useProgram(prog);
 
-  for (let i = 0; i < 12; i++) {
-    const w = spawnWisp();
-    w.life = Math.random() * w.maxLife;
-    w.r = w.startR + w.driftSpeed * w.life;
-    wisps.push(w);
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  var loc = gl.getAttribLocation(prog, 'p');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  var U = {
+    res: gl.getUniformLocation(prog, 'u_res'),
+    time: gl.getUniformLocation(prog, 'u_time'),
+    mouse: gl.getUniformLocation(prog, 'u_mouse'),
+    center: gl.getUniformLocation(prog, 'u_center'),
+    radius: gl.getUniformLocation(prog, 'u_radius')
+  };
+
+  var DPR = Math.min(devicePixelRatio || 1, 2);
+  var W = 1, H = 1;
+  var mouse = { x: 0.5, y: 0.5 }, mt = { x: 0.72, y: 0.6 };
+
+  function resize() {
+    var rect = hero.getBoundingClientRect();
+    W = Math.max(1, Math.floor(rect.width * DPR));
+    H = Math.max(1, Math.floor(rect.height * DPR));
+    canvas.width = W; canvas.height = H;
+    gl.viewport(0, 0, W, H);
   }
+  resize();
+  window.addEventListener('resize', resize);
 
-  function animate() {
-    ctx.clearRect(0, 0, 500, 500);
-
-    for (let i = wisps.length - 1; i >= 0; i--) {
-      const w = wisps[i];
-      w.life++;
-      w.r += w.driftSpeed;
-      w.angle += w.angleSpeed;
-
-      const progress = w.life / w.maxLife;
-
-      let alpha;
-      if (progress < 0.15) {
-        alpha = w.opacity * (progress / 0.15);
-      } else if (progress > 0.7) {
-        alpha = w.opacity * (1 - (progress - 0.7) / 0.3);
-      } else {
-        alpha = w.opacity;
-      }
-
-      const currentSize = w.size * (0.6 + progress * 0.8);
-
-      if (w.life >= w.maxLife || alpha < 0.003) {
-        wisps.splice(i, 1);
-        wisps.push(spawnWisp());
-        continue;
-      }
-
-      const x = cx + Math.cos(w.angle) * w.r;
-      const y = cy + Math.sin(w.angle) * w.r;
-
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(w.angle);
-      ctx.scale(1, w.stretch);
-
-      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, currentSize);
-      grad.addColorStop(0, `hsla(${w.hue}, 35%, ${w.lightness}%, ${alpha * 1.5})`);
-      grad.addColorStop(0.4, `hsla(${w.hue}, 30%, ${w.lightness}%, ${alpha * 0.6})`);
-      grad.addColorStop(1, `hsla(${w.hue}, 25%, ${w.lightness}%, 0)`);
-
-      ctx.beginPath();
-      ctx.arc(0, 0, currentSize, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    requestAnimationFrame(animate);
-  }
-
-  requestAnimationFrame(animate);
-})();
-
-// Hero tool demo — rotating carousel
-(function() {
-  const slides = document.querySelectorAll('.demo-slide');
-  const dots = document.querySelectorAll('.demo-dot');
-  const toolName = document.getElementById('demo-tool-name');
-  const carousel = document.getElementById('demo-carousel');
-  if (!slides.length || !toolName) return;
-
-  let current = 0;
-  let timer = null;
-  let paused = false;
-
-  function show(index) {
-    slides.forEach(function(s, i) {
-      if (i === index) {
-        s.classList.add('demo-slide--active');
-      } else {
-        s.classList.remove('demo-slide--active');
-      }
-    });
-    dots.forEach(function(d, i) {
-      if (i === index) {
-        d.classList.add('demo-dot--active');
-      } else {
-        d.classList.remove('demo-dot--active');
-      }
-    });
-    toolName.textContent = slides[index].getAttribute('data-tool');
-    current = index;
-  }
-
-  function next() {
-    show((current + 1) % slides.length);
-  }
-
-  function startTimer() {
-    stopTimer();
-    timer = setInterval(function() {
-      if (!paused) next();
-    }, 5000);
-  }
-
-  function stopTimer() {
-    if (timer) { clearInterval(timer); timer = null; }
-  }
-
-  // Pause on hover
-  var liveTool = document.querySelector('.live-tool');
-  if (liveTool) {
-    liveTool.addEventListener('mouseenter', function() { paused = true; });
-    liveTool.addEventListener('mouseleave', function() { paused = false; });
-  }
-
-  // Dot click navigation
-  dots.forEach(function(dot) {
-    dot.addEventListener('click', function() {
-      show(parseInt(dot.getAttribute('data-index'), 10));
-      startTimer();
-    });
+  hero.addEventListener('pointermove', function (e) {
+    var rect = hero.getBoundingClientRect();
+    mt.x = (e.clientX - rect.left) / rect.width;
+    mt.y = 1.0 - (e.clientY - rect.top) / rect.height;
   });
 
-  startTimer();
+  // center biases right & upper; wider screens push it further right
+  function center() {
+    var rect = hero.getBoundingClientRect();
+    var cx = rect.width > 900 ? 0.74 : 0.6;
+    return [cx, 0.58];
+  }
+  function radius() {
+    var rect = hero.getBoundingClientRect();
+    var wide = rect.width > 900;
+    return wide ? 0.24 : 0.28;
+  }
+
+  var start = null, raf = null, visible = true;
+  var io = new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible && !raf) loop(0); }, { threshold: 0 });
+  io.observe(hero);
+
+  canvas.classList.add('ready');
+
+  function loop(ts) {
+    if (!start) start = ts;
+    var time = (ts - start) / 1000;
+    mouse.x += (mt.x - mouse.x) * 0.06;
+    mouse.y += (mt.y - mouse.y) * 0.06;
+    var c = center();
+    gl.uniform2f(U.res, W, H);
+    gl.uniform1f(U.time, time);
+    gl.uniform2f(U.mouse, mouse.x, mouse.y);
+    gl.uniform2f(U.center, c[0], c[1]);
+    gl.uniform1f(U.radius, radius());
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    if (visible) { raf = requestAnimationFrame(loop); } else { raf = null; }
+  }
+  hero.classList.add('webgl');
+  raf = requestAnimationFrame(loop);
 })();
 
-// Hamburger menu toggle
-(function() {
-  var nav = document.getElementById('home-nav');
-  var toggle = document.getElementById('home-nav-toggle');
-  if (!nav || !toggle) return;
+/* ---- Scroll progress ---- */
+(function () {
+  var bar = document.getElementById('fxProgress');
+  if (!bar) return;
+  var ticking = false;
+  function upd() {
+    var h = document.documentElement.scrollHeight - innerHeight;
+    var p = h > 0 ? Math.min(1, scrollY / h) : 0;
+    bar.style.setProperty('--p', p.toFixed(4));
+    ticking = false;
+  }
+  addEventListener('scroll', function () { if (!ticking) { requestAnimationFrame(upd); ticking = true; } }, { passive: true });
+  upd();
+})();
 
-  toggle.addEventListener('click', function() {
+/* ---- Magnetic buttons ---- */
+(function () {
+  if (matchMedia('(hover: none)').matches) return;
+  document.querySelectorAll('[data-magnetic]').forEach(function (el) {
+    el.addEventListener('pointermove', function (e) {
+      var r = el.getBoundingClientRect();
+      var mx = e.clientX - r.left - r.width / 2;
+      var my = e.clientY - r.top - r.height / 2;
+      el.style.transform = 'translate(' + (mx * 0.18) + 'px,' + (my * 0.22) + 'px)';
+      el.style.setProperty('--bx', (e.clientX - r.left) + 'px');
+      el.style.setProperty('--by', (e.clientY - r.top) + 'px');
+    });
+    el.addEventListener('pointerleave', function () { el.style.transform = ''; });
+  });
+})();
+
+/* ---- Bento cursor glow ---- */
+(function () {
+  if (matchMedia('(hover: none)').matches) return;
+  document.querySelectorAll('.fx-cell').forEach(function (cell) {
+    cell.addEventListener('pointermove', function (e) {
+      var r = cell.getBoundingClientRect();
+      cell.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      cell.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    });
+  });
+})();
+
+/* ---- Mobile menu ---- */
+(function () {
+  var btn = document.getElementById('fxMenuBtn'), nav = document.getElementById('fxNav');
+  if (!btn || !nav) return;
+  btn.addEventListener('click', function () {
     nav.classList.toggle('open');
-    toggle.setAttribute('aria-expanded', nav.classList.contains('open'));
+    btn.setAttribute('aria-expanded', String(nav.classList.contains('open')));
   });
-
-  nav.querySelectorAll('a').forEach(function(link) {
-    link.addEventListener('click', function() {
-      nav.classList.remove('open');
-      toggle.setAttribute('aria-expanded', 'false');
-    });
-  });
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && nav.classList.contains('open')) {
-      nav.classList.remove('open');
-      toggle.setAttribute('aria-expanded', 'false');
-    }
-  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { nav.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); } });
 })();
 </script>

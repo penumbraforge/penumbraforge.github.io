@@ -15,7 +15,6 @@ permalink: /blog/reading-logs-like-an-attacker/
   <nav class="site-header-nav">
     <a href="/">Home</a>
     <a href="/tools/">Tools</a>
-    <a href="/labs/">Labs</a>
     <a href="/blog/" class="active">Blog</a>
     <a href="/gate/">Gate</a>
     <a href="/librarian/">Librarian</a>
@@ -190,7 +189,7 @@ touch -t 202603140000.00 /var/log/auth.log</code></pre>
 
       <h2>Practice reading attack logs</h2>
       <p>Reading logs under pressure is a skill, and skills require practice. You don't want the first time you reconstruct an attack timeline to be during an actual incident with your CISO standing behind you.</p>
-      <p>I built the blue team labs on Penumbra Forge specifically for this. The <a href="/labs/">breach investigation and log analysis labs</a> give you realistic incident timelines with the same kinds of log entries I've walked through here. You triage alerts, trace lateral movement, and identify the root cause — in your browser, with no setup, against scenarios modeled on real-world attack chains.</p>
+      <p>The best way to build this skill is repetition: pull real access logs from your own systems, pick a 24-hour window, and walk the entries in order asking what each one reveals about intent. The patterns in this post — recon signatures, the pivot to targeted probing, lateral movement — show up the same way everywhere.</p>
       <p>Start reading your own access logs today. Not through a dashboard. Open the raw file. Scroll through it. Learn what your normal looks like. The next time an alert fires, you'll know exactly what you're looking at.</p>
     </div>
 
@@ -198,13 +197,12 @@ touch -t 202603140000.00 /var/log/auth.log</code></pre>
       <div class="blog-author">
         <div class="blog-author-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <div>
-          <div class="blog-author-name">Shadoe Myers</div>
-          <div class="blog-author-role">Senior InfoSec Engineer — Penumbra Forge</div>
+          <div class="blog-author-name">Penumbra Forge</div>
+          <div class="blog-author-role">Engineering</div>
         </div>
       </div>
       <div class="blog-nav-links">
         <a href="/blog/" class="blog-nav-link">&larr; All posts</a>
-        <a href="/labs/" class="blog-nav-link">Try the labs &rarr;</a>
       </div>
     </div>
   </article>

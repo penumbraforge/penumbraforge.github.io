@@ -3,84 +3,181 @@ toolSlug: curl-converter
 permalink: /tools/curl-converter/
 ---
 
-<div class="tool-group">
-  <label for="curl-input">Paste cURL command</label>
-  <textarea id="curl-input" rows="8" placeholder="curl -X POST https://api.example.com/users \&#10;  -H 'Content-Type: application/json' \&#10;  -d '{&quot;name&quot;: &quot;Alice&quot;}'" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-</div>
+<div class="cc">
 
-<div class="tool-row">
-  <div class="tool-options" role="group" aria-label="Example commands">
-    <button class="tool-option" id="ex-get">GET example</button>
-    <button class="tool-option" id="ex-post">POST JSON</button>
-    <button class="tool-option" id="ex-auth">Basic auth</button>
-    <button class="tool-option" id="ex-form">Form data</button>
+  <div class="wb-split cc-split">
+
+    <!-- ── Input ───────────────────────────────────────── -->
+    <section class="cc-col cc-col--in">
+      <div class="tool-group">
+        <label for="curl-input">cURL command</label>
+        <textarea id="curl-input" class="cc-input" rows="9" placeholder="curl -X POST https://api.example.com/users \&#10;  -H 'Content-Type: application/json' \&#10;  -d '{&quot;name&quot;: &quot;Alice&quot;}'" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+      </div>
+
+      <div class="cc-field">
+        <span class="cc-sublabel">Examples</span>
+        <div class="tool-options" role="group" aria-label="Example commands">
+          <button class="tool-option" id="ex-get">GET</button>
+          <button class="tool-option" id="ex-post">POST JSON</button>
+          <button class="tool-option" id="ex-auth">Basic auth</button>
+          <button class="tool-option" id="ex-form">Form data</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Output ──────────────────────────────────────── -->
+    <section class="cc-col cc-col--out">
+      <div class="cc-field">
+        <span class="cc-sublabel">Target language</span>
+        <div class="tool-options" role="group" aria-label="Output language">
+          <button class="tool-option active" data-lang="python" aria-pressed="true">Python</button>
+          <button class="tool-option" data-lang="javascript" aria-pressed="false">JavaScript</button>
+          <button class="tool-option" data-lang="go" aria-pressed="false">Go</button>
+          <button class="tool-option" data-lang="bash" aria-pressed="false">Bash</button>
+        </div>
+      </div>
+
+      <div class="wb-panel cc-out">
+        <div class="wb-panel-bar">
+          <span>Generated code</span>
+          <button class="btn btn--copy cc-copy" id="btn-copy-curl" aria-label="Copy output">Copy</button>
+        </div>
+        <pre id="curl-output" aria-label="Converted code"></pre>
+      </div>
+    </section>
+
   </div>
-</div>
 
-<div class="tool-row">
-  <div class="tool-options" role="group" aria-label="Output language">
-    <button class="tool-option active" data-lang="python" aria-pressed="true">Python</button>
-    <button class="tool-option" data-lang="javascript" aria-pressed="false">JavaScript</button>
-    <button class="tool-option" data-lang="go" aria-pressed="false">Go</button>
-    <button class="tool-option" data-lang="bash" aria-pressed="false">Bash</button>
-  </div>
-</div>
+  <div id="curl-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
 
-<div id="curl-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+  <div id="curl-parsed" style="display:none;" class="curl-parsed-info cc-parsed"></div>
 
-<div id="curl-parsed" style="display:none;" class="curl-parsed-info"></div>
+  <p class="cc-foot">Parsing and code generation run entirely in your browser — nothing is uploaded.</p>
 
-<div class="output-area">
-  <button class="btn btn--copy" id="btn-copy-curl" aria-label="Copy output">Copy</button>
-  <pre id="curl-output" aria-label="Converted code"></pre>
 </div>
 
 <style>
+  /* ── cURL Converter — premium interior ────────────────────── */
+  .cc { display: block; }
+
+  .cc-sublabel {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 10px;
+  }
+
+  /* two-column input → output split */
+  .cc-split { align-items: start; gap: 22px; margin-bottom: 18px; }
+  .cc-col { min-width: 0; display: flex; flex-direction: column; }
+  .cc-col .tool-group { flex: 0 0 auto; margin-bottom: 18px; }
+  .cc-field { margin-bottom: 0; }
+  .cc-field .tool-options { margin-bottom: 0; }
+
+  .cc-input { min-height: 212px; line-height: 1.75; }
+
+  /* output panel */
+  .cc-out { min-width: 0; }
+  .cc-out .wb-panel-bar span { color: var(--slate); }
+  .cc .cc-out .cc-copy {
+    position: static; top: auto; right: auto;
+    padding: 6px 14px; font-size: 10.5px;
+  }
+  .cc-out pre {
+    margin: 0;
+    padding: 16px 16px 18px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #d7d2e6;
+    white-space: pre;
+    overflow-x: auto;
+    min-height: 264px;
+    tab-size: 2;
+    -moz-tab-size: 2;
+  }
+  .cc-out pre:empty::before {
+    content: "Paste a cURL command on the left to generate code.";
+    color: var(--text-3);
+    font-size: 12px;
+    white-space: normal;
+  }
+  .cc:has(#curl-output:empty) .cc-copy { opacity: 0.4; pointer-events: none; }
+
+  /* error */
+  #curl-error { margin: 0 0 16px; }
+
+  /* parsed-request strip (badges built by the script) */
   .curl-parsed-info {
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 10px 14px;
-    margin-bottom: 16px;
+    border: 1px solid var(--wb-line);
+    border-radius: 6px;
+    padding: 13px 15px 14px;
+    margin: 0;
+    background: #06060d;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
     font-family: var(--font-mono);
     font-size: 12px;
     color: var(--text-2);
-    background: var(--surface-0);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
   }
-
+  .curl-parsed-info::before {
+    content: "Parsed request";
+    flex-basis: 100%;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 3px;
+  }
   .curl-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    background: var(--surface-1);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    padding: 2px 7px;
-    white-space: nowrap;
-    max-width: 320px;
+    gap: 7px;
+    background: color-mix(in oklab, var(--surface-1) 55%, transparent);
+    border: 1px solid var(--wb-line);
+    border-radius: 4px;
+    padding: 5px 10px;
+    max-width: 380px;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
-
   .curl-badge-label {
     color: var(--text-3);
-    font-size: 11px;
+    font-size: 9.5px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
     flex-shrink: 0;
   }
-
   .curl-badge-value {
-    color: var(--text-1);
+    color: var(--wb-ink);
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .curl-badge--method  { border-left: 2px solid #5b8db8; }
+  .curl-badge--url     { border-left: 2px solid #9b7fd4; }
+  .curl-badge--header  { border-left: 2px solid #64b482; }
+  .curl-badge--body    { border-left: 2px solid #e0a070; }
+  .curl-badge--auth    { border-left: 2px solid #c87070; }
 
-  .curl-badge--method  { border-left: 3px solid #5b8db8; }
-  .curl-badge--url     { border-left: 3px solid #9b7fd4; }
-  .curl-badge--header  { border-left: 3px solid #64b482; }
-  .curl-badge--body    { border-left: 3px solid #e0a070; }
-  .curl-badge--auth    { border-left: 3px solid #c87070; }
+  /* footnote */
+  .cc-foot {
+    margin: 16px 0 0;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.4px;
+    color: var(--text-3);
+  }
+
+  @media (max-width: 720px) {
+    .cc-input { min-height: 170px; }
+    .cc-out pre { min-height: 200px; }
+  }
 </style>
 
 <script>

@@ -4,58 +4,177 @@ permalink: /tools/csv-json-converter/
 ---
 
 <style>
-  .csv-split { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-  @media(max-width:680px) { .csv-split { grid-template-columns:1fr; } }
-  .csv-preview { margin-top:0.75rem; overflow:auto; max-height:14rem; }
-  .csv-preview-table { border-collapse:collapse; font-size:0.78rem; width:100%; }
-  .csv-preview-table th { background:var(--color-surface-2,#1e293b); padding:0.3rem 0.6rem; border:1px solid var(--color-border,#334155); font-weight:600; color:var(--color-text,#e2e8f0); text-align:left; white-space:nowrap; }
-  .csv-preview-table td { padding:0.25rem 0.6rem; border:1px solid var(--color-border,#334155); color:var(--color-muted,#94a3b8); white-space:nowrap; max-width:150px; overflow:hidden; text-overflow:ellipsis; }
-  .csv-preview-table tr:nth-child(even) td { background:rgba(30,41,59,0.4); }
+  /* ============ CSV / JSON Converter — premium polish ============ */
+  .cj-note {
+    font-family: var(--font-sans);
+    font-size: 12.5px; line-height: 1.6; color: var(--text-2);
+    margin: 0 0 22px; max-width: 62ch;
+  }
+  .cj-note code {
+    font-family: var(--font-mono); font-size: 0.9em; color: var(--accent);
+    background: color-mix(in oklab, var(--accent) 10%, transparent);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* ---- control bar ---- */
+  .cj-controls {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 16px 26px; flex-wrap: wrap; margin-bottom: 18px;
+  }
+  .cj-opts { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+  .cj-field { display: flex; flex-direction: column; gap: 7px; }
+  .wb-page .tool-content .cj-field label { margin: 0; }
+  .wb-page .tool-content .cj-field select { padding: 8px 12px; font-size: 12px; min-width: 132px; }
+
+  /* ---- pill switches (native checkbox stays for the script) ---- */
+  .cj-switch {
+    display: inline-flex; align-items: center; gap: 9px;
+    cursor: pointer; user-select: none; margin: 0; padding-bottom: 8px;
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.5px;
+    text-transform: none; color: var(--text-2);
+  }
+  .cj-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .cj-switch-track {
+    position: relative; width: 34px; height: 19px; flex: 0 0 auto;
+    border-radius: 20px; border: 1px solid var(--wb-line);
+    background: color-mix(in oklab, var(--surface-0) 55%, #000);
+    transition: background 180ms var(--wb-ease), border-color 180ms;
+  }
+  .cj-switch-thumb {
+    position: absolute; top: 2px; left: 2px; width: 13px; height: 13px;
+    border-radius: 50%; background: var(--slate);
+    transition: transform 200ms var(--wb-ease), background 180ms;
+  }
+  .cj-switch input:checked + .cj-switch-track {
+    background: color-mix(in oklab, var(--accent) 30%, transparent);
+    border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+  }
+  .cj-switch input:checked + .cj-switch-track .cj-switch-thumb {
+    transform: translateX(15px); background: var(--accent);
+  }
+  .cj-switch input:focus-visible + .cj-switch-track {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+  }
+  .cj-switch:hover .cj-switch-track { border-color: var(--wb-line-bright); }
+
+  /* ---- input / output panels ---- */
+  .cj-panel { display: flex; flex-direction: column; transition: border-color 180ms, box-shadow 220ms; }
+  .cj-panel:focus-within {
+    border-color: color-mix(in oklab, var(--accent) 45%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 9%, transparent);
+  }
+  .cj-bar { min-height: 42px; }
+  .cj-bar span { text-transform: uppercase; }
+
+  .wb-page .tool-content .cj-panel textarea,
+  .wb-page .tool-content .cj-panel pre {
+    border: 0; border-radius: 0; background: transparent; margin: 0; width: 100%;
+    min-height: 300px; max-height: 46vh; overflow: auto;
+    font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7;
+  }
+  .wb-page .tool-content .cj-panel textarea {
+    resize: vertical; padding: 15px 16px; color: var(--wb-ink);
+  }
+  .wb-page .tool-content .cj-panel textarea:focus { box-shadow: none; border: 0; }
+  .wb-page .tool-content .cj-panel pre {
+    padding: 15px 16px; color: var(--text-1); white-space: pre;
+  }
+  .wb-page .tool-content #csv-copy {
+    padding: 5px 13px; font-size: 10.5px; letter-spacing: 0.6px;
+  }
+
+  #csv-error { margin-top: 14px; }
+
+  /* ---- preview ---- */
+  .cj-preview { margin-top: 16px; }
+  .cj-rowcount { text-transform: none; letter-spacing: 0; color: var(--text-3); font-weight: 400; }
+  .csv-preview { overflow: auto; max-height: 15rem; }
+  .csv-preview-table { border-collapse: collapse; font-family: var(--font-mono); font-size: 11.5px; width: 100%; }
+  .wb-page .tool-content .csv-preview-table th {
+    position: sticky; top: 0; z-index: 1;
+    background: color-mix(in oklab, var(--surface-1) 92%, #000);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--wb-line); border-right: 1px solid var(--wb-line);
+    font-weight: 500; color: var(--slate); text-align: left; white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+  .wb-page .tool-content .csv-preview-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid color-mix(in oklab, var(--wb-line) 55%, transparent);
+    border-right: 1px solid color-mix(in oklab, var(--wb-line) 55%, transparent);
+    color: var(--text-2); white-space: nowrap; max-width: 190px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .csv-preview-table th:last-child, .csv-preview-table td:last-child { border-right: 0; }
+  .csv-preview-table tbody tr:last-child td { border-bottom: 0; }
+  .csv-preview-table tbody tr:nth-child(even) td { background: color-mix(in oklab, var(--accent) 4%, transparent); }
+
+  @media (max-width: 680px) {
+    .cj-controls { align-items: stretch; }
+    .cj-opts { gap: 14px 18px; }
+    .wb-page .tool-content .cj-panel textarea,
+    .wb-page .tool-content .cj-panel pre { min-height: 210px; }
+  }
 </style>
 
-<div class="tool-row" style="margin-bottom:0.75rem; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+<p class="cj-note">Convert between <code>CSV</code> and <code>JSON</code> — RFC-aware quoting, live table preview, and one-click copy. Everything runs in your browser; nothing is uploaded.</p>
+
+<div class="cj-controls">
   <div class="tool-options" role="group" aria-label="Direction">
-    <button class="tool-option active" data-dir="csv-to-json" aria-pressed="true">CSV → JSON</button>
-    <button class="tool-option" data-dir="json-to-csv" aria-pressed="false">JSON → CSV</button>
+    <button class="tool-option active" data-dir="csv-to-json" aria-pressed="true">CSV &rarr; JSON</button>
+    <button class="tool-option" data-dir="json-to-csv" aria-pressed="false">JSON &rarr; CSV</button>
   </div>
-  <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-    <label style="font-size:0.8rem;">Delimiter:</label>
-    <select id="csv-delim" style="padding:0.3rem 0.5rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:4px; color:var(--color-text,#e2e8f0); font-size:0.82rem; cursor:pointer;">
-      <option value=",">Comma (,)</option>
-      <option value="&#9;">Tab (\t)</option>
-      <option value=";">Semicolon (;)</option>
-      <option value="|">Pipe (|)</option>
-    </select>
-    <label style="font-size:0.82rem; display:flex; align-items:center; gap:0.3rem;">
-      <input type="checkbox" id="csv-header" checked style="accent-color:var(--color-accent,#6366f1);"> Header row
+  <div class="cj-opts">
+    <div class="cj-field">
+      <label for="csv-delim">Delimiter</label>
+      <select id="csv-delim">
+        <option value=",">Comma&nbsp;&nbsp;( , )</option>
+        <option value="&#9;">Tab&nbsp;&nbsp;( \t )</option>
+        <option value=";">Semicolon&nbsp;&nbsp;( ; )</option>
+        <option value="|">Pipe&nbsp;&nbsp;( | )</option>
+      </select>
+    </div>
+    <label class="cj-switch">
+      <input type="checkbox" id="csv-header" checked>
+      <span class="cj-switch-track"><span class="cj-switch-thumb"></span></span>
+      <span>Header row</span>
     </label>
-    <label style="font-size:0.82rem; display:flex; align-items:center; gap:0.3rem;">
-      <input type="checkbox" id="csv-pretty" checked style="accent-color:var(--color-accent,#6366f1);"> Pretty JSON
+    <label class="cj-switch">
+      <input type="checkbox" id="csv-pretty" checked>
+      <span class="cj-switch-track"><span class="cj-switch-thumb"></span></span>
+      <span>Pretty JSON</span>
     </label>
   </div>
 </div>
 
-<div class="csv-split">
-  <div class="tool-group" style="margin-bottom:0;">
-    <label for="csv-input" id="csv-input-label">CSV Input</label>
+<div class="wb-split">
+  <div class="wb-panel cj-panel">
+    <div class="wb-panel-bar cj-bar">
+      <span id="csv-input-label">CSV Input</span>
+      <span class="wb-badge wb-badge--local">Local</span>
+    </div>
     <textarea id="csv-input" rows="12" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
       placeholder="name,age,city&#10;Alice,30,New York&#10;Bob,25,Chicago&#10;Carol,35,Los Angeles"></textarea>
   </div>
-  <div class="output-area" style="margin-bottom:0;">
-    <button class="btn btn--copy" id="csv-copy">Copy</button>
-    <label id="csv-output-label" style="display:block; font-size:0.8rem; color:var(--color-muted,#888); margin-bottom:0.4rem;">JSON Output</label>
-    <pre id="csv-output" style="min-height:8rem; max-height:20rem; overflow:auto;"></pre>
+  <div class="wb-panel cj-panel">
+    <div class="wb-panel-bar cj-bar">
+      <span id="csv-output-label">JSON Output</span>
+      <button class="btn btn--copy" id="csv-copy">Copy</button>
+    </div>
+    <pre id="csv-output"></pre>
   </div>
 </div>
 
-<div id="csv-error" style="display:none; margin-top:0.5rem;" role="alert" aria-live="polite" class="tool-error"></div>
+<div id="csv-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
 
-<div id="csv-preview-section" style="display:none;">
-  <div style="font-size:0.8rem; font-weight:600; color:var(--color-muted,#94a3b8); margin:0.75rem 0 0.3rem; text-transform:uppercase; letter-spacing:0.04em;">
-    Preview <span id="csv-row-count" style="font-weight:400;"></span>
-  </div>
-  <div class="csv-preview">
-    <table class="csv-preview-table" id="csv-preview-table"></table>
+<div id="csv-preview-section" class="cj-preview" style="display:none;">
+  <div class="wb-panel">
+    <div class="wb-panel-bar cj-bar">
+      <span>Preview <span id="csv-row-count" class="cj-rowcount"></span></span>
+    </div>
+    <div class="csv-preview">
+      <table class="csv-preview-table" id="csv-preview-table"></table>
+    </div>
   </div>
 </div>
 

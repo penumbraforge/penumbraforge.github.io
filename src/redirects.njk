@@ -1,0 +1,23 @@
+---
+pagination:
+  data: redirects
+  size: 1
+  alias: r
+permalink: "/tools/{{ r.from }}/"
+eleventyExcludeFromCollections: true
+noindex: true
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url={{ r.to }}">
+  <link rel="canonical" href="{{ site.url }}{{ r.to }}">
+  <meta name="robots" content="noindex">
+  <title>Redirecting… — Penumbra Forge</title>
+  <script>location.replace("{{ r.to }}");</script>
+</head>
+<body style="background:#050509;color:#999;font-family:system-ui,sans-serif">
+  <p style="padding:2rem">This tool has moved. <a href="{{ r.to }}" style="color:#b8a5d6">Continue &rarr;</a></p>
+</body>
+</html>

@@ -1,0 +1,544 @@
+---
+toolSlug: ai-command-explainer
+permalink: /tools/ai-command-explainer/
+---
+
+<div class="tool-options" role="tablist" aria-label="Mode">
+  <button class="tool-option active" id="ce-mode-explain" role="tab" aria-selected="true" type="button">Explain a command</button>
+  <button class="tool-option" id="ce-mode-generate" role="tab" aria-selected="false" type="button">Generate from intent</button>
+</div>
+
+<!-- ==================== EXPLAIN MODE ==================== -->
+<section id="ce-panel-explain">
+  <div class="tool-group">
+    <label for="ce-cmd">Command to explain</label>
+    <textarea id="ce-cmd" rows="3" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
+      placeholder="Paste any shell / git / docker / kubectl command…  e.g.  docker run -d -p 8080:80 nginx:alpine"></textarea>
+  </div>
+
+  <!-- (1) instant deterministic danger scan -->
+  <div id="ce-scan" aria-live="polite"></div>
+
+  <div class="tool-row">
+    <button class="btn btn--primary" id="ce-explain-btn" type="button">Explain command</button>
+    <button class="btn" id="ce-scanonly-btn" type="button">Scan only</button>
+    <button class="btn" id="ce-example-btn" type="button">Load example</button>
+    <button class="btn" id="ce-clear-btn" type="button">Clear</button>
+    <button class="ai-stop" id="ce-stop-btn" type="button" hidden>Stop</button>
+    <span class="ai-status" id="ce-status" aria-live="polite"></span>
+  </div>
+
+  <!-- (2) AI part-by-part explanation -->
+  <div class="tool-group" style="margin-top:4px;">
+    <div class="ce-outhead">
+      <label for="ce-out" style="margin:0;">Plain-English breakdown</label>
+      <button class="btn btn--copy" id="ce-copy-btn" type="button" hidden>Copy</button>
+    </div>
+    <div class="output-area" id="ce-out" aria-live="polite"
+      data-empty="Run “Explain command” for a part-by-part breakdown of every flag, pipe, and side effect."></div>
+  </div>
+</section>
+
+<!-- ==================== GENERATE MODE ==================== -->
+<section id="ce-panel-generate" hidden>
+  <div class="tool-group">
+    <label for="ce-intent">Describe what you want to do</label>
+    <textarea id="ce-intent" rows="3" spellcheck="false"
+      placeholder="Plain English…  e.g.  recursively find and delete every .DS_Store file below the current folder"></textarea>
+  </div>
+
+  <div class="tool-row">
+    <button class="btn btn--primary" id="ce-gen-btn" type="button">Generate command</button>
+    <button class="btn" id="ce-genexample-btn" type="button">Load example</button>
+    <button class="btn" id="ce-genclear-btn" type="button">Clear</button>
+    <button class="ai-stop" id="ce-genstop-btn" type="button" hidden>Stop</button>
+    <span class="ai-status" id="ce-genstatus" aria-live="polite"></span>
+  </div>
+
+  <div class="tool-group" id="ce-gencmd-group" hidden style="margin-top:4px;">
+    <div class="ce-outhead">
+      <label style="margin:0;">Generated command</label>
+      <button class="btn btn--copy" id="ce-gencopy-btn" type="button">Copy</button>
+    </div>
+    <pre class="ce-cmd" id="ce-gencmd" tabindex="0"></pre>
+    <!-- danger scan re-run on the generated command -->
+    <div id="ce-genscan" aria-live="polite"></div>
+  </div>
+
+  <div class="tool-group" style="margin-top:4px;">
+    <label for="ce-genout" style="margin:0 0 9px;">How it works</label>
+    <div class="output-area" id="ce-genout" aria-live="polite"
+      data-empty="Describe a task above and Penumbra will draft a safe command, then scan it for danger before you run it."></div>
+  </div>
+</section>
+
+<style>
+  #ce-panel-explain .output-area:empty::before,
+  #ce-panel-generate .output-area:empty::before {
+    content: attr(data-empty);
+    color: var(--text-3); font-family: var(--font-sans); font-size: 13px; font-style: italic;
+  }
+  .ce-outhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+  .ce-cmd {
+    background: #06060d; border: 1px solid var(--wb-line); border-left: 2px solid var(--accent);
+    border-radius: 3px; color: var(--accent-strong); font-family: var(--font-mono); font-size: 13px;
+    padding: 13px 15px; margin: 0 0 12px; line-height: 1.7; overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+  }
+  .ce-banner {
+    display: flex; gap: 13px; align-items: flex-start; padding: 14px 16px; margin: 8px 0 18px;
+    border: 1px solid; border-radius: 4px; font-family: var(--font-mono);
+  }
+  .ce-banner .ce-ico { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 1px; }
+  .ce-banner .ce-body { flex: 1; min-width: 0; }
+  .ce-banner .ce-title { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; }
+  .ce-banner .ce-sub { margin-top: 3px; font-size: 12px; color: var(--text-2); font-family: var(--font-sans); line-height: 1.55; }
+  .ce-banner[data-sev="safe"]    { color: var(--sage);  border-color: color-mix(in oklab, var(--sage) 34%, transparent);  background: color-mix(in oklab, var(--sage) 7%, transparent); }
+  .ce-banner[data-sev="warning"] { color: #e8a87c;      border-color: color-mix(in oklab, #e8a87c 34%, transparent);      background: color-mix(in oklab, #e8a87c 7%, transparent); }
+  .ce-banner[data-sev="danger"]  { color: #eb5757;      border-color: color-mix(in oklab, #eb5757 38%, transparent);      background: color-mix(in oklab, #eb5757 9%, transparent); }
+  .ce-findings { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .ce-finding { display: flex; gap: 10px; align-items: flex-start; }
+  .ce-finding .ce-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex: 0 0 auto; background: currentColor; }
+  .ce-finding[data-sev="warning"] { color: #e8a87c; }
+  .ce-finding[data-sev="danger"]  { color: #eb5757; }
+  .ce-finding .ce-ftext { min-width: 0; }
+  .ce-finding .ce-ftitle { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: inherit; }
+  .ce-finding .ce-fdesc { font-family: var(--font-sans); font-size: 12.5px; line-height: 1.55; color: var(--text-2); margin-top: 2px; }
+  .ce-finding .ce-match {
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--text-1);
+    background: color-mix(in oklab, currentColor 10%, #06060d); border: 1px solid color-mix(in oklab, currentColor 24%, transparent);
+    border-radius: 2px; padding: 1px 6px; word-break: break-all;
+  }
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  // ------------------------------------------------------------------
+  //  Helpers
+  // ------------------------------------------------------------------
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  function clear(node) { while (node && node.firstChild) node.removeChild(node.firstChild); }
+
+  // ------------------------------------------------------------------
+  //  (1) DETERMINISTIC DANGER SCANNER  — regex-based, runs in-browser.
+  //  Every title/detail string below is author-controlled (never model
+  //  or user text), so it is safe to render. Matched command fragments
+  //  are ALWAYS inserted with textContent.
+  // ------------------------------------------------------------------
+  var SEV_RANK = { safe: 0, warning: 1, danger: 2 };
+
+  var RULES = [
+    {
+      id: "no-preserve-root",
+      sev: "danger",
+      re: /--no-preserve-root\b/i,
+      title: "--no-preserve-root",
+      detail: "Explicitly disables the safety guard that stops rm from wiping the root filesystem. Almost never legitimate."
+    },
+    {
+      id: "rm-rf-root",
+      sev: "danger",
+      // recursive rm (‑r/‑R/‑‑recursive, alone or bundled like ‑rf) whose target is /, /*, ~, $HOME, or a bare *
+      re: /\brm\b[^|;&\n]*?(?:-[a-z]*r[a-z]*|--recursive)[^|;&\n]*?\s(?:--no-preserve-root\s+)?(?:\/(?:\s|$)|\/\*|~\/?(?:\s|$)|\$\{?HOME\}?|\*\s*$)/i,
+      title: "rm -r on a critical path",
+      detail: "Recursively deletes the root, home, or everything-in-place. This is irreversible and can destroy the whole system."
+    },
+    {
+      id: "pipe-to-shell",
+      sev: "danger",
+      re: /\b(?:curl|wget|fetch)\b[^|]*\|\s*(?:sudo\s+)?(?:sh|bash|zsh|ksh|fish|python3?|perl|ruby|node|tclsh)\b/i,
+      title: "Piping a download straight into a shell",
+      detail: "Runs code fetched from the internet without ever inspecting it. Download the script first, read it, then run it."
+    },
+    {
+      id: "fork-bomb",
+      sev: "danger",
+      re: /(?::|\b[a-z_]\w*)\s*\(\s*\)\s*\{[^{}]*\|[^{}]*&[^{}]*\}\s*;\s*(?::|[a-z_]\w*)/i,
+      title: "Fork bomb",
+      detail: "Defines a function that recursively spawns itself, exhausting process slots and freezing the machine until reboot."
+    },
+    {
+      id: "dd-to-disk",
+      sev: "danger",
+      re: /\bdd\b[^|;&\n]*\bof=\/dev\/(?:sd|nvme|hd|vd|mmcblk|disk|rdisk)[a-z0-9]*/i,
+      title: "dd writing to a raw disk device",
+      detail: "Overwrites a whole block device byte-for-byte. A wrong device name here permanently destroys a drive and its partitions."
+    },
+    {
+      id: "redirect-to-disk",
+      sev: "danger",
+      re: /(?:>>?)\s*\/dev\/(?:sd|nvme|hd|vd|mmcblk|disk|rdisk)[a-z0-9]*/i,
+      title: "Redirecting output onto a disk device",
+      detail: "Writing to /dev/sd* (etc.) corrupts the raw disk. Redirect to a regular file path instead."
+    },
+    {
+      id: "mkfs",
+      sev: "danger",
+      re: /\bmkfs(?:\.[a-z0-9]+)?\b|\bmke2fs\b/i,
+      title: "Formatting a filesystem (mkfs)",
+      detail: "Creates a fresh filesystem on the target, erasing everything currently on that partition or device."
+    },
+    {
+      id: "chmod-777",
+      sev: "warning",
+      re: /\bchmod\b[^|;&\n]*(?:\b0?777\b|\ba\+?=?rwx\b)/i,
+      title: "chmod 777 (world-writable)",
+      detail: "Grants every user full read/write/execute. It hides permission problems rather than fixing them and is a real security risk. Prefer the narrowest mode that works."
+    },
+    {
+      id: "chown-recursive-root",
+      sev: "warning",
+      re: /\bchown\b[^|;&\n]*(?:-[a-z]*R|--recursive)[^|;&\n]*\s(?:\/(?:\s|$)|\/\*)/i,
+      title: "Recursive chown of a system path",
+      detail: "Recursively rewriting ownership from / can break sudo, SSH, and boot. Scope it to a specific directory."
+    },
+    {
+      id: "sudo-pipe",
+      sev: "warning",
+      re: /\|\s*sudo\b|\bsudo\b[^\n|]*\|\s*(?:sh|bash|tee)\b/i,
+      title: "Root privileges combined with a pipe",
+      detail: "Piping data into (or out of) sudo runs privileged code you may not have inspected. Confirm exactly what reaches root."
+    },
+    {
+      id: "rm-glob",
+      sev: "warning",
+      re: /\brm\b(?:\s+-{1,2}[\w-]+)*\s+(?:[^\s"'|;&]*\/)?\*(?:\s|$)/,
+      title: "rm on an unquoted glob (*)",
+      detail: "The shell expands * before rm sees it. A stray space (e.g. “rm -rf / tmp”) or an unexpected match can delete far more than intended."
+    },
+    {
+      id: "rm-unquoted-var",
+      sev: "warning",
+      re: /\brm\b(?:\s+-{1,2}[\w-]+)*\s+\$\{?[A-Za-z_]\w*\}?\/?(?:\s|$)/,
+      title: "rm on an unquoted variable",
+      detail: "If the variable is empty or unset, this can collapse to a bare “rm -rf /” or “rm -rf .”. Quote it: rm -rf \"$DIR\"."
+    },
+    {
+      id: "find-delete",
+      sev: "warning",
+      re: /\bfind\b[^|;&\n]*(?:-delete\b|-exec\s+rm\b|-execdir\s+rm\b)/i,
+      title: "find that deletes what it matches",
+      detail: "Removes every path the find expression matches. Run it once without -delete / -exec rm to preview the match set first."
+    },
+    {
+      id: "git-force-push",
+      sev: "warning",
+      re: /\bgit\s+push\b[^|;&\n]*(?:--force\b|(?:^|\s)-f\b)/i,
+      title: "git push --force",
+      detail: "Overwrites remote history and can erase teammates’ commits. Prefer --force-with-lease so it fails if the remote moved."
+    },
+    {
+      id: "shred",
+      sev: "warning",
+      re: /\bshred\b|\brm\b[^|;&\n]*--?remove\b/i,
+      title: "Secure / unrecoverable delete",
+      detail: "shred overwrites file contents so recovery tools can’t bring them back. There is no undo — double-check the target."
+    },
+    {
+      id: "eval-subshell",
+      sev: "warning",
+      re: /\beval\s+["'`]?\$\(|\beval\s+["'`]?`/i,
+      title: "eval of command substitution",
+      detail: "Executes whatever a sub-command produces as shell code. If any input is attacker-influenced, this is code injection."
+    }
+  ];
+
+  // Returns { severity, findings: [{sev, title, detail, match}] }
+  function scanCommand(cmd) {
+    var findings = [];
+    var worst = "safe";
+    for (var i = 0; i < RULES.length; i++) {
+      var r = RULES[i];
+      var m = r.re.exec(cmd);
+      if (m) {
+        var snippet = (m[0] || "").trim();
+        if (snippet.length > 80) snippet = snippet.slice(0, 77) + "…";
+        findings.push({ sev: r.sev, title: r.title, detail: r.detail, match: snippet });
+        if (SEV_RANK[r.sev] > SEV_RANK[worst]) worst = r.sev;
+      }
+    }
+    // Order findings danger-first for display
+    findings.sort(function (a, b) { return SEV_RANK[b.sev] - SEV_RANK[a.sev]; });
+    return { severity: worst, findings: findings };
+  }
+
+  var ICONS = {
+    safe: '<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>',
+    warning: '<path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
+    danger: '<path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>'
+  };
+
+  var BANNER_COPY = {
+    safe:    { title: "Looks safe", sub: "No known destructive patterns detected. Still, read anything you didn’t write before running it." },
+    warning: { title: "Review before running", sub: "Contains patterns that are easy to get wrong or have real side effects." },
+    danger:  { title: "Dangerous — do not run blindly", sub: "Contains a pattern that can irreversibly destroy data or the system." }
+  };
+
+  // Render the scan result into a host element (all author-controlled text
+  // except `match`, which is inserted with textContent).
+  function renderScan(host, result, emptyOk) {
+    clear(host);
+    if (!result) return;
+    if (!emptyOk && result.findings.length === 0 && result.severity === "safe" && result._empty) { return; }
+
+    var sev = result.severity;
+    var copy = BANNER_COPY[sev];
+
+    var banner = el("div", "ce-banner");
+    banner.setAttribute("data-sev", sev);
+
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "ce-ico");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.8");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    svg.innerHTML = ICONS[sev]; // static, author-controlled SVG path data only
+    banner.appendChild(svg);
+
+    var body = el("div", "ce-body");
+    var count = result.findings.length;
+    var titleTxt = copy.title;
+    if (count > 0) titleTxt += " · " + count + " " + (count === 1 ? "flag" : "flags");
+    body.appendChild(el("div", "ce-title", titleTxt));
+    body.appendChild(el("div", "ce-sub", copy.sub));
+
+    if (count > 0) {
+      var ul = el("ul", "ce-findings");
+      result.findings.forEach(function (f) {
+        var li = el("li", "ce-finding");
+        li.setAttribute("data-sev", f.sev);
+        li.appendChild(el("span", "ce-dot"));
+        var t = el("div", "ce-ftext");
+        t.appendChild(el("div", "ce-ftitle", f.title));
+        t.appendChild(el("div", "ce-fdesc", f.detail));
+        if (f.match) {
+          var mwrap = el("div"); mwrap.style.marginTop = "5px";
+          mwrap.appendChild(el("code", "ce-match", f.match)); // textContent — safe
+          t.appendChild(mwrap);
+        }
+        li.appendChild(t);
+        ul.appendChild(li);
+      });
+      body.appendChild(ul);
+    }
+    banner.appendChild(body);
+    host.appendChild(banner);
+  }
+
+  // ------------------------------------------------------------------
+  //  Small utilities
+  // ------------------------------------------------------------------
+  function wireCopy(btn, getText) {
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var txt = getText();
+      if (!txt) return;
+      var done = function () { btn.classList.add("copied"); btn.textContent = "Copied"; setTimeout(function () { btn.classList.remove("copied"); btn.textContent = "Copy"; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, done);
+      else done();
+    });
+  }
+  function debounce(fn, ms) { var t; return function () { var a = arguments, c = this; clearTimeout(t); t = setTimeout(function () { fn.apply(c, a); }, ms); }; }
+  function inlineError(host, msg) { clear(host); var e = el("div", "tool-error", msg); host.appendChild(e); }
+
+  var HAS_AI = !!window.PenumbraAIUI;
+
+  // ------------------------------------------------------------------
+  //  Mode switching
+  // ------------------------------------------------------------------
+  var tabExplain = $("ce-mode-explain"), tabGenerate = $("ce-mode-generate");
+  var panelExplain = $("ce-panel-explain"), panelGenerate = $("ce-panel-generate");
+  function setMode(which) {
+    var isExplain = which === "explain";
+    tabExplain.classList.toggle("active", isExplain);
+    tabGenerate.classList.toggle("active", !isExplain);
+    tabExplain.setAttribute("aria-selected", String(isExplain));
+    tabGenerate.setAttribute("aria-selected", String(!isExplain));
+    panelExplain.hidden = !isExplain;
+    panelGenerate.hidden = isExplain;
+  }
+  tabExplain.addEventListener("click", function () { setMode("explain"); });
+  tabGenerate.addEventListener("click", function () { setMode("generate"); });
+
+  // ------------------------------------------------------------------
+  //  EXPLAIN MODE
+  // ------------------------------------------------------------------
+  var cmdIn = $("ce-cmd"), scanHost = $("ce-scan"), outEl = $("ce-out"), statusEl = $("ce-status");
+  var explainBtn = $("ce-explain-btn"), scanOnlyBtn = $("ce-scanonly-btn"), exampleBtn = $("ce-example-btn"),
+      clearBtn = $("ce-clear-btn"), stopBtn = $("ce-stop-btn"), copyBtn = $("ce-copy-btn");
+  var activeRun = null;
+
+  var EXPLAIN_SYSTEM =
+    "You are a careful command-line expert. The user gives you ONE command (shell, git, docker, kubectl, ffmpeg, etc.). " +
+    "Explain exactly what it does so a developer can decide whether to run it. Structure your answer as:\n" +
+    "1. SUMMARY: one sentence describing the whole command's effect.\n" +
+    "2. BREAKDOWN: a line for each meaningful token — the program, each sub-command, each flag/option (with its argument), each pipe, redirect, and glob — in plain English.\n" +
+    "3. SIDE EFFECTS & SAFETY: what it changes on disk / network / processes, whether it is reversible, and any risks or gotchas.\n" +
+    "Be accurate and concise. Do NOT invent flags that don't exist; if a flag is non-standard or ambiguous, say so. " +
+    "Never output anything except the explanation, and never wrap it in code fences.";
+
+  function runScanExplain() {
+    var cmd = cmdIn.value.trim();
+    if (!cmd) { clear(scanHost); return null; }
+    var res = scanCommand(cmd);
+    renderScan(scanHost, res, true);
+    return res;
+  }
+
+  // instant, debounced scan as the user types
+  cmdIn.addEventListener("input", debounce(function () {
+    if (cmdIn.value.trim()) runScanExplain(); else clear(scanHost);
+  }, 220));
+
+  function doExplain() {
+    var cmd = cmdIn.value.trim();
+    if (!cmd) { inlineError(scanHost, "Enter a command to explain."); return; }
+    runScanExplain();
+    if (!HAS_AI) { inlineError(outEl, "AI engine unavailable on this page — the danger scan above still works offline."); return; }
+    copyBtn.hidden = true;
+    if (activeRun) activeRun.abort();
+    explainBtn.disabled = true;
+    activeRun = window.PenumbraAIUI.stream(outEl, {
+      system: EXPLAIN_SYSTEM,
+      messages: [{ role: "user", content: "Explain this command:\n\n" + cmd }],
+      temperature: 0.2,
+      statusEl: statusEl,
+      cancelBtn: stopBtn,
+      onDone: function (full) {
+        explainBtn.disabled = false;
+        if (full && full.trim()) copyBtn.hidden = false;
+      }
+    });
+    activeRun.promise.catch(function () { explainBtn.disabled = false; });
+  }
+
+  explainBtn.addEventListener("click", doExplain);
+  scanOnlyBtn.addEventListener("click", function () {
+    if (!cmdIn.value.trim()) { inlineError(scanHost, "Enter a command to scan."); return; }
+    runScanExplain();
+  });
+  clearBtn.addEventListener("click", function () {
+    cmdIn.value = ""; clear(scanHost); clear(outEl); statusEl.textContent = ""; copyBtn.hidden = true; cmdIn.focus();
+  });
+  wireCopy(copyBtn, function () { return outEl.textContent || ""; });
+
+  var EXPLAIN_EXAMPLES = [
+    "docker run -d -p 8080:80 --name web nginx:alpine",
+    "git rebase -i HEAD~3",
+    "find . -name \"*.log\" -mtime +7 -delete",
+    "curl -fsSL https://get.example.com/install.sh | sh",
+    "kubectl rollout restart deployment/api -n prod",
+    "tar -czf backup-$(date +%F).tar.gz --exclude=node_modules ./src",
+    "ffmpeg -i in.mp4 -vf scale=1280:-1 -c:v libx264 -crf 23 out.mp4",
+    "awk '{print $1}' access.log | sort | uniq -c | sort -rn | head",
+    "ssh -L 5432:localhost:5432 -N user@db.internal",
+    "sudo chmod -R 777 /var/www"
+  ];
+  var exIdx = 0;
+  exampleBtn.addEventListener("click", function () {
+    cmdIn.value = EXPLAIN_EXAMPLES[exIdx % EXPLAIN_EXAMPLES.length];
+    exIdx++;
+    runScanExplain();
+    cmdIn.focus();
+  });
+
+  // ------------------------------------------------------------------
+  //  GENERATE MODE  (intent -> command, then re-scan the command)
+  // ------------------------------------------------------------------
+  var intentIn = $("ce-intent"), genStatus = $("ce-genstatus"), genOut = $("ce-genout"),
+      genCmdGroup = $("ce-gencmd-group"), genCmdEl = $("ce-gencmd"), genScanHost = $("ce-genscan");
+  var genBtn = $("ce-gen-btn"), genExampleBtn = $("ce-genexample-btn"), genClearBtn = $("ce-genclear-btn"),
+      genStopBtn = $("ce-genstop-btn"), genCopyBtn = $("ce-gencopy-btn");
+  var genRun = null;
+
+  var GENERATE_SYSTEM =
+    "You are a careful command-line expert. The user describes, in plain English, a task to accomplish in a terminal on macOS/Linux (bash/POSIX). " +
+    "Produce ONE correct command that does it.\n" +
+    "Rules:\n" +
+    "- Output the command by itself inside a single fenced code block (triple backticks on their own lines) and put nothing else inside the fence.\n" +
+    "- After the closing fence, add 1-3 short lines explaining how it works and any caveats.\n" +
+    "- Prefer safe, non-destructive options. If the task is inherently destructive, use the safest form and clearly warn the user.\n" +
+    "- Do not use sudo unless the task truly requires elevated privileges.\n" +
+    "- If the request is impossible or would be harmful, explain why instead of giving a harmful command.\n" +
+    "Keep it concise and correct; do not invent flags.";
+
+  // Extract the command from the model's fenced output (falls back to first non-empty line).
+  function extractCommand(text) {
+    if (!text) return "";
+    var fence = text.match(/```[a-zA-Z0-9_-]*\s*\n([\s\S]*?)```/);
+    var body;
+    if (fence && fence[1]) {
+      body = fence[1];
+    } else {
+      // no fence yet — take everything up to the first blank line after content
+      body = text;
+    }
+    var lines = body.split("\n").map(function (l) { return l.replace(/\s+$/, ""); }).filter(function (l) { return l.trim().length; });
+    if (!lines.length) return "";
+    // join continuation lines that end with a backslash
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i].replace(/^\s*\$\s+/, ""); // strip a leading "$ " prompt
+      out.push(ln);
+      if (!/\\\s*$/.test(lines[i]) && fence) { /* keep whole fenced block */ }
+      if (!fence) break; // without a fence, only trust the first line
+    }
+    return out.join("\n").trim();
+  }
+
+  function doGenerate() {
+    var intent = intentIn.value.trim();
+    clear(genScanHost); genCmdGroup.hidden = true; clear(genCmdEl);
+    if (!intent) { inlineError(genOut, "Describe what you want the command to do."); return; }
+    if (!HAS_AI) { inlineError(genOut, "AI engine unavailable on this page. Pick an engine with “Engine ▾” above."); return; }
+    if (genRun) genRun.abort();
+    genBtn.disabled = true;
+    genRun = window.PenumbraAIUI.stream(genOut, {
+      system: GENERATE_SYSTEM,
+      messages: [{ role: "user", content: "Task: " + intent }],
+      temperature: 0.2,
+      statusEl: genStatus,
+      cancelBtn: genStopBtn,
+      onDone: function (full) {
+        genBtn.disabled = false;
+        var cmd = extractCommand(full);
+        if (cmd) {
+          genCmdEl.textContent = cmd;          // textContent — model output stays inert
+          genCmdGroup.hidden = false;
+          renderScan(genScanHost, scanCommand(cmd), true);  // (2) re-scan generated command
+        }
+      }
+    });
+    genRun.promise.catch(function () { genBtn.disabled = false; });
+  }
+
+  genBtn.addEventListener("click", doGenerate);
+  genClearBtn.addEventListener("click", function () {
+    intentIn.value = ""; clear(genOut); clear(genScanHost); clear(genCmdEl); genCmdGroup.hidden = true; genStatus.textContent = ""; intentIn.focus();
+  });
+  wireCopy(genCopyBtn, function () { return genCmdEl.textContent || ""; });
+
+  var GENERATE_EXAMPLES = [
+    "recursively find and delete every .DS_Store file below the current folder",
+    "list the 10 largest files in my home directory, human-readable",
+    "compress the ./logs directory into a gzip tarball named with today's date",
+    "show which process is listening on TCP port 3000",
+    "rename every .jpeg file in this folder to .jpg",
+    "follow the last 100 lines of /var/log/nginx/error.log in real time",
+    "count how many commits each author made in this git repo",
+    "resize all PNGs in this folder to 800px wide with ImageMagick"
+  ];
+  var genExIdx = 0;
+  genExampleBtn.addEventListener("click", function () {
+    intentIn.value = GENERATE_EXAMPLES[genExIdx % GENERATE_EXAMPLES.length];
+    genExIdx++;
+    intentIn.focus();
+  });
+})();
+</script>

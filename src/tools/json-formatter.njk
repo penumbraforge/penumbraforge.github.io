@@ -3,138 +3,803 @@ toolSlug: json-formatter
 permalink: /tools/json-formatter/
 ---
 
-<div class="tool-group">
-  <label for="json-input">Paste JSON</label>
-  <textarea id="json-input" rows="12" placeholder='{"key": "value", "array": [1, 2, 3]}' spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-</div>
+<style>
+  /* ---- JSON Workbench — tool-specific layout only ---- */
+  .jw-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-<div class="tool-row">
-  <div class="tool-options" role="group" aria-label="Indent options">
-    <button class="tool-option active" data-indent="2" aria-pressed="true">2 spaces</button>
-    <button class="tool-option" data-indent="4" aria-pressed="false">4 spaces</button>
-    <button class="tool-option" data-indent="tab" aria-pressed="false">Tab</button>
+  .jw-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .jw-spacer { flex: 1 1 12px; }
+  .jw-indent { transition: opacity 180ms; }
+  .jw-indent.jw-dim { opacity: 0.42; }
+
+  .jw-split { align-items: stretch; }
+  .jw-panel { display: flex; flex-direction: column; min-width: 0; }
+  .jw-panel .wb-panel-bar { flex-shrink: 0; }
+  .jw-body { height: clamp(300px, 46vh, 560px); position: relative; min-height: 0; }
+
+  .tool-content textarea.jw-input {
+    display: block; width: 100%; height: 100% !important; min-height: 0 !important;
+    border: 0 !important; border-radius: 0 !important; background: transparent !important;
+    resize: none !important; padding: 14px 16px !important; margin: 0;
+    font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; color: var(--wb-ink);
+    tab-size: 2;
+  }
+  .jw-inputwrap { margin: 0; height: 100%; }
+
+  .jw-out { height: 100%; overflow: auto; }
+  .jw-text { margin: 0; padding: 14px 16px; white-space: pre; tab-size: 2;
+    font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; color: var(--text-1); }
+  .jw-text[hidden], .jw-tree[hidden] { display: none; }
+
+  /* view toggle in the panel bar */
+  .jw-viewtoggle { display: inline-flex; border: 1px solid var(--wb-line); border-radius: 3px; overflow: hidden; }
+  .jw-vbtn { border: 0; border-right: 1px solid var(--wb-line); background: transparent; cursor: pointer;
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text-2); padding: 5px 12px; transition: background 150ms, color 150ms; }
+  .jw-vbtn:last-child { border-right: 0; }
+  .jw-vbtn:hover { color: var(--wb-ink); }
+  .jw-vbtn.active { background: var(--accent); color: #17121f; }
+  .wb-panel-bar .btn--copy { padding: 5px 12px; font-size: 10.5px; }
+
+  /* tree */
+  .jw-tree { padding: 8px 6px 12px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.65; }
+  .jw-node { }
+  .jw-row { display: flex; align-items: baseline; gap: 2px; border-radius: 3px; padding: 1px 4px; white-space: nowrap; }
+  .jw-row.jw-expandable { cursor: pointer; }
+  .jw-row.jw-expandable:hover { background: color-mix(in oklab, var(--accent) 9%, transparent); }
+  .jw-row:focus-visible { outline: 1px solid color-mix(in oklab, var(--accent) 60%, transparent); outline-offset: -1px; }
+  .jw-caret, .jw-nocaret { display: inline-block; width: 14px; flex-shrink: 0; color: var(--slate); user-select: none; text-align: center; }
+  .jw-kids { display: none; }
+  .jw-node.jw-open > .jw-kids { display: block; }
+  .jw-key { color: color-mix(in oklab, var(--accent) 55%, var(--wb-ink)); }
+  .jw-idx { color: var(--slate); }
+  .jw-punct { color: var(--text-3); }
+  .jw-summary { color: var(--slate); }
+  .jw-node.jw-open > .jw-row > .jw-summary { color: var(--text-3); }
+  .jw-val.jw-t-string { color: var(--sage); }
+  .jw-val.jw-t-number { color: #d9a86c; }
+  .jw-val.jw-t-boolean { color: color-mix(in oklab, var(--accent) 72%, #fff); }
+  .jw-val.jw-t-null { color: var(--text-3); font-style: italic; }
+  .jw-more { margin: 2px 0 2px 20px; background: transparent; border: 1px dashed var(--wb-line); border-radius: 3px;
+    color: var(--slate); cursor: pointer; font-family: var(--font-mono); font-size: 11px; padding: 3px 10px; }
+  .jw-more:hover { border-color: var(--accent); color: var(--wb-ink); }
+
+  /* error caret block */
+  .jw-err-head { font-weight: 600; color: #ecb488; }
+  .jw-err-loc { margin-top: 4px; color: var(--text-2); font-size: 11px; }
+  .jw-err-caret { margin: 9px 0 0; padding: 10px 12px; overflow-x: auto;
+    background: #06060d; border: 1px solid color-mix(in oklab, #e8a87c 20%, var(--wb-line));
+    border-radius: 3px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; color: var(--text-1); white-space: pre; }
+  .jw-err-pointer { color: #e8a87c; }
+
+  /* stats */
+  .jw-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .jw-stat { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.5px; color: var(--slate);
+    border: 1px solid var(--wb-line); border-radius: 2px; padding: 5px 10px; }
+  .jw-stat b { color: var(--wb-ink); font-weight: 600; letter-spacing: 0; }
+
+  /* query */
+  .jw-query { margin-top: 26px; }
+  .jw-hint { font-family: var(--font-sans); font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--text-3); margin-left: 8px; }
+  .jw-hint code { font-family: var(--font-mono); color: var(--accent); }
+  .jw-queryrow { display: flex; gap: 8px; align-items: stretch; }
+  .jw-queryrow input { flex: 1; min-width: 0; }
+  .jw-queryrow .btn--copy { flex-shrink: 0; }
+  .jw-queryout { margin-top: 10px; position: relative; padding: 0; }
+  .jw-queryout pre { margin: 0; padding: 14px 16px; max-height: 260px; overflow: auto; white-space: pre;
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.65; color: var(--text-1); min-height: 20px; }
+</style>
+
+<div class="jw-controls">
+  <div class="tool-options" id="jwModeGroup" role="group" aria-label="Output format">
+    <button class="tool-option active" type="button" data-mode="pretty" aria-pressed="true">Pretty</button>
+    <button class="tool-option" type="button" data-mode="minify" aria-pressed="false">Minify</button>
   </div>
-  <button class="btn" id="btn-minify">Minify</button>
+  <div class="tool-options jw-indent" id="jwIndentGroup" role="group" aria-label="Indent width">
+    <button class="tool-option active" type="button" data-indent="2" aria-pressed="true">2</button>
+    <button class="tool-option" type="button" data-indent="4" aria-pressed="false">4</button>
+    <button class="tool-option" type="button" data-indent="tab" aria-pressed="false">Tab</button>
+  </div>
+  <span class="jw-spacer"></span>
+  <button class="btn" type="button" id="btnExample">Load example</button>
+  <button class="btn" type="button" id="btnClear">Clear</button>
 </div>
 
-<div id="json-error" style="display:none;" role="alert" aria-live="polite" class="tool-error"></div>
+<div class="wb-split jw-split">
+  <div class="wb-panel jw-panel">
+    <div class="wb-panel-bar">
+      <span>Input</span>
+      <span class="wb-badge" id="inMeta">empty</span>
+    </div>
+    <div class="jw-body">
+      <div class="tool-group jw-inputwrap">
+        <label for="json-input" class="jw-sr">JSON input</label>
+        <textarea id="json-input" class="jw-input" placeholder='{"key": "value", "array": [1, 2, 3]}' spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+      </div>
+    </div>
+  </div>
 
-<div class="output-area">
-  <button class="btn btn--copy" id="btn-copy" aria-label="Copy output">Copy</button>
-  <pre id="json-output" aria-label="Formatted JSON output"></pre>
+  <div class="wb-panel jw-panel">
+    <div class="wb-panel-bar">
+      <div class="jw-viewtoggle" role="group" aria-label="Output view">
+        <button class="jw-vbtn active" type="button" data-view="text" aria-pressed="true">Text</button>
+        <button class="jw-vbtn" type="button" data-view="tree" aria-pressed="false">Tree</button>
+      </div>
+      <button class="btn btn--copy" type="button" id="btnCopy" aria-label="Copy output">Copy</button>
+    </div>
+    <div class="jw-body">
+      <div class="jw-out">
+        <pre id="json-output" class="jw-text" aria-label="Formatted JSON output" aria-live="polite"></pre>
+        <div id="json-tree" class="jw-tree" role="tree" aria-label="JSON structure tree" hidden></div>
+        <div id="jw-empty" class="wb-empty">Paste JSON on the left, or <button type="button" id="jwEmptyExample" class="jw-linkbtn" style="background:none;border:0;color:var(--accent);cursor:pointer;font:inherit;padding:0;text-decoration:underline;">load an example</button>.</div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<script>
-(function () {
-  var inputEl     = document.getElementById('json-input');
-  var outputEl    = document.getElementById('json-output');
-  var errorEl     = document.getElementById('json-error');
-  var copyBtn     = document.getElementById('btn-copy');
-  var minifyBtn   = document.getElementById('btn-minify');
-  var optionBtns  = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-indent]'));
+<div id="json-error" class="tool-error" role="alert" aria-live="assertive" hidden></div>
 
-  var currentIndent = 2;
-  var isMinified    = false;
+<div id="jw-stats" class="jw-stats" aria-live="polite" hidden></div>
 
-  function getIndentValue(raw) {
-    if (raw === 'tab') return '\t';
-    return parseInt(raw, 10);
-  }
+<div class="tool-group jw-query">
+  <label for="jw-path">Query path <span class="jw-hint">dot / bracket, e.g. <code>$.users[0].name</code> or <code>users.*.id</code></span></label>
+  <div class="jw-queryrow">
+    <input type="text" id="jw-path" placeholder="$.path.to[0].value" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" aria-label="JSONPath-style query">
+    <button class="btn btn--copy" type="button" id="btnCopyQuery" aria-label="Copy matched value">Copy</button>
+  </div>
+  <div class="output-area jw-queryout">
+    <pre id="jw-queryresult" aria-label="Query result" aria-live="polite"></pre>
+  </div>
+</div>
 
-  function showError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = '';
-  }
+<script type="module">
+import { jsonTool } from '/js/tools-lib.js';
 
-  function hideError() {
-    errorEl.textContent = '';
-    errorEl.style.display = 'none';
-  }
+var enc = new TextEncoder();
+var byId = function (id) { return document.getElementById(id); };
 
-  function format() {
-    var raw = inputEl.value;
+var inputEl    = byId('json-input');
+var textEl     = byId('json-output');
+var treeEl     = byId('json-tree');
+var emptyEl    = byId('jw-empty');
+var errorEl    = byId('json-error');
+var statsEl    = byId('jw-stats');
+var inMetaEl   = byId('inMeta');
+var pathEl     = byId('jw-path');
+var queryOutEl = byId('jw-queryresult');
 
-    if (!raw.trim()) {
-      outputEl.textContent = '';
-      hideError();
-      return;
+var modeBtns   = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-mode]'));
+var indentBtns = Array.prototype.slice.call(document.querySelectorAll('.tool-option[data-indent]'));
+var indentGroup = byId('jwIndentGroup');
+var viewBtns   = Array.prototype.slice.call(document.querySelectorAll('.jw-vbtn'));
+
+var mode = 'pretty';        // 'pretty' | 'minify'
+var indent = '2';           // '2' | '4' | 'tab'
+var view = 'text';          // 'text' | 'tree'
+var lastParsed;             // undefined when no valid JSON
+var lastValid = false;
+var lastErrText = 'Invalid JSON';
+var treeDirty = true;
+
+var EXAMPLE = JSON.stringify({
+  service: 'penumbra-forge',
+  version: '2.6.0',
+  active: true,
+  users: [
+    { id: 1, name: 'Vesper', roles: ['admin', 'mage'], meta: { lastLogin: '2026-07-16T04:20:00Z', score: 9001 } },
+    { id: 2, name: 'Nyx', roles: ['editor'], meta: { lastLogin: null, score: 42 } }
+  ],
+  limits: { rps: 1000, burst: 2500 },
+  tags: ['json', 'workbench', 'local']
+}, null, 2);
+
+/* ---------- small utilities ---------- */
+function clearChildren(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+function byteLen(str) { return enc.encode(str).length; }
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1048576).toFixed(2) + ' MB';
+}
+function typeOf(v) {
+  if (v === null) return 'null';
+  if (Array.isArray(v)) return 'array';
+  return typeof v; // 'object' | 'string' | 'number' | 'boolean'
+}
+function debounce(fn, ms) { var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
+
+/* ---------- formatting (uses the shared tools-lib brain) ---------- */
+function serialize(parsed, raw) {
+  try {
+    if (mode === 'minify') return jsonTool(raw, 'minify').output;
+    if (indent === '2') return jsonTool(raw, 'format').output;
+  } catch (e) { /* raw is already valid here; fall through defensively */ }
+  var iv = indent === 'tab' ? '\t' : parseInt(indent, 10);
+  return JSON.stringify(parsed, null, iv);
+}
+
+/* ---------- stats ---------- */
+function analyze(v) {
+  var nodes = 0, keys = 0, maxDepth = 0;
+  var stack = [[v, 1]];
+  while (stack.length) {
+    var it = stack.pop();
+    var cur = it[0], d = it[1];
+    nodes++;
+    if (d > maxDepth) maxDepth = d;
+    if (Array.isArray(cur)) {
+      for (var i = 0; i < cur.length; i++) stack.push([cur[i], d + 1]);
+    } else if (cur && typeof cur === 'object') {
+      var ks = Object.keys(cur);
+      keys += ks.length;
+      for (var j = 0; j < ks.length; j++) stack.push([cur[ks[j]], d + 1]);
     }
+  }
+  return { nodes: nodes, keys: keys, depth: maxDepth };
+}
+function topLevelCount(v) {
+  if (Array.isArray(v)) return v.length;
+  if (v && typeof v === 'object') return Object.keys(v).length;
+  return 0;
+}
+function renderStats(parsed, stats) {
+  clearChildren(statsEl);
+  var minStr = JSON.stringify(parsed);
+  var prettyStr = JSON.stringify(parsed, null, 2);
+  var chips = [
+    ['type', typeOf(parsed)],
+    ['top-level', String(topLevelCount(parsed))],
+    ['nodes', String(stats.nodes)],
+    ['keys', String(stats.keys)],
+    ['depth', String(stats.depth)],
+    ['minified', fmtBytes(byteLen(minStr))],
+    ['pretty', fmtBytes(byteLen(prettyStr))]
+  ];
+  chips.forEach(function (c) {
+    var el = document.createElement('span'); el.className = 'jw-stat';
+    var lab = document.createElement('span'); lab.textContent = c[0] + ' ';
+    var b = document.createElement('b'); b.textContent = c[1];
+    el.appendChild(lab); el.appendChild(b);
+    statsEl.appendChild(el);
+  });
+  statsEl.hidden = false;
+}
 
-    try {
-      var parsed = JSON.parse(raw);
-      hideError();
+/* ---------- tree view (createElement + textContent only) ---------- */
+var CHILD_CAP = 500;
 
-      if (isMinified) {
-        outputEl.textContent = JSON.stringify(parsed);
-      } else {
-        var indentVal = getIndentValue(currentIndent);
-        outputEl.textContent = JSON.stringify(parsed, null, indentVal);
-      }
-    } catch (err) {
-      showError(err.message);
-      outputEl.textContent = raw;
-    }
+function leafText(value, t) {
+  if (t === 'string') {
+    var s = JSON.stringify(value);
+    if (s.length > 240) s = s.slice(0, 240) + '…"';
+    return s;
+  }
+  return String(value); // number / boolean / null
+}
+
+function makeNode(key, value, depth, isRoot) {
+  var t = typeOf(value);
+  var expandable = (t === 'object' || t === 'array');
+  var wrap = document.createElement('div');
+  wrap.className = 'jw-node';
+
+  var row = document.createElement('div');
+  row.className = 'jw-row';
+  row.style.paddingLeft = (depth * 15 + 6) + 'px';
+  row.setAttribute('role', 'treeitem');
+
+  var caret = document.createElement('span');
+  caret.className = expandable ? 'jw-caret' : 'jw-nocaret';
+  caret.setAttribute('aria-hidden', 'true');
+  caret.textContent = expandable ? '▸' : '';
+  row.appendChild(caret);
+
+  if (key !== null) {
+    var k = document.createElement('span');
+    if (typeof key === 'number') { k.className = 'jw-idx'; k.textContent = key; }
+    else { k.className = 'jw-key'; k.textContent = key; }
+    row.appendChild(k);
+    var colon = document.createElement('span');
+    colon.className = 'jw-punct'; colon.textContent = ': ';
+    row.appendChild(colon);
   }
 
-  optionBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      isMinified = false;
+  if (expandable) {
+    var count = (t === 'array') ? value.length : Object.keys(value).length;
+    var summary = document.createElement('span');
+    summary.className = 'jw-summary';
+    var unit = (t === 'array') ? (count === 1 ? ' item ' : ' items ') : (count === 1 ? ' key ' : ' keys ');
+    summary.textContent = (t === 'array' ? '[ ' : '{ ') + count + unit + (t === 'array' ? ']' : '}');
+    row.appendChild(summary);
+    wrap.appendChild(row);
 
-      optionBtns.forEach(function (b) {
-        b.classList.remove('active');
-        b.setAttribute('aria-pressed', 'false');
-      });
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
+    var kids = document.createElement('div');
+    kids.className = 'jw-kids';
+    kids.setAttribute('role', 'group');
+    wrap.appendChild(kids);
 
-      currentIndent = btn.getAttribute('data-indent');
-      format();
+    var built = false;
+    var buildKids = function () {
+      if (built) return; built = true;
+      renderChildren(kids, value, t, depth + 1);
+    };
+    var setOpen = function (open) {
+      if (open) buildKids();
+      wrap.classList.toggle('jw-open', open);
+      caret.textContent = open ? '▾' : '▸';
+      row.setAttribute('aria-expanded', String(open));
+    };
+
+    row.classList.add('jw-expandable');
+    row.tabIndex = 0;
+    row.addEventListener('click', function () { setOpen(!wrap.classList.contains('jw-open')); });
+    row.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!wrap.classList.contains('jw-open')); }
     });
+
+    var autoOpen = (isRoot) || (depth < 2 && count <= 40);
+    setOpen(autoOpen);
+  } else {
+    var v = document.createElement('span');
+    v.className = 'jw-val jw-t-' + t;
+    v.textContent = leafText(value, t);
+    row.appendChild(v);
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
+function renderChildren(container, value, t, depth) {
+  var isArr = (t === 'array');
+  var keys = isArr ? null : Object.keys(value);
+  var total = isArr ? value.length : keys.length;
+  var idx = 0;
+  function batch() {
+    var end = Math.min(idx + CHILD_CAP, total);
+    var frag = document.createDocumentFragment();
+    for (; idx < end; idx++) {
+      var key = isArr ? idx : keys[idx];
+      var val = isArr ? value[idx] : value[key];
+      frag.appendChild(makeNode(key, val, depth, false));
+    }
+    container.appendChild(frag);
+    if (idx < total) {
+      var more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'jw-more';
+      more.textContent = '… show ' + (total - idx) + ' more';
+      more.addEventListener('click', function () { container.removeChild(more); batch(); });
+      container.appendChild(more);
+    }
+  }
+  batch();
+}
+
+function buildTree() {
+  clearChildren(treeEl);
+  if (lastParsed === undefined) { treeDirty = false; return; }
+  treeEl.appendChild(makeNode(null, lastParsed, 0, true));
+  treeDirty = false;
+}
+
+/* ---------- view switching ---------- */
+function showView(v) {
+  view = v;
+  viewBtns.forEach(function (b) {
+    var on = b.getAttribute('data-view') === v;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
   });
-
-  minifyBtn.addEventListener('click', function () {
-    isMinified = true;
-
-    optionBtns.forEach(function (b) {
-      b.classList.remove('active');
-      b.setAttribute('aria-pressed', 'false');
-    });
-
-    format();
-  });
-
-  inputEl.addEventListener('input', format);
-
-  copyBtn.addEventListener('click', function () {
-    var text = outputEl.textContent;
-    if (!text) return;
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () {
-        copyBtn.textContent = 'Copied!';
-        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
-      }).catch(function () {
-        copyBtn.textContent = 'Failed';
-        setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
-      });
+  if (v === 'tree') {
+    textEl.hidden = true;
+    if (lastValid) {
+      if (treeDirty) buildTree();
+      treeEl.hidden = false;
+      emptyEl.hidden = true;
     } else {
-      /* Fallback for older browsers */
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      try {
-        document.execCommand('copy');
-        copyBtn.textContent = 'Copied!';
-      } catch (e) {
-        copyBtn.textContent = 'Failed';
+      treeEl.hidden = true;
+      emptyEl.hidden = lastErrShown();
+    }
+  } else {
+    treeEl.hidden = true;
+    textEl.hidden = false;
+  }
+}
+function lastErrShown() { return !errorEl.hidden; }
+
+/* ---------- error reporting with line/column + caret ---------- */
+function lineColFromPos(text, pos) {
+  var line = 1, col = 1;
+  var n = Math.min(pos, text.length);
+  for (var i = 0; i < n; i++) {
+    if (text.charCodeAt(i) === 10) { line++; col = 1; } else { col++; }
+  }
+  return { line: line, col: col };
+}
+function cleanMsg(m) {
+  return String(m)
+    .replace(/^JSON\.parse:\s*/, '')
+    .replace(/\s*in JSON at position \d+.*$/i, '')
+    .replace(/\s*at line \d+ column \d+.*$/i, '')
+    .replace(/,\s*(?:\.\.\.)?"[\s\S]*$/, '')      // strip V8's ", "…context…" is not valid JSON"
+    .replace(/\s*is not valid JSON\.?\s*$/i, '')  // strip any leftover tail
+    .trim() || 'Unexpected token';
+}
+function repeat(ch, n) { var s = ''; for (var i = 0; i < n; i++) s += ch; return s; }
+
+/* Self-contained JSON scanner: returns the offset of the first structural
+   error, independent of the browser's SyntaxError message format (modern V8
+   omits the numeric position, Firefox/Safari phrase it differently). */
+function locateJsonError(s) {
+  var i = 0, n = s.length, failPos = -1;
+  var isHex = function (c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); };
+  var isDig = function (c) { return c >= '0' && c <= '9'; };
+  function fail() { if (failPos < 0) failPos = Math.min(i, n); throw 0; }
+  function ws() { while (i < n) { var c = s.charCodeAt(i); if (c === 32 || c === 9 || c === 10 || c === 13) i++; else break; } }
+  function str() {
+    i++; // opening quote
+    while (i < n) {
+      var ch = s.charCodeAt(i);
+      if (ch === 34) { i++; return; }
+      if (ch === 92) {
+        i++;
+        if (i >= n) fail();
+        var e = s.charAt(i);
+        if ('"\\/bfnrt'.indexOf(e) >= 0) { i++; }
+        else if (e === 'u') { for (var k = 1; k <= 4; k++) { if (!isHex(s.charAt(i + k))) { i += k; fail(); } } i += 5; }
+        else { fail(); }
+      } else if (ch < 0x20) { fail(); } else i++;
+    }
+    fail(); // unterminated string
+  }
+  function num() {
+    var start = i;
+    if (s.charAt(i) === '-') i++;
+    if (s.charAt(i) === '0') i++;
+    else if (isDig(s.charAt(i))) { while (isDig(s.charAt(i))) i++; }
+    else { i = start; fail(); }
+    if (s.charAt(i) === '.') { i++; if (!isDig(s.charAt(i))) fail(); while (isDig(s.charAt(i))) i++; }
+    if (s.charAt(i) === 'e' || s.charAt(i) === 'E') { i++; if (s.charAt(i) === '+' || s.charAt(i) === '-') i++; if (!isDig(s.charAt(i))) fail(); while (isDig(s.charAt(i))) i++; }
+  }
+  function value() {
+    ws();
+    if (i >= n) fail();
+    var c = s.charAt(i);
+    if (c === '{') return obj();
+    if (c === '[') return arr();
+    if (c === '"') return str();
+    if (c === '-' || (c >= '0' && c <= '9')) return num();
+    if (s.substr(i, 4) === 'true') { i += 4; return; }
+    if (s.substr(i, 5) === 'false') { i += 5; return; }
+    if (s.substr(i, 4) === 'null') { i += 4; return; }
+    fail();
+  }
+  function obj() {
+    i++; ws();
+    if (s.charAt(i) === '}') { i++; return; }
+    while (true) {
+      ws();
+      if (s.charAt(i) !== '"') fail();
+      str(); ws();
+      if (s.charAt(i) !== ':') fail();
+      i++; value(); ws();
+      var c = s.charAt(i);
+      if (c === ',') { i++; continue; }
+      if (c === '}') { i++; return; }
+      fail();
+    }
+  }
+  function arr() {
+    i++; ws();
+    if (s.charAt(i) === ']') { i++; return; }
+    while (true) {
+      value(); ws();
+      var c = s.charAt(i);
+      if (c === ',') { i++; continue; }
+      if (c === ']') { i++; return; }
+      fail();
+    }
+  }
+  try {
+    value(); ws();
+    if (i < n) return { pos: i }; // trailing garbage after a complete value
+    return null;                  // scanner found nothing (defer to native message)
+  } catch (e) {
+    return { pos: failPos >= 0 ? failPos : Math.min(i, n) };
+  }
+}
+
+function showParseError(raw, err) {
+  var msg = (err && err.message) ? err.message : 'Invalid JSON';
+  var pos = null, line = null, col = null;
+  var mLC = /line (\d+) column (\d+)/i.exec(msg);
+  var mPos = /position (\d+)/i.exec(msg);
+  if (mLC) { line = +mLC[1]; col = +mLC[2]; }
+  if (mPos) { pos = +mPos[1]; }
+  if ((line === null || col === null) && pos !== null) {
+    var lc = lineColFromPos(raw, pos); line = lc.line; col = lc.col;
+  }
+  if (line === null || col === null) {
+    // native message carried no usable position — locate it ourselves
+    var loc = locateJsonError(raw);
+    if (loc && loc.pos != null) { pos = loc.pos; var lc2 = lineColFromPos(raw, pos); line = lc2.line; col = lc2.col; }
+  }
+
+  clearChildren(errorEl);
+  var head = document.createElement('div');
+  head.className = 'jw-err-head';
+  head.textContent = 'Invalid JSON — ' + cleanMsg(msg);
+  errorEl.appendChild(head);
+
+  if (line !== null && col !== null) {
+    var loc = document.createElement('div');
+    loc.className = 'jw-err-loc';
+    loc.textContent = 'at line ' + line + ', column ' + col + (pos !== null ? ' (offset ' + pos + ')' : '');
+    errorEl.appendChild(loc);
+
+    var lines = raw.split('\n');
+    var srcLine = lines[line - 1] != null ? lines[line - 1] : '';
+    var shown = srcLine, caretCol = col, start = 0;
+    if (srcLine.length > 120) {
+      start = Math.max(0, col - 40);
+      shown = (start > 0 ? '…' : '') + srcLine.slice(start, start + 120) + (srcLine.length > start + 120 ? '…' : '');
+      caretCol = col - start + (start > 0 ? 1 : 0);
+    }
+    var pre = document.createElement('pre');
+    pre.className = 'jw-err-caret';
+    var l1 = document.createElement('div'); l1.textContent = shown;
+    var l2 = document.createElement('div'); l2.className = 'jw-err-pointer';
+    l2.textContent = repeat(' ', Math.max(0, caretCol - 1)) + '^';
+    pre.appendChild(l1); pre.appendChild(l2);
+    errorEl.appendChild(pre);
+    lastErrText = 'Invalid JSON at line ' + line + ', column ' + col + ': ' + cleanMsg(msg);
+  } else {
+    lastErrText = 'Invalid JSON: ' + cleanMsg(msg);
+  }
+  errorEl.hidden = false;
+
+  lastParsed = undefined;
+  lastValid = false;
+  treeDirty = true;
+  textEl.textContent = raw;
+  textEl.hidden = false;
+  treeEl.hidden = true;
+  clearChildren(treeEl);
+  statsEl.hidden = true;
+  emptyEl.hidden = true;
+  showView('text');
+  runQuery();
+}
+function hideError() { errorEl.hidden = true; clearChildren(errorEl); }
+
+/* ---------- JSONPath-ish query ---------- */
+function parsePath(path) {
+  var s = String(path).trim();
+  if (s.charAt(0) === '$') s = s.slice(1);
+  var tokens = [];
+  var i = 0;
+  while (i < s.length) {
+    var c = s.charAt(i);
+    if (c === '.') { i++; continue; }
+    if (c === '[') {
+      var end = s.indexOf(']', i);
+      if (end === -1) throw new Error('unclosed "["');
+      var inner = s.slice(i + 1, end).trim();
+      var q0 = inner.charAt(0), q1 = inner.charAt(inner.length - 1);
+      if (inner.length >= 2 && ((q0 === '"' && q1 === '"') || (q0 === "'" && q1 === "'"))) inner = inner.slice(1, -1);
+      tokens.push(inner);
+      i = end + 1;
+    } else {
+      var j = i;
+      while (j < s.length && s.charAt(j) !== '.' && s.charAt(j) !== '[') j++;
+      tokens.push(s.slice(i, j));
+      i = j;
+    }
+  }
+  return tokens.filter(function (t) { return t !== ''; });
+}
+function queryMatches(root, tokens) {
+  var cur = [root];
+  for (var i = 0; i < tokens.length; i++) {
+    var tok = tokens[i];
+    var next = [];
+    for (var j = 0; j < cur.length; j++) {
+      var node = cur[j];
+      if (node === null || typeof node !== 'object') continue;
+      if (tok === '*') {
+        if (Array.isArray(node)) { for (var a = 0; a < node.length; a++) next.push(node[a]); }
+        else { for (var k in node) { if (Object.prototype.hasOwnProperty.call(node, k)) next.push(node[k]); } }
+      } else if (Array.isArray(node)) {
+        if (/^-?\d+$/.test(tok)) {
+          var ix = Number(tok); if (ix < 0) ix = node.length + ix;
+          if (ix >= 0 && ix < node.length) next.push(node[ix]);
+        }
+      } else if (Object.prototype.hasOwnProperty.call(node, tok)) {
+        next.push(node[tok]);
       }
-      document.body.removeChild(ta);
-      setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+    }
+    cur = next;
+  }
+  return cur;
+}
+function stringifyMatch(v) { try { return JSON.stringify(v, null, 2); } catch (e) { return String(v); } }
+function runQuery() {
+  var raw = pathEl.value.trim();
+  if (!raw) { queryOutEl.textContent = ''; return; }
+  if (!lastValid || lastParsed === undefined) { queryOutEl.textContent = 'Load valid JSON to query.'; return; }
+  var tokens;
+  try { tokens = parsePath(raw); }
+  catch (e) { queryOutEl.textContent = 'Invalid path: ' + e.message; return; }
+  var matches = queryMatches(lastParsed, tokens);
+  if (!matches.length) { queryOutEl.textContent = 'No match for ' + raw; return; }
+  if (matches.length === 1) { queryOutEl.textContent = stringifyMatch(matches[0]); return; }
+  queryOutEl.textContent = matches.length + ' matches\n' + stringifyMatch(matches);
+}
+
+/* ---------- input meta ---------- */
+function updateInMeta(raw) {
+  if (!raw) { inMetaEl.textContent = 'empty'; return; }
+  var lines = raw.split('\n').length;
+  inMetaEl.textContent = lines + (lines === 1 ? ' line · ' : ' lines · ') + fmtBytes(byteLen(raw));
+}
+
+/* ---------- main pipeline ---------- */
+function run() {
+  var raw = inputEl.value;
+  updateInMeta(raw);
+
+  if (!raw.trim()) {
+    lastParsed = undefined; lastValid = false; treeDirty = true;
+    hideError();
+    textEl.textContent = '';
+    clearChildren(treeEl);
+    treeEl.hidden = true;
+    textEl.hidden = (view !== 'text');
+    statsEl.hidden = true;
+    emptyEl.hidden = false;
+    runQuery();
+    if (window.PF) window.PF.ready({ output: '', data: { valid: false, empty: true } });
+    return;
+  }
+
+  var parsed;
+  try { parsed = JSON.parse(raw); }
+  catch (err) {
+    showParseError(raw, err);
+    if (window.PF) window.PF.fail(lastErrText);
+    return;
+  }
+
+  hideError();
+  lastParsed = parsed; lastValid = true; treeDirty = true;
+  emptyEl.hidden = true;
+
+  var text = serialize(parsed, raw);
+  textEl.textContent = text;
+
+  var stats = analyze(parsed);
+  renderStats(parsed, stats);
+
+  if (view === 'tree') { buildTree(); treeEl.hidden = false; textEl.hidden = true; }
+  else { textEl.hidden = false; treeEl.hidden = true; }
+
+  runQuery();
+
+  if (window.PF) {
+    window.PF.ready({
+      output: text,
+      data: {
+        valid: true,
+        keys: topLevelCount(parsed),
+        type: typeOf(parsed),
+        depth: stats.depth,
+        nodes: stats.nodes,
+        minifiedBytes: byteLen(JSON.stringify(parsed))
+      }
+    });
+  }
+}
+
+/* ---------- copy ---------- */
+function legacyCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+function bindCopy(btn, getText) {
+  btn.addEventListener('click', function () {
+    var text = getText();
+    if (!text) return;
+    var done = function (good) {
+      btn.textContent = good ? 'Copied' : 'Failed';
+      btn.classList.toggle('copied', good);
+      setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(legacyCopy(text)); });
+    } else {
+      done(legacyCopy(text));
     }
   });
+}
+
+/* ---------- control wiring ---------- */
+function paintModeButtons() {
+  modeBtns.forEach(function (b) {
+    var on = b.getAttribute('data-mode') === mode;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  indentGroup.classList.toggle('jw-dim', mode === 'minify');
+}
+function paintIndentButtons() {
+  indentBtns.forEach(function (b) {
+    var on = b.getAttribute('data-indent') === indent;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+}
+function setMode(m) { mode = m; paintModeButtons(); }
+function setIndent(v) { indent = v; paintIndentButtons(); }
+
+modeBtns.forEach(function (btn) {
+  btn.addEventListener('click', function () { setMode(btn.getAttribute('data-mode')); run(); });
+});
+indentBtns.forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    setIndent(btn.getAttribute('data-indent'));
+    setMode('pretty'); // choosing an indent implies pretty
+    run();
+  });
+});
+viewBtns.forEach(function (btn) {
+  btn.addEventListener('click', function () { showView(btn.getAttribute('data-view')); });
+});
+
+byId('btnExample').addEventListener('click', loadExample);
+byId('jwEmptyExample').addEventListener('click', loadExample);
+function loadExample() {
+  inputEl.value = EXAMPLE;
+  if (!pathEl.value.trim()) pathEl.value = '$.users[0].name';
+  setMode('pretty'); setIndent('2');
+  run();
+  inputEl.focus();
+}
+
+byId('btnClear').addEventListener('click', function () {
+  inputEl.value = '';
+  pathEl.value = '';
+  run();
+  inputEl.focus();
+});
+
+bindCopy(byId('btnCopy'), function () { return textEl.hidden ? '' : textEl.textContent; });
+bindCopy(byId('btnCopyQuery'), function () { return queryOutEl.textContent; });
+
+inputEl.addEventListener('input', debounce(run, 140));
+pathEl.addEventListener('input', debounce(runQuery, 90));
+
+/* ---------- agent I/O + URL invoke ---------- */
+(function () {
+  var p = (window.PF && window.PF.input) ? window.PF.input() : {};
+  if (p && p.in != null) {
+    inputEl.value = p.in;
+    if (p.mode === 'minify' || p.mode === 'pretty') setMode(p.mode);
+    if (p.indent === '2' || p.indent === '4' || p.indent === 'tab') setIndent(p.indent);
+    if (p.path) pathEl.value = p.path;
+    run();
+  } else {
+    emptyEl.hidden = false;
+    textEl.hidden = false;
+    treeEl.hidden = true;
+    statsEl.hidden = true;
+    updateInMeta('');
+  }
 })();
 </script>
+</content>
+</invoke>

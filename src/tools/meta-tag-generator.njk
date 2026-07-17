@@ -4,20 +4,79 @@ permalink: /tools/meta-tag-generator/
 ---
 
 <style>
-  .mtg-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem 1.25rem; }
-  @media(max-width:640px) { .mtg-grid { grid-template-columns:1fr; } }
-  .mtg-field { display:flex; flex-direction:column; gap:0.25rem; }
-  .mtg-label { font-size:0.78rem; font-weight:600; color:var(--color-muted,#94a3b8); }
-  .mtg-input { padding:0.45rem 0.65rem; background:var(--color-surface-2,#1e293b); border:1px solid var(--color-border,#334155); border-radius:5px; color:var(--color-text,#e2e8f0); font-size:0.88rem; width:100%; box-sizing:border-box; }
-  .mtg-input:focus { outline:none; border-color:var(--color-accent,#6366f1); }
-  .mtg-section-title { font-size:0.78rem; font-weight:700; color:var(--color-accent,#6366f1); text-transform:uppercase; letter-spacing:0.06em; margin:1rem 0 0.5rem; }
-  /* Google search preview */
-  .google-preview { background:#fff; border-radius:8px; padding:1rem 1.25rem; margin-bottom:0.75rem; max-width:600px; }
+  /* ============================================================
+     Meta Tag Generator — premium workbench polish
+     (visual only; every script-referenced id is preserved)
+     ============================================================ */
+  .mtg-intro {
+    font-family: var(--font-sans); font-size: 13px; line-height: 1.65;
+    color: var(--text-2); margin: 0 0 6px; max-width: 70ch;
+  }
+  .mtg-intro code {
+    font-family: var(--font-mono); font-size: 0.88em; color: var(--accent);
+    background: color-mix(in oklab, var(--accent) 8%, transparent);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* Section label — mono, hairline rule (matches wb design language) */
+  .mtg-sec {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--slate);
+    margin: 28px 0 16px; display: flex; align-items: center; gap: 12px;
+  }
+  .mtg-sec:first-of-type { margin-top: 6px; }
+  .mtg-sec::after {
+    content: ""; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--wb-line), transparent);
+  }
+
+  /* Refined form grid — controls laid out horizontally, generous gutters */
+  .mtg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 22px; }
+  @media (max-width: 640px) { .mtg-grid { grid-template-columns: 1fr; } }
+  .mtg-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .mtg-field .mtg-input { width: 100%; box-sizing: border-box; }
+
+  /* Preview | Output split */
+  .mtg-io { margin-top: 32px; align-items: start; }
+  .mtg-preview-body {
+    padding: 22px; display: flex; flex-direction: column; gap: 22px;
+    background:
+      radial-gradient(130% 90% at 50% -30%, color-mix(in oklab, var(--accent) 6%, transparent), transparent 62%),
+      #08080f;
+  }
+  .mtg-preview-label {
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 1.6px;
+    text-transform: uppercase; color: var(--text-3); margin-bottom: 9px;
+  }
+
+  /* Compact copy button that sits inside the panel bar */
+  #mtg-copy { padding: 5px 13px; font-size: 10.5px; letter-spacing: 0.6px; }
+
+  /* Generated code — monospace, comfortable padding, scrolls in place */
+  .mtg-code {
+    margin: 0; padding: 18px 20px; max-height: 480px; overflow: auto;
+    font-family: var(--font-mono); font-size: 12.5px; line-height: 1.8;
+    color: #d7d2e6; white-space: pre-wrap; word-break: break-word;
+  }
+  .mtg-code:empty::before {
+    content: "Fill in the fields to generate your <head> tags…";
+    color: var(--text-3);
+  }
+
+  /* ---- Authentic Google search preview (deliberately light) ---- */
+  .google-preview {
+    background: #fff; border-radius: 8px; padding: 13px 16px; max-width: 100%;
+    box-shadow: 0 12px 36px -18px rgba(0,0,0,0.8);
+  }
   .google-preview .g-url { font-size:0.78rem; color:#202124; margin-bottom:0.15rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:Arial,sans-serif; }
   .google-preview .g-title { font-size:1.1rem; color:#1a0dab; font-family:Arial,sans-serif; margin-bottom:0.2rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
   .google-preview .g-desc { font-size:0.82rem; color:#4d5156; font-family:Arial,sans-serif; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  /* Twitter/OG card preview */
-  .card-preview { border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; max-width:500px; background:#fff; margin-bottom:0.75rem; }
+
+  /* ---- Authentic Twitter / OG card preview (deliberately light) ---- */
+  .card-preview {
+    border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; max-width:100%; background:#fff;
+    box-shadow: 0 12px 36px -18px rgba(0,0,0,0.8);
+  }
   .card-image { background:linear-gradient(135deg,#667eea,#764ba2); height:180px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.85rem; overflow:hidden; }
   .card-image img { width:100%; height:100%; object-fit:cover; }
   .card-body { padding:0.75rem 1rem; }
@@ -26,7 +85,9 @@ permalink: /tools/meta-tag-generator/
   .card-desc { font-size:0.82rem; color:#536471; font-family:Arial,sans-serif; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 </style>
 
-<div class="mtg-section-title">Basic</div>
+<p class="mtg-intro">Compose SEO, Open Graph, and Twitter Card tags with a live search &amp; social preview. Fill in the fields, then copy a clean <code>&lt;head&gt;</code> block — everything runs locally, nothing is uploaded.</p>
+
+<div class="mtg-sec">Basic SEO</div>
 <div class="mtg-grid">
   <div class="mtg-field">
     <label class="mtg-label" for="mtg-title">Page Title</label>
@@ -59,7 +120,7 @@ permalink: /tools/meta-tag-generator/
   </div>
 </div>
 
-<div class="mtg-section-title">Open Graph / Social</div>
+<div class="mtg-sec">Open Graph &amp; Social</div>
 <div class="mtg-grid">
   <div class="mtg-field">
     <label class="mtg-label" for="mtg-og-title">OG Title</label>
@@ -97,26 +158,39 @@ permalink: /tools/meta-tag-generator/
   </div>
 </div>
 
-<div class="mtg-section-title">Previews</div>
-<div style="margin-bottom:0.5rem; font-size:0.8rem; font-weight:600; color:var(--color-muted,#94a3b8);">Google Search Result</div>
-<div class="google-preview" id="mtg-google-preview">
-  <div class="g-url" id="mtg-g-url">example.com</div>
-  <div class="g-title" id="mtg-g-title">Page Title</div>
-  <div class="g-desc" id="mtg-g-desc">Page description will appear here.</div>
-</div>
-<div style="margin-bottom:0.5rem; font-size:0.8rem; font-weight:600; color:var(--color-muted,#94a3b8);">Social Card (Twitter / Facebook)</div>
-<div class="card-preview" id="mtg-card-preview">
-  <div class="card-image" id="mtg-card-image"><span style="opacity:0.7;">No image set</span></div>
-  <div class="card-body">
-    <div class="card-domain" id="mtg-card-domain">example.com</div>
-    <div class="card-title" id="mtg-card-title">Social Title</div>
-    <div class="card-desc" id="mtg-card-desc">Social description</div>
+<div class="mtg-io wb-split">
+  <div class="wb-panel">
+    <div class="wb-panel-bar"><span>Live Preview</span></div>
+    <div class="mtg-preview-body">
+      <div>
+        <div class="mtg-preview-label">Google Search Result</div>
+        <div class="google-preview" id="mtg-google-preview">
+          <div class="g-url" id="mtg-g-url">example.com</div>
+          <div class="g-title" id="mtg-g-title">Page Title</div>
+          <div class="g-desc" id="mtg-g-desc">Page description will appear here.</div>
+        </div>
+      </div>
+      <div>
+        <div class="mtg-preview-label">Social Card (Twitter / Facebook)</div>
+        <div class="card-preview" id="mtg-card-preview">
+          <div class="card-image" id="mtg-card-image"><span style="opacity:0.7;">No image set</span></div>
+          <div class="card-body">
+            <div class="card-domain" id="mtg-card-domain">example.com</div>
+            <div class="card-title" id="mtg-card-title">Social Title</div>
+            <div class="card-desc" id="mtg-card-desc">Social description</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 
-<div class="output-area" style="margin-top:0.5rem;">
-  <button class="btn btn--copy" id="mtg-copy">Copy HTML</button>
-  <pre id="mtg-output" aria-label="Generated meta tags"></pre>
+  <div class="wb-panel">
+    <div class="wb-panel-bar">
+      <span>Generated HTML</span>
+      <button class="btn btn--copy" id="mtg-copy" type="button">Copy HTML</button>
+    </div>
+    <pre class="mtg-code" id="mtg-output" aria-label="Generated meta tags"></pre>
+  </div>
 </div>
 
 <script>
