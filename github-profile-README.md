@@ -1,37 +1,36 @@
 ### Hey, I'm Shadoe
 
-Senior information security engineer, CIRT responder, and the person behind **Penumbra Forge** — an independent studio building privacy-first security tools and open source software.
+Senior information security engineer on a CIRT by day, insomniac developer by night, and the person behind **Penumbra Forge LLC** — an independent company building privacy-first AI and security tools.
 
-Everything I build runs locally, collects nothing and respects your privacy.
+Everything I build runs locally, collects nothing, and respects your privacy.
 
 ---
 
-#### From the Forge
+#### From Penumbra Forge
 
-**[Gate](https://github.com/penumbraforge/gate)** — The first secret scanner that fixes what it finds. 148 detection rules, credential verification, auto-remediation across 9 languages, incident response workflows, and compliance reports. Free, open source, runs 100% on your machine.
+**[Gate](https://github.com/penumbraforge/gate)** — A secret scanner that fixes what it finds. 148 detection rules, credential verification, auto-remediation across 9 languages, incident-response workflows, and compliance reports. Free, open source, runs 100% on your machine.
 
-**[vexes](https://github.com/penumbraforge/vexes)** — Cross-ecosystem dependency security scanner with a 4-layer behavioral analysis engine. AST code inspection, typosquat detection, behavioral fingerprinting, and pre-install guarding across 9 ecosystems. Catches supply chain attacks that vulnerability databases miss. Zero dependencies.
+**[vexes](https://github.com/penumbraforge/vexes)** — Cross-ecosystem dependency security scanner with a 4-layer behavioral analysis engine. AST inspection, typosquat detection, behavioral fingerprinting, and pre-install guarding across 9 ecosystems. Catches supply chain attacks that vulnerability databases miss. Zero dependencies.
 
 **[mcp-librarian](https://github.com/penumbraforge/mcp-librarian)** — Intelligent MCP skills server for AI coding agents. BM25 search, Ed25519 integrity, progressive disclosure, zero dependencies. Works with Claude Code, Ollama, and anything that speaks MCP.
 
-**[penumbraforge.com](https://penumbraforge.com)** — 78 privacy-first developer and security tools, 12 hands-on offensive and defensive security labs, and a technical blog. All tools run client-side with no tracking, no accounts, no data collection.
+**[penumbraforge.com](https://penumbraforge.com)** — 77 privacy-first developer and security tools, plus a machine index and MCP server so AI agents can use them too. Everything runs client-side — no tracking, no accounts, no data collection.
 
 ---
 
-#### What I'm working on
+#### What I'm building
 
-**[Umbra](https://penumbraforge.com/umbra/)** — A 100% local AI development environment. Full IDE with chat, agent mode, codebase RAG, inline completion, knowledge packs, and a plugin system. No cloud, no telemetry, no accounts — your code never leaves your machine.
+**[Umbra](https://penumbraforge.com/umbra/)** — A local-first AI studio (GUI + TUI) for running, orchestrating, and auditing large language models entirely on your own hardware. Built for NVIDIA DGX Spark, CUDA-first. In active development.
 
-- Expanding Gate's detection rules and adding SARIF integration for GitHub Advanced Security
-- Expanding vexes ecosystem coverage and hardening the behavioral analysis engine
-- Building community skill packs for mcp-librarian
-- Writing new red team and blue team security labs (IDOR, race conditions, SSRF, SOAR playbooks)
-- Writing about security engineering: JWT pitfalls, log analysis from an attacker's perspective, security headers
+- Moving Umbra's development onto NVIDIA DGX Spark — 128&nbsp;GB unified memory, CUDA-first
+- Expanding Gate's detection rules and SARIF output for GitHub Advanced Security
+- Broadening vexes ecosystem coverage and hardening the behavioral analysis engine
+- Growing the community skill packs for mcp-librarian
 
 ---
 
 #### Elsewhere
 
 - **Site:** [penumbraforge.com](https://penumbraforge.com)
-- **Twitter/X:** [@penumbraforge](https://twitter.com/penumbraforge)
+- **LinkedIn:** [shadoemyers](https://www.linkedin.com/in/shadoemyers)
 - **Location:** Arizona
