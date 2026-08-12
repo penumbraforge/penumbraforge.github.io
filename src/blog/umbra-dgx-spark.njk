@@ -1,0 +1,55 @@
+---
+date: 2026-08-12
+layout: base.njk
+title: "Umbra is moving to NVIDIA DGX Spark — Penumbra Forge"
+description: "Why development of Umbra, our local-first AI studio, is moving from a 32GB MacBook Pro to NVIDIA DGX Spark — the memory ceiling problem, what 128GB of unified memory changes, and what CUDA-first means for the project."
+permalink: /blog/umbra-dgx-spark/
+---
+
+<link rel="stylesheet" href="/css/blog.css">
+
+{% include "header.njk" %}
+
+<div class="blog-page">
+  <article class="blog-article">
+    <div class="blog-article-header">
+      <h1>Umbra is moving to NVIDIA DGX Spark</h1>
+      <div class="blog-post-meta">
+        <span class="blog-post-date">August 12, 2026</span>
+        <span class="blog-post-tag">local inference</span>
+        <span class="blog-post-tag">DGX Spark</span>
+        <span class="blog-post-tag">Umbra</span>
+        <span class="blog-post-read">6 min read</span>
+      </div>
+    </div>
+
+    <p class="blog-article-lede">There's a DGX Spark arriving at the forge tomorrow. Starting this week, Umbra — our local-first AI studio — is being developed on it, for it. CUDA-first. Here's why a company whose local-inference work has so far lived on Apple Silicon is moving its main AI project to NVIDIA hardware.</p>
+
+    <div class="blog-body">
+      <h2>The 32GB ceiling</h2>
+      <p>Umbra is a GUI and TUI for running, orchestrating, and auditing large language models entirely on your own hardware. The operative word is <em>auditing</em>: Umbra doesn't just generate tokens, it instruments the run — what went into the context, what the model did with it, what left the machine (nothing, or it's a bug).</p>
+      <p>My development machine has been a MacBook Pro M5 with 32GB of unified memory. For an app that <em>hosts</em> a model, that budget gets eaten three times over. The model weights and KV cache want all of it. The app itself — two frontends, an engine layer, inference hooks — wants headroom. And the auditing instrumentation wants to hold activations and logs <em>alongside</em> generation, which effectively doubles the working set of whatever you're inspecting.</p>
+      <p>In practice that meant developing against 7B and 8B quants, because they were what fit next to everything else. Every "does this hold up on a real model" question meant shutting down the dev environment, loading a 30B+ quant, finding out, and tearing it back down. The feedback loop for the exact features that make Umbra worth building was measured in minutes, not seconds.</p>
+      <p><a href="/blog/397b-on-a-macbook/">I did once get a 397B MoE running on this laptop</a> by streaming experts off the SSD through hand-written Metal shaders. I'm proud of that. It was also the moment the ceiling stopped being an inconvenience and started being the constraint that shaped every design decision. You can do heroic things on 32GB. You can't build a studio for serious local model work while trapped inside them.</p>
+
+      <h2>What 128GB of unified memory actually changes</h2>
+      <p>DGX Spark is Grace Blackwell on a desk: a GB10 superchip with 128GB of coherent unified memory between the CPU and GPU. For Umbra's development loop, that changes three things concretely:</p>
+      <p><strong>Models stay resident.</strong> A 70B-class quant sits in memory next to the full dev environment, the profiler, and the audit store. The load-test-teardown cycle disappears. The models Umbra is designed to manage become the models it's developed against.</p>
+      <p><strong>Auditing gets room to exist.</strong> Inference introspection — capturing activations, tracking context assembly, diffing runs — is a memory hog by nature. With 128GB, instrumentation runs alongside generation instead of instead of it.</p>
+      <p><strong>Orchestration becomes testable.</strong> Umbra's harness can drive multi-step, multi-model pipelines. On 32GB, "multi-model" was a euphemism for "swap, wait, swap back." Now a router model, a worker model, and an embedding model can be loaded simultaneously — which is the configuration users will actually run.</p>
+
+      <h2>Why CUDA-first</h2>
+      <p>MLX has been good to us, and the Metal work taught me more about inference internals than any paper. But the local-inference ecosystem has a center of gravity, and it is CUDA. llama.cpp, vLLM, TensorRT-LLM, the quantization toolchains, the profilers — the deepest, best-maintained paths all run through NVIDIA's stack. Building Umbra CUDA-first means building against the runtime most of its eventual users have, on the same silicon architecture that runs everywhere from a Spark on a desk to a datacenter.</p>
+      <p>This isn't Apple hardware leaving the building — the MacBook still gets used, and the in-browser WebGPU inference on this site's <a href="/tools/">tools</a> stays exactly as it is. It's a statement about where the product's foundation gets poured: Umbra targets CUDA first and runs where CUDA runs.</p>
+
+      <h2>What happens next</h2>
+      <p>The Spark arrives tomorrow. The plan, in order: port Umbra's engine layer to CUDA, wire the audit hooks into the new runtime, and re-baseline every latency and memory number I've been carrying in my head against real hardware. When there are honest benchmarks — first-token latency with instrumentation enabled, resident model counts, the boring numbers that matter — they'll get published here.</p>
+      <p>If the economics cooperate, a second Spark joins it, because the two-node story (ConnectX-7 links two Sparks directly) maps exactly onto how Umbra thinks about orchestration. But one machine first. Ship the studio.</p>
+      <p>If you want to know when Umbra is ready: <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">github.com/penumbraforge</a>, or <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a>. In the meantime, there's a <a href="/umbra/">teaser page</a> with the shape of the thing.</p>
+      <div class="blog-nav">
+        <a href="/blog/" class="blog-nav-link">&larr; All posts</a>
+      </div>
+    </div>
+
+  </article>
+</div>

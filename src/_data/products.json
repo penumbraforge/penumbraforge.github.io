@@ -1,14 +1,30 @@
 [
   {
+    "name": "umbra",
+    "description": "Local-first AI studio for running, orchestrating, and auditing large language models on your own hardware. Built for NVIDIA DGX Spark, CUDA-first.",
+    "url": "/umbra",
+    "repo": null,
+    "status": "in development"
+  },
+  {
     "name": "gate",
     "description": "Pre-commit secret defense. Catches API keys, tokens, and credentials before they reach your repo.",
     "url": "/gate",
-    "repo": null
+    "repo": "https://github.com/penumbraforge/gate",
+    "status": "shipping"
   },
   {
     "name": "vexes",
     "description": "Cross-ecosystem dependency security scanner. 4-layer behavioral analysis catches supply chain attacks that vulnerability databases miss.",
     "url": "/vexes",
-    "repo": null
+    "repo": "https://github.com/penumbraforge/vexes",
+    "status": "early access"
+  },
+  {
+    "name": "mcp-librarian",
+    "description": "Self-growing MCP skills server for AI coding agents. Researches authoritative sources and creates signed, persistent skills.",
+    "url": "/librarian",
+    "repo": "https://github.com/penumbraforge/mcp-librarian",
+    "status": "shipping"
   }
 ]

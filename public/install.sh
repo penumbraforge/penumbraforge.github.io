@@ -56,12 +56,12 @@ install_gate() {
       git pull --ff-only || error "git pull failed. Delete ~/.gate/app and re-run."
     else
       rm -rf "${INSTALL_DIR}"
-      git clone --depth 1 https://github.com/rngdz/gate.git "${INSTALL_DIR}" || error "git clone failed."
+      git clone --depth 1 https://github.com/penumbraforge/gate.git "${INSTALL_DIR}" || error "git clone failed."
       cd "${INSTALL_DIR}"
     fi
   else
     info "git not found, installing via npm tarball..."
-    npm install -g https://github.com/rngdz/gate/tarball/main || error "npm install failed."
+    npm install -g https://github.com/penumbraforge/gate/tarball/main || error "npm install failed."
     return 0
   fi
 

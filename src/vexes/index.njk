@@ -68,7 +68,7 @@ permalink: /vexes/
     <pre class="vx-pre"><code><span class="code-prompt">$</span> <span class="code-cmd">vexes</span> <span class="code-arg">analyze --deep</span>
 
 <span class="code-comment">  vexes v0.1.1 — analyzing dependencies
-  Found 847 packages across 3 lockfile(s)
+  Found 412 packages across 3 lockfile(s)
   Ecosystems: npm, pypi, cargo</span>
 
 <span class="code-str">  ■ CRITICAL</span>  axios 1.14.1 <span class="code-comment">(npm)</span>
@@ -109,28 +109,29 @@ permalink: /vexes/
         </thead>
         <tbody>
           <tr><td>Free / open source</td><td class="vx-yes">Yes</td><td class="vx-yes">Yes</td><td class="vx-paid">Freemium</td><td class="vx-paid">Freemium</td></tr>
-          <tr><td>Runs locally</td><td class="vx-yes">Yes</td><td class="vx-yes">Yes</td><td>No</td><td>No</td></tr>
-          <tr><td>AST code analysis</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td class="vx-yes">Yes</td></tr>
+          <tr><td>Runs locally</td><td class="vx-yes">Yes</td><td class="vx-yes">Yes</td><td>Partial</td><td>No</td></tr>
+          <tr><td>AST code analysis</td><td class="vx-yes">Yes</td><td>No</td><td>Partial</td><td class="vx-yes">Yes</td></tr>
           <tr><td>Behavioral fingerprinting</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td class="vx-yes">Yes</td></tr>
           <tr><td>Typosquat detection</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td class="vx-yes">Yes</td></tr>
           <tr><td>Pre-install guard</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td>No</td></tr>
-          <tr><td>9 ecosystems</td><td class="vx-yes">Yes</td><td>npm only</td><td class="vx-yes">Yes</td><td>npm only</td></tr>
+          <tr><td>9 ecosystems</td><td class="vx-yes">Yes</td><td>npm only</td><td class="vx-yes">Yes</td><td>Multiple</td></tr>
           <tr><td>Zero dependencies</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td>No</td></tr>
           <tr><td>SARIF output</td><td class="vx-yes">Yes</td><td>No</td><td class="vx-yes">Yes</td><td>No</td></tr>
           <tr><td>No account required</td><td class="vx-yes">Yes</td><td class="vx-yes">Yes</td><td>No</td><td>No</td></tr>
         </tbody>
       </table>
+      <p style="margin-top: 12px; font-size: 12px; color: var(--text-3); line-height: 1.6;">Comparison reflects publicly documented free-tier capabilities as of August 2026. Spot an error? Email <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a> and it gets fixed.</p>
     </div>
   </div>
 </section>
 
-<!-- PROVEN DETECTION -->
+<!-- DETECTION TESTING -->
 <section class="vx-section" aria-labelledby="proven-title">
   <div class="vx-wrap">
-    <div class="section-label">Proven Detection</div>
-    <h2 id="proven-title">Tested against 9 real-world attacks</h2>
-    <p>The red team test suite reconstructs real supply chain compromises and proves vexes catches them:</p>
-    <div class="vx-table-wrap" role="region" aria-label="Proven attack detection">
+    <div class="section-label">Detection Testing</div>
+    <h2 id="proven-title">Tested against reconstructed real-world attacks</h2>
+    <p>The regression suite reconstructs known supply chain compromises and checks that vexes flags each one:</p>
+    <div class="vx-table-wrap" role="region" aria-label="Reconstructed attack detection">
       <table class="vx-table">
         <thead>
           <tr>

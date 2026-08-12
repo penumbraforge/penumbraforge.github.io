@@ -1,12 +1,15 @@
 {
   "name": "Penumbra Forge",
+  "legalName": "Penumbra Forge LLC",
   "url": "https://penumbraforge.com",
-  "title": "Penumbra Forge — Security Tooling & Developer Software",
-  "description": "Independent software studio building privacy-first security tools, supply chain defenses, and developer utilities. No accounts, no tracking — your data stays in your browser.",
+  "title": "Penumbra Forge — Private AI & Security Tooling",
+  "description": "Independent software company building privacy-first AI and security tools. Local LLM inference on your own hardware — from WebGPU in the browser to NVIDIA DGX — plus open source security software. No accounts, no tracking.",
+  "foundingYear": "2026",
   "author": {
-    "name": "Penumbra Forge",
-    "email": "hello@penumbraforge.com",
-    "jobTitle": "Software Studio"
+    "name": "Shadoe Myers",
+    "email": "shadoe@penumbraforge.com",
+    "jobTitle": "Founder",
+    "linkedin": "https://www.linkedin.com/in/shadoemyers"
   },
   "umbra": {
     "launched": false

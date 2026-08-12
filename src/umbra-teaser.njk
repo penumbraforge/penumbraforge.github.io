@@ -1,0 +1,188 @@
+---
+layout: base.njk
+title: "Umbra — Local-First AI Studio, Built for NVIDIA DGX Spark | Penumbra Forge"
+description: "Umbra is a local-first AI studio for running, orchestrating, and auditing large language models entirely on your own hardware. Built for NVIDIA DGX Spark, CUDA-first. In active development."
+permalink: /umbra/
+---
+
+{% include "header.njk" %}
+
+<div class="umbra-page">
+
+  <section class="umbra-hero">
+    <span class="umbra-ghost" aria-hidden="true">☾</span>
+    <div class="umbra-status">In active development</div>
+    <h1>Umbra</h1>
+    <p class="umbra-tagline">A local-first AI studio. Run, orchestrate, and audit large language models on hardware you own — with nothing leaving the machine.</p>
+  </section>
+
+  <section class="umbra-section">
+    <h2>What it is</h2>
+    <p>Umbra is a desktop GUI and terminal TUI for working with local models seriously: loading and switching models, orchestrating multi-step inference, inspecting what a model actually does with your prompts, and auditing runs after the fact. No cloud endpoints, no subscriptions, no telemetry — local inference is the whole product, not a fallback mode.</p>
+  </section>
+
+  <section class="umbra-section">
+    <h2>Built for NVIDIA DGX Spark</h2>
+    <p>Umbra is developed on and designed around <strong>NVIDIA DGX Spark</strong> — Grace Blackwell compute with 128&nbsp;GB of unified memory. That budget changes what local AI can mean: larger models resident in memory, longer contexts, and real headroom for inference auditing alongside generation. Umbra targets CUDA first and runs where CUDA runs.</p>
+    <div class="umbra-pills">
+      <span>NVIDIA DGX Spark</span>
+      <span>CUDA-first</span>
+      <span>128 GB unified memory</span>
+      <span>GUI + TUI</span>
+      <span>fully offline</span>
+    </div>
+  </section>
+
+  <section class="umbra-section">
+    <h2>Status</h2>
+    <p>Umbra is in deep development at Penumbra Forge and isn't released yet. When it ships, it ships the way everything here does: open to inspection, private by default.</p>
+    <p>Want to know when it's ready? Watch <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">github.com/penumbraforge</a> or write to <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a>.</p>
+    <div class="umbra-actions">
+      <a href="/about/" class="umbra-btn">About Penumbra Forge</a>
+      <a href="/tools/" class="umbra-btn umbra-btn--ghost">Try our browser AI tools</a>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Umbra",
+  "applicationCategory": "DeveloperApplication",
+  "description": "Local-first AI studio for running, orchestrating, and auditing large language models on your own hardware. Built for NVIDIA DGX Spark, CUDA-first.",
+  "operatingSystem": "Linux, macOS",
+  "url": "{{ site.url }}/umbra/",
+  "author": { "@type": "Organization", "name": "Penumbra Forge", "url": "{{ site.url }}" }
+}
+</script>
+
+<style>
+.umbra-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+
+.umbra-hero {
+  position: relative;
+  padding: 56px 0 32px;
+}
+
+.umbra-ghost {
+  position: absolute;
+  top: 8px;
+  right: 0;
+  font-size: 72px;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.umbra-status {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid rgba(184, 165, 214, 0.3);
+  border-radius: 100px;
+  padding: 5px 12px;
+  margin-bottom: 20px;
+}
+
+.umbra-hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(44px, 8vw, 72px);
+  font-weight: 200;
+  color: var(--text-1);
+  line-height: 1;
+  margin-bottom: 18px;
+}
+
+.umbra-tagline {
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--text-2);
+  max-width: 54ch;
+}
+
+.umbra-section {
+  margin-top: 52px;
+}
+
+.umbra-section h2 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--text-1);
+  margin-bottom: 14px;
+}
+
+.umbra-section p {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text-2);
+  margin-bottom: 12px;
+}
+
+.umbra-section strong {
+  color: var(--text-1);
+  font-weight: 500;
+}
+
+.umbra-section a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.umbra-section a:hover {
+  color: var(--accent-strong);
+}
+
+.umbra-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.umbra-pills span {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-2);
+  border: 1px solid rgba(184, 165, 214, 0.18);
+  border-radius: 100px;
+  padding: 6px 12px;
+}
+
+.umbra-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.umbra-btn {
+  display: inline-block;
+  font-size: 13px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--surface-0) !important;
+  text-decoration: none;
+}
+
+.umbra-btn--ghost {
+  background: transparent;
+  border: 1px solid rgba(184, 165, 214, 0.3);
+  color: var(--text-2) !important;
+}
+
+@media (max-width: 480px) {
+  .umbra-page { padding: 32px 18px 72px; }
+  .umbra-hero { padding: 32px 0 16px; }
+  .umbra-ghost { font-size: 52px; }
+}
+</style>

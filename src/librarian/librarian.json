@@ -1,6 +1,7 @@
 {
   "layout": "product-layout.njk",
   "productName": "librarian",
-  "productTitle": "mcp-librarian — MCP Skills Server",
-  "productDescription": "A self-growing knowledge library for AI coding agents."
+  "productTitle": "mcp-librarian \u2014 MCP Skills Server",
+  "productDescription": "A self-growing knowledge library for AI coding agents.",
+  "productRepo": "https://github.com/penumbraforge/mcp-librarian"
 }

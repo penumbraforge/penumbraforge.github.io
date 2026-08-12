@@ -1,4 +1,5 @@
 ---
+date: 2026-03-26
 layout: base.njk
 title: "What your security headers actually do — Penumbra Forge"
 description: "A practical breakdown of every HTTP security header — what attack each one prevents, what happens when it's missing, and how to stop copying configs you don't understand."
@@ -7,27 +8,14 @@ permalink: /blog/what-your-security-headers-actually-do/
 
 <link rel="stylesheet" href="/css/blog.css">
 
-<header class="site-header" id="site-header">
-  <a href="/" class="site-header-brand" title="Penumbra Forge">
-    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
-  </a>
-  <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
-  <nav class="site-header-nav">
-    <a href="/">Home</a>
-    <a href="/tools/">Tools</a>
-    <a href="/blog/" class="active">Blog</a>
-    <a href="/gate/">Gate</a>
-    <a href="/librarian/">Librarian</a>
-    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
-  </nav>
-</header>
+{% include "header.njk" %}
 
 <div class="blog-page">
   <article class="blog-article">
     <div class="blog-article-header">
       <h1>What your security headers actually do</h1>
       <div class="blog-post-meta">
-        <span class="blog-post-date">March 5, 2026</span>
+        <span class="blog-post-date">March 26, 2026</span>
         <span class="blog-post-tag">security</span>
         <span class="blog-post-tag">http headers</span>
         <span class="blog-post-read">10 min read</span>
@@ -208,8 +196,8 @@ Cross-Origin-Resource-Policy: same-origin</code></pre>
       <div class="blog-author">
         <div class="blog-author-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <div>
-          <div class="blog-author-name">Penumbra Forge</div>
-          <div class="blog-author-role">Engineering</div>
+          <div class="blog-author-name">Shadoe Myers</div>
+          <div class="blog-author-role">Founder, Penumbra Forge</div>
         </div>
       </div>
       <div class="blog-nav-links">

@@ -16,6 +16,7 @@
   <meta property="og:type" content="website">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:site_name" content="{{ site.name }}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="{{ site.url }}/og-image.png">
   <meta name="twitter:title" content="{{ title or site.title }}">
@@ -57,8 +58,26 @@
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "{{ site.name }}",
+    "legalName": "{{ site.legalName }}",
     "url": "{{ site.url }}",
-    "description": "{{ site.description }}"
+    "logo": "{{ site.url }}/apple-touch-icon.png",
+    "description": "{{ site.description }}",
+    "foundingDate": "{{ site.foundingYear }}",
+    "founder": {
+      "@type": "Person",
+      "name": "{{ site.author.name }}",
+      "jobTitle": "Founder",
+      "sameAs": ["{{ site.author.linkedin }}"]
+    },
+    "sameAs": [
+      "https://github.com/penumbraforge",
+      "{{ site.author.linkedin }}"
+    ],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "{{ site.author.email }}",
+      "contactType": "customer support"
+    }
   }
   </script>
   {% endblock %}

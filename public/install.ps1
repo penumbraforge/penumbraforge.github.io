@@ -34,7 +34,7 @@ if ($gitCmd) {
         Pop-Location
     } else {
         if (Test-Path $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
-        git clone --depth 1 https://github.com/rngdz/gate.git $InstallDir
+        git clone --depth 1 https://github.com/penumbraforge/gate.git $InstallDir
     }
     Push-Location $InstallDir
     Write-Info "Installing dependencies..."
@@ -44,7 +44,7 @@ if ($gitCmd) {
     Pop-Location
 } else {
     Write-Info "git not found, installing via npm tarball..."
-    npm install -g https://github.com/rngdz/gate/tarball/main
+    npm install -g https://github.com/penumbraforge/gate/tarball/main
 }
 
 # Create wrapper script

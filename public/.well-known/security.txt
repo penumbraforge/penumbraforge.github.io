@@ -1,4 +1,4 @@
-Contact: mailto:security@penumbraforge.com
+Contact: mailto:shadoe@penumbraforge.com
 Expires: 2027-03-28T00:00:00.000Z
 Preferred-Languages: en
 Canonical: https://penumbraforge.com/.well-known/security.txt

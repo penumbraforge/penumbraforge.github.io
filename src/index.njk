@@ -18,25 +18,26 @@ hideAtmosphere: true
       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="6" x2="17" y2="6"/><line x1="3" y1="14" x2="17" y2="14"/></svg>
     </button>
     <nav class="fx-nav" id="fxNav">
+      <a href="/umbra/">Umbra</a>
       <a href="/tools/">Tools</a>
       <a href="/tools/agents/">For&nbsp;Agents</a>
       <a href="/blog/">Blog</a>
+      <a href="/about/">About</a>
       <a href="#" data-open-palette title="Run any tool — ⌘K">⌘K&nbsp;Run</a>
       <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-nav-cta">GitHub &nearr;</a>
     </nav>
   </header>
 
   <section class="fx-hero" id="fxHero">
-    <canvas class="fx-hero-canvas" id="fxEclipse" aria-hidden="true"></canvas>
     <div class="fx-hero-scrim" aria-hidden="true"></div>
     <div class="fx-hero-eclipse" aria-hidden="true"></div>
     <div class="fx-hero-inner">
-      <p class="fx-kicker reveal">Independent software studio</p>
-      <h1 class="reveal"><span class="fx-line">Security tooling,</span><span class="fx-line"><span class="fx-accent">zero surveillance.</span></span></h1>
-      <p class="fx-hero-sub reveal">Privacy-first developer utilities, supply-chain defenses, and open source security software — engineered to run on your hardware, with your data staying yours.</p>
+      <p class="fx-kicker reveal">Independent software company</p>
+      <h1 class="reveal"><span class="fx-line">Private AI &amp; security tooling,</span><span class="fx-line"><span class="fx-accent">zero surveillance.</span></span></h1>
+      <p class="fx-hero-sub reveal">Local AI inference on your own hardware — from WebGPU in the browser to NVIDIA DGX — alongside open source security tools and supply-chain defenses. No cloud dependency, no accounts, your data never leaves the machine.</p>
       <div class="fx-hero-actions reveal">
-        <a href="/tools/" class="fx-btn fx-btn--solid" data-magnetic><span>Browse {{ liveTools.length }} tools</span></a>
-        <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-btn" data-magnetic><span>Source on GitHub</span></a>
+        <a href="/tools/" class="fx-btn fx-btn--solid"><span>Browse {{ liveTools.length }} tools</span></a>
+        <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-btn"><span>Source on GitHub</span></a>
       </div>
     </div>
   </section>
@@ -61,7 +62,7 @@ hideAtmosphere: true
     <div class="fx-cell fx-cell--gate reveal">
       <div class="fx-cell-meta"><span>Pre-commit defense</span><span class="fx-status">shipping</span></div>
       <h3>Gate</h3>
-      <p>Catches secrets before they reach your repository — and fixes them automatically. Installs in one command, scans in milliseconds.</p>
+      <p>Catches secrets before they reach your repository — and fixes them automatically. Installs in one command, runs on every commit.</p>
       <div class="fx-term">
         <div class="fx-term-bar">gate scan --fix</div>
         <pre><span class="hl-dim">$</span> <span class="hl-key">gate scan --fix</span>
@@ -84,7 +85,7 @@ hideAtmosphere: true
     </div>
 
     <div class="fx-cell fx-cell--vexes reveal">
-      <div class="fx-cell-meta"><span>Supply-chain security</span><span class="fx-status">shipping</span></div>
+      <div class="fx-cell-meta"><span>Supply-chain security</span><span class="fx-status fx-status--dev">early access</span></div>
       <h3>vexes</h3>
       <p>Cross-ecosystem dependency scanner. 4-layer behavioral analysis catches attacks that vulnerability databases miss — before they execute.</p>
       <div class="fx-featlist"><span>AST analysis</span><span>pre-install guard</span><span>9 ecosystems</span><span>zero deps</span></div>
@@ -95,13 +96,39 @@ hideAtmosphere: true
       <span class="fx-ghost" aria-hidden="true">☾</span>
       <div class="fx-cell-meta"><span>Local AI studio</span><span class="fx-status fx-status--dev">in development</span></div>
       <h3>Umbra</h3>
-      <p>A local-first AI creation studio for Apple Silicon. Run large language models on your own hardware. No cloud, no subscriptions, no data leaving the machine.</p>
-      <div class="fx-featlist"><span>Apple Silicon</span><span>MLX runtime</span><span>fully offline</span></div>
+      <p>A local-first AI studio — GUI and TUI — for running, orchestrating, and auditing large language models on your own hardware. Built for NVIDIA DGX Spark. No cloud, no subscriptions, no data leaving the machine.</p>
+      <div class="fx-featlist"><span>NVIDIA DGX Spark</span><span>CUDA</span><span>GUI + TUI</span><span>fully offline</span></div>
+      <a href="/umbra/" class="fx-cell-link">Explore Umbra <span>&rarr;</span></a>
     </div>
   </div>
 
   <div class="fx-section-head reveal">
     <span class="fx-index">02</span>
+    <h2>Local AI</h2>
+    <span class="fx-rule"></span>
+    <span class="fx-count">three runtimes, zero cloud</span>
+  </div>
+
+  <div class="fx-principles">
+    <div class="fx-principle reveal">
+      <span class="fx-glyph">☾</span>
+      <h3>In your browser</h3>
+      <p>Our AI tools run quantized LLM inference and embeddings directly in the browser over WebGPU — chat, RAG, and security analysis without a single byte leaving the tab.</p>
+    </div>
+    <div class="fx-principle reveal">
+      <span class="fx-glyph">⌂</span>
+      <h3>On your machine</h3>
+      <p>Every AI tool can point at your own runtime — Ollama or LM Studio on localhost — so your models, prompts, and data stay on hardware you control.</p>
+    </div>
+    <div class="fx-principle reveal">
+      <span class="fx-glyph">▲</span>
+      <h3>On NVIDIA DGX</h3>
+      <p>Umbra, our local AI studio, is developed on and built for NVIDIA DGX Spark — Grace Blackwell compute with 128&nbsp;GB of unified memory for serious local model work, CUDA-first.</p>
+    </div>
+  </div>
+
+  <div class="fx-section-head reveal">
+    <span class="fx-index">03</span>
     <h2>Instruments</h2>
     <span class="fx-rule"></span>
     <span class="fx-count">{{ liveTools.length }} tools — zero tracking</span>
@@ -120,7 +147,7 @@ hideAtmosphere: true
   <a href="/tools/" class="fx-tools-cta reveal">View all {{ liveTools.length }} instruments &rarr;</a>
 
   <div class="fx-section-head reveal">
-    <span class="fx-index">03</span>
+    <span class="fx-index">04</span>
     <h2>The Forge Standard</h2>
     <span class="fx-rule"></span>
     <span class="fx-count">how we build</span>
@@ -150,153 +177,6 @@ hideAtmosphere: true
 {% include "command-palette.njk" %}
 
 <script>
-/* ---- Living eclipse: WebGL fragment shader ---- */
-(function () {
-  var canvas = document.getElementById('fxEclipse');
-  var hero = document.getElementById('fxHero');
-  if (!canvas || !hero) return;
-  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) return; // CSS fallback eclipse stays
-
-  var gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false });
-  if (!gl) return; // CSS fallback stays
-
-  var vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
-  var fs = [
-'precision highp float;',
-'uniform vec2 u_res;uniform float u_time;uniform vec2 u_mouse;uniform vec2 u_center;uniform float u_radius;',
-'float hash(vec2 p){p=fract(p*vec2(123.34,345.45));p+=dot(p,p+34.345);return fract(p.x*p.y);}',
-'float noise(vec2 p){vec2 i=floor(p);vec2 f=fract(p);vec2 u=f*f*(3.0-2.0*f);',
-' float a=hash(i),b=hash(i+vec2(1.0,0.0)),c=hash(i+vec2(0.0,1.0)),d=hash(i+vec2(1.0,1.0));',
-' return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);}',
-'float fbm(vec2 p){float v=0.0,a=0.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);',
-' for(int i=0;i<5;i++){v+=a*noise(p);p=m*p;a*=0.5;}return v;}',
-'void main(){',
-' vec2 res=u_res;float mn=min(res.x,res.y);',
-' vec2 uv=gl_FragCoord.xy/res;',
-' vec2 pp=(uv-u_center)*res/mn;',
-' float r=length(pp);float ang=atan(pp.y,pp.x);',
-' float R=u_radius;float rr=r/R;',
-' vec2 mo=(u_mouse-u_center)*res/mn;',
-' float side=dot(normalize(pp+1e-5),normalize(mo+1e-5));',
-' float t=u_time*0.05;',
-' vec2 q=pp*2.2;',
-' vec2 w=vec2(fbm(q+vec2(0.0,t*3.0)),fbm(q+vec2(5.2,-t*2.6)));',
-' float flame=fbm(vec2(ang/3.14159*3.0,rr*2.5)+w*1.3+vec2(0.0,-t*4.0));',
-' flame=flame*0.7+0.3*fbm(vec2(ang/3.14159*6.0,rr*5.0)+w*2.0-t*3.0);',
-' float inner=smoothstep(R*0.80,R*1.0,r);',
-' float outer=1.0-smoothstep(R*1.02,R*2.5,r);',
-' float ring=inner*outer;',
-' float corona=ring*(0.20+0.92*flame);',
-' corona*=(1.0+0.5*max(0.0,side));',
-' corona=max(corona,0.0);',
-' float orbit=u_time*0.16;',
-' float hotspot=pow(max(0.0,cos(ang-orbit)),60.0);',
-' float bead=smoothstep(R*0.9,R*1.03,r)*(1.0-smoothstep(R*1.03,R*1.3,r))*hotspot*1.8;',
-' float rim=(smoothstep(R*0.985,R,r)-smoothstep(R,R*1.02,r));rim=max(rim,0.0);',
-' float halo=(1.0-smoothstep(R*1.0,R*3.4,r))*0.16;',
-' vec3 hot=vec3(1.0,0.94,1.0);vec3 vio=vec3(0.73,0.63,0.87);vec3 deep=vec3(0.36,0.24,0.52);',
-' float grad=smoothstep(R,R*1.9,r);',
-' vec3 cc=mix(hot,vio,smoothstep(0.0,0.45,grad));cc=mix(cc,deep,smoothstep(0.45,1.0,grad));',
-' vec3 col=cc*corona+vec3(1.0,0.97,1.0)*bead+vec3(0.92,0.86,1.0)*rim*0.9+vio*halo;',
-' vec2 sp=uv*res/mn*9.0;float hsr=hash(floor(sp));float star=0.0;',
-' if(hsr>0.99){float tw=0.5+0.5*sin(u_time*1.4+hsr*50.0);star=(hsr-0.99)/0.01*tw*0.45;}',
-' col+=star*vec3(0.85,0.85,1.0);',
-' float alpha=clamp(corona+bead+rim*0.9+halo+star,0.0,1.0);',
-' float g=(hash(uv*res+fract(u_time))*2.0-1.0)*0.03;col+=g*alpha;',
-' gl_FragColor=vec4(col,alpha);',
-'}'
-].join('\n');
-
-  function sh(type, src) {
-    var s = gl.createShader(type);
-    gl.shaderSource(s, src); gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { return null; }
-    return s;
-  }
-  var v = sh(gl.VERTEX_SHADER, vs), f = sh(gl.FRAGMENT_SHADER, fs);
-  if (!v || !f) return;
-  var prog = gl.createProgram();
-  gl.attachShader(prog, v); gl.attachShader(prog, f); gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
-  gl.useProgram(prog);
-
-  var buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-  var loc = gl.getAttribLocation(prog, 'p');
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-  var U = {
-    res: gl.getUniformLocation(prog, 'u_res'),
-    time: gl.getUniformLocation(prog, 'u_time'),
-    mouse: gl.getUniformLocation(prog, 'u_mouse'),
-    center: gl.getUniformLocation(prog, 'u_center'),
-    radius: gl.getUniformLocation(prog, 'u_radius')
-  };
-
-  var DPR = Math.min(devicePixelRatio || 1, 2);
-  var W = 1, H = 1;
-  var mouse = { x: 0.5, y: 0.5 }, mt = { x: 0.72, y: 0.6 };
-
-  function resize() {
-    var rect = hero.getBoundingClientRect();
-    W = Math.max(1, Math.floor(rect.width * DPR));
-    H = Math.max(1, Math.floor(rect.height * DPR));
-    canvas.width = W; canvas.height = H;
-    gl.viewport(0, 0, W, H);
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  hero.addEventListener('pointermove', function (e) {
-    var rect = hero.getBoundingClientRect();
-    mt.x = (e.clientX - rect.left) / rect.width;
-    mt.y = 1.0 - (e.clientY - rect.top) / rect.height;
-  });
-
-  // center biases right & upper; wider screens push it further right
-  function center() {
-    var rect = hero.getBoundingClientRect();
-    var cx = rect.width > 900 ? 0.74 : 0.6;
-    return [cx, 0.58];
-  }
-  function radius() {
-    var rect = hero.getBoundingClientRect();
-    var wide = rect.width > 900;
-    return wide ? 0.24 : 0.28;
-  }
-
-  var start = null, raf = null, visible = true;
-  var io = new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible && !raf) loop(0); }, { threshold: 0 });
-  io.observe(hero);
-
-  canvas.classList.add('ready');
-
-  function loop(ts) {
-    if (!start) start = ts;
-    var time = (ts - start) / 1000;
-    mouse.x += (mt.x - mouse.x) * 0.06;
-    mouse.y += (mt.y - mouse.y) * 0.06;
-    var c = center();
-    gl.uniform2f(U.res, W, H);
-    gl.uniform1f(U.time, time);
-    gl.uniform2f(U.mouse, mouse.x, mouse.y);
-    gl.uniform2f(U.center, c[0], c[1]);
-    gl.uniform1f(U.radius, radius());
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    if (visible) { raf = requestAnimationFrame(loop); } else { raf = null; }
-  }
-  hero.classList.add('webgl');
-  raf = requestAnimationFrame(loop);
-})();
-
 /* ---- Scroll progress ---- */
 (function () {
   var bar = document.getElementById('fxProgress');
@@ -310,22 +190,6 @@ hideAtmosphere: true
   }
   addEventListener('scroll', function () { if (!ticking) { requestAnimationFrame(upd); ticking = true; } }, { passive: true });
   upd();
-})();
-
-/* ---- Magnetic buttons ---- */
-(function () {
-  if (matchMedia('(hover: none)').matches) return;
-  document.querySelectorAll('[data-magnetic]').forEach(function (el) {
-    el.addEventListener('pointermove', function (e) {
-      var r = el.getBoundingClientRect();
-      var mx = e.clientX - r.left - r.width / 2;
-      var my = e.clientY - r.top - r.height / 2;
-      el.style.transform = 'translate(' + (mx * 0.18) + 'px,' + (my * 0.22) + 'px)';
-      el.style.setProperty('--bx', (e.clientX - r.left) + 'px');
-      el.style.setProperty('--by', (e.clientY - r.top) + 'px');
-    });
-    el.addEventListener('pointerleave', function () { el.style.transform = ''; });
-  });
 })();
 
 /* ---- Bento cursor glow ---- */

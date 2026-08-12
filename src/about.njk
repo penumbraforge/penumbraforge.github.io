@@ -1,0 +1,242 @@
+---
+layout: base.njk
+title: "About — Penumbra Forge"
+description: "Penumbra Forge LLC is an independent software company building privacy-first AI and security tools. Founded 2026 by Shadoe Myers."
+permalink: /about/
+---
+
+{% include "header.njk" %}
+
+<div class="about-page">
+
+  <section class="about-hero">
+    <div class="about-label">About</div>
+    <h1>Software that answers to you,<br>not to a server.</h1>
+    <p class="about-sub">Penumbra Forge LLC is an independent software company founded in 2026. We build privacy-first AI and security tooling — software that runs on your hardware, with your data staying yours.</p>
+  </section>
+
+  <section class="about-section">
+    <h2>What we build</h2>
+    <p>Everything we ship follows one rule: computation belongs on hardware the user controls. That spans three fronts:</p>
+    <div class="about-grid">
+      <div class="about-card">
+        <h3>Local AI</h3>
+        <p><a href="/umbra/">Umbra</a>, our local-first AI studio, runs and audits large language models entirely on-device — built for NVIDIA DGX Spark. On this site, our AI tools run quantized LLM inference in your browser over WebGPU, or against your own Ollama / LM Studio runtime.</p>
+      </div>
+      <div class="about-card">
+        <h3>Security software</h3>
+        <p><a href="/gate/">Gate</a> stops secrets before they reach your repository. <a href="/vexes/">Vexes</a> catches supply-chain attacks across nine package ecosystems with behavioral analysis. <a href="/librarian/">mcp-librarian</a> gives AI coding agents a self-growing, cryptographically signed skills library.</p>
+      </div>
+      <div class="about-card">
+        <h3>Open instruments</h3>
+        <p><a href="/tools/">77 browser-based tools</a> for security engineering, threat intel, encoding, and development — client-side by default, zero tracking, and <a href="/tools/agents/">usable by AI agents</a> through our MCP server.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="about-section">
+    <h2>Founder</h2>
+    <div class="about-founder">
+      <div class="about-founder-body">
+        <h3>Shadoe Myers</h3>
+        <p class="about-founder-role">Founder</p>
+        <p>Shadoe is a senior information security engineer who spent years watching security and AI tooling drift toward surveillance — telemetry in developer tools, prompts leaving machines, dependencies nobody audits. Penumbra Forge is the counterargument: every product is open to inspection, runs locally, and treats your data as none of our business.</p>
+        <div class="about-founder-links">
+          <a href="https://www.linkedin.com/in/shadoemyers" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
+          <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="about-section">
+    <h2>How we work</h2>
+    <ul class="about-principles">
+      <li><strong>Client-side by default.</strong> A tool only touches the network when its function demands it — and it says so on the label.</li>
+      <li><strong>Dependencies are attack surface.</strong> Zero-dependency codebases built on platform primitives instead of framework stacks that expire.</li>
+      <li><strong>Open and auditable.</strong> Small enough to audit in an afternoon. No telemetry, no accounts, no dark patterns.</li>
+    </ul>
+  </section>
+
+  <section class="about-section about-contact">
+    <h2>Contact</h2>
+    <p>Email <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a> — general, privacy, and security reports alike (see <a href="/.well-known/security.txt">security.txt</a>).</p>
+  </section>
+
+</div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "AboutPage",
+  "name": "About Penumbra Forge",
+  "url": "{{ site.url }}/about/",
+  "mainEntity": {
+    "@type": "Organization",
+    "name": "Penumbra Forge",
+    "legalName": "Penumbra Forge LLC",
+    "url": "{{ site.url }}",
+    "foundingDate": "2026",
+    "founder": {
+      "@type": "Person",
+      "name": "Shadoe Myers",
+      "jobTitle": "Founder",
+      "sameAs": ["https://www.linkedin.com/in/shadoemyers"]
+    }
+  }
+}
+</script>
+
+<style>
+.about-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 24px 96px;
+}
+
+.about-hero {
+  padding: 48px 0 24px;
+}
+
+.about-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.about-hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 5.4vw, 46px);
+  font-weight: 300;
+  line-height: 1.15;
+  color: var(--text-1);
+  margin-bottom: 20px;
+}
+
+.about-sub {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-2);
+  max-width: 60ch;
+}
+
+.about-section {
+  margin-top: 56px;
+}
+
+.about-section h2 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--text-1);
+  margin-bottom: 16px;
+}
+
+.about-section p {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text-2);
+}
+
+.about-section a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.about-section a:hover {
+  color: var(--accent-strong);
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+@media (min-width: 720px) {
+  .about-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.about-card {
+  border: 1px solid rgba(184, 165, 214, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  background: var(--surface-1, rgba(184, 165, 214, 0.03));
+}
+
+.about-card h3 {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-1);
+  margin-bottom: 10px;
+}
+
+.about-card p {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-3);
+}
+
+.about-founder {
+  border: 1px solid rgba(184, 165, 214, 0.12);
+  border-radius: 12px;
+  padding: 24px;
+  background: var(--surface-1, rgba(184, 165, 214, 0.03));
+}
+
+.about-founder h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text-1);
+}
+
+.about-founder-role {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  margin: 4px 0 14px;
+}
+
+.about-founder-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.about-principles {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.about-principles li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-2);
+  padding-left: 18px;
+  border-left: 2px solid rgba(184, 165, 214, 0.25);
+}
+
+.about-principles strong {
+  color: var(--text-1);
+  font-weight: 500;
+}
+
+.about-contact p {
+  line-height: 2.1;
+}
+
+@media (max-width: 480px) {
+  .about-page { padding: 32px 18px 72px; }
+  .about-hero { padding: 24px 0 8px; }
+}
+</style>

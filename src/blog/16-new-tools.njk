@@ -1,31 +1,19 @@
 ---
+date: 2026-03-27
 layout: base.njk
-title: "16 new tools, an AI category, and the ones that don't exist anywhere else — Penumbra Forge"
-description: "I added 16 new tools to Penumbra Forge — including the first browser-based prompt injection tester, a SIEM query translator (the free Uncoder replacement), an AI agent security auditor, and more. Here's what I built and why."
+title: "16 new tools, an AI category, and a few I couldn't find anywhere else — Penumbra Forge"
+description: "I added 16 new tools to Penumbra Forge — including a browser-based prompt injection tester, a SIEM query translator (the free Uncoder replacement), an AI agent security auditor, and more. Here's what I built and why."
 permalink: /blog/16-new-tools/
 ---
 
 <link rel="stylesheet" href="/css/blog.css">
 
-<header class="site-header" id="site-header">
-  <a href="/" class="site-header-brand" title="Penumbra Forge">
-    <div class="site-header-orb" aria-hidden="true"><div class="site-header-orb-backlight"></div><div class="site-header-orb-corona"></div><div class="site-header-orb-glow"></div><div class="site-header-orb-edge"></div><div class="site-header-orb-shadow"></div></div>
-  </a>
-  <button class="site-header-toggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg></button>
-  <nav class="site-header-nav">
-    <a href="/">Home</a>
-    <a href="/tools/">Tools</a>
-    <a href="/blog/" class="active">Blog</a>
-    <a href="/gate/">Gate</a>
-    <a href="/librarian/">Librarian</a>
-    <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
-  </nav>
-</header>
+{% include "header.njk" %}
 
 <div class="blog-page">
   <article class="blog-article">
     <div class="blog-article-header">
-      <h1>16 new tools, an AI category, and the ones that don't exist anywhere else</h1>
+      <h1>16 new tools, an AI category, and a few I couldn't find anywhere else</h1>
       <div class="blog-post-meta">
         <span class="blog-post-date">March 27, 2026</span>
         <span class="blog-post-tag">tools</span>
@@ -35,7 +23,7 @@ permalink: /blog/16-new-tools/
       </div>
     </div>
 
-    <p class="blog-article-lede">Penumbra Forge went from 63 tools to 79 overnight. I didn't plan a launch. I sat down, looked at what security engineers and developers are actually googling and not finding good free answers to, and built the tools. Sixteen of them. Five are the first of their kind. All client-side, no signup, no tracking.</p>
+    <p class="blog-article-lede">I added sixteen tools to Penumbra Forge overnight. I didn't plan a launch. I sat down, looked at what security engineers and developers are actually googling and not finding good free answers to, and built the tools. Five of them I built because I couldn't find a free, browser-based equivalent anywhere. All client-side, no signup, no tracking.</p>
 
     <div class="blog-body">
       <h2>The new AI category</h2>
@@ -44,7 +32,7 @@ permalink: /blog/16-new-tools/
       <h3>Prompt Injection Tester</h3>
       <p>Paste your LLM system prompt. The tool tests it against 164 injection techniques across 10 attack categories — direct overrides, delimiter escapes, encoding bypasses, extraction attacks, role play exploits, and the new stuff: MCP server injection, RAG poisoning, inter-agent delegation fraud, memory poisoning.</p>
       <p>Each category gets a VULNERABLE / PARTIAL / DEFENDED verdict based on what defenses the tool detects in your prompt. Miss something? The tool generates specific hardening clauses you can copy-paste into your system prompt.</p>
-      <p>This doesn't exist anywhere as a free browser tool. I looked. There are paid API services that test prompts, but nothing you can just paste into and get immediate results without signing up or paying.</p>
+      <p>I couldn't find a free browser tool that does this. I looked. There are paid API services that test prompts, but nothing I found that you can just paste into and get immediate results without signing up or paying. If one exists, tell me and I'll link it here.</p>
 
       <h3>Agent Security Audit</h3>
       <p>This one came from my own frustration. I was setting up MCP servers and realized nobody had built a tool to audit whether your agent's tool configuration is over-permissioned. Paste your MCP config, function calling schema, or tool definitions. The tool analyzes for: unrestricted filesystem access, shell execution without allowlists, data exfiltration paths (read tool + HTTP tool = your files are going somewhere), credential exposure in environment variables, and cross-tool risk chains.</p>
@@ -60,9 +48,9 @@ permalink: /blog/16-new-tools/
       <p>The simplest tool in the AI category and probably the one that'll get the most traffic. Enter your token counts, select models across Claude, GPT, Gemini, Mistral, and Llama, and see a cost comparison table sorted by cheapest first. Every existing calculator I found was either outdated or required signup.</p>
 
       <h2>The Uncoder replacement</h2>
-      <p>When SOC Prime put Uncoder.IO behind a paywall, the detection engineering community lost its only free SIEM query translator. I kept seeing people complain about it online — Reddit threads, GitHub issues, forum posts asking for alternatives. There weren't any.</p>
+      <p>When SOC Prime put Uncoder.IO behind a paywall, the detection engineering community lost the free SIEM query translator most people reached for. I kept seeing people complain about it online — Reddit threads, GitHub issues, forum posts asking for alternatives. The suggestions were paid tools or CLI toolchains, not a paste-and-convert page.</p>
       <p>The <a href="/tools/siem-query-translator/">SIEM Query Translator</a> supports Splunk SPL, Microsoft Sentinel KQL, Elastic ES|QL, Sigma YAML, and Sumo Logic. Paste a query in any format, get the equivalent in any other. It parses into an intermediate representation and emits idiomatic syntax for each target platform, including field mapping between the different naming conventions (Splunk's <code>src_ip</code> vs Sentinel's <code>SourceIP</code> vs Elastic's <code>source.ip</code>).</p>
-      <p>It's not going to handle every edge case in SPL — that language is enormous. But it covers the common patterns that make up 90% of detection rules: field matches, wildcards, aggregations, sorts, limits, evals. And it clearly marks what couldn't be translated so you know where to manually review.</p>
+      <p>It's not going to handle every edge case in SPL — that language is enormous. But it covers the common patterns that make up the bulk of the detection rules I've written: field matches, wildcards, aggregations, sorts, limits, evals. And it clearly marks what couldn't be translated so you know where to manually review.</p>
 
       <h2>Tools for the SOC</h2>
 
@@ -96,13 +84,13 @@ permalink: /blog/16-new-tools/
       <h2>Web developer tools</h2>
 
       <h3>CORS Debugger</h3>
-      <p>Enter your origin, target, method, and headers. The tool tells you — in plain English — whether this is a CORS request, whether a preflight is needed and why, what the server needs to respond with, and what's probably wrong. Then it generates the exact server configuration for Express, nginx, Cloudflare Workers, Flask, API Gateway, or Apache. There are 50,000+ CORS questions on Stack Overflow. Most of the existing tools show pass/fail without explaining anything.</p>
+      <p>Enter your origin, target, method, and headers. The tool tells you — in plain English — whether this is a CORS request, whether a preflight is needed and why, what the server needs to respond with, and what's probably wrong. Then it generates the exact server configuration for Express, nginx, Cloudflare Workers, Flask, API Gateway, or Apache. CORS questions are a genre of their own on Stack Overflow, and most of the existing tools show pass/fail without explaining anything.</p>
 
       <h3>Email Auth Wizard</h3>
       <p>Guided wizard for building SPF, DKIM, and DMARC records. Select your email providers (Google Workspace, Microsoft 365, SendGrid, etc.), configure your DMARC policy with a percentage slider, get copy-ready DNS TXT records with explanations of every tag. Includes a deployment rollout guide: start at <code>p=none</code>, monitor, ramp to <code>p=reject</code>.</p>
 
       <h2>What's next</h2>
-      <p>79 tools. Zero signup. Zero tracking. Zero cost. The site is <a href="https://github.com/penumbraforge">open source</a> and the tools are client-side — your data never leaves your browser.</p>
+      <p>Zero signup. Zero tracking. Zero cost. The site is <a href="https://github.com/penumbraforge">open source</a> and the tools are client-side — your data never leaves your browser.</p>
       <p>I'm not done. There are more gaps to fill. But 16 tools in one push felt like it deserved a post.</p>
       <p>Browse everything at <a href="/tools/">penumbraforge.com/tools</a>. If something's broken or you want a tool that doesn't exist yet, let me know.</p>
     </div>
@@ -111,8 +99,8 @@ permalink: /blog/16-new-tools/
       <div class="blog-author">
         <div class="blog-author-avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <div>
-          <div class="blog-author-name">Penumbra Forge</div>
-          <div class="blog-author-role">Engineering</div>
+          <div class="blog-author-name">Shadoe Myers</div>
+          <div class="blog-author-role">Founder, Penumbra Forge</div>
         </div>
       </div>
       <div class="blog-nav-links">
