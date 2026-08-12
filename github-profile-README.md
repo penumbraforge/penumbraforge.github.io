@@ -32,5 +32,5 @@ Everything I build runs locally, collects nothing, and respects your privacy.
 #### Elsewhere
 
 - **Site:** [penumbraforge.com](https://penumbraforge.com)
-- **LinkedIn:** [shadoemyers](https://www.linkedin.com/in/shadoemyers)
+- **LinkedIn:** [shadoe-myers](https://www.linkedin.com/in/shadoe-myers)
 - **Location:** Arizona
