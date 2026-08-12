@@ -33,7 +33,9 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html {
-  overflow-x: hidden;
+  /* clip, not hidden — hidden turns html/body into a scroll container and
+     silently kills position:sticky everywhere (the sticky site header). */
+  overflow-x: clip;
 }
 
 body {
@@ -41,7 +43,7 @@ body {
   color: var(--text-2);
   font-family: var(--font-sans);
   font-weight: 300;
-  overflow-x: hidden;
+  overflow-x: clip;
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -1160,10 +1162,16 @@ html {
   align-items: center;
   justify-content: space-between;
   gap: 40px;
-  padding: 16px 20px 16px 20px;
+  padding: 0 max(24px, 4vw);
+  min-height: 60px;
   width: 100%;
-  position: relative;
-  z-index: 5;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(5, 5, 9, 0.82);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid rgba(184, 165, 214, 0.08);
 }
 
 .site-header-brand {
@@ -1280,7 +1288,8 @@ html {
 }
 
 .site-header-nav a {
-  font-size: 12px;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
   color: var(--text-3);
   text-decoration: none;
   font-weight: 400;
@@ -1293,6 +1302,19 @@ html {
 
 .site-header-nav a.active {
   color: var(--accent);
+}
+
+.site-header-nav a.site-header-git {
+  color: var(--text-2);
+  border: 1px solid rgba(184, 165, 214, 0.18);
+  border-radius: 8px;
+  padding: 6px 12px;
+  transition: color 200ms ease, border-color 200ms ease;
+}
+
+.site-header-nav a.site-header-git:hover {
+  color: var(--text-1);
+  border-color: rgba(184, 165, 214, 0.4);
 }
 
 /* ============================================================

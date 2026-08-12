@@ -12,21 +12,7 @@ hideAtmosphere: true
 <div class="fx-body">
 <div class="fx-frame">
 
-  <header class="fx-topbar">
-    <a href="/" class="fx-wordmark"><span class="fx-eclipse-dot" aria-hidden="true"></span>Penumbra&nbsp;Forge</a>
-    <button class="fx-menu-btn" id="fxMenuBtn" aria-label="Toggle menu" aria-expanded="false">
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="6" x2="17" y2="6"/><line x1="3" y1="14" x2="17" y2="14"/></svg>
-    </button>
-    <nav class="fx-nav" id="fxNav">
-      <a href="/umbra/">Umbra</a>
-      <a href="/tools/">Tools</a>
-      <a href="/tools/agents/">For&nbsp;Agents</a>
-      <a href="/blog/">Blog</a>
-      <a href="/about/">About</a>
-      <a href="#" data-open-palette title="Run any tool — ⌘K">⌘K&nbsp;Run</a>
-      <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-nav-cta">GitHub &nearr;</a>
-    </nav>
-  </header>
+  {% include "header.njk" %}
 
   <section class="fx-hero" id="fxHero">
     <div class="fx-hero-scrim" aria-hidden="true"></div>
@@ -204,14 +190,4 @@ hideAtmosphere: true
   });
 })();
 
-/* ---- Mobile menu ---- */
-(function () {
-  var btn = document.getElementById('fxMenuBtn'), nav = document.getElementById('fxNav');
-  if (!btn || !nav) return;
-  btn.addEventListener('click', function () {
-    nav.classList.toggle('open');
-    btn.setAttribute('aria-expanded', String(nav.classList.contains('open')));
-  });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { nav.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); } });
-})();
 </script>

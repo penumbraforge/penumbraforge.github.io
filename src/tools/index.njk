@@ -36,15 +36,7 @@ hideAtmosphere: true
 {% endmacro %}
 
 <div class="wb-page">
-  <header class="wb-top">
-    <a href="/" class="wb-brand"><span class="wb-dot" aria-hidden="true"></span>Penumbra&nbsp;Forge</a>
-    <nav>
-      <a href="/tools/" class="active">Tools</a>
-      <a href="/tools/agents/">For&nbsp;Agents</a>
-      <a href="/blog/">Blog</a>
-      <button class="wb-open-palette" data-open-palette aria-label="Search or run"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg> Run <kbd>&#8984;K</kbd></button>
-    </nav>
-  </header>
+  {% include "header.njk" %}
 
   <div class="hub" id="hub">
     <section class="hub-hero">
