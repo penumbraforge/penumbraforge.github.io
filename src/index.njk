@@ -2,7 +2,7 @@
 layout: base.njk
 hideAtmosphere: true
 ---
-<link rel="stylesheet" href="/css/home.css">
+<link rel="stylesheet" href="/css/home.css?v=2">
 
 {% set liveTools = [] %}
 {% for tool in tools %}{% if tool.status == "live" %}{% set liveTools = (liveTools.push(tool), liveTools) %}{% endif %}{% endfor %}
