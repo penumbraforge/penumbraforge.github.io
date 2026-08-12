@@ -57,8 +57,18 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(origin, env) });
     }
 
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
     // POST /api/secrets — create secret
     if (request.method === 'POST' && url.pathname === '/api/secrets') {
+      // Every create is a KV write (free tier: 1,000 writes/day) — rate limit first.
+      if (env.RL_CREATE) {
+        const { success } = await env.RL_CREATE.limit({ key: ip });
+        if (!success) {
+          return jsonResponse({ error: 'Rate limited. Try again in a minute.' }, 429, origin, env);
+        }
+      }
+
       let body;
       try {
         body = await request.json();
@@ -87,6 +97,13 @@ export default {
 
     // GET /api/secrets/:id — retrieve and burn
     if (request.method === 'GET' && url.pathname.startsWith('/api/secrets/')) {
+      if (env.RL_READ) {
+        const { success } = await env.RL_READ.limit({ key: ip });
+        if (!success) {
+          return jsonResponse({ error: 'Rate limited. Try again in a minute.' }, 429, origin, env);
+        }
+      }
+
       const id = url.pathname.split('/api/secrets/')[1];
 
       if (!id || id.length !== 48) {

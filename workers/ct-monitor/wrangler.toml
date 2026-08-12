@@ -5,3 +5,11 @@ account_id = "e32f51ad99dc43fb5249086282786c6f"
 
 [vars]
 ALLOWED_ORIGIN = "https://penumbraforge.com"
+
+# Per-IP burst limit (native binding) — layered with the in-worker hourly cap.
+[[ratelimits]]
+name = "RL_BURST"
+namespace_id = "1006"
+[ratelimits.simple]
+limit = 5
+period = 60

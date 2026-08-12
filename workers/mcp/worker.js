@@ -12,8 +12,20 @@ const CORS = {
 };
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+
+    // Per-IP rate limit — generous (agents burst), but caps abuse.
+    if (env.RL_MCP) {
+      const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+      const { success } = await env.RL_MCP.limit({ key: ip });
+      if (!success) {
+        return Response.json(
+          { jsonrpc: '2.0', id: null, error: { code: -32000, message: 'Rate limited. Try again in a minute.' } },
+          { status: 429, headers: { ...CORS, 'Retry-After': '60' } }
+        );
+      }
+    }
 
     if (request.method === 'GET') {
       return Response.json({

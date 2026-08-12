@@ -30,8 +30,15 @@ export default {
       return json({ error: 'Forbidden' }, 403, env);
     }
 
-    /* ── Rate limiting ── */
+    /* ── Rate limiting: native binding (burst, survives isolate recycling)
+          layered with the in-memory hourly cap below ── */
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    if (env.RL_BURST) {
+      const { success } = await env.RL_BURST.limit({ key: ip });
+      if (!success) {
+        return json({ error: 'Rate limited. Try again in a minute.' }, 429, env);
+      }
+    }
     if (isRateLimited(ip)) {
       return json({ error: 'Rate limited. Try again later.' }, 429, env);
     }
@@ -46,9 +53,13 @@ export default {
 
     const { url, token } = body;
 
-    /* ── Verify Turnstile (optional — rate limiting is primary protection) ── */
+    /* ── Verify Turnstile (optional — rate limiting is primary protection,
+          but if a token is supplied it must be valid) ── */
     if (env.TURNSTILE_SECRET && token) {
-      await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
+      const verified = await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
+      if (!verified) {
+        return json({ error: 'Turnstile verification failed' }, 403, env);
+      }
     }
 
     /* ── Validate URL ── */
@@ -69,15 +80,15 @@ export default {
       return json({ error: 'Cannot scan private/internal addresses' }, 400, env);
     }
 
-    /* ── Fetch target headers ── */
+    /* ── Fetch target headers (redirects validated hop-by-hop — a public URL
+          must not be able to 302 into private address space) ── */
     let targetHeaders;
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
 
-      const resp = await fetch(parsed.href, {
+      const resp = await safeFetch(parsed.href, {
         method: 'GET',
-        redirect: 'follow',
         signal: controller.signal,
         headers: {
           'User-Agent': 'PenumbraForge-SiteScore/1.0 (+https://penumbraforge.com/tools/site-score/)',
@@ -161,6 +172,30 @@ async function verifyTurnstile(token, ip, secret) {
   } catch {
     return false;
   }
+}
+
+/* Follow redirects manually, re-validating every hop against the private-host
+   blocklist. `redirect: 'follow'` would happily follow a 302 to 169.254.169.254. */
+async function safeFetch(urlStr, init, maxHops = 5) {
+  let current = urlStr;
+  for (let hop = 0; hop < maxHops; hop++) {
+    const u = new URL(current);
+    if (!['http:', 'https:'].includes(u.protocol)) {
+      throw new Error('Redirect to unsupported protocol blocked');
+    }
+    if (isPrivateHost(u.hostname)) {
+      throw new Error('Redirect to private/internal address blocked');
+    }
+    const resp = await fetch(u.href, { ...init, redirect: 'manual' });
+    if ([301, 302, 303, 307, 308].includes(resp.status)) {
+      const loc = resp.headers.get('location');
+      if (!loc) return resp;
+      current = new URL(loc, u).href;
+      continue;
+    }
+    return resp;
+  }
+  throw new Error('Too many redirects');
 }
 
 function isPrivateHost(hostname) {

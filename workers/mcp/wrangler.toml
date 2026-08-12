@@ -5,3 +5,11 @@ compatibility_date = "2026-01-01"
 # Deploy:  npx wrangler deploy
 # Optional custom domain (set up the route in the Cloudflare dashboard):
 # routes = [{ pattern = "mcp.penumbraforge.com", custom_domain = true }]
+
+# Per-IP rate limit (native binding). Generous — MCP agents burst legitimately.
+[[ratelimits]]
+name = "RL_MCP"
+namespace_id = "1003"
+[ratelimits.simple]
+limit = 100
+period = 60

@@ -70,6 +70,12 @@ export default {
     }
 
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    if (env.RL_BURST) {
+      const { success } = await env.RL_BURST.limit({ key: ip });
+      if (!success) {
+        return json({ error: 'Rate limited. Try again in a minute.' }, 429, env);
+      }
+    }
     if (isRateLimited(ip)) {
       return json({ error: 'Rate limited. Try again later.' }, 429, env);
     }
@@ -80,7 +86,10 @@ export default {
     const { url, token } = body;
 
     if (env.TURNSTILE_SECRET && token) {
-      await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
+      const verified = await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
+      if (!verified) {
+        return json({ error: 'Turnstile verification failed' }, 403, env);
+      }
     }
 
     let parsed;
@@ -92,16 +101,18 @@ export default {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
 
-      const resp = await fetch(parsed.href, {
+      const resp = await safeFetch(parsed.href, {
         method: 'GET',
-        redirect: 'follow',
         signal: controller.signal,
         headers: { 'User-Agent': 'PenumbraForge-PrivacyScan/1.0 (+https://penumbraforge.com/tools/privacy-scan/)' },
       });
 
       clearTimeout(timeout);
 
-      const html = await resp.text();
+      /* Cap the body read — an adversarial page must not be able to feed us
+         hundreds of MB (isolate memory limit is 128MB). 2MB of HTML is plenty
+         to find trackers; anything longer is truncated. */
+      const html = await readCapped(resp, 2 * 1024 * 1024);
       const cookies = resp.headers.get('set-cookie') || '';
       const responseHeaders = {};
       for (const [k, v] of resp.headers.entries()) responseHeaders[k] = v;
@@ -223,6 +234,53 @@ async function verifyTurnstile(token, ip, secret) {
     });
     return (await r.json()).success === true;
   } catch { return false; }
+}
+
+/* Follow redirects manually, re-validating every hop against the private-host
+   blocklist. `redirect: 'follow'` would happily follow a 302 to 169.254.169.254. */
+async function safeFetch(urlStr, init, maxHops = 5) {
+  let current = urlStr;
+  for (let hop = 0; hop < maxHops; hop++) {
+    const u = new URL(current);
+    if (!['http:', 'https:'].includes(u.protocol)) {
+      throw new Error('Redirect to unsupported protocol blocked');
+    }
+    if (isPrivateHost(u.hostname)) {
+      throw new Error('Redirect to private/internal address blocked');
+    }
+    const resp = await fetch(u.href, { ...init, redirect: 'manual' });
+    if ([301, 302, 303, 307, 308].includes(resp.status)) {
+      const loc = resp.headers.get('location');
+      if (!loc) return resp;
+      current = new URL(loc, u).href;
+      continue;
+    }
+    return resp;
+  }
+  throw new Error('Too many redirects');
+}
+
+/* Stream the body up to maxBytes, then stop reading. */
+async function readCapped(resp, maxBytes) {
+  if (!resp.body) return '';
+  const reader = resp.body.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      chunks.push(value.subarray(0, value.byteLength - (total - maxBytes)));
+      await reader.cancel();
+      break;
+    }
+    chunks.push(value);
+  }
+  const buf = new Uint8Array(Math.min(total, maxBytes));
+  let offset = 0;
+  for (const c of chunks) { buf.set(c, offset); offset += c.byteLength; }
+  return new TextDecoder('utf-8', { fatal: false }).decode(buf);
 }
 
 function isPrivateHost(h) {

@@ -9,3 +9,19 @@ ALLOWED_ORIGIN = "https://penumbraforge.com"
 [[kv_namespaces]]
 binding = "OTS_KV"
 id = "9b27234f07744fbb8193b8b003c81d51"
+
+# Per-IP rate limits (native Workers binding; per-colo, permissive by design).
+# Creation writes to KV (free tier: 1,000 writes/day) — keep this strict.
+[[ratelimits]]
+name = "RL_CREATE"
+namespace_id = "1001"
+[ratelimits.simple]
+limit = 6
+period = 60
+
+[[ratelimits]]
+name = "RL_READ"
+namespace_id = "1002"
+[ratelimits.simple]
+limit = 30
+period = 60

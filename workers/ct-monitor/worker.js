@@ -25,6 +25,12 @@ export default {
     }
 
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    if (env.RL_BURST) {
+      const { success } = await env.RL_BURST.limit({ key: ip });
+      if (!success) {
+        return json({ error: 'Rate limited. Try again in a minute.' }, 429, env);
+      }
+    }
     if (isRateLimited(ip)) {
       return json({ error: 'Rate limited. Try again later.' }, 429, env);
     }
@@ -35,7 +41,10 @@ export default {
     const { domain, token } = body;
 
     if (env.TURNSTILE_SECRET && token) {
-      await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
+      const verified = await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
+      if (!verified) {
+        return json({ error: 'Turnstile verification failed' }, 403, env);
+      }
     }
 
     /* Validate domain */
