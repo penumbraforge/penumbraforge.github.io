@@ -173,9 +173,9 @@
 /* CSS fallback eclipse (no WebGL / reduced motion) */
 .fx-hero-eclipse {
   position: absolute;
-  top: 50%; right: clamp(-120px, -4vw, -40px);
+  top: 50%; right: clamp(16px, 4vw, 96px);
   translate: 0 -50%;
-  width: clamp(360px, 40vw, 640px);
+  width: clamp(240px, 33vw, 480px);
   aspect-ratio: 1;
   z-index: -1;
   pointer-events: none;
