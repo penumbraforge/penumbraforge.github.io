@@ -61,10 +61,23 @@ permalink: /vexes/
   </div>
 </section>
 
-<!-- TERMINAL DEMO -->
-<section class="vx-section" aria-labelledby="demo-title">
+<!-- RECORDED DEMO -->
+<section class="vx-section" aria-labelledby="recorded-title">
   <div class="vx-wrap">
     <div class="section-label">In Action</div>
+    <h2 id="recorded-title">A real multi-ecosystem scan</h2>
+    {% set demo = "vexes" %}
+    {% set width = 1200 %}{% set height = 760 %}
+    {% set title = "vexes scan --path demo --severity high" %}
+    {% set caption = "Recorded run: one scan across npm, PyPI, and Cargo fixtures, then the same findings as SARIF for GitHub code scanning." %}
+    {% include "demo.njk" %}
+  </div>
+</section>
+
+<!-- ANNOTATED OUTPUT -->
+<section class="vx-section" aria-labelledby="demo-title">
+  <div class="vx-wrap">
+    <div class="section-label">Reading the signals</div>
     <h2 id="demo-title">What a deep analysis looks like</h2>
     <pre class="vx-pre"><code><span class="code-prompt">$</span> <span class="code-cmd">vexes</span> <span class="code-arg">analyze --deep</span>
 

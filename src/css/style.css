@@ -3634,3 +3634,90 @@ html:has(.tools-hub-page) {
 /* ============================================================
    Sidebar JS (search, favorites, keyboard shortcut)
    ============================================================ */
+
+/* ============================================================
+   Recorded terminal demos (.fx-demo)
+   Real VHS captures in terminal chrome. aspect-ratio + explicit
+   dimensions keep CLS at zero while the video loads.
+   ============================================================ */
+.fx-demo {
+  margin: var(--space-6) 0 0;
+}
+
+.fx-demo-frame {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-3);
+  overflow: hidden;
+  box-shadow: var(--shadow-2);
+}
+
+.fx-demo-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+}
+
+.fx-demo-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-round);
+  background: var(--border-active);
+  flex: none;
+}
+
+.fx-demo-title {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-sm);
+  color: var(--text-3);
+  margin-left: var(--space-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fx-demo-toggle {
+  margin-left: auto;
+  flex: none;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: var(--space-1) var(--space-3);
+  min-height: 28px;
+  cursor: pointer;
+  transition: color 180ms var(--ease-out), border-color 180ms var(--ease-out);
+}
+
+.fx-demo-toggle:hover {
+  color: var(--text-1);
+  border-color: var(--border-active);
+}
+
+.fx-demo-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--demo-ar, 1200 / 820);
+  background: var(--surface-1);
+}
+
+.fx-demo-caption {
+  margin-top: var(--space-3);
+  font-size: var(--fs-body-sm);
+  color: var(--text-3);
+  line-height: 1.6;
+}
+
+@media (max-width: 899px) {
+  /* Touch targets stay tappable even in the compact chrome bar. */
+  .fx-demo-toggle { min-height: 44px; padding: var(--space-2) var(--space-4); }
+  .fx-demo-title { font-size: var(--fs-mono-xs); }
+}

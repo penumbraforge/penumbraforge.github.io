@@ -1,0 +1,33 @@
+{# Recorded terminal demo.
+   Params: demo (slug), title (window title), caption, width, height.
+   Real VHS output, not hand-typed markup — MP4/WebM with a poster frame.
+   Reduced motion / Save-Data / no-JS all fall back to the poster image. #}
+{% set dw = width | default(1200) %}
+{% set dh = height | default(820) %}
+<figure class="fx-demo" data-demo="{{ demo }}" style="--demo-ar: {{ dw }} / {{ dh }}">
+  <div class="fx-demo-frame">
+    <div class="fx-demo-bar">
+      <span class="fx-demo-dot" aria-hidden="true"></span>
+      <span class="fx-demo-dot" aria-hidden="true"></span>
+      <span class="fx-demo-dot" aria-hidden="true"></span>
+      <span class="fx-demo-title">{{ title }}</span>
+      <button type="button" class="fx-demo-toggle" data-demo-toggle hidden aria-label="Pause demo playback">
+        <span data-demo-toggle-label>Pause</span>
+      </button>
+    </div>
+    <video
+      class="fx-demo-video"
+      poster="/demos/{{ demo }}-poster.png"
+      width="{{ dw }}"
+      height="{{ dh }}"
+      muted
+      loop
+      playsinline
+      preload="none"
+      aria-label="{{ caption }}">
+      <source src="/demos/{{ demo }}.webm" type="video/webm">
+      <source src="/demos/{{ demo }}.mp4" type="video/mp4">
+    </video>
+  </div>
+  <figcaption class="fx-demo-caption">{{ caption }}</figcaption>
+</figure>

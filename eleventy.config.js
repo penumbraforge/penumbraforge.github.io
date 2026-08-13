@@ -3,6 +3,9 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/css");
   eleventyConfig.addPassthroughCopy("src/js");
 
+  // One cache-busting token per build, so asset links stop being hand-bumped.
+  eleventyConfig.addGlobalData("assetv", Date.now().toString(36));
+
   eleventyConfig.addFilter("toISOString", (date) => {
     return new Date(date).toISOString().split("T")[0];
   });

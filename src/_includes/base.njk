@@ -39,7 +39,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/css/style.css?v=14">
+  <link rel="stylesheet" href="/css/style.css?v={{ assetv }}">
 
   <!-- Speculation Rules — prerender internal pages on hover for instant navigation -->
   <script type="speculationrules">
@@ -152,6 +152,9 @@
     });
   })();
   </script>
+
+  <!-- Recorded terminal demos — only loaded on pages that have one -->
+  <script defer src="/js/demo-player.js?v={{ assetv }}"></script>
 
   <!-- Cloudflare Web Analytics -->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "6579e863544d4aaea2538c83110ac7e2"}'></script>

@@ -29,6 +29,20 @@ permalink: /librarian/
   </div>
 </section>
 
+<!-- RECORDED DEMO -->
+<section class="lib-section" aria-labelledby="recorded-title">
+  <div class="lib-wrap">
+    <div class="section-label">In Action</div>
+    <h2 id="recorded-title">Tamper a signed skill, watch it get caught</h2>
+    <p>Signing is only worth anything if verification actually fires. This is the real JSON-RPC interface: a signed skill reports <code>VERIFIED</code>, one appended line to the file on disk flips it to <code>TAMPERED</code> on the very next load.</p>
+    {% set demo = "librarian" %}
+    {% set width = 1200 %}{% set height = 720 %}
+    {% set title = "skill_status → VERIFIED → tamper → TAMPERED" %}
+    {% set caption = "Recorded run: skills signed with Ed25519, queried over JSON-RPC, then modified on disk — the server reports TAMPERED instead of serving the altered content." %}
+    {% include "demo.njk" %}
+  </div>
+</section>
+
 <!-- FEATURES -->
 <section class="lib-section" aria-labelledby="features-title">
   <div class="lib-wrap">

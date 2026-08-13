@@ -16,7 +16,7 @@
 <meta name="theme-color" content="#050509">
 {% endblock %}
 
-{% block headExtra %}<link rel="stylesheet" href="/css/tools.css?v=2">
+{% block headExtra %}<link rel="stylesheet" href="/css/tools.css?v={{ assetv }}">
 <link rel="alternate" type="text/markdown" href="/llms.txt" title="Penumbra Forge tools — for AI agents">
 <meta name="pf-tool" content="{{ toolSlug }}">
 <script src="/js/tool-io.js"></script>{% if toolData.category == "ai" %}

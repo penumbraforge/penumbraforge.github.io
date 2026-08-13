@@ -142,10 +142,24 @@ permalink: /gate/
   </div>
 </section>
 
-<!-- TERMINAL DEMO -->
+<!-- RECORDED DEMO -->
 <section class="gate-section" id="demo">
   <div class="gate-container-wide">
-    <p class="section-label reveal">What a scan looks like</p>
+    <p class="section-label reveal">A real scan, start to finish</p>
+    <div class="reveal">
+      {% set demo = "gate" %}
+      {% set width = 1200 %}{% set height = 820 %}
+      {% set title = "gate scan app.js" %}
+      {% set caption = "Recorded run: gate finds a planted AWS key and Postgres URL, [f] extracts both to .env and rewrites the source to read from the environment." %}
+      {% include "demo.njk" %}
+    </div>
+  </div>
+</section>
+
+<!-- ANNOTATED OUTPUT -->
+<section class="gate-section" id="demo-detail">
+  <div class="gate-container-wide">
+    <p class="section-label reveal">What the output tells you</p>
     <div class="gate-terminal reveal" style="transition-delay: 0.05s;">
       <div class="gate-terminal-bar">
         <span class="gate-terminal-dot"></span>
