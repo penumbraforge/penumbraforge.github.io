@@ -2475,18 +2475,16 @@ a.t-card {
 /* -- Librarian Features Grid -- */
 .lib-features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-3);
 }
 
 .lib-feature-card {
-  padding: 24px;
+  padding: var(--space-5);
   background: var(--surface-1);
-  transition: background 150ms ease;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2);
+  transition: background 150ms ease, border-color 150ms ease;
 }
 
 .lib-feature-card:hover {
@@ -3511,22 +3509,21 @@ html:has(.tools-hub-page) {
 /* -- Vexes Features Grid -- */
 .vx-features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-3);
 }
 
 .vx-feature-card {
-  padding: 24px;
+  padding: var(--space-5);
   background: var(--surface-1);
-  transition: background 150ms ease;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2);
+  transition: background 150ms ease, border-color 150ms ease;
 }
 
 .vx-feature-card:hover {
   background: var(--surface-2);
+  border-color: var(--border-active);
 }
 
 .vx-feature-card h3 {

@@ -1,8 +1,8 @@
 /* Recorded terminal demos.
-   Autoplay is a courtesy, not a default: it only starts when the demo is on
-   screen, the connection isn't metered, and the visitor hasn't asked for less
-   motion. Everything else gets the poster frame, which is a real first frame
-   of the recording rather than a placeholder. */
+   The video carries a real `autoplay` attribute, so playback is the browser's
+   job and works with JS disabled or still loading. This script only adds the
+   niceties: a working pause button, pausing while off screen, and honouring
+   people who asked for less motion or are on a metered connection. */
 (function () {
   var demos = document.querySelectorAll('.fx-demo');
   if (!demos.length) return;
@@ -10,7 +10,7 @@
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var conn = navigator.connection;
   var thrifty = !!(conn && (conn.saveData || /^([23]g|slow-2g)$/.test(conn.effectiveType || '')));
-  var autoplayAllowed = !reduced && !thrifty;
+  var holdBack = reduced || thrifty;
 
   demos.forEach(function (demo) {
     var video = demo.querySelector('.fx-demo-video');
@@ -18,16 +18,16 @@
     var label = demo.querySelector('[data-demo-toggle-label]');
     if (!video) return;
 
-    var loaded = false;
-    function load() {
-      if (loaded) return;
-      loaded = true;
-      video.preload = 'metadata';
-      video.load();
+    // These visitors opted out of motion or bandwidth: strip autoplay before
+    // the browser acts on it and leave them the poster plus a play button.
+    if (holdBack) {
+      video.removeAttribute('autoplay');
+      video.pause();
     }
 
-    function setLabel(playing) {
+    function setLabel() {
       if (!label) return;
+      var playing = !video.paused;
       label.textContent = playing ? 'Pause' : 'Play';
       toggle.setAttribute('aria-label', (playing ? 'Pause' : 'Play') + ' demo playback');
     }
@@ -35,37 +35,34 @@
     if (toggle) {
       toggle.hidden = false;
       toggle.addEventListener('click', function () {
-        load();
-        if (video.paused) {
-          video.play().then(function () { setLabel(true); }).catch(function () {});
-        } else {
-          video.pause();
-          setLabel(false);
-        }
+        if (video.paused) video.play().catch(function () {});
+        else video.pause();
       });
-      setLabel(false);
+      video.addEventListener('play', setLabel);
+      video.addEventListener('pause', setLabel);
+      setLabel();
     }
 
-    // A demo nobody scrolls to should never cost a byte.
-    if (!('IntersectionObserver' in window)) {
-      if (autoplayAllowed) { load(); video.play().then(function(){ setLabel(true); }).catch(function(){}); }
-      return;
-    }
+    // Don't burn cycles on a demo that has scrolled away, but never fight a
+    // visitor who pressed play — only auto-resume what we auto-paused.
+    if (!('IntersectionObserver' in window)) return;
+    var autoPaused = false;
 
-    var observer = new IntersectionObserver(function (entries) {
+    new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          load();
-          if (autoplayAllowed) {
-            video.play().then(function () { setLabel(true); }).catch(function () {});
+        // Pause only when the demo is genuinely, fully off screen. Anything
+        // less certain leaves playback alone — a misreporting observer must
+        // never be the reason a visitor sees a frozen frame.
+        if (entry.intersectionRatio > 0) {
+          if (autoPaused && !holdBack) {
+            autoPaused = false;
+            video.play().catch(function () {});
           }
         } else if (!video.paused) {
+          autoPaused = true;
           video.pause();
-          setLabel(false);
         }
       });
-    }, { threshold: 0.35 });
-
-    observer.observe(demo);
+    }, { threshold: 0 }).observe(demo);
   });
 })();
