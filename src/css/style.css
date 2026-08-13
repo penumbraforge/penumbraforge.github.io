@@ -3837,3 +3837,13 @@ body.pfc-locked { overflow: hidden; }
   .pfc-key { min-width: 0; }
   .pfc-close { min-height: 44px; padding: var(--space-2) var(--space-4); }
 }
+
+/* Footer links are the one nav on the page that never got a touch pass. */
+@media (max-width: 899px) {
+  .footer-links a,
+  .site-header-brand {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
