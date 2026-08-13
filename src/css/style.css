@@ -3885,3 +3885,8 @@ body.pfc-locked { overflow: hidden; }
 .wiki-content > h2 {
   max-width: 30ch;
 }
+
+/* A four-card grid reads better as 2x2 than as three-plus-a-straggler. */
+@media (min-width: 900px) {
+  .vx-features-grid--pairs { grid-template-columns: repeat(2, 1fr); }
+}
