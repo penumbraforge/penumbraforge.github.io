@@ -191,6 +191,14 @@ permalink: /vexes/
     <h2 id="features-title">Beyond vulnerability databases</h2>
     <div class="vx-features-grid" role="list">
       <div class="vx-feature-card" role="listitem">
+        <h3>AI-Assisted Triage &mdash; Opt-In</h3>
+        <p><code>vexes explain</code> turns a wall of CVEs into a prioritized, plain-English action plan. Uses your own <code>ANTHROPIC_API_KEY</code>; only finding summaries are sent &mdash; no source code ever leaves the machine. AI layered on top, not bolted through the middle.</p>
+      </div>
+      <div class="vx-feature-card" role="listitem">
+        <h3>SARIF for Code Scanning</h3>
+        <p>SARIF 2.1.0 output with cross-run fingerprints. <code>--format sarif</code> plugs straight into GitHub code scanning; the hardened Action reports findings first and gates builds only when you opt in.</p>
+      </div>
+      <div class="vx-feature-card" role="listitem">
         <h3>Pre-Install Guard</h3>
         <p>Intercepts <code>npm install</code> and analyzes new packages before they execute. Diffs lockfiles, blocks critical threats, prompts on high signals, then runs the real install.</p>
       </div>

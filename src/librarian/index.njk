@@ -6,9 +6,9 @@ permalink: /librarian/
 <section class="lib-hero" aria-labelledby="hero-title">
   <div class="lib-wrap">
     <div class="lib-hero-product" id="hero-title">mcp-librarian</div>
-    <div class="lib-hero-badge">v3.1.0</div>
-    <p class="lib-hero-tagline">Your AI agent's knowledge library</p>
-    <p class="lib-hero-desc">Give your AI coding agent searchable, self-growing knowledge. It finds skills when relevant, researches topics from authoritative sources when they're missing, and learns permanently. Zero config. Zero dependencies. Works with Claude Code, Cursor, Windsurf, local models via Ollama/LM Studio, and any MCP client.</p>
+    <div class="lib-hero-badge">v{{ versions.librarian.version }}</div>
+    <p class="lib-hero-tagline">A signed skill supply chain for your AI agent</p>
+    <p class="lib-hero-desc">Give your AI coding agent searchable, self-growing knowledge it can actually trust. Every skill is Ed25519-signed and integrity-checked on load &mdash; tamper with a file and the server reports <code>TAMPERED</code> instead of serving it silently. Zero config. Zero dependencies. Apache-2.0. Works with Claude Code, Cursor, Windsurf, local models via Ollama/LM Studio, and any MCP client.</p>
     <div class="lib-hero-actions">
       <a href="https://github.com/penumbraforge/mcp-librarian" class="lib-btn lib-btn-outline" rel="noopener noreferrer" target="_blank">View on GitHub</a>
       <a href="/librarian/wiki/" class="lib-btn lib-btn-subtle">Wiki</a>
@@ -47,18 +47,28 @@ permalink: /librarian/
       </div>
 
       <div class="lib-feature-card" role="listitem">
-        <h3>BM25 Search</h3>
-        <p>Full-text search with stemming across skill names, descriptions, and content. Sub-section chunking returns precise, focused results -- not entire documents.</p>
+        <h3>Quality-Weighted Search</h3>
+        <p>BM25 relevance blended with a heuristic quality score &mdash; specificity, examples, actionability, source authority. Sub-section chunking returns precise, focused results, and the best skills rank first.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
-        <h3>9 Community Packs</h3>
-        <p>Browse and install curated packs without leaving your editor. Security, API design, Git, TypeScript, Docker, PostgreSQL, testing, and more. One tool call to install.</p>
+        <h3>{{ versions.librarian.packs }} Community Packs</h3>
+        <p>Browse and install curated packs without leaving your editor. Security, API design, Git, TypeScript, Docker, PostgreSQL, testing, and more. Every community contribution is prompt-injection-screened in CI before it can merge.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
         <h3>Ed25519 Integrity</h3>
-        <p>Every skill is cryptographically signed. Tampered files are detected and flagged on load. Content guard blocks prompt injection in prose while allowing security examples in code blocks.</p>
+        <p>Every skill is signed on write &mdash; including ones the agent creates at runtime &mdash; and verified on load. Tampered files are flagged <code>TAMPERED</code>, never served silently. Content guard screens prose for prompt injection while allowing security examples in code blocks.</p>
+      </div>
+
+      <div class="lib-feature-card" role="listitem">
+        <h3>Hardened Network Paths</h3>
+        <p>Every fetch rejects private, loopback, and cloud-metadata addresses, pins resolved IPs against DNS rebinding, and re-vets each redirect hop. <code>GITHUB_TOKEN</code> is scoped to GitHub hosts only. Fetched web content is wrapped in explicit untrusted-data delimiters.</p>
+      </div>
+
+      <div class="lib-feature-card" role="listitem">
+        <h3>Crash-Safe Installs</h3>
+        <p>Pack installs are transactional &mdash; a mid-install failure rolls back instead of destroying existing skills. Progressive disclosure reads through to disk, so an idle server never forgets your skills.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">

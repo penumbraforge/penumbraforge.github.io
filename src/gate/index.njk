@@ -232,204 +232,11 @@ permalink: /gate/
   </div>
 </section>
 
-<!-- DOCUMENTATION -->
-<section class="gate-section" id="docs">
+<!-- GITHUB ACTION -->
+<section class="gate-section" id="docs-github-action">
   <div class="gate-container-wide">
-    <p class="section-label reveal">Documentation</p>
-
-    <!-- Installation & Setup -->
-    <div class="gate-docs-section reveal" id="docs-install">
-      <h2 class="gate-docs-heading">Installation &amp; Setup</h2>
-
-      <p class="gate-docs-text">The fastest way to run Gate is with npx -- no install required. For repeated use, install globally.</p>
-
-      <div class="gate-docs-code"><span class="cmt"># Run once without installing</span>
-npx @penumbraforge/gate
-
-<span class="cmt"># Install globally</span>
-npm install -g @penumbraforge/gate
-
-<span class="cmt"># Verify installation</span>
-gate version</div>
-
-      <h3 class="gate-docs-sub" id="docs-init">Project setup</h3>
-      <p class="gate-docs-text">Run <code>gate init</code> in any repository to create a <code>.gaterc</code> config file and install the pre-commit hook.</p>
-
-      <div class="gate-docs-code">gate init
-<span class="cmt"># creates .gaterc and installs pre-commit hook</span></div>
-
-      <h3 class="gate-docs-sub" id="docs-config">Configuration (.gaterc)</h3>
-      <p class="gate-docs-text">Gate works with zero configuration. For customization, create a <code>.gaterc</code> file in your project root. YAML format.</p>
-
-      <div class="gate-docs-code"><span class="cmt"># .gaterc</span>
-<span class="kw">severity</span>: high            <span class="cmt"># minimum severity: low, medium, high, critical</span>
-<span class="kw">verify</span>: true              <span class="cmt"># opt-in: check if secrets are live (off by default)</span>
-<span class="kw">format</span>: text              <span class="cmt"># output: text, json, sarif</span>
-<span class="kw">interactive</span>: true         <span class="cmt"># prompt for fix/vault/ignore</span>
-
-<span class="kw">rules</span>:
-  <span class="kw">disable</span>:
-    - generic-high-entropy <span class="cmt"># disable noisy rules</span>
-  <span class="kw">custom</span>:                  <span class="cmt"># add your own patterns</span>
-    - <span class="kw">id</span>: internal-api-key
-      <span class="kw">pattern</span>: <span class="val">'INTERNAL_[A-Za-z0-9]{32}'</span>
-      <span class="kw">severity</span>: high
-
-<span class="kw">ignore</span>:
-  <span class="kw">files</span>:
-    - <span class="str">'**/*.test.ts'</span>       <span class="cmt"># skip test files</span>
-    - <span class="str">'vendor/**'</span>          <span class="cmt"># skip vendor directory</span>
-  <span class="kw">values</span>:
-    - <span class="str">'EXAMPLE_KEY_*'</span>      <span class="cmt"># ignore placeholder values</span></div>
-
-      <h3 class="gate-docs-sub" id="docs-gateignore">.gateignore</h3>
-      <p class="gate-docs-text">Works like .gitignore. One pattern per line. Files matching these patterns are skipped during scanning.</p>
-
-      <div class="gate-docs-code"><span class="cmt"># .gateignore</span>
-node_modules/
-dist/
-*.min.js
-vendor/
-coverage/
-__snapshots__/</div>
-    </div>
-
-    <!-- Commands Reference -->
-    <div class="gate-docs-section reveal" id="docs-commands">
-      <h2 class="gate-docs-heading">Commands Reference</h2>
-
-      <h3 class="gate-docs-sub">Scanning</h3>
-      <table class="gate-cmd-table">
-        <thead>
-          <tr><th>Command</th><th>Description</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>gate scan [files]</td><td>Scan specific files or current directory</td></tr>
-          <tr><td>gate scan --all</td><td>Scan entire repository</td></tr>
-          <tr><td>gate scan --staged</td><td>Scan only staged files (pre-commit mode)</td></tr>
-          <tr><td>gate scan --verify</td><td>Verify found secrets against provider APIs</td></tr>
-          <tr><td>gate scan --interactive</td><td>Prompt to fix/vault/ignore each finding</td></tr>
-          <tr><td>gate scan --history N</td><td>Scan last N commits in git history</td></tr>
-          <tr><td>gate scan --format json</td><td>Output as JSON</td></tr>
-          <tr><td>gate scan --changed</td><td>Scan files changed since upstream (pre-push default)</td></tr>
-          <tr><td>gate scan --max-file-size 5MB</td><td>Skip files larger than this size (default: 2MB)</td></tr>
-          <tr><td>gate scan --format sarif</td><td>Output as SARIF for GitHub code scanning</td></tr>
-        </tbody>
-      </table>
-
-      <h3 class="gate-docs-sub">Fixing</h3>
-      <table class="gate-cmd-table">
-        <thead>
-          <tr><th>Command</th><th>Description</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>gate fix</td><td>Auto-fix all findings (extract to .env, rewrite code)</td></tr>
-          <tr><td>gate fix --dry-run</td><td>Preview changes without writing files</td></tr>
-          <tr><td>gate fix --undo</td><td>Revert the last auto-fix operation</td></tr>
-        </tbody>
-      </table>
-
-      <h3 class="gate-docs-sub">Reporting &amp; Audit</h3>
-      <table class="gate-cmd-table">
-        <thead>
-          <tr><th>Command</th><th>Description</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>gate report</td><td>Generate compliance report (terminal)</td></tr>
-          <tr><td>gate report --format html</td><td>Generate HTML compliance report</td></tr>
-          <tr><td>gate report --incident &lt;id&gt;</td><td>Generate incident response report</td></tr>
-          <tr><td>gate audit --since 7d</td><td>Show audit log for time period</td></tr>
-          <tr><td>gate audit --stats</td><td>Show scan statistics summary</td></tr>
-          <tr><td>gate audit --export</td><td>Export audit log as JSON</td></tr>
-          <tr><td>gate audit --verify</td><td>Verify audit log integrity</td></tr>
-        </tbody>
-      </table>
-
-      <h3 class="gate-docs-sub">Vault &amp; Secrets</h3>
-      <table class="gate-cmd-table">
-        <thead>
-          <tr><th>Command</th><th>Description</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>gate vault keygen</td><td>Generate a new encryption key</td></tr>
-          <tr><td>gate vault encrypt</td><td>Encrypt a .env file</td></tr>
-          <tr><td>gate vault decrypt</td><td>Decrypt a .env.enc file</td></tr>
-          <tr><td>gate vault env</td><td>Load encrypted vars into environment</td></tr>
-        </tbody>
-      </table>
-
-      <h3 class="gate-docs-sub">Utilities</h3>
-      <table class="gate-cmd-table">
-        <thead>
-          <tr><th>Command</th><th>Description</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>gate init</td><td>Initialize Gate in a project</td></tr>
-          <tr><td>gate status</td><td>Show current config and hook status</td></tr>
-          <tr><td>gate install</td><td>Install pre-commit and pre-push hooks</td></tr>
-          <tr><td>gate uninstall</td><td>Remove Gate hooks</td></tr>
-          <tr><td>gate purge</td><td>Generate scripts to purge secrets from git history</td></tr>
-          <tr><td>gate update</td><td>Update Gate to latest version</td></tr>
-          <tr><td>gate version</td><td>Print version</td></tr>
-          <tr><td>gate help</td><td>Show help</td></tr>
-          <tr><td>gate &lt;command&gt; --help</td><td>Show help for any command</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Auto-Fix Language Support -->
-    <div class="gate-docs-section reveal" id="docs-languages">
-      <h2 class="gate-docs-heading">Auto-Fix Language Support</h2>
-      <p class="gate-docs-text">Gate's auto-fix engine understands language-specific syntax. It extracts hardcoded secrets to .env files and rewrites the source to reference environment variables using the correct idiom for each language.</p>
-      <div class="gate-lang-grid">
-        <span class="gate-lang-tag">JavaScript / TypeScript</span>
-        <span class="gate-lang-tag">Python</span>
-        <span class="gate-lang-tag">Go</span>
-        <span class="gate-lang-tag">Ruby</span>
-        <span class="gate-lang-tag">Java</span>
-        <span class="gate-lang-tag">YAML</span>
-        <span class="gate-lang-tag">Terraform</span>
-        <span class="gate-lang-tag">Dockerfile</span>
-        <span class="gate-lang-tag">JSON</span>
-      </div>
-    </div>
-
-    <!-- Credential Verification -->
-    <div class="gate-docs-section reveal" id="docs-verification">
-      <h2 class="gate-docs-heading">Credential Verification</h2>
-      <p class="gate-docs-text">Verification is <strong>off by default</strong> — Gate never touches the network unless you ask. Run <code>gate verify</code> (or <code>gate scan --verify</code>) to make read-only API calls checking whether detected credentials are still active. This tells you which secrets need immediate rotation versus which are already expired or invalid.</p>
-
-      <ul class="gate-docs-list">
-        <li>Opt-in only -- no implicit network calls with detected secrets</li>
-        <li>Read-only API calls only -- no writes, no mutations</li>
-        <li>2-second timeout per verification call</li>
-        <li>Results are cacheable to avoid repeated checks</li>
-      </ul>
-
-      <p class="gate-docs-text">Supported providers:</p>
-
-      <div class="gate-providers-grid">
-        <span class="gate-provider-tag">AWS</span>
-        <span class="gate-provider-tag">GCP</span>
-        <span class="gate-provider-tag">Azure</span>
-        <span class="gate-provider-tag">GitHub</span>
-        <span class="gate-provider-tag">GitLab</span>
-        <span class="gate-provider-tag">Stripe</span>
-        <span class="gate-provider-tag">Twilio</span>
-        <span class="gate-provider-tag">SendGrid</span>
-        <span class="gate-provider-tag">Slack</span>
-        <span class="gate-provider-tag">OpenAI</span>
-        <span class="gate-provider-tag">Anthropic</span>
-        <span class="gate-provider-tag">npm</span>
-        <span class="gate-provider-tag">PyPI</span>
-        <span class="gate-provider-tag">Datadog</span>
-        <span class="gate-provider-tag">Mailgun</span>
-        <span class="gate-provider-tag">Shopify</span>
-      </div>
-    </div>
-
-    <!-- GitHub Action -->
-    <div class="gate-docs-section reveal" id="docs-github-action">
+    <p class="section-label reveal">CI/CD</p>
+    <div class="gate-docs-section reveal">
       <h2 class="gate-docs-heading">GitHub Action</h2>
       <p class="gate-docs-text">Add Gate to your CI pipeline with the official GitHub Action. Scans pull requests and pushes, uploads SARIF results to GitHub code scanning.</p>
 
@@ -453,6 +260,28 @@ __snapshots__/</div>
     </div>
   </div>
 </section>
+
+<!-- DOCUMENTATION -->
+<section class="gate-section" id="docs">
+  <div class="gate-container-wide">
+    <p class="section-label reveal">Documentation</p>
+    <div class="gate-docs-section reveal">
+      <p class="gate-docs-text">Everything else lives in the wiki &mdash; one canonical home for the docs, kept current with each release.</p>
+      <ul class="gate-docs-list">
+        <li id="docs-install"><a href="/gate/wiki/getting-started/">Getting started</a> &mdash; install, first run, project setup</li>
+        <li id="docs-config"><a href="/gate/wiki/configuration/">Configuration</a> &mdash; <code>.gaterc</code> options and custom rules</li>
+        <li id="docs-gateignore"><a href="/gate/wiki/ignore-patterns/">Ignore patterns</a> &mdash; <code>.gateignore</code> and inline ignores</li>
+        <li id="docs-commands"><a href="/gate/wiki/commands/">Commands reference</a> &mdash; scan, fix, verify, vault, report, audit</li>
+        <li id="docs-languages"><a href="/gate/wiki/auto-fix/">Auto-fix engine</a> &mdash; how rewriting works across 9 languages</li>
+        <li id="docs-verification"><a href="/gate/wiki/verification/">Credential verification</a> &mdash; opt-in liveness checks, privacy model</li>
+        <li><a href="/gate/wiki/incident-response/">Incident response</a> &mdash; the 5-step guided workflow</li>
+        <li><a href="/gate/wiki/compliance/">Compliance reports</a> &mdash; OWASP, NIST 800-63B, CIS v8, SOC2</li>
+        <li><a href="/gate/wiki/security/">Security design</a> &mdash; how Gate protects the secrets it finds</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
 
 <!-- SECURITY PROMISE -->
 <section class="gate-section" id="security">
