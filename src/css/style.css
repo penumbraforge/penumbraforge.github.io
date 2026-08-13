@@ -17,14 +17,53 @@
   --accent-strong: #d4c4f0;
   --text-1: #e8e4ef;
   --text-2: #999;
-  --text-3: #666;
-  --muted: #444;
+  --text-3: #8a8494;   /* ~4.6:1 on surface-0 — smallest tier allowed to carry text */
+  --muted: #5f5a6b;    /* decorative only (rules, glyphs, borders) — never text */
   --slate: #687a8e;
   --sage: #6bcf8f;
 
   --font-display: 'Instrument Sans', sans-serif;
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  /* spacing — 4px base */
+  --space-1: 4px;  --space-2: 8px;   --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px;  --space-7: 48px; --space-8: 64px;
+  --space-9: 96px; --space-10: 144px;
+
+  /* type scale — mono labels fixed, headings fluid */
+  --fs-mono-2xs: 10px;              /* section index digits only, never body */
+  --fs-mono-xs: 11px;               /* kickers, labels */
+  --fs-mono-sm: 12px;
+  --fs-body-sm: 13px;
+  --fs-body: 14px;
+  --fs-body-lg: clamp(15px, 1.4vw, 17px);
+  --fs-h4: 16px;
+  --fs-h3: clamp(20px, 2.2vw, 24px);
+  --fs-h2: clamp(30px, 4.4vw, 54px);
+  --fs-h1: clamp(36px, 5.4vw, 76px);
+
+  /* radii — hairline aesthetic is square-first */
+  --radius-1: 2px; --radius-2: 6px; --radius-3: 12px; --radius-round: 999px;
+
+  /* shadows */
+  --shadow-1: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px -12px rgba(0,0,0,.6);
+  --shadow-2: 0 2px 6px rgba(0,0,0,.5), 0 20px 48px -16px rgba(0,0,0,.7);
+  --shadow-glow: 0 0 0 1px var(--accent-a24), 0 0 24px var(--accent-a16);
+  --shadow-hairline: inset 0 1px 0 color-mix(in oklab, #fff 4%, transparent);
+
+  /* accent alpha idiom — replaces raw rgba(184,165,214,…) transcriptions */
+  --accent-a08: color-mix(in oklab, var(--accent) 8%, transparent);
+  --accent-a16: color-mix(in oklab, var(--accent) 16%, transparent);
+  --accent-a24: color-mix(in oklab, var(--accent) 24%, transparent);
+  --accent-a40: color-mix(in oklab, var(--accent) 40%, transparent);
+  --accent-a60: color-mix(in oklab, var(--accent) 60%, transparent);
+
+  /* promoted from home.css so every page shares the homepage vocabulary */
+  --line: color-mix(in oklab, var(--border) 78%, transparent);
+  --line-bright: color-mix(in oklab, var(--accent) 30%, var(--border));
+  --ink: #f2eff8;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ============================================================
@@ -60,12 +99,7 @@ a:hover {
 }
 
 /* Touch feedback */
-.t-card:active,
-.station:active,
-.station-terminal:active,
 .wiki-card:active,
-.featured-card:active,
-.lab-card:active,
 .blog-post-card:active {
   opacity: 0.85;
   transition: opacity 100ms;
@@ -81,11 +115,11 @@ a:hover {
 }
 
 .section-label {
-  font-size: 10px;
+  font-size: var(--fs-mono-xs);
   letter-spacing: 3px;
-  color: var(--muted);
+  color: var(--text-3);
   text-transform: uppercase;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 /* ============================================================

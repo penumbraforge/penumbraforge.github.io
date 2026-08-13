@@ -26,7 +26,7 @@ permalink: /vexes/wiki/getting-started/
 
 <span class="cmt"># Verify the installation</span>
 <span class="prompt">$ </span><span class="cmd">vexes --version</span>
-<span class="dim">vexes v0.1.1</span></div>
+<span class="dim">vexes v{{ versions.vexes.version }}</span></div>
 
     <h2 id="first-scan">Your First Scan</h2>
 
@@ -34,7 +34,7 @@ permalink: /vexes/wiki/getting-started/
 
     <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes scan</span>
 
-<span class="dim">  vexes v0.1.1 — scanning dependencies
+<span class="dim">  vexes v{{ versions.vexes.version }} — scanning dependencies
   Found 312 packages in package-lock.json
   Ecosystem: npm</span>
 
@@ -53,7 +53,7 @@ permalink: /vexes/wiki/getting-started/
 
     <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes analyze</span>
 
-<span class="dim">  vexes v0.1.1 — analyzing dependencies
+<span class="dim">  vexes v{{ versions.vexes.version }} — analyzing dependencies
   Found 312 packages in package-lock.json
   Ecosystem: npm</span>
 
@@ -79,7 +79,7 @@ permalink: /vexes/wiki/getting-started/
     <ul>
       <li><strong style="color: var(--error);">CRITICAL</strong> -- immediate action required. Known compromised packages, active account takeovers with dangerous code patterns.</li>
       <li><strong style="color: var(--warn);">HIGH</strong> -- likely malicious. Typosquatting, phantom dependencies, capability escalation between versions.</li>
-      <li><strong style="color: var(--text-2);">MEDIUM</strong> -- suspicious but may be legitimate. Unusual publish patterns, minor capability changes.</li>
+      <li><strong style="color: var(--text-2);">MODERATE</strong> -- suspicious but may be legitimate. Unusual publish patterns, minor capability changes.</li>
       <li><strong style="color: var(--text-3);">LOW</strong> -- informational. Dormant package reactivation, missing provenance attestations.</li>
     </ul>
 

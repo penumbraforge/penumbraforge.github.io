@@ -8,7 +8,7 @@ permalink: /gate/wiki/github-action/
 
     <h2 id="installation">Installation</h2>
 
-    <p>Add Gate to any GitHub Actions workflow. The action installs Gate, runs a scan, and reports results.</p>
+    <p>Add Gate to any GitHub Actions workflow. The action (a Node 24 action, <code>uses: penumbraforge/gate@v2</code>) installs Gate, runs a full scan of the checked-out repository, and reports results.</p>
 
     <div class="gh-action">
       <div class="gh-action-bar">.github/workflows/gate.yml</div>
@@ -33,12 +33,14 @@ permalink: /gate/wiki/github-action/
     <table class="cmd-table">
       <thead><tr><th>Input</th><th>Default</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>mode</td><td>enforce</td><td><code>enforce</code> fails the workflow on findings. <code>audit</code> reports without failing.</td></tr>
-        <tr><td>verify</td><td>false</td><td>Check if detected credentials are active via provider APIs.</td></tr>
+        <tr><td>mode</td><td>report</td><td><code>enforce</code> fails the workflow on findings. <code>report</code> (the default) just logs them.</td></tr>
+        <tr><td>verify</td><td>false</td><td>Check if detected credentials are active via provider APIs (opt-in).</td></tr>
         <tr><td>format</td><td>text</td><td>Output format: <code>text</code>, <code>json</code>, or <code>sarif</code>.</td></tr>
-        <tr><td>fail-on</td><td>low</td><td>Minimum severity to fail the workflow: <code>low</code>, <code>medium</code>, <code>high</code>, <code>critical</code>.</td></tr>
+        <tr><td>fail-on</td><td>high</td><td>Minimum severity to fail the workflow: <code>low</code>, <code>medium</code>, <code>high</code>, <code>critical</code>.</td></tr>
+        <tr><td>failure-mode</td><td>(from mode)</td><td>How findings or scan errors are treated: <code>block</code> or <code>warn</code>. Defaults to <code>block</code> when <code>mode: enforce</code>, otherwise <code>warn</code>.</td></tr>
         <tr><td>slack-webhook</td><td>(none)</td><td>Slack incoming webhook URL for notifications. Use a GitHub secret.</td></tr>
         <tr><td>github-token</td><td>github.token</td><td>GitHub token for PR comments and SARIF upload. The default token works for most cases.</td></tr>
+        <tr><td>use-local</td><td>false</td><td>Run the checked-out repo's own CLI (<code>node bin/gate.js</code>) instead of installing <code>@penumbraforge/gate</code> from npm. For self-testing unreleased versions.</td></tr>
       </tbody>
     </table>
 
@@ -47,15 +49,15 @@ permalink: /gate/wiki/github-action/
     <table class="cmd-table">
       <thead><tr><th>Output</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>findings-count</td><td>Number of findings detected (integer).</td></tr>
-        <tr><td>blocked</td><td><code>true</code> if the workflow was blocked (findings met or exceeded fail-on severity).</td></tr>
-        <tr><td>scan-report</td><td>Path to the scan report file (JSON or SARIF depending on format).</td></tr>
+        <tr><td>findings-count</td><td>Number of findings at or above the <code>fail-on</code> severity (integer).</td></tr>
+        <tr><td>blocked</td><td><code>true</code> if the action blocked the workflow (findings present and failure mode is <code>block</code>).</td></tr>
+        <tr><td>scan-report</td><td>The JSON scan report itself (findings are capped so the output stays under GitHub's 1&nbsp;MiB output limit). Secrets are never included — matches are redacted and each finding carries a <code>secretHash</code>.</td></tr>
       </tbody>
     </table>
 
     <h2 id="sarif-upload">SARIF Upload for Code Scanning</h2>
 
-    <p>When <code>format</code> is set to <code>sarif</code>, the action produces a SARIF 2.1.0 file. Upload it to GitHub code scanning to see findings as code scanning alerts in the Security tab.</p>
+    <p>When <code>format</code> is set to <code>sarif</code>, the action runs a second scan in SARIF 2.1.0 format and uploads the result directly to GitHub Code Scanning — no separate upload step needed. Findings appear as code scanning alerts in the Security tab.</p>
 
     <div class="gh-action">
       <div class="gh-action-bar">.github/workflows/gate.yml</div>
@@ -77,30 +79,22 @@ permalink: /gate/wiki/github-action/
         <span class="kw">uses</span>: penumbraforge/gate@v2
         <span class="kw">with</span>:
           <span class="kw">mode</span>: enforce
-          <span class="kw">verify</span>: <span class="val">true</span>
           <span class="kw">format</span>: sarif
-          <span class="kw">fail-on</span>: high
-
-      - <span class="kw">name</span>: Upload SARIF
-        <span class="kw">if</span>: always()
-        <span class="kw">uses</span>: github/codeql-action/upload-sarif@v3
-        <span class="kw">with</span>:
-          <span class="kw">sarif_file</span>: {% raw %}${{ steps.gate.outputs.scan-report }}{% endraw %}</div>
+          <span class="kw">fail-on</span>: high</div>
     </div>
 
     <div class="info-box">
-      <strong>Note:</strong> SARIF upload requires the <code>security-events: write</code> permission. The <code>if: always()</code> condition ensures SARIF is uploaded even if the scan step fails (i.e., when findings are detected in enforce mode).
+      <strong>Note:</strong> SARIF upload requires the <code>security-events: write</code> permission and a <code>github-token</code> (the default token works). If the upload fails, the action logs a warning rather than failing the workflow.
     </div>
 
     <h2 id="pr-comments">PR Comments</h2>
 
-    <p>When running on a <code>pull_request</code> event, the action automatically adds a comment to the PR summarizing the scan results. The comment includes:</p>
+    <p>When running on a <code>pull_request</code> event with findings at or above the threshold, the action automatically adds a comment to the PR summarizing the scan results. The comment includes:</p>
 
     <ul>
-      <li>Number of findings by severity</li>
-      <li>File locations with line numbers</li>
-      <li>Verification status (if enabled)</li>
-      <li>Links to relevant wiki documentation</li>
+      <li>Total finding count, with critical and high counts broken out</li>
+      <li>A table of file locations, line numbers, rule names, and severities (first 25 findings)</li>
+      <li>Suggested next steps (<code>gate fix</code>, <code>gate scan --interactive</code>)</li>
     </ul>
 
     <p>PR comments require the default <code>github-token</code> (provided automatically) or a token with <code>pull-requests: write</code> permission.</p>
@@ -179,40 +173,7 @@ permalink: /gate/wiki/github-action/
           <span class="kw">verify</span>: <span class="val">true</span>
           <span class="kw">format</span>: sarif
           <span class="kw">fail-on</span>: high
-          <span class="kw">slack-webhook</span>: {% raw %}${{ secrets.SLACK_WEBHOOK_URL }}{% endraw %}
-
-      - <span class="kw">name</span>: Upload SARIF
-        <span class="kw">if</span>: always()
-        <span class="kw">uses</span>: github/codeql-action/upload-sarif@v3
-        <span class="kw">with</span>:
-          <span class="kw">sarif_file</span>: {% raw %}${{ steps.gate.outputs.scan-report }}{% endraw %}</div>
-    </div>
-
-    <h3>Monorepo (matrix strategy)</h3>
-    <p>Scan multiple packages in a monorepo using a matrix strategy.</p>
-
-    <div class="gh-action">
-      <div class="gh-action-bar">monorepo</div>
-      <div class="gh-action-body"><span class="kw">name</span>: Gate Monorepo
-<span class="kw">on</span>: [pull_request]
-
-<span class="kw">jobs</span>:
-  <span class="kw">scan</span>:
-    <span class="kw">runs-on</span>: ubuntu-latest
-    <span class="kw">strategy</span>:
-      <span class="kw">matrix</span>:
-        <span class="kw">package</span>: [api, web, shared, worker]
-    <span class="kw">steps</span>:
-      - <span class="kw">uses</span>: actions/checkout@v4
-
-      - <span class="kw">name</span>: Run Gate on {% raw %}${{ matrix.package }}{% endraw %}
-        <span class="kw">uses</span>: penumbraforge/gate@v2
-        <span class="kw">with</span>:
-          <span class="kw">mode</span>: enforce
-          <span class="kw">verify</span>: <span class="val">true</span>
-          <span class="kw">fail-on</span>: high
-        <span class="kw">env</span>:
-          <span class="kw">GATE_SCAN_PATH</span>: packages/{% raw %}${{ matrix.package }}{% endraw %}</div>
+          <span class="kw">slack-webhook</span>: {% raw %}${{ secrets.SLACK_WEBHOOK_URL }}{% endraw %}</div>
     </div>
 
     <h2 id="using-outputs">Using Outputs in Subsequent Steps</h2>
@@ -223,4 +184,4 @@ permalink: /gate/wiki/github-action/
   <span class="kw">if</span>: steps.gate.outputs.blocked == 'true'
   <span class="kw">run</span>: |
     echo "Gate found {% raw %}${{ steps.gate.outputs.findings-count }}{% endraw %} findings"
-    echo "Report: {% raw %}${{ steps.gate.outputs.scan-report }}{% endraw %}"</div>
+    echo '{% raw %}${{ steps.gate.outputs.scan-report }}{% endraw %}' > gate-report.json</div>

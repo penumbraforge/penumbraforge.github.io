@@ -14,7 +14,9 @@ permalink: /librarian/wiki/community-packs/
 
     <h2 id="available-packs">Available Packs</h2>
 
-    <p>Nine curated packs are available in the community repository. Install any pack with a single tool call.</p>
+    <p>{{ versions.librarian.packs }} curated packs are available in the community repository. Install any pack with a single tool call &mdash; installs are transactional, so a failure part-way through rolls back instead of leaving your library in a half-written state.</p>
+
+    <p>Contributions to the pack repository are screened in CI before they can merge: a validation script checks pack structure, <code>index.json</code> consistency, and frontmatter, and a content guard scans every submitted skill for prompt-injection patterns. Packs are also signed on install, so a tampered pack file is caught on load.</p>
 
     <table class="cmd-table">
       <thead><tr><th>Pack</th><th>Skills</th><th>What You Get</th></tr></thead>

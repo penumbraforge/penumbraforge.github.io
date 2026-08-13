@@ -28,7 +28,7 @@ permalink: /vexes/wiki/detection-engine/
     </ul>
 
     <h3>Signal: AST_DANGEROUS_PATTERN</h3>
-    <p>Severity varies by context. A <code>child_process.exec()</code> in a postinstall script is critical. The same call in a build tool's main code may be medium or low.</p>
+    <p>Severity varies by context. A <code>child_process.exec()</code> in a postinstall script is critical. The same call in a build tool's main code may be moderate or low.</p>
 
     <h2 id="layer-2">Layer 2 — Dependency Graph</h2>
 
@@ -101,9 +101,11 @@ permalink: /vexes/wiki/detection-engine/
       <li><code>CAPABILITY_ESCALATION</code> -- version gained dangerous new capabilities</li>
     </ul>
 
-    <p>All other signals can be suppressed or have their severity adjusted via <a href="/vexes/wiki/configuration/">configuration</a>.</p>
+    <p>All other signals can be disabled via <a href="/vexes/wiki/configuration/">configuration</a>.</p>
 
     <h2 id="scoring">Signal Scoring</h2>
+
+    <p>Vulnerability severity comes from spec-exact CVSS math: vexes parses CVSS v3.x vectors from advisories and computes base scores with the full CVSS v3.1 specification equations (as of 0.2.0) -- severity you can trust, not an approximation.</p>
 
     <p>The final severity for a package is the highest severity among all its signals. Multiple high-severity signals on the same package do not compound into critical -- each signal is reported independently with its own evidence.</p>
 

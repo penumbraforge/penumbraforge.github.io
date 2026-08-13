@@ -18,7 +18,7 @@ permalink: /vexes/wiki/security/
       <li><strong style="color: var(--text-1);">Acorn parser</strong> is vendored directly into the source tree. It is not installed via npm.</li>
       <li><strong style="color: var(--text-1);">SQLite</strong> is a Node.js built-in module starting in v22.5. No native addon required.</li>
       <li><strong style="color: var(--text-1);">HTTPS client</strong> uses Node.js built-in <code>https</code> module for registry and OSV API calls.</li>
-      <li><strong style="color: var(--text-1);">YAML parser</strong> is a minimal, purpose-built implementation that only supports the subset needed for config files.</li>
+      <li><strong style="color: var(--text-1);">Config parsing</strong> uses plain <code>JSON.parse</code> on <code>.vexesrc.json</code> -- no third-party parser in the loop.</li>
     </ul>
 
     <h2 id="terminal-injection">Terminal Injection Protection</h2>
@@ -62,7 +62,18 @@ permalink: /vexes/wiki/security/
 
     <h2 id="config-protection">Configuration File Protection</h2>
 
-    <p>The YAML parser for <code>.vexesrc</code> rejects <code>__proto__</code>, <code>constructor</code>, and <code>prototype</code> keys. This prevents prototype pollution attacks via crafted config files -- a real attack vector in tools that parse untrusted YAML.</p>
+    <p>The config merger for <code>.vexesrc.json</code> and <code>~/.config/vexes/config.json</code> rejects <code>__proto__</code>, <code>constructor</code>, and <code>prototype</code> keys. This prevents prototype pollution attacks via crafted config files -- a real attack vector in tools that merge untrusted configuration.</p>
+
+    <h2 id="ai-triage-privacy">AI Triage Privacy (vexes explain)</h2>
+
+    <p>The <code>vexes explain</code> command sends scan findings to the Claude API for prioritized triage. Its privacy model is strict:</p>
+
+    <ul>
+      <li><strong style="color: var(--text-1);">Opt-in only.</strong> The command runs only when <code>ANTHROPIC_API_KEY</code> is set in your environment. Nothing AI-related ever runs implicitly -- the scanner itself stays deterministic and offline.</li>
+      <li><strong style="color: var(--text-1);">Finding summaries only.</strong> The payload is advisory IDs, package names, versions, ecosystems, severities, and short advisory summaries. No source code, no file contents, no paths leave your machine.</li>
+      <li><strong style="color: var(--text-1);">Your own API key.</strong> Requests go directly from your machine to the Claude API using your key. There is no intermediary service.</li>
+      <li><strong style="color: var(--text-1);">Zero new dependencies.</strong> The API client is built on Node.js built-ins, preserving the zero-dependency guarantee.</li>
+    </ul>
 
     <h2 id="fail-loud">Fail Loud, Not Clean</h2>
 

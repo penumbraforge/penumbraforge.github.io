@@ -7,20 +7,20 @@ permalink: /gate/wiki/commands/
     <p class="subtitle">Every Gate command and flag, organized by function.</p>
 
     <h2 id="gate-bare">gate (bare)</h2>
-    <p>Running <code>gate</code> with no subcommand starts an interactive scan of the current directory. Equivalent to <code>gate scan --interactive</code>.</p>
+    <p>Running <code>gate</code> with no subcommand shows the current status — or installs the pre-commit hook on first run.</p>
     <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate</span></div>
 
     <h2 id="gate-scan">gate scan</h2>
-    <p>Scan files for hardcoded secrets. This is the core command. Without arguments, it scans all files in the current directory recursively.</p>
+    <p>Scan files for hardcoded secrets. This is the core command. Without arguments, it scans git-staged files (the same set the pre-commit hook checks). Use <code>--all</code> for a full repository scan, or pass explicit file paths.</p>
     <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate scan [files...] [options]</span></div>
 
     <h3>Flags</h3>
     <table class="cmd-table">
       <thead><tr><th>Flag</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td>--all</td><td>Scan the entire repository, including untracked files</td></tr>
-        <tr><td>--staged</td><td>Scan only git-staged files (used by the pre-commit hook)</td></tr>
-        <tr><td>--verify</td><td>Check if detected credentials are still active via provider APIs</td></tr>
+        <tr><td>--all</td><td>Scan all tracked files in the repository</td></tr>
+        <tr><td>--staged</td><td>Scan only git-staged files (default; used by the pre-commit hook)</td></tr>
+        <tr><td>--verify</td><td>Check if detected credentials are still active via provider APIs (opt-in — verification is off by default)</td></tr>
         <tr><td>--no-verify</td><td>Skip credential verification even if enabled in .gaterc</td></tr>
         <tr><td>--interactive</td><td>Prompt for action on each finding (fix, vault, ignore, report)</td></tr>
         <tr><td>--history N</td><td>Scan the last N commits in git history for secrets</td></tr>
@@ -53,6 +53,21 @@ permalink: /gate/wiki/commands/
 <span class="cmt"># Output SARIF for CI</span>
 <span class="prompt">$ </span><span class="cmd">gate scan --format sarif > results.sarif</span></div>
 
+    <h2 id="gate-verify">gate verify</h2>
+    <p>Scan and verify detected credentials in one step. Credential verification is opt-in and off by default — a plain <code>gate scan</code> never makes live API calls with detected secrets. <code>gate verify</code> is the dedicated way to ask for it (equivalent to <code>gate scan --verify</code>).</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate verify [files...] [options]</span></div>
+    <p>Like <code>gate scan</code>, it checks git-staged files by default, accepts explicit file paths, and takes <code>--all</code> for a full scan of tracked files.</p>
+    <div class="code-block"><span class="cmt"># Verify findings in staged files (default)</span>
+<span class="prompt">$ </span><span class="cmd">gate verify</span>
+
+<span class="cmt"># Full scan with credential verification</span>
+<span class="prompt">$ </span><span class="cmd">gate verify --all</span></div>
+
+    <h2 id="gate-incident">gate incident</h2>
+    <p>Run incident response for secrets that have already been pushed. Scans staged files by default (or <code>--all</code> / explicit paths) and walks through containment. <code>gate incident report &lt;incident-id&gt;</code> writes a Markdown incident report.</p>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate incident [files...] [options]</span></div>
+    <p>See <a href="/gate/wiki/incident-response/">Incident Response</a> for the full workflow.</p>
+
     <h2 id="gate-fix">gate fix</h2>
     <p>Automatically fix all findings by extracting secrets to <code>.env</code> files and rewriting source code to reference environment variables.</p>
     <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate fix [options]</span></div>
@@ -61,6 +76,9 @@ permalink: /gate/wiki/commands/
     <table class="cmd-table">
       <thead><tr><th>Flag</th><th>Description</th></tr></thead>
       <tbody>
+        <tr><td>--all</td><td>Fix findings across all tracked files (default)</td></tr>
+        <tr><td>--staged</td><td>Fix findings in staged files only</td></tr>
+        <tr><td>--interactive</td><td>Guided remediation walkthrough</td></tr>
         <tr><td>--dry-run</td><td>Preview all changes without writing to disk</td></tr>
         <tr><td>--undo</td><td>Revert the last auto-fix operation using stored snapshots</td></tr>
       </tbody>
@@ -69,7 +87,7 @@ permalink: /gate/wiki/commands/
     <p>See <a href="/gate/wiki/auto-fix/">Auto-Fix Engine</a> for details on how fixing works across languages.</p>
 
     <h2 id="gate-init">gate init</h2>
-    <p>Initialize Gate in the current project. Creates a <code>.gaterc</code> configuration file and installs the pre-commit hook.</p>
+    <p>Initialize Gate in the current project. Installs the pre-commit hook, creates a <code>.gateignore</code> file, and adds env-file patterns to <code>.gitignore</code>.</p>
     <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate init</span></div>
 
     <h2 id="gate-status">gate status</h2>

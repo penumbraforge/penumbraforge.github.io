@@ -10,6 +10,8 @@ permalink: /librarian/wiki/signing/
 
     <p>Every skill in mcp-librarian is cryptographically signed using Ed25519. When a skill is created or installed, the server hashes the file content and signs the hash with the private key. When a skill is loaded, the server verifies the signature against the public key. If the file has been modified since signing, the verification fails and the skill is flagged as TAMPERED.</p>
 
+    <p>Signing happens <strong style="color: var(--text-1);">at runtime, on write</strong>. <code>create_skill</code> and <code>install_pack</code> sign as part of the write itself whenever a signing key is present, so a freshly created or freshly installed skill reports <code>VERIFIED</code> immediately &mdash; not <code>UNSIGNED</code> until some later batch job runs.</p>
+
     <p>This protects against a critical threat: an attacker (or a compromised agent) modifying skill files on disk to inject malicious content. Even if the <a href="/librarian/wiki/content-guard/">content guard</a> is bypassed at the file system level, the signature check catches the modification before the content reaches the agent.</p>
 
     <h2 id="key-generation">Key Generation</h2>

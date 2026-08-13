@@ -8,7 +8,7 @@ permalink: /vexes/wiki/ci-cd/
 
     <h2 id="github-action">GitHub Actions</h2>
 
-    <p>The simplest way to add vexes to your CI pipeline is with a GitHub Actions workflow. This example runs on every pull request and push to main.</p>
+    <p>The simplest way to add vexes to your CI pipeline is the official composite action. By default it is <strong style="color: var(--text-1);">output-first</strong>: the action succeeds and exposes finding counts as outputs for you to branch on, and only blocks the build when you opt in with <code>fail-on-findings</code>.</p>
 
     <div class="code-block"><span class="cmt"># .github/workflows/vexes.yml</span>
 <span class="kw">name</span>: Dependency Security
@@ -19,11 +19,49 @@ permalink: /vexes/wiki/ci-cd/
     <span class="kw">runs-on</span>: ubuntu-latest
     <span class="kw">steps</span>:
       - <span class="kw">uses</span>: actions/checkout@v4
-      - <span class="kw">uses</span>: actions/setup-node@v4
+      - <span class="kw">uses</span>: penumbraforge/vexes@v0
+        <span class="kw">id</span>: vexes
         <span class="kw">with</span>:
-          <span class="kw">node-version</span>: <span class="val">22</span>
-      - <span class="kw">name</span>: Vulnerability scan
-        <span class="kw">run</span>: npx @penumbraforge/vexes monitor --ci --severity high</div>
+          <span class="kw">command</span>: scan
+          <span class="kw">severity</span>: high
+          <span class="kw">fail-on-findings</span>: <span class="val">'true'</span>   <span class="cmt"># opt-in: block the build on findings</span></div>
+
+    <h3>Inputs</h3>
+
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Input</th><th>Default</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>command</code></td><td>scan</td><td><code>scan</code>, <code>analyze</code>, or <code>monitor</code>. <code>guard</code> is rejected — it performs real installs and is never permitted from CI.</td></tr>
+        <tr><td><code>severity</code></td><td>high</td><td>Minimum severity to report: low, moderate, high, critical</td></tr>
+        <tr><td><code>path</code></td><td>.</td><td>Path to scan</td></tr>
+        <tr><td><code>sarif-file</code></td><td>(none)</td><td>Also write a SARIF 2.1.0 report to this path, for <code>github/codeql-action/upload-sarif</code></td></tr>
+        <tr><td><code>fail-on-findings</code></td><td>false</td><td>When <code>true</code>, the action fails the build on findings (exit 1) or an incomplete scan (exit 2). Off by default so outputs reach the caller — a composite action that fails does not expose its outputs.</td></tr>
+        <tr><td><code>node-version</code></td><td>24</td><td>Node.js version to run vexes with</td></tr>
+        <tr><td><code>args</code></td><td>(none)</td><td>Additional arguments passed through to vexes (use only trusted values)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Outputs</h3>
+
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Output</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>vulnerabilities</code></td><td>Total vulnerabilities (or flagged packages) at or above the severity threshold</td></tr>
+        <tr><td><code>critical</code></td><td>Number of CRITICAL findings</td></tr>
+        <tr><td><code>high</code></td><td>Number of HIGH findings</td></tr>
+        <tr><td><code>moderate</code></td><td>Number of MODERATE findings</td></tr>
+        <tr><td><code>exit-code</code></td><td>vexes exit code (0 clean, 1 findings, 2 incomplete/error)</td></tr>
+        <tr><td><code>sarif-file</code></td><td>Path to the written SARIF report, if <code>sarif-file</code> was requested</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box">
+      <strong>Hardened by design.</strong> Every input is passed to the run step through quoted environment variables — nothing is template-interpolated into the shell, so the action is not a template-injection sink. It also runs the pinned action code shipped in the <code>uses:</code> ref, never fetching vexes from the registry at runtime.
+    </div>
 
     <h2 id="monitor-ci">Monitor --ci Mode</h2>
 
@@ -43,7 +81,7 @@ permalink: /vexes/wiki/ci-cd/
 
     <h2 id="sarif">SARIF Output</h2>
 
-    <p>Add <code>--sarif</code> for SARIF (Static Analysis Results Interchange Format) output compatible with GitHub Advanced Security code scanning. Upload the SARIF file as a GitHub code scanning artifact to get findings on the Security tab.</p>
+    <p>Set the <code>sarif-file</code> input to write a SARIF (Static Analysis Results Interchange Format) 2.1.0 report, then pair it with <code>github/codeql-action/upload-sarif</code> to surface findings on the Security tab.</p>
 
     <div class="code-block"><span class="cmt"># .github/workflows/vexes.yml</span>
 <span class="kw">name</span>: Dependency Security
@@ -56,16 +94,17 @@ permalink: /vexes/wiki/ci-cd/
       <span class="kw">security-events</span>: write
     <span class="kw">steps</span>:
       - <span class="kw">uses</span>: actions/checkout@v4
-      - <span class="kw">uses</span>: actions/setup-node@v4
+      - <span class="kw">uses</span>: penumbraforge/vexes@v0
+        <span class="kw">id</span>: vexes
         <span class="kw">with</span>:
-          <span class="kw">node-version</span>: <span class="val">22</span>
-      - <span class="kw">name</span>: Security scan
-        <span class="kw">run</span>: npx @penumbraforge/vexes monitor --ci --sarif > results.sarif
-        <span class="kw">continue-on-error</span>: <span class="val">true</span>
+          <span class="kw">command</span>: scan
+          <span class="kw">severity</span>: high
+          <span class="kw">sarif-file</span>: vexes.sarif
       - <span class="kw">name</span>: Upload SARIF
         <span class="kw">uses</span>: github/codeql-action/upload-sarif@v3
+        <span class="kw">if</span>: always()
         <span class="kw">with</span>:
-          <span class="kw">sarif_file</span>: results.sarif</div>
+          <span class="kw">sarif_file</span>: vexes.sarif</div>
 
     <h2 id="behavioral-analysis-ci">Behavioral Analysis in CI</h2>
 

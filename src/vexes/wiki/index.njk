@@ -18,7 +18,7 @@ permalink: /vexes/wiki/
     <p>vexes runs four independent analysis layers on every dependency: AST code analysis, dependency graph profiling, behavioral fingerprinting between versions, and registry metadata inspection. Each layer produces signals that are scored and aggregated into a final severity.</p>
 
     <h3>Signals</h3>
-    <p>A signal is a discrete finding from one of the four analysis layers. Examples: <code>TYPOSQUAT</code>, <code>MAINTAINER_CHANGE</code>, <code>CAPABILITY_ESCALATION</code>, <code>AST_DANGEROUS_PATTERN</code>. Signals have severity levels (critical, high, medium, low) and some are undisableable -- they cannot be turned off via configuration because suppressing them is never safe.</p>
+    <p>A signal is a discrete finding from one of the four analysis layers. Examples: <code>TYPOSQUAT</code>, <code>MAINTAINER_CHANGE</code>, <code>CAPABILITY_ESCALATION</code>, <code>AST_DANGEROUS_PATTERN</code>. Signals have severity levels (critical, high, moderate, low) and some are undisableable -- they cannot be turned off via configuration because suppressing them is never safe.</p>
 
     <h3>Pre-Install Guard</h3>
     <p>The guard command intercepts package manager installs and analyzes new or changed dependencies before they execute. It diffs lockfiles, runs the detection engine on new packages, and blocks or warns based on signal severity -- all before a single postinstall script runs.</p>
@@ -35,7 +35,7 @@ permalink: /vexes/wiki/
       </a>
       <a href="/vexes/wiki/commands/" class="wiki-card">
         <h3>Commands Reference</h3>
-        <p>Every command and flag. scan, analyze, fix, guard, and monitor.</p>
+        <p>Every command and flag. scan, analyze, fix, guard, monitor, and explain.</p>
       </a>
       <a href="/vexes/wiki/detection-engine/" class="wiki-card">
         <h3>Detection Engine</h3>
@@ -55,7 +55,7 @@ permalink: /vexes/wiki/
       </a>
       <a href="/vexes/wiki/configuration/" class="wiki-card">
         <h3>Configuration</h3>
-        <p>.vexesrc format, signal overrides, severity thresholds, and ignore patterns.</p>
+        <p>.vexesrc.json format, signal toggles, severity thresholds, and the ignore list.</p>
       </a>
       <a href="/vexes/wiki/security/" class="wiki-card">
         <h3>Security Model</h3>

@@ -10,6 +10,8 @@ permalink: /librarian/wiki/content-guard/
 
     <p>Content guard is a security layer that prevents prompt injection attacks through skill content. Since skills are loaded directly into an AI agent's context, a malicious skill could contain instructions that manipulate the agent's behavior. Content guard blocks these patterns at write time, before they ever reach the agent.</p>
 
+    <p>The guard covers <strong style="color: var(--text-1);">fetched web content as well as skill files</strong>. Anything pulled in by <code>research_topic</code> or <code>fetch_page</code> is screened the same way and then wrapped in explicit untrusted-data delimiters, so the agent can tell the difference between your library and text a web page supplied. Community pack submissions get the same screening in CI before they can merge &mdash; see <a href="/librarian/wiki/community-packs/">Community Packs</a>.</p>
+
     <p>Content guard runs automatically during <code>create_skill</code> and pack installation. You can also check content manually using <code>validate_skill</code>.</p>
 
     <h2 id="threat-model">Threat Model</h2>

@@ -1,40 +1,54 @@
 ---
 title: "Configuration"
-description: "Configure vexes with .vexesrc — signal overrides, severity thresholds, ignore patterns, and ecosystem settings."
+description: "Configure vexes with .vexesrc.json — ignore lists, signal toggles, severity thresholds, and ecosystem settings."
 permalink: /vexes/wiki/configuration/
 ---
 <h1>Configuration</h1>
-    <p class="subtitle">.vexesrc format, signal overrides, severity thresholds, ignore patterns, and output settings.</p>
+    <p class="subtitle">.vexesrc.json format, ignore lists, signal toggles, severity thresholds, and output settings.</p>
 
     <h2 id="zero-config">Zero Configuration</h2>
 
-    <p>vexes works with zero configuration. All defaults are designed for security: every signal is enabled, no packages are ignored, and the scanner uses the strictest safe defaults. Configuration is only needed when you want to customize behavior.</p>
+    <p>vexes works with zero configuration. All defaults are designed for security: every signal is enabled, nothing is ignored, and the scanner uses the strictest safe defaults. Configuration is only needed when you want to customize behavior.</p>
 
-    <h2 id="vexesrc">.vexesrc</h2>
+    <h2 id="vexesrc">.vexesrc.json</h2>
 
-    <p>Create a <code>.vexesrc</code> file in your project root for per-project configuration. YAML format.</p>
+    <p>Create a <code>.vexesrc.json</code> file in your project root for per-project configuration. A user-level config at <code>~/.config/vexes/config.json</code> uses the same format.</p>
 
-    <div class="code-block"><span class="cmt"># .vexesrc</span>
-<span class="kw">severity</span>: high              <span class="cmt"># minimum severity to report: low, medium, high, critical</span>
-<span class="kw">format</span>: text                <span class="cmt"># output format: text, json, sarif</span>
+    <div class="code-block"><span class="cmt">// .vexesrc.json</span>
+{
+  <span class="kw">"severity"</span>: <span class="val">"high"</span>,
+  <span class="kw">"ecosystems"</span>: [<span class="val">"npm"</span>, <span class="val">"cargo"</span>],
+  <span class="kw">"ignore"</span>: [
+    <span class="val">"GHSA-xxxx-yyyy-zzzz"</span>,          <span class="cmt">// suppress a specific advisory</span>
+    <span class="val">"internal-tool"</span>,                 <span class="cmt">// skip a package entirely</span>
+    <span class="val">"lodash@4.17.21"</span>                 <span class="cmt">// skip one pinned version only</span>
+  ],
+  <span class="kw">"analyze"</span>: {
+    <span class="kw">"signals"</span>: {
+      <span class="kw">"DORMANT_REACTIVATION"</span>: <span class="val">"off"</span>  <span class="cmt">// disable a noisy signal</span>
+    }
+  },
+  <span class="kw">"output"</span>: {
+    <span class="kw">"format"</span>: <span class="val">"text"</span>
+  }
+}</div>
 
-<span class="kw">ecosystems</span>:
-  <span class="kw">include</span>:
-    - npm
-    - cargo                   <span class="cmt"># only scan these ecosystems</span>
+    <h2 id="ignore">The ignore Key</h2>
 
-<span class="kw">signals</span>:
-  <span class="kw">suppress</span>:
-    - DORMANT_REACTIVATION    <span class="cmt"># suppress noisy signals</span>
-    - PROVENANCE_MISSING
-  <span class="kw">override</span>:
-    RAPID_RELEASE: low        <span class="cmt"># downgrade severity</span>
+    <p>The <code>ignore</code> key is a flat array of strings. Each entry takes one of three forms:</p>
 
-<span class="kw">ignore</span>:
-  <span class="kw">packages</span>:
-    - internal-tool           <span class="cmt"># skip specific packages</span>
-  <span class="kw">advisories</span>:
-    - GHSA-xxxx-yyyy-zzzz    <span class="cmt"># suppress specific advisories</span></div>
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Form</th><th>Example</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Advisory ID</td><td><code>GHSA-xxxx-yyyy-zzzz</code>, <code>CVE-2021-1234</code>, <code>PYSEC-...</code></td><td>Suppresses findings for that specific advisory</td></tr>
+        <tr><td>Package name</td><td><code>lodash</code>, <code>@scope/name</code></td><td>Suppresses all findings for that package</td></tr>
+        <tr><td>Pinned package</td><td><code>lodash@4.17.21</code>, <code>@scope/name@1.2.3</code></td><td>Suppresses findings for that exact version only</td></tr>
+      </tbody>
+    </table>
+
+    <p>Suppressed findings are partitioned out of the results, not silently dropped -- the output notes how many findings were suppressed by your ignore list.</p>
 
     <h2 id="configuration-options">All Options</h2>
 
@@ -43,20 +57,21 @@ permalink: /vexes/wiki/configuration/
         <tr><th>Key</th><th>Default</th><th>Description</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>severity</code></td><td><code>low</code></td><td>Minimum severity to report. One of: low, medium, high, critical.</td></tr>
-        <tr><td><code>format</code></td><td><code>text</code></td><td>Output format. One of: text, json, sarif.</td></tr>
-        <tr><td><code>ecosystems.include</code></td><td>all</td><td>Array of ecosystem names to scan. If omitted, all detected ecosystems are scanned.</td></tr>
-        <tr><td><code>ecosystems.exclude</code></td><td>none</td><td>Array of ecosystem names to skip.</td></tr>
-        <tr><td><code>signals.suppress</code></td><td>none</td><td>Array of signal names to suppress entirely. Undisableable signals cannot be suppressed.</td></tr>
-        <tr><td><code>signals.override</code></td><td>none</td><td>Map of signal name to severity. Override the default severity for a signal.</td></tr>
-        <tr><td><code>ignore.packages</code></td><td>none</td><td>Array of package names to skip during analysis.</td></tr>
-        <tr><td><code>ignore.advisories</code></td><td>none</td><td>Array of advisory IDs (GHSA, CVE) to suppress.</td></tr>
+        <tr><td><code>severity</code></td><td><code>moderate</code></td><td>Minimum severity to report. One of: low, moderate, high, critical.</td></tr>
+        <tr><td><code>ecosystems</code></td><td>all {{ versions.vexes.ecosystems }}</td><td>Array of ecosystem names to scan: npm, pypi, cargo, go, ruby, php, nuget, java. Unknown names are rejected rather than silently scanning nothing.</td></tr>
+        <tr><td><code>ignore</code></td><td><code>[]</code></td><td>Array of advisory IDs, package names, or <code>pkg@version</code> entries to suppress.</td></tr>
+        <tr><td><code>analyze.signals</code></td><td><code>{}</code></td><td>Map of signal name to <code>"off"</code> to disable a signal. Undisableable signals ignore this.</td></tr>
+        <tr><td><code>output.format</code></td><td><code>text</code></td><td>Output format. One of: text, json, sarif.</td></tr>
+        <tr><td><code>output.color</code></td><td><code>auto</code></td><td>Color output: auto, or never.</td></tr>
+        <tr><td><code>cache.dir</code></td><td><code>~/.cache/vexes</code></td><td>Cache directory for advisory and metadata lookups.</td></tr>
+        <tr><td><code>cache.advisoryTtlMs</code></td><td>(built-in)</td><td>Advisory cache TTL. Clamped to a maximum of 7 days so stale results cannot persist.</td></tr>
+        <tr><td><code>cache.metadataTtlMs</code></td><td>(built-in)</td><td>Registry metadata cache TTL. Clamped to a maximum of 30 days.</td></tr>
       </tbody>
     </table>
 
     <h2 id="undisableable">Undisableable Signals</h2>
 
-    <p>Four signals cannot be suppressed or severity-overridden via configuration:</p>
+    <p>Four signals cannot be turned off via configuration:</p>
 
     <ul>
       <li><code>KNOWN_COMPROMISED</code></li>
@@ -65,29 +80,24 @@ permalink: /vexes/wiki/configuration/
       <li><code>CAPABILITY_ESCALATION</code></li>
     </ul>
 
-    <p>Attempting to add these to <code>signals.suppress</code> will produce a warning and the signals will still be reported. This is a deliberate security design choice -- these signals indicate conditions where suppression is never safe.</p>
+    <p>Setting these to <code>"off"</code> in <code>analyze.signals</code> has no effect -- they are still reported. This is a deliberate security design choice: these signals detect active compromises, and suppressing them is never safe.</p>
 
     <h2 id="config-merging">Configuration Merging</h2>
 
-    <p>vexes looks for <code>.vexesrc</code> in the current directory, then walks up to the filesystem root. The first <code>.vexesrc</code> found is used. There is no config file merging -- the nearest file wins.</p>
+    <p>vexes looks for <code>.vexesrc.json</code> in the current directory, then walks up toward the filesystem root and uses the first one found. Configuration layers merge in increasing precedence: built-in defaults, then <code>~/.config/vexes/config.json</code>, then the project <code>.vexesrc.json</code>, then CLI flags.</p>
 
     <h3>Prototype pollution protection</h3>
-    <p>Config file merging rejects <code>__proto__</code>, <code>constructor</code>, and <code>prototype</code> keys in YAML. This prevents prototype pollution attacks via malicious config files.</p>
+    <p>The config merger rejects <code>__proto__</code>, <code>constructor</code>, and <code>prototype</code> keys. This prevents prototype pollution attacks via malicious config files.</p>
 
     <h2 id="environment-variables">Environment Variables</h2>
 
-    <p>Configuration can also be set via environment variables. Environment variables take precedence over <code>.vexesrc</code> values.</p>
-
     <table class="cmd-table">
       <thead>
-        <tr><th>Variable</th><th>Equivalent .vexesrc Key</th></tr>
+        <tr><th>Variable</th><th>Description</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>VEXES_SEVERITY</code></td><td><code>severity</code></td></tr>
-        <tr><td><code>VEXES_FORMAT</code></td><td><code>format</code></td></tr>
-        <tr><td><code>VEXES_ECOSYSTEMS</code></td><td><code>ecosystems.include</code> (comma-separated)</td></tr>
+        <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Enables the opt-in <code>vexes explain</code> AI triage command. Without it, <code>explain</code> refuses to run.</td></tr>
+        <tr><td><code>VEXES_AI_MODEL</code></td><td>Overrides the model used by <code>vexes explain</code> (default: <code>claude-sonnet-5</code>).</td></tr>
+        <tr><td><code>NO_COLOR</code></td><td>Standard variable to disable colored output.</td></tr>
       </tbody>
     </table>
-
-    <div class="code-block"><span class="cmt"># Set severity via environment</span>
-<span class="prompt">$ </span><span class="cmd">VEXES_SEVERITY=critical vexes scan</span></div>

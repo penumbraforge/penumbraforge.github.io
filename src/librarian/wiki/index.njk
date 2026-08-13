@@ -8,9 +8,11 @@ permalink: /librarian/wiki/
 
     <h2 id="what-is-mcp-librarian">What is mcp-librarian?</h2>
 
-    <p>mcp-librarian is an MCP (Model Context Protocol) server that gives AI coding agents a persistent, searchable knowledge library. It exposes 14 tools over the MCP protocol that let agents find existing skills, research new topics from the web, install community-curated packs, and create permanent knowledge -- all without leaving the editor.</p>
+    <p>mcp-librarian is an MCP (Model Context Protocol) server that gives AI coding agents a persistent, searchable knowledge library. It exposes {{ versions.librarian.tools }} tools over the MCP protocol &mdash; {{ versions.librarian.localTools }} local and {{ versions.librarian.networkTools }} explicitly labelled network tools &mdash; that let agents find existing skills, research new topics from the web, install community-curated packs, and create permanent knowledge, all without leaving the editor. Zero dependencies, {{ versions.librarian.license }}.</p>
 
-    <p>The core design principle is zero friction. When your agent starts a session, it sees a catalog of available skills. When you ask about REST APIs, security patterns, or database optimization, the agent automatically searches the library for relevant knowledge. If nothing matches, the librarian researches the topic from authoritative web sources and creates a new skill on the spot. The next time anyone asks the same question, the answer is instant.</p>
+    <p>The core design principle is zero friction. When your agent starts a session, it sees a catalog of available skills. When you ask about REST APIs, security patterns, or database optimization, the agent automatically searches the library for relevant knowledge. Ask about something the library does not cover and <code>research_topic</code> pulls it from authoritative web sources so it becomes a permanent skill; the next time anyone asks, the answer is instant.</p>
+
+    <p>The second principle is that a knowledge library is a supply chain, so it gets treated like one. Skills are Ed25519-signed on write and integrity-checked on load, all content passes a prompt-injection guard, and every network path is SSRF-hardened and credential-scoped.</p>
 
     <h2 id="key-concepts">Key Concepts</h2>
 

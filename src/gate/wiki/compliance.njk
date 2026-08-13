@@ -87,9 +87,12 @@ permalink: /gate/wiki/compliance/
   "verification": "ACTIVE",
   "exposure":     "COMMITTED",
   "match":        "postgres://admin:****@db.prod...",
+  "secretHash":   "3f5a9c1b2d8e...",
   "remediation":  "Extract to DATABASE_URL environment variable",
   "compliance":   ["OWASP-A02", "CIS-3.11", "SOC2-CC6.1"]
 }</span></div>
+
+    <p>The <code>match</code> field is always redacted, and <code>secretHash</code> is a SHA-256 prefix of the secret for cross-run correlation — the plaintext secret is never stored in any report format.</p>
 
     <p>The top-level JSON object also contains a <code>summary</code> field with:</p>
     <ul>

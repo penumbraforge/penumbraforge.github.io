@@ -167,17 +167,17 @@ permalink: /gate/wiki/incident-response/
 
     <div class="code-block"><span class="dim">  [SCRUB]  Generating history purge script</span>
 
-<span class="ok">  ~/.gate/purge-abc123.sh       (permissions: 0o700)</span>
-<span class="ok">  ~/.gate/replacements-abc123   (permissions: 0o600)</span>
+<span class="ok">  ~/.gate/purge/1768488060000/purge-2026-01-15.sh          (permissions: 0o700)</span>
+<span class="ok">  ~/.gate/purge/1768488060000/replacements-2026-01-15.txt  (permissions: 0o600)</span>
 
-<span class="dim">  Contents of purge-abc123.sh:</span>
+<span class="dim">  Contents of purge-2026-01-15.sh:</span>
 <span class="cmt">  #!/bin/sh
   # Gate incident purge script -- generated 2026-01-15T14:32:00Z
   # Review before running. This rewrites git history.
   #
   # Prerequisites: pip install git-filter-repo
   git filter-repo \
-    --replace-text ~/.gate/replacements-abc123 \
+    --replace-text ~/.gate/purge/1768488060000/replacements-2026-01-15.txt \
     --force
   #
   # After verifying the rewrite, force-push all branches:
@@ -185,9 +185,9 @@ permalink: /gate/wiki/incident-response/
   # git push --force-with-lease --tags
   #
   # BFG alternative (if git-filter-repo is unavailable):
-  # bfg --replace-text ~/.gate/replacements-abc123</span></div>
+  # bfg --replace-text ~/.gate/purge/1768488060000/replacements-2026-01-15.txt</span></div>
 
-    <p>The replacements file contains the literal secret value mapped to <code>***REMOVED***</code>. The force-push commands are included as comments -- you must uncomment and run them manually after verifying the rewritten history. Coordinate with all repository collaborators before force-pushing, as their local clones will need to be rebased or re-cloned.</p>
+    <p>Purge artifacts are written under <code>~/.gate/purge/&lt;timestamp&gt;/</code> — never inside your repository working tree — and are never executed automatically. The replacements file contains the literal secret value mapped to <code>REDACTED_BY_GATE</code>; delete it after use. The force-push commands are included as comments -- you must uncomment and run them manually after verifying the rewritten history. Coordinate with all repository collaborators before force-pushing, as their local clones will need to be rebased or re-cloned.</p>
 
     <h3>Step 5: DOCUMENT</h3>
 
@@ -224,7 +224,7 @@ permalink: /gate/wiki/incident-response/
   "compliance": [
     "OWASP-A02", "NIST-800-63B", "CIS-16.7", "SOC2-CC6.6"
   ],
-  "purgeScript": "~/.gate/purge-abc123.sh",
+  "purgeScript": "~/.gate/purge/1768488060000/purge-2026-01-15.sh",
   "report":      "~/.gate/reports/incident-abc123.md"
 }</span></div>
 

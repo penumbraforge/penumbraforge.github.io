@@ -4,7 +4,7 @@ description: "Every vexes command and flag — scan, analyze, fix, guard, and mo
 permalink: /vexes/wiki/commands/
 ---
 <h1>Commands Reference</h1>
-    <p class="subtitle">Every command and flag. Five commands cover vulnerability scanning, behavioral analysis, fix recommendations, pre-install guarding, and CI monitoring.</p>
+    <p class="subtitle">Every command and flag. {{ versions.vexes.commands }} commands cover vulnerability scanning, behavioral analysis, fix recommendations, pre-install guarding, CI monitoring, and AI-assisted triage.</p>
 
     <h2 id="scan">vexes scan</h2>
 
@@ -15,10 +15,12 @@ permalink: /vexes/wiki/commands/
         <tr><th>Flag</th><th>Description</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>--ecosystem &lt;name&gt;</code></td><td>Scan only one ecosystem (npm, pypi, cargo, go, rubygems, composer, nuget, maven)</td></tr>
-        <tr><td><code>--severity &lt;level&gt;</code></td><td>Minimum severity to report: low, medium, high, critical</td></tr>
+        <tr><td><code>--ecosystem &lt;name&gt;</code></td><td>Scan only one ecosystem (npm, pypi, cargo, go, ruby, php, nuget, java)</td></tr>
+        <tr><td><code>--severity &lt;level&gt;</code></td><td>Minimum severity to report: low, moderate, high, critical (default: moderate)</td></tr>
+        <tr><td><code>--fix</code></td><td>Show fix commands for each vulnerability</td></tr>
         <tr><td><code>--json</code></td><td>Output results as JSON</td></tr>
-        <tr><td><code>--sarif</code></td><td>Output results as SARIF for GitHub Advanced Security</td></tr>
+        <tr><td><code>--format &lt;fmt&gt;</code></td><td>Output format: text (default), json, sarif</td></tr>
+        <tr><td><code>--sarif [file]</code></td><td>SARIF 2.1.0 output for GitHub Advanced Security — to stdout, or to <code>&lt;file&gt;</code> if given</td></tr>
       </tbody>
     </table>
 
@@ -29,7 +31,10 @@ permalink: /vexes/wiki/commands/
 <span class="prompt">$ </span><span class="cmd">vexes scan --severity high</span>
 
 <span class="cmt"># JSON output for scripting</span>
-<span class="prompt">$ </span><span class="cmd">vexes scan --json</span></div>
+<span class="prompt">$ </span><span class="cmd">vexes scan --json</span>
+
+<span class="cmt"># Write a SARIF report to a file</span>
+<span class="prompt">$ </span><span class="cmd">vexes scan --sarif vexes.sarif</span></div>
 
     <h2 id="analyze">vexes analyze</h2>
 
@@ -148,6 +153,31 @@ permalink: /vexes/wiki/commands/
 
 <span class="cmt"># Watch mode — re-scans on lockfile changes</span>
 <span class="prompt">$ </span><span class="cmd">vexes monitor --watch</span></div>
+
+    <h2 id="explain">vexes explain</h2>
+
+    <p>AI-assisted triage of scan results (alias: <code>vexes triage</code>). Turns a wall of CVEs into a prioritized, plain-English action plan: what to fix first, why it matters, and the upgrade sequence. Strictly opt-in — the command only runs when <code>ANTHROPIC_API_KEY</code> is set in your environment, and it uses your own API key. Only finding summaries (advisory IDs, package names, versions, severities) are sent; no source code ever leaves your machine. The default model is <code>claude-sonnet-5</code> (override with <code>VEXES_AI_MODEL</code>).</p>
+
+    <table class="cmd-table">
+      <thead>
+        <tr><th>Flag</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>--input &lt;file&gt;</code></td><td>Triage a saved scan JSON report (<code>vexes scan --format json &gt; f.json</code>)</td></tr>
+        <tr><td><code>--path &lt;dir&gt;</code></td><td>No input or piped JSON? Scan this directory first, then triage (default: cwd)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-block"><span class="cmt"># Pipe a scan straight into triage</span>
+<span class="prompt">$ </span><span class="cmd">vexes scan --format json | vexes explain</span>
+
+<span class="cmt"># Triage a saved report</span>
+<span class="prompt">$ </span><span class="cmd">vexes explain --input scan.json</span>
+
+<span class="cmt"># Scan the current directory and triage in one step</span>
+<span class="prompt">$ </span><span class="cmd">vexes explain</span></div>
+
+    <p>The scanner itself stays deterministic and offline — <code>explain</code> is a separate layer that composes over scan output. See <a href="/vexes/wiki/security/">Security Model</a> for the full privacy model.</p>
 
     <h2 id="exit-codes">Exit Codes</h2>
 

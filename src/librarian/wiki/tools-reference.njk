@@ -8,12 +8,16 @@ permalink: /librarian/wiki/tools-reference/
 
     <p>Every tool is available to any MCP-compatible client. The agent calls these tools automatically based on context, but you can also ask the agent to use a specific tool directly.</p>
 
+    <div class="info-box">
+      <strong>Local vs. network:</strong> {{ versions.librarian.localTools }} of the {{ versions.librarian.tools }} tools are <strong>local</strong> -- they never touch the network. The {{ versions.librarian.networkTools }} <strong>network</strong> tools are called out explicitly below: <code>browse_packs</code>, <code>install_pack</code>, <code>research_topic</code>, and <code>fetch_page</code>. Outside of those (and the opt-in auto-research path in <code>find_and_load</code>), the server makes no outbound requests.
+    </div>
+
     <h2 id="discovery">Discovery Tools</h2>
 
     <p>Tools for finding existing knowledge in the library.</p>
 
     <h3 id="find_and_load">find_and_load</h3>
-    <p>The primary entry point for knowledge retrieval. Searches the library for a matching skill and returns it. If no skill matches, triggers <a href="/librarian/wiki/auto-research/">auto-research</a> -- searches the web for authoritative sources and returns research content for skill creation.</p>
+    <p>The primary entry point for knowledge retrieval (new in 3.1.0). Searches the library for a matching skill and returns the top result's content in one call -- progressive disclosure without a second round trip. This tool is network-capable <strong>only when <a href="/librarian/wiki/auto-research/">auto-research</a> is enabled</strong> (<code>autoResearch</code>, off by default): with it off, a no-match returns a suggestion to call <code>research_topic</code> explicitly instead of reaching the web.</p>
 
     <table class="cmd-table">
       <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
@@ -35,10 +39,10 @@ find_and_load({ <span class="kw">query</span>: <span class="str">"SQL injection 
   <span class="kw">"sections"</span>: [<span class="str">"parameterized-queries"</span>, <span class="str">"orm-safety"</span>, <span class="str">"stored-procedures"</span>]
 }
 
-<span class="cmt">// Returns research if no skill found:</span>
+<span class="cmt">// No match with auto-research off (the default) — no network call:</span>
 {
   <span class="kw">"found"</span>: <span class="val">false</span>,
-  <span class="kw">"research"</span>: { <span class="kw">"sources"</span>: [...], <span class="kw">"content"</span>: <span class="str">"..."</span> }
+  <span class="kw">"suggestion"</span>: <span class="str">"No matching skill. Call research_topic to research this from the web."</span>
 }</div>
 
     <h3 id="find_skill">find_skill</h3>
@@ -136,9 +140,9 @@ find_and_load({ <span class="kw">query</span>: <span class="str">"SQL injection 
   <span class="kw">"content"</span>: <span class="str">"### RFC 7807 Problem Details\nThe standard format for..."</span>
 }</div>
 
-    <h2 id="research">Research Tools</h2>
+    <h2 id="research">Research Tools (network)</h2>
 
-    <p>Tools for gathering new information from the web.</p>
+    <p>Tools for gathering new information from the web. Both are <strong>network tools</strong>: <code>research_topic</code> reaches DuckDuckGo plus the pages it ranks, and <code>fetch_page</code> reaches the URL you pass. All fetches are SSRF-guarded and size-capped, and fetched content passes through the <a href="/librarian/wiki/content-guard/">content guard</a>.</p>
 
     <h3 id="research_topic">research_topic</h3>
     <p>Searches the web for a topic, scores sources by authority (official documentation ranked highest), and fetches content from the top-scoring results. Returns structured research that can be used to create new skills.</p>
@@ -201,7 +205,7 @@ find_and_load({ <span class="kw">query</span>: <span class="str">"SQL injection 
     <p>Tools for creating and validating skills.</p>
 
     <h3 id="create_skill">create_skill</h3>
-    <p>Validate, sign, save, and index a new skill. The skill content is checked against the <a href="/librarian/wiki/content-guard/">content guard</a>, signed with Ed25519, written to disk, and the BM25 index is rebuilt atomically. The agent immediately sees the new skill in its catalog.</p>
+    <p>Validate, sign, save, and index a new skill. The skill content is checked against the <a href="/librarian/wiki/content-guard/">content guard</a>, signed with Ed25519 at creation time when a signing key exists (so new skills are VERIFIED, not UNSIGNED), written to disk, and the BM25 index is rebuilt atomically. The agent immediately sees the new skill in its catalog.</p>
 
     <table class="cmd-table">
       <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
@@ -278,12 +282,12 @@ find_and_load({ <span class="kw">query</span>: <span class="str">"SQL injection 
 
     <p>See <a href="/librarian/wiki/community-packs/">Community Packs</a> for the pack manifest format and how to contribute.</p>
 
-    <h2 id="packs">Pack Tools</h2>
+    <h2 id="packs">Pack Tools (network)</h2>
 
-    <p>Tools for browsing and installing community skill packs.</p>
+    <p>Tools for browsing and installing community skill packs. Both are <strong>network tools</strong> that fetch from <code>raw.githubusercontent.com</code> (your configured skills repo).</p>
 
     <h3 id="browse_packs">browse_packs</h3>
-    <p>Browse available community skill packs. Returns pack names, descriptions, skill counts, and install commands. Supports keyword filtering.</p>
+    <p>List community skill packs from the skills repo (new in 3.1.0). Returns pack names, descriptions, skill counts, and install commands. Supports keyword filtering.</p>
 
     <table class="cmd-table">
       <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
@@ -307,7 +311,7 @@ find_and_load({ <span class="kw">query</span>: <span class="str">"SQL injection 
 }</div>
 
     <h3 id="install_pack">install_pack</h3>
-    <p>Download, validate, and install a skill pack from the community repository or a direct URL. Skills are verified, signed, deduplicated against existing skills, and the BM25 index is rebuilt.</p>
+    <p>Download, validate, and install a skill pack from the community repository. Skills are content-guard checked, auto-signed at install time (so they load as VERIFIED, not UNSIGNED), deduplicated against existing skills, and the BM25 index is rebuilt.</p>
 
     <table class="cmd-table">
       <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>

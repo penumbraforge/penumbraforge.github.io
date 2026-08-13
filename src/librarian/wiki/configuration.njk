@@ -18,9 +18,18 @@ permalink: /librarian/wiki/configuration/
         <tr><td>MCP_LIBRARIAN_HOME</td><td><code>~/.mcp-librarian</code></td><td>Base directory for skills, keys, index, exports, and logs. All file operations are constrained to this directory by the path guard.</td></tr>
         <tr><td>MCP_LIBRARIAN_LOG_LEVEL</td><td><code>info</code></td><td>Logging verbosity. One of <code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code>. Debug level logs every tool call with parameters and timing.</td></tr>
         <tr><td>MCP_LIBRARIAN_RATE_LIMIT</td><td><code>200</code></td><td>Maximum tool requests per minute. When exceeded, the server returns a rate limit error. Applies to all tools equally.</td></tr>
+        <tr><td>MCP_LIBRARIAN_CACHE_SIZE</td><td><code>100</code></td><td>LRU content cache entries.</td></tr>
+        <tr><td>MCP_LIBRARIAN_CACHE_TTL</td><td><code>600000</code></td><td>Content cache TTL in milliseconds. Section loads read through to disk on a miss, so an idle server never loses track of installed skills.</td></tr>
         <tr><td>MCP_LIBRARIAN_SKILLS_REPO</td><td><code>penumbraforge/mcp-librarian-skills</code></td><td>GitHub repository used as the community pack source for <code>browse_packs</code> and <code>install_pack</code>.</td></tr>
+        <tr><td>MCP_LIBRARIAN_AUTO_RESEARCH</td><td><code>false</code></td><td>Allow <code>find_and_load</code> to auto-fetch from the web when nothing matches locally. Off by default &mdash; see <a href="/librarian/wiki/auto-research/">Auto-Research</a>.</td></tr>
+        <tr><td>MCP_LIBRARIAN_QUALITY_WEIGHT</td><td><code>0.4</code></td><td>How much the heuristic quality score influences ranking versus raw BM25 relevance (0&ndash;1).</td></tr>
+        <tr><td>GITHUB_TOKEN</td><td>(unset)</td><td>Raises GitHub API rate limits for pack browsing and installs. Sent <strong style="color: var(--text-1);">only</strong> to <code>raw.githubusercontent.com</code> and <code>api.github.com</code> &mdash; never to arbitrary hosts, and never to a redirect target outside that allowlist.</td></tr>
       </tbody>
     </table>
+
+    <div class="info-box">
+      <strong>Credential scoping:</strong> every outbound fetch rejects private, loopback, link-local, and cloud-metadata addresses, pins the resolved IP against DNS rebinding, and re-vets each redirect hop. A pack URL that redirects off the allowlist loses the token rather than following it.
+    </div>
 
     <h3>Setting Variables in Your Shell</h3>
 
