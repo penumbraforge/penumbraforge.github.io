@@ -1,0 +1,197 @@
+---
+layout: base.njk
+title: "Playground — experiments, easter eggs, and the site console | Penumbra Forge"
+description: "Things built for the fun of it: a browser terminal, a security roguelike, a snake game, and a command console that drives this entire site from the keyboard."
+permalink: /playground/
+---
+
+{% from "icons.njk" import icon %}
+
+{% include "header.njk" %}
+
+<div class="pg-page">
+  <header class="pg-hero">
+    <p class="section-label">Playground</p>
+    <h1>Things built for the fun of it</h1>
+    <p class="pg-lede">Not products, not on a roadmap. These exist because a problem looked interesting at eleven at night. They run entirely in your browser, like everything else here.</p>
+  </header>
+
+  <section class="pg-feature" aria-labelledby="console-title">
+    <div class="pg-feature-body">
+      <p class="section-label">Site console</p>
+      <h2 id="console-title">Drive this whole site from a command line</h2>
+      <p>Press <kbd>⌘</kbd><kbd>`</kbd> (or <kbd>Ctrl</kbd><kbd>`</kbd>) anywhere on this site and a real console opens. It searches all {{ stats.liveTools }} tools by name and keyword, navigates between products and docs, jumps straight to a recorded demo, and launches everything below.</p>
+      <p>It reads the same machine-readable tool index that AI agents consume at <a href="/tools/index.json">/tools/index.json</a>, so it can never list a tool the site doesn't have. Tab completes, <kbd>↑</kbd> walks history, <kbd>Esc</kbd> closes.</p>
+      <button type="button" class="pg-btn" data-open-console>{{ icon("terminal", 16) }} <span>Open the console</span></button>
+    </div>
+    <div class="pg-feature-demo" aria-hidden="true">
+      <div class="pg-mock">
+        <div class="pg-mock-bar"><span></span><span></span><span></span><em>penumbraforge — console</em></div>
+        <pre class="pg-mock-body"><span class="pg-p">/ $</span> find jwt
+<span class="pg-k">jwt-decoder</span>   Decode and inspect JSON Web Token headers.
+<span class="pg-k">jwt-attack</span>    Test tokens against real attack classes.
+<span class="pg-d">2 shown. "open &lt;slug&gt;" to launch.</span>
+
+<span class="pg-p">/ $</span> cd gate
+<span class="pg-d">now at /gate/</span>
+
+<span class="pg-p">/gate/ $</span> demo gate
+<span class="pg-d">→ /gate/#demo</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="experiments-title">
+    <p class="section-label">Experiments</p>
+    <h2 id="experiments-title" class="pg-h2">Three that escaped</h2>
+    <div class="pg-grid">
+      <a class="pg-card" href="/terminal/">
+        <span class="pg-card-ic">{{ icon("terminal") }}</span>
+        <h3>Browser terminal</h3>
+        <p>A terminal emulator that runs in a tab, with real network requests behind a <code>curl</code>-style command. Started as a way to test the tools without leaving the page and grew considerably past that.</p>
+        <span class="pg-card-go">Open terminal <span aria-hidden="true">&rarr;</span></span>
+      </a>
+      <a class="pg-card" href="/game/">
+        <span class="pg-card-ic">{{ icon("shield") }}</span>
+        <h3>BREACH</h3>
+        <p>A roguelike where you work through a compromised network. The security concepts are real even though the network isn't — reconnaissance, lateral movement, and the part where you get caught.</p>
+        <span class="pg-card-go">Play BREACH <span aria-hidden="true">&rarr;</span></span>
+      </a>
+      <a class="pg-card" href="/snake/">
+        <span class="pg-card-ic">{{ icon("chip") }}</span>
+        <h3>Snake</h3>
+        <p>Snake. In the eclipse palette. There is no deeper justification and there does not need to be one.</p>
+        <span class="pg-card-go">Play snake <span aria-hidden="true">&rarr;</span></span>
+      </a>
+    </div>
+    <p class="pg-foot">All three are reachable from the console too — type <code>terminal</code>, <code>breach</code>, or <code>snake</code>.</p>
+  </section>
+</div>
+
+<style>
+  .pg-page { max-width: 1100px; margin: 0 auto; padding: var(--space-9) var(--space-5) var(--space-10); }
+  .pg-hero { max-width: 720px; margin-bottom: var(--space-9); }
+  .pg-hero h1 {
+    font-family: var(--font-display);
+    font-size: var(--fs-h2);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: var(--space-4);
+  }
+  .pg-lede { font-size: var(--fs-body-lg); line-height: 1.7; color: var(--text-2); }
+
+  .pg-feature {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-7);
+    align-items: center;
+    padding: var(--space-7) 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: var(--space-9);
+  }
+  .pg-feature-body h2 {
+    font-family: var(--font-display);
+    font-size: var(--fs-h3);
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: var(--space-4);
+  }
+  .pg-feature-body p { margin-bottom: var(--space-4); line-height: 1.75; }
+  .pg-feature kbd {
+    font-family: var(--font-mono);
+    font-size: var(--fs-mono-xs);
+    border: 1px solid var(--border-active);
+    border-radius: var(--radius-1);
+    padding: 2px 6px;
+    color: var(--accent-strong);
+  }
+
+  .pg-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    padding: var(--space-2) var(--space-5);
+    background: none;
+    border: 1px solid var(--line-bright);
+    border-radius: var(--radius-2);
+    color: var(--text-1);
+    font-family: var(--font-mono);
+    font-size: var(--fs-mono-sm);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out);
+  }
+  .pg-btn:hover { background: var(--accent-a08); border-color: var(--accent-a40); }
+  .pg-btn svg { color: var(--accent); }
+
+  .pg-mock {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-3);
+    overflow: hidden;
+    background: var(--surface-1);
+    box-shadow: var(--shadow-1);
+  }
+  .pg-mock-bar {
+    display: flex; align-items: center; gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+  }
+  .pg-mock-bar span { width: 8px; height: 8px; border-radius: var(--radius-round); background: var(--border-active); }
+  .pg-mock-bar em {
+    font-family: var(--font-mono); font-size: var(--fs-mono-xs);
+    color: var(--text-3); font-style: normal; margin-left: var(--space-2);
+  }
+  .pg-mock-body {
+    margin: 0; padding: var(--space-4);
+    font-family: var(--font-mono); font-size: var(--fs-mono-sm);
+    line-height: 1.8; color: var(--text-2);
+    overflow-x: auto;
+  }
+  .pg-p { color: var(--accent); }
+  .pg-k { color: var(--accent-strong); }
+  .pg-d { color: var(--text-3); }
+
+  .pg-h2 {
+    font-family: var(--font-display);
+    font-size: var(--fs-h3);
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: var(--space-6);
+  }
+
+  .pg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+  .pg-card {
+    display: grid;
+    gap: var(--space-3);
+    align-content: start;
+    padding: var(--space-5);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-3);
+    text-decoration: none;
+    transition: border-color 220ms var(--ease-out), background 220ms var(--ease-out);
+  }
+  .pg-card:hover { border-color: var(--line-bright); background: var(--accent-a08); }
+  .pg-card-ic {
+    width: 34px; height: 34px;
+    display: grid; place-items: center;
+    border: 1px solid var(--line-bright);
+    color: var(--accent);
+  }
+  .pg-card-ic svg { width: 18px; height: 18px; }
+  .pg-card h3 { font-family: var(--font-display); font-size: var(--fs-h4); font-weight: 500; color: var(--ink); }
+  .pg-card p { font-size: var(--fs-body-sm); line-height: 1.7; color: var(--text-2); }
+  .pg-card-go { font-family: var(--font-mono); font-size: var(--fs-mono-xs); color: var(--accent); letter-spacing: 0.04em; }
+
+  .pg-foot { margin-top: var(--space-6); font-size: var(--fs-body-sm); color: var(--text-3); }
+
+  @media (max-width: 899px) {
+    .pg-page { padding: var(--space-7) var(--space-4) var(--space-8); }
+    .pg-feature { grid-template-columns: 1fr; gap: var(--space-5); }
+    .pg-grid { grid-template-columns: 1fr; }
+  }
+</style>
