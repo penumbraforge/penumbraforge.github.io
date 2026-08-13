@@ -11,10 +11,13 @@ hideAtmosphere: true
 
 <div class="fx-progress" id="fxProgress" aria-hidden="true"></div>
 
+{# Header sits outside .fx-body: that element clips overflow-x, which silently
+   kills position:sticky for anything inside it. Inside the frame the homepage
+   nav both scrolled away and sat ~inset from where every other page puts it. #}
+{% include "header.njk" %}
+
 <div class="fx-body">
 <div class="fx-frame">
-
-  {% include "header.njk" %}
 
   <section class="fx-hero" id="fxHero">
     <div class="fx-hero-scrim" aria-hidden="true"></div>

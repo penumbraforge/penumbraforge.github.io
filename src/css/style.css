@@ -59,6 +59,10 @@
   --accent-a40: color-mix(in oklab, var(--accent) 40%, transparent);
   --accent-a60: color-mix(in oklab, var(--accent) 60%, transparent);
 
+  /* The measure the whole site aligns to. The header, the homepage frame, and
+     page containers all resolve against this, so nothing shifts between pages. */
+  --frame-max: 1760px;
+
   /* promoted from home.css so every page shares the homepage vocabulary */
   --line: color-mix(in oklab, var(--border) 78%, transparent);
   --line-bright: color-mix(in oklab, var(--accent) 30%, var(--border));
@@ -460,7 +464,10 @@ html {
   align-items: center;
   justify-content: space-between;
   gap: 40px;
-  padding: 0 max(24px, 4vw);
+  /* Bar spans the viewport; its contents align to --frame-max so the logo and
+     nav land in the same place on every page. Uses % (not vw) so a scrollbar
+     can't push it out of alignment with the content below. */
+  padding-inline: max(var(--space-5), calc((100% - var(--frame-max)) / 2));
   min-height: 60px;
   width: 100%;
   position: sticky;

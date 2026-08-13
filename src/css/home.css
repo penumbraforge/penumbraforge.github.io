@@ -48,7 +48,7 @@
 }
 
 .fx-frame {
-  max-width: 1440px;
+  max-width: var(--frame-max);
   margin: 0 auto;
   border-inline: 1px solid var(--fx-line);
   position: relative;
@@ -208,7 +208,15 @@
     color-mix(in oklab, var(--surface-0) 30%, transparent) 50%,
     transparent 64%);
 }
-.fx-hero-inner { max-width: 62ch; position: relative; z-index: 2; }
+/* Full width on small screens; the eclipse only needs room from ~900px up.
+   Capped in px, not ch: this container is set in the 14px body font while the
+   headline inside it is 76px, so a ch cap sized the wrong text entirely and
+   forced the H1 to wrap mid-phrase. */
+.fx-hero-inner { max-width: 100%; position: relative; z-index: 2; }
+
+@media (min-width: 900px) {
+  .fx-hero-inner { max-width: min(1100px, 72%); }
+}
 .fx-hero-inner::before {
   content: "";
   position: absolute;
@@ -243,7 +251,8 @@
   line-height: 1.02;
   letter-spacing: -0.02em;
   color: var(--fx-ink);
-  max-width: 18ch;
+  /* The .fx-line spans already author the line breaks — an extra ch cap here
+     only forced each authored line to wrap again. */
   text-wrap: balance;
   text-shadow: 0 2px 40px rgba(5,5,9,0.85), 0 1px 3px rgba(5,5,9,0.6);
 }
@@ -257,7 +266,7 @@
 
 .fx-hero-sub {
   margin-top: clamp(26px, 3vw, 42px);
-  max-width: 46ch;
+  max-width: 58ch;
   font-size: clamp(15px, 1.4vw, 17px);
   line-height: 1.75;
   color: var(--text-2);
