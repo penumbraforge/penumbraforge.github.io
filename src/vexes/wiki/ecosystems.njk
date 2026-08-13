@@ -1,10 +1,10 @@
 ---
 title: "Ecosystems"
-description: "9 supported ecosystems, 21 lockfile formats, auto-detection, and ecosystem filtering."
+description: "8 supported ecosystems, 18 lockfile formats, auto-detection, and ecosystem filtering."
 permalink: /vexes/wiki/ecosystems/
 ---
 <h1>Ecosystems</h1>
-    <p class="subtitle">9 supported ecosystems, 21 lockfile formats, auto-detection, and ecosystem-specific behavior.</p>
+    <p class="subtitle">{{ versions.vexes.ecosystems }} supported ecosystems, {{ versions.vexes.lockfiles }} lockfile formats, auto-detection, and ecosystem-specific behavior.</p>
 
     <h2 id="supported-ecosystems">Supported Ecosystems</h2>
 
@@ -25,7 +25,6 @@ permalink: /vexes/wiki/ecosystems/
         <tr><td>Composer</td><td><code>composer.lock</code>, <code>composer.json</code></td></tr>
         <tr><td>NuGet</td><td><code>packages.lock.json</code>, <code>*.csproj</code></td></tr>
         <tr><td>Maven / Gradle</td><td><code>gradle.lockfile</code>, <code>pom.xml</code></td></tr>
-        <tr><td>Homebrew</td><td><code>Brewfile.lock.json</code>, <code>Brewfile</code></td></tr>
       </tbody>
     </table>
 
@@ -65,7 +64,7 @@ permalink: /vexes/wiki/ecosystems/
     <h3>Go</h3>
     <p>Vulnerability scanning via OSV (Go vulnerability database). Dependency graph analysis from <code>go.sum</code> and <code>go.mod</code>.</p>
 
-    <h3>RubyGems, Composer, NuGet, Maven/Gradle, Homebrew</h3>
+    <h3>RubyGems, Composer, NuGet, Maven/Gradle</h3>
     <p>Vulnerability scanning via OSV. Dependency graph profiling (Layers 2-3). Registry metadata analysis varies by ecosystem -- some registries expose more publish history than others.</p>
 
     <h2 id="lockfile-priority">Lockfile Priority</h2>

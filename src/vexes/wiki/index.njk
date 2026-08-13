@@ -24,7 +24,7 @@ permalink: /vexes/wiki/
     <p>The guard command intercepts package manager installs and analyzes new or changed dependencies before they execute. It diffs lockfiles, runs the detection engine on new packages, and blocks or warns based on signal severity -- all before a single postinstall script runs.</p>
 
     <h3>Ecosystems</h3>
-    <p>vexes supports 9 package ecosystems (npm, PyPI, Cargo, Go, RubyGems, Composer, NuGet, Maven/Gradle, Homebrew) and auto-detects 21 lockfile formats. No configuration needed -- it finds and parses whatever lockfiles exist in your project.</p>
+    <p>vexes supports {{ versions.vexes.ecosystems }} package ecosystems (npm, PyPI, Cargo, Go, RubyGems, Composer, NuGet, Maven/Gradle) and auto-detects {{ versions.vexes.lockfiles }} lockfile formats. No configuration needed -- it finds and parses whatever lockfiles exist in your project.</p>
 
     <h2 id="wiki-pages">Documentation</h2>
 
@@ -47,7 +47,7 @@ permalink: /vexes/wiki/
       </a>
       <a href="/vexes/wiki/ecosystems/" class="wiki-card">
         <h3>Ecosystems</h3>
-        <p>9 ecosystems, 21 lockfile formats, ecosystem filtering, and parser details.</p>
+        <p>{{ versions.vexes.ecosystems }} ecosystems, {{ versions.vexes.lockfiles }} lockfile formats, ecosystem filtering, and parser details.</p>
       </a>
       <a href="/vexes/wiki/ci-cd/" class="wiki-card">
         <h3>CI/CD Integration</h3>

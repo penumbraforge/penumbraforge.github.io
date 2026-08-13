@@ -8,7 +8,7 @@ Everything I build runs locally, collects nothing, and respects your privacy.
 
 #### From Penumbra Forge
 
-**[Gate](https://github.com/penumbraforge/gate)** — A secret scanner that fixes what it finds. 148 detection rules, credential verification, auto-remediation across 9 languages, incident-response workflows, and compliance reports. Free, open source, runs 100% on your machine.
+**[Gate](https://github.com/penumbraforge/gate)** — A secret scanner that fixes what it finds. 111 detection rules, opt-in credential verification, auto-remediation across 9 languages, incident-response workflows, and compliance reports. Free, open source, runs 100% on your machine.
 
 **[vexes](https://github.com/penumbraforge/vexes)** — Cross-ecosystem dependency security scanner with a 4-layer behavioral analysis engine. AST inspection, typosquat detection, behavioral fingerprinting, and pre-install guarding across 9 ecosystems. Catches supply chain attacks that vulnerability databases miss. Zero dependencies.
 

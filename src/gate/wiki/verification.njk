@@ -186,30 +186,30 @@ permalink: /gate/wiki/verification/
       </tbody>
     </table>
 
-    <h2 id="disabling-verification">Disabling Verification</h2>
+    <h2 id="enabling-verification">Enabling Verification</h2>
 
-    <p>Verification can be disabled at three levels:</p>
+    <p>Verification is <strong style="color: var(--text-1);">off by default</strong> everywhere &mdash; scans, hooks, and CI. Gate makes no network calls with detected secrets unless you explicitly opt in, at one of three levels:</p>
+
+    <h3>Dedicated command</h3>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate verify</span></div>
 
     <h3>Per-scan flag</h3>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate scan --no-verify</span></div>
+    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate scan --verify</span></div>
 
     <h3>.gaterc configuration</h3>
     <div class="code-block"><span class="cmt"># .gaterc</span>
-<span class="kw">verify</span>: <span class="val">false</span></div>
+<span class="kw">verify</span>: <span class="val">true</span></div>
 
-    <h3>Environment variable</h3>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">GATE_OFFLINE=1 gate scan</span></div>
-
-    <p><code>GATE_OFFLINE=1</code> disables all outbound network activity, including verification and any telemetry. Use this in air-gapped environments or when network access from the scanner is prohibited by policy.</p>
+    <p>As a hard off-switch, <code>GATE_OFFLINE=1</code> disables all outbound network activity regardless of flags or config. Use this in air-gapped environments or when network access from the scanner is prohibited by policy.</p>
 
     <h2 id="pre-commit-verification">Verification in Pre-Commit Hooks</h2>
 
-    <p>Verification is disabled by default when Gate runs as a pre-commit hook. The reason is practical: a 2-second network call per credential in a commit hook adds noticeable latency to every commit, which degrades developer experience over time.</p>
+    <p>Hooks follow the same opt-in rule. Beyond privacy, the reason is practical: a 2-second network call per credential in a commit hook adds noticeable latency to every commit, which degrades developer experience over time.</p>
 
     <p>To enable verification in pre-commit hooks, set <code>verify: true</code> in <code>.gaterc</code> and ensure the machine running the hook has network access. This is a reasonable tradeoff for high-security repositories where commit-time latency is acceptable.</p>
 
     <div class="info-box">
-      <strong>CI verification:</strong> Verification is enabled by default when running in CI (non-TTY, non-hook context). CI machines typically have fast, reliable network access and verification latency is not user-facing.
+      <strong>CI verification:</strong> CI is opt-in too. Pass <code>verify: true</code> to the GitHub Action (or add <code>--verify</code> to your scan step) to check findings against provider APIs during CI runs.
     </div>
 
     <h2 id="privacy">Privacy and Data Handling</h2>

@@ -6,7 +6,7 @@ permalink: /vexes/
 <section class="vx-hero" aria-labelledby="hero-title">
   <div class="vx-wrap">
     <div class="vx-hero-product" id="hero-title">vexes</div>
-    <div class="vx-hero-badge">v0.1.1</div>
+    <div class="vx-hero-badge">v{{ versions.vexes.version }}</div>
     <p class="vx-hero-tagline">Shakes the dependency tree to see what falls</p>
     <p class="vx-hero-desc">Cross-ecosystem supply chain security scanner with a 4-layer behavioral analysis engine. Detects typosquatting, account takeovers, capability escalation, and malicious code patterns — before they execute. Zero dependencies. Pure Node.js.</p>
     <div class="vx-hero-actions">
@@ -30,7 +30,7 @@ permalink: /vexes/
 
 <span class="code-comment"># Deep behavioral analysis</span>
 <span class="code-prompt">$</span> <span class="code-cmd">vexes</span> <span class="code-arg">analyze --deep</span></code></pre>
-    <div class="vx-note">Requires Node.js 22.5+. Scans 9 ecosystems. No API keys, no accounts, no cloud.</div>
+    <div class="vx-note">Requires Node.js {{ versions.vexes.node }}+. Scans {{ versions.vexes.ecosystems }} ecosystems. No API keys, no accounts, no cloud.</div>
   </div>
 </section>
 
@@ -68,7 +68,7 @@ permalink: /vexes/
     <h2 id="demo-title">What a deep analysis looks like</h2>
     <pre class="vx-pre"><code><span class="code-prompt">$</span> <span class="code-cmd">vexes</span> <span class="code-arg">analyze --deep</span>
 
-<span class="code-comment">  vexes v0.1.1 — analyzing dependencies
+<span class="code-comment">  vexes v{{ versions.vexes.version }} — analyzing dependencies
   Found 412 packages across 3 lockfile(s)
   Ecosystems: npm, pypi, cargo</span>
 
@@ -115,7 +115,7 @@ permalink: /vexes/
           <tr><td>Behavioral fingerprinting</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td class="vx-yes">Yes</td></tr>
           <tr><td>Typosquat detection</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td class="vx-yes">Yes</td></tr>
           <tr><td>Pre-install guard</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td>No</td></tr>
-          <tr><td>9 ecosystems</td><td class="vx-yes">Yes</td><td>npm only</td><td class="vx-yes">Yes</td><td>Multiple</td></tr>
+          <tr><td>{{ versions.vexes.ecosystems }} ecosystems</td><td class="vx-yes">Yes</td><td>npm only</td><td class="vx-yes">Yes</td><td>Multiple</td></tr>
           <tr><td>Zero dependencies</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td>No</td></tr>
           <tr><td>SARIF output</td><td class="vx-yes">Yes</td><td>No</td><td class="vx-yes">Yes</td><td>No</td></tr>
           <tr><td>No account required</td><td class="vx-yes">Yes</td><td class="vx-yes">Yes</td><td>No</td><td>No</td></tr>
@@ -159,7 +159,7 @@ permalink: /vexes/
 <section class="vx-section" aria-labelledby="eco-title">
   <div class="vx-wrap">
     <div class="section-label">Ecosystems</div>
-    <h2 id="eco-title">9 ecosystems, 21 lockfile formats</h2>
+    <h2 id="eco-title">{{ versions.vexes.ecosystems }} ecosystems, {{ versions.vexes.lockfiles }} lockfile formats</h2>
     <p>Auto-detects lockfiles. Scans everything it finds, or filter with <code>--ecosystem</code>.</p>
     <div class="vx-table-wrap" role="region" aria-label="Supported ecosystems">
       <table class="vx-table">
@@ -178,7 +178,6 @@ permalink: /vexes/
           <tr><td>Composer</td><td>composer.lock, composer.json</td></tr>
           <tr><td>NuGet</td><td>packages.lock.json, *.csproj</td></tr>
           <tr><td>Maven / Gradle</td><td>gradle.lockfile, pom.xml</td></tr>
-          <tr><td>Homebrew</td><td>Brewfile.lock.json, Brewfile</td></tr>
         </tbody>
       </table>
     </div>
@@ -223,7 +222,7 @@ permalink: /vexes/
 <section class="vx-section" aria-labelledby="commands-title">
   <div class="vx-wrap">
     <div class="section-label">Commands Reference</div>
-    <h2 id="commands-title">5 commands</h2>
+    <h2 id="commands-title">{{ versions.vexes.commands }} commands</h2>
 
     <div class="vx-table-wrap" role="region" aria-label="Scan and analyze commands">
       <table class="vx-table">
@@ -244,6 +243,8 @@ permalink: /vexes/
           <tr><td>vexes monitor --ci</td><td>One-shot scan with GitHub Actions annotations</td></tr>
           <tr><td>vexes monitor --ci --sarif</td><td>SARIF output for GitHub Advanced Security</td></tr>
           <tr><td>vexes monitor --watch</td><td>Continuous lockfile + OSV polling</td></tr>
+          <tr><td>vexes explain</td><td>AI-assisted triage of scan results (opt-in, alias: triage)</td></tr>
+          <tr><td>vexes scan --format sarif</td><td>SARIF 2.1.0 output for GitHub code scanning</td></tr>
         </tbody>
       </table>
     </div>

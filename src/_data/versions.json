@@ -1,0 +1,5 @@
+{
+  "gate":      { "version": "2.1.0", "rules": 111, "node": "22" },
+  "vexes":     { "version": "0.3.0", "ecosystems": 8, "lockfiles": 18, "commands": 6, "node": "22.5" },
+  "librarian": { "version": "3.1.0", "tools": 14, "localTools": 10, "networkTools": 4, "packs": 9, "license": "Apache-2.0", "node": "22" }
+}

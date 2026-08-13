@@ -34,7 +34,7 @@ permalink: /gate/
         <button class="gate-copy-btn" onclick="copyCmd(this, 'npm install -g @penumbraforge/gate')">copy</button>
       </div>
     </div>
-    <p class="gate-install-note reveal" style="transition-delay: 0.1s;">One command. Zero config. Scanning in seconds.</p>
+    <p class="gate-install-note reveal" style="transition-delay: 0.1s;">One command. Zero config. Scanning in seconds. Requires Node.js {{ versions.gate.node }}+.</p>
   </div>
 </section>
 
@@ -156,7 +156,7 @@ permalink: /gate/
       <div class="gate-terminal-body">
 <div class="line"><span class="ok">  ✓</span> <span class="dim">Scanned 847 files in 1.2s</span></div>
 <div class="line"></div>
-<div class="line"><span class="dim">  Gate v2.0.1 · 148 rules · scanning 847 files</span></div>
+<div class="line"><span class="dim">  Gate v{{ versions.gate.version }} · {{ versions.gate.rules }} rules · scanning 847 files</span></div>
 <div class="line"></div>
 <div class="line"><span class="dim">  [1/2]</span> <span class="err">CRITICAL</span>  <span class="file">src/api/payments.ts:23</span></div>
 <div class="line"><span class="dim">  rule:</span> <span class="text">stripe-secret-key</span></div>
@@ -167,7 +167,7 @@ permalink: /gate/
 <div class="line"><span class="dim">   24 |</span> <span class="text">const client = stripe(key);</span></div>
 <div class="line"></div>
 <div class="line"><span class="dim">  status:</span> <span class="err">LIVE</span> <span class="dim">  verified against Stripe API</span></div>
-<div class="line"><span class="dim">  match:</span>  <span class="text">sk_live_51Hb3azLk...R4pM</span>  <span class="dim">(40 chars)</span></div>
+<div class="line"><span class="dim">  match:</span>  <span class="text">sk_live_51H&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</span>  <span class="dim">(redacted &#183; sha256:aa3f&#8230;)</span></div>
 <div class="line"></div>
 <div class="line"><span class="dim">  [2/2]</span> <span class="warn">HIGH</span>    <span class="file">config/database.yml:8</span></div>
 <div class="line"><span class="dim">  rule:</span> <span class="text">database-connection-string</span></div>
@@ -193,12 +193,12 @@ permalink: /gate/
     <p class="section-label reveal">Core features</p>
     <div class="gate-features-grid reveal" style="transition-delay: 0.05s;">
       <div class="gate-feature-card">
-        <h3>148 Detection Rules</h3>
+        <h3>{{ versions.gate.rules }} Detection Rules</h3>
         <p>AWS, GCP, Azure, GitHub, Stripe, AI keys, databases, private keys. 25+ providers covered.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Credential Verification</h3>
-        <p>Checks if secrets are actually live against provider APIs. Know what needs immediate rotation.</p>
+        <p>Opt-in <code>--verify</code> checks if secrets are actually live against provider APIs. No network calls unless you ask.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Auto-Fix Engine</h3>
@@ -263,7 +263,7 @@ gate version</div>
 
       <div class="gate-docs-code"><span class="cmt"># .gaterc</span>
 <span class="kw">severity</span>: high            <span class="cmt"># minimum severity: low, medium, high, critical</span>
-<span class="kw">verify</span>: true              <span class="cmt"># check if secrets are live</span>
+<span class="kw">verify</span>: true              <span class="cmt"># opt-in: check if secrets are live (off by default)</span>
 <span class="kw">format</span>: text              <span class="cmt"># output: text, json, sarif</span>
 <span class="kw">interactive</span>: true         <span class="cmt"># prompt for fix/vault/ignore</span>
 
@@ -397,13 +397,13 @@ __snapshots__/</div>
     <!-- Credential Verification -->
     <div class="gate-docs-section reveal" id="docs-verification">
       <h2 class="gate-docs-heading">Credential Verification</h2>
-      <p class="gate-docs-text">When you run <code>gate scan --verify</code>, Gate makes read-only API calls to check whether detected credentials are still active. This tells you which secrets need immediate rotation versus which are already expired or invalid.</p>
+      <p class="gate-docs-text">Verification is <strong>off by default</strong> — Gate never touches the network unless you ask. Run <code>gate verify</code> (or <code>gate scan --verify</code>) to make read-only API calls checking whether detected credentials are still active. This tells you which secrets need immediate rotation versus which are already expired or invalid.</p>
 
       <ul class="gate-docs-list">
+        <li>Opt-in only -- no implicit network calls with detected secrets</li>
         <li>Read-only API calls only -- no writes, no mutations</li>
         <li>2-second timeout per verification call</li>
         <li>Results are cacheable to avoid repeated checks</li>
-        <li>Use <code>--no-verify</code> to disable</li>
       </ul>
 
       <p class="gate-docs-text">Supported providers:</p>

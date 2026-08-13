@@ -41,7 +41,7 @@ hideAtmosphere: true
     <span class="fx-index">01</span>
     <h2>Products</h2>
     <span class="fx-rule"></span>
-    <span class="fx-count">4 in the forge</span>
+    <span class="fx-count">{{ products | length }} in the forge</span>
   </div>
 
   <div class="fx-bento">
@@ -74,7 +74,7 @@ hideAtmosphere: true
       <div class="fx-cell-meta"><span>Supply-chain security</span><span class="fx-status fx-status--dev">early access</span></div>
       <h3>vexes</h3>
       <p>Cross-ecosystem dependency scanner. 4-layer behavioral analysis catches attacks that vulnerability databases miss — before they execute.</p>
-      <div class="fx-featlist"><span>AST analysis</span><span>pre-install guard</span><span>9 ecosystems</span><span>zero deps</span></div>
+      <div class="fx-featlist"><span>AST analysis</span><span>pre-install guard</span><span>{{ versions.vexes.ecosystems }} ecosystems</span><span>zero deps</span></div>
       <a href="/vexes/" class="fx-cell-link">Explore vexes <span>&rarr;</span></a>
     </div>
 
