@@ -123,123 +123,30 @@ a:hover {
 }
 
 /* ============================================================
-   Background Layer — stars, particles, orbs
-   All fixed/absolute, behind everything
+   Atmosphere — one static painted layer (no JS, no repaint cost).
+   Mirrors the homepage .fx-body recipe so inner pages share its mood.
    ============================================================ */
-
-/* Particle canvas — fixed behind all content */
-#particle-canvas {
+.page-atmosphere {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 78% -20%, var(--accent-a08), transparent 55%),
+    radial-gradient(90% 60% at -10% 110%, color-mix(in oklab, #4a3d6b 12%, transparent), transparent 60%);
 }
 
-/* Star field — fixed */
-.stars {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.star {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  background: rgba(184, 165, 214, 0.25);
-  border-radius: 50%;
-}
-
-.star--bright {
-  width: 1.5px;
-  height: 1.5px;
-  background: rgba(200, 185, 230, 0.45);
-  animation: twinkle 4s ease-in-out infinite;
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 0.7; }
-}
-
-/* Floating parallax orbs — absolute in the document flow, behind content */
-.orb-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  will-change: transform;
-}
-
-.orb-1 {
-  width: 320px; height: 320px;
-  background: radial-gradient(circle, rgba(140, 110, 200, 0.07) 0%, transparent 70%);
-  top: 105vh; left: 5%;
-}
-
-.orb-2 {
-  width: 220px; height: 220px;
-  background: radial-gradient(circle, rgba(120, 90, 190, 0.06) 0%, transparent 70%);
-  top: 175vh; right: 10%;
-}
-
-.orb-3 {
-  width: 380px; height: 380px;
-  background: radial-gradient(circle, rgba(160, 130, 210, 0.05) 0%, transparent 70%);
-  top: 270vh; left: 45%;
-}
-
-.orb-4 {
-  width: 200px; height: 200px;
-  background: radial-gradient(circle, rgba(107, 207, 143, 0.035) 0%, transparent 70%);
-  top: 340vh; right: 20%;
-}
-
-.orb-5 {
-  width: 280px; height: 280px;
-  background: radial-gradient(circle, rgba(140, 110, 200, 0.06) 0%, transparent 70%);
-  top: 430vh; left: 15%;
-}
-
-.orb-6 {
-  width: 250px; height: 250px;
-  background: radial-gradient(circle, rgba(130, 100, 200, 0.05) 0%, transparent 70%);
-  top: 520vh; right: 30%;
-}
-
-/* Ambient glow — fixed */
-.page-glow {
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(ellipse 60% 40% at 50% 15%, rgba(140, 110, 200, 0.06) 0%, transparent 100%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-@media (max-width: 768px) {
-  .orb-3, .orb-4, .orb-5, .orb-6 {
-    display: none;
-  }
-
-  .orb-1, .orb-2 {
-    filter: blur(40px);
-  }
-
-  .star--bright {
-    animation: none;
-  }
-
-  #eclipse-particles {
-    width: 300px;
-    height: 300px;
+/* Film grain — desktop only; a fixed full-viewport blended layer is the
+   single most expensive paint on low-end mobile. */
+@media (min-width: 900px) {
+  .page-atmosphere::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.3;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.055'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }
 
@@ -496,12 +403,19 @@ a:hover {
   }
 }
 
-/* ── Reduced motion ── */
+/* ── Reduced motion ──
+   One global stop. Every animation on the site is covered here, including
+   ones added later — no per-feature opt-in to forget. */
 @media (prefers-reduced-motion: reduce) {
-  .reveal { opacity: 1; transform: none; transition: none; }
-  .penumbra-light, .penumbra-edge, .penumbra-corona, .penumbra-backlight,
-  .status-dot, .star--bright { animation: none; }
-  #particle-canvas, #eclipse-particles { display: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal { opacity: 1; transform: none; }
+  #eclipse-particles { display: none; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -697,6 +611,78 @@ html {
   color: var(--text-1);
   border-color: rgba(184, 165, 214, 0.4);
 }
+
+/* ----------------------------------------------------------
+   Mobile nav — one breakpoint, one source of truth.
+   The 8-link row overflows below ~900px, so the sheet starts there
+   (not 640px, which left a broken band of cramped desktop nav).
+   ---------------------------------------------------------- */
+@media (max-width: 899px) {
+  .site-header { gap: var(--space-3); }
+
+  .site-header-toggle {
+    display: flex;
+    margin-left: auto;
+  }
+
+  .site-header-nav { display: none; }
+
+  .site-header.open {
+    position: fixed;
+    inset: 0;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 200;
+    background: color-mix(in oklab, var(--surface-0) 98%, transparent);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .site-header.open .site-header-brand {
+    position: absolute;
+    top: var(--space-4);
+    left: var(--space-5);
+  }
+
+  .site-header.open .site-header-toggle {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+  }
+
+  .site-header.open .site-header-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    overflow-y: auto;
+    max-height: 78dvh;
+    width: 100%;
+  }
+
+  .site-header.open .site-header-nav a {
+    font-size: 18px;
+    font-family: var(--font-display);
+    color: var(--text-1);
+    padding: var(--space-3) var(--space-6);
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 280px;
+    border-radius: var(--radius-3);
+  }
+
+  .site-header.open .site-header-nav a:active {
+    background: var(--accent-a08);
+  }
+}
+
+/* Scroll lock while the nav sheet is open */
+body.nav-locked { overflow: hidden; }
 
 /* ============================================================
    Tool Navigation / Breadcrumbs
@@ -1341,10 +1327,6 @@ html {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .site-header {
-    padding: 20px 48px;
-  }
-
   .tools-hub {
     padding: 0 48px 64px;
   }
@@ -1367,14 +1349,6 @@ html {
 }
 
 @media (max-width: 768px) {
-  .site-header {
-    padding: 16px 24px;
-  }
-
-  .site-header-nav {
-    gap: 16px;
-  }
-
   .tools-hub {
     padding: 0 24px 48px;
   }
@@ -1411,18 +1385,6 @@ html {
 
   .tools-hub {
     padding: 0 16px 40px;
-  }
-
-  .site-header {
-    padding: 14px 16px;
-  }
-
-  .site-header-nav {
-    gap: 12px;
-  }
-
-  .site-header-name {
-    font-size: 12px;
   }
 
   .tool-main {
@@ -2834,78 +2796,6 @@ a.t-card {
   .section,
   .container {
     max-width: 100vw;
-  }
-
-  .site-header {
-    gap: 12px;
-  }
-
-  .site-header-toggle {
-    display: flex;
-    margin-left: auto;
-  }
-
-  .site-header-nav {
-    display: none;
-  }
-
-  .site-header.open {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 200;
-    background: rgba(5, 5, 9, 0.98);
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-  }
-
-  .site-header.open .site-header-brand {
-    position: absolute;
-    top: 16px;
-    left: 20px;
-  }
-
-  .site-header.open .site-header-toggle {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-  }
-
-  .site-header.open .site-header-sidebar {
-    display: none;
-  }
-
-  .site-header.open .site-header-main {
-    display: contents;
-  }
-
-  .site-header.open .site-header-nav {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .site-header.open .site-header-nav a {
-    font-size: 18px;
-    font-family: var(--font-display);
-    color: var(--text-1);
-    padding: 14px 32px;
-    min-height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    max-width: 280px;
-    border-radius: 10px;
-  }
-
-  .site-header.open .site-header-nav a:active {
-    background: rgba(184, 165, 214, 0.1);
   }
 
   /* == 2. HERO SECTION == */
