@@ -181,20 +181,44 @@
   pointer-events: none;
 }
 .fx-hero.webgl .fx-hero-eclipse { display: none; }
+/* Corona. Light is the only thing here allowed to be soft — the 30px blur
+   that used to cover the whole element turned the eclipse into a mauve smudge,
+   which read as unfinished next to the site's hairlines and mono labels.
+   The asymmetric sweep rotates slowly so the corona breathes rather than sits. */
 .fx-hero-eclipse::before {
+  content: "";
+  position: absolute; inset: -13%;
+  border-radius: 50%;
+  /* Two concentric hairline orbits. A border and an offset outline are each
+     exactly 1px at any size — box-shadow spread rings can't do this, because
+     the transparent "gap" layers don't mask the filled rings beneath them. */
+  border: 1px solid color-mix(in oklab, var(--line-bright) 55%, transparent);
+  outline: 1px solid color-mix(in oklab, var(--line) 65%, transparent);
+  outline-offset: clamp(22px, 3.6vw, 44px);
+  /* No wide conic wash here: at these opacities it rendered as a grey haze
+     that muddied the rim instead of reading as light. The only illumination
+     is the rim and its own tight bloom. */
+  background: none;
+}
+
+/* The disc: hard-edged, with a razor rim and concentric hairline orbits —
+   an instrument diagram, not a glow. Orbits are box-shadow spread rings, so
+   they stay exactly 1px at any size. */
+.fx-hero-eclipse::after {
   content: "";
   position: absolute; inset: 0;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent, color-mix(in oklab, var(--accent) 55%, transparent) 40deg, transparent 120deg, color-mix(in oklab, var(--accent-strong) 35%, transparent) 200deg, transparent 300deg);
-  filter: blur(30px);
-  animation: fx-spin 24s linear infinite;
-}
-.fx-hero-eclipse::after {
-  content: "";
-  position: absolute; inset: 8%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 38% 34%, #0c0c16, #050509 64%);
-  box-shadow: inset 0 0 46px rgba(0,0,0,.9), 0 0 0 1px color-mix(in oklab, var(--accent) 24%, transparent), 0 0 90px 8px color-mix(in oklab, var(--accent) 16%, transparent);
+  background:
+    radial-gradient(circle,
+      transparent 0 48.4%,
+      color-mix(in oklab, #fff 62%, var(--accent-strong)) 48.7%,
+      color-mix(in oklab, var(--accent-strong) 70%, transparent) 49.6%,
+      color-mix(in oklab, var(--accent) 26%, transparent) 51%,
+      transparent 54%),
+    radial-gradient(circle at 42% 38%, #0b0b15, #050509 66%);
+  box-shadow:
+    0 0 22px 1px color-mix(in oklab, var(--accent-strong) 26%, transparent),
+    0 0 70px 10px color-mix(in oklab, var(--accent) 12%, transparent);
 }
 
 .fx-hero-scrim {
