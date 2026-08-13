@@ -26,12 +26,12 @@ permalink: /gate/
       <div class="gate-install-block">
         <span class="gate-install-label">zero-install</span>
         <code><span class="prompt">$ </span>npx @penumbraforge/gate</code>
-        <button class="gate-copy-btn" onclick="copyCmd(this, 'npx @penumbraforge/gate')">copy</button>
+        <button class="gate-copy-btn" data-copy="npx @penumbraforge/gate">copy</button>
       </div>
       <div class="gate-install-block">
         <span class="gate-install-label">global</span>
         <code><span class="prompt">$ </span>npm install -g @penumbraforge/gate</code>
-        <button class="gate-copy-btn" onclick="copyCmd(this, 'npm install -g @penumbraforge/gate')">copy</button>
+        <button class="gate-copy-btn" data-copy="npm install -g @penumbraforge/gate">copy</button>
       </div>
     </div>
     <p class="gate-install-note reveal" style="transition-delay: 0.1s;">One command. Zero config. Scanning in seconds. Requires Node.js {{ versions.gate.node }}+.</p>
@@ -313,27 +313,17 @@ permalink: /gate/
 </section>
 
 <script>
-  function copyCmd(btn, text) {
-    navigator.clipboard.writeText(text).then(function() {
-      btn.textContent = 'copied';
-      btn.classList.add('copied');
-      setTimeout(function() {
-        btn.textContent = 'copy';
-        btn.classList.remove('copied');
-      }, 2000);
+  // Reveal animations come from the shared handler in base.njk.
+  document.querySelectorAll('.gate-copy-btn[data-copy]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      navigator.clipboard.writeText(btn.dataset.copy).then(function() {
+        btn.textContent = 'copied';
+        btn.classList.add('copied');
+        setTimeout(function() {
+          btn.textContent = 'copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
     });
-  }
-
-  // Intersection observer for reveal animations
-  var observer = new IntersectionObserver(function(entries) {
-    entries.forEach(function(entry) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-      }
-    });
-  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
-  document.querySelectorAll('.reveal').forEach(function(el) {
-    observer.observe(el);
   });
 </script>

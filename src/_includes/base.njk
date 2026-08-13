@@ -96,15 +96,24 @@
   </div>
   {% endblock %}
 
-  <!-- Scroll reveal — skipped entirely when the user prefers reduced motion -->
+  <!-- Scroll reveal.
+       Content is visible by default; this script opts into hiding it and is
+       responsible for showing it again. Anything already on screen is revealed
+       up front rather than waiting on an observer callback, so a throttled or
+       non-firing observer can never leave the page blank. -->
   <script>
   (function() {
-    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var els = document.querySelectorAll('.reveal');
+    if (!els.length) return;
+
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced || !('IntersectionObserver' in window)) {
       els.forEach(function(el) { el.classList.add('visible'); });
       return;
     }
+
+    document.documentElement.classList.add('js-reveal');
+
     var observer = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
         if (entry.isIntersecting) {
@@ -113,7 +122,12 @@
         }
       });
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-    els.forEach(function(el) { observer.observe(el); });
+
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    els.forEach(function(el) {
+      if (el.getBoundingClientRect().top < vh) el.classList.add('visible');
+      else observer.observe(el);
+    });
   })();
   </script>
 

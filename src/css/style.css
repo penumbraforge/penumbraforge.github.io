@@ -182,10 +182,13 @@ a:hover {
 }
 
 /* ── Scroll reveal ── */
-.reveal {
+.reveal { transition: opacity 0.8s cubic-bezier(0.2, 0, 0, 1), transform 0.8s cubic-bezier(0.2, 0, 0, 1); }
+
+/* Hidden only once the reveal script has confirmed it can un-hide them.
+   No JS, no observer, script error → content simply shows. */
+.js-reveal .reveal {
   opacity: 0;
   transform: translateY(24px);
-  transition: opacity 0.8s cubic-bezier(0.2, 0, 0, 1), transform 0.8s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .reveal.visible {

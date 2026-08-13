@@ -4,6 +4,8 @@ hideAtmosphere: true
 ---
 <link rel="stylesheet" href="/css/home.css?v={{ assetv }}">
 
+{% from "icons.njk" import icon %}
+
 {% set liveTools = [] %}
 {% for tool in tools %}{% if tool.status == "live" %}{% set liveTools = (liveTools.push(tool), liveTools) %}{% endif %}{% endfor %}
 
@@ -20,7 +22,7 @@ hideAtmosphere: true
     <div class="fx-hero-inner">
       <p class="fx-kicker reveal">Independent software company</p>
       <h1 class="reveal"><span class="fx-line">Private AI &amp; security tooling,</span><span class="fx-line"><span class="fx-accent">zero surveillance.</span></span></h1>
-      <p class="fx-hero-sub reveal">Local AI inference on your own hardware — from WebGPU in the browser to NVIDIA DGX — alongside open source security tools and supply-chain defenses. No cloud dependency, no accounts, your data never leaves the machine.</p>
+      <p class="fx-hero-sub reveal">Security tooling for the AI-agent era. Agents install dependencies at machine speed, generate code that leaks credentials, and load third-party instructions on the fly — so these are deterministic tools you can run anywhere, with AI assistance layered on top rather than bolted through the middle. Local inference from WebGPU to NVIDIA DGX. No cloud dependency, no accounts, nothing leaves the machine.</p>
       <div class="fx-hero-actions reveal">
         <a href="/tools/" class="fx-btn fx-btn--solid"><span>Browse {{ liveTools.length }} tools</span></a>
         <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-btn"><span>Source on GitHub</span></a>
@@ -48,7 +50,7 @@ hideAtmosphere: true
     <div class="fx-cell fx-cell--gate reveal">
       <div class="fx-cell-meta"><span>Pre-commit defense</span><span class="fx-status">shipping</span></div>
       <h3>Gate</h3>
-      <p>Catches secrets before they reach your repository — and fixes them automatically. Installs in one command, runs on every commit.</p>
+      <p>Agents write code that hardcodes credentials. Gate catches secrets before they reach your repository — and fixes them automatically. One command to install, runs on every commit.</p>
       <div class="fx-term">
         <div class="fx-term-bar">gate scan --fix</div>
         <pre><span class="hl-dim">$</span> <span class="hl-key">gate scan --fix</span>
@@ -65,7 +67,7 @@ hideAtmosphere: true
     <div class="fx-cell fx-cell--librarian reveal">
       <div class="fx-cell-meta"><span>MCP skills server</span><span class="fx-status">shipping</span></div>
       <h3>mcp-librarian</h3>
-      <p>A self-growing knowledge library for AI coding agents. When no skill exists, it researches authoritative sources and creates one permanently.</p>
+      <p>Agents consume third-party instructions as readily as code. A signed skill library for them: Ed25519 on write, integrity-checked on load, tampering reported rather than served.</p>
       <div class="fx-featlist"><span>auto-research</span><span>Ed25519 signing</span><span>zero deps</span><span>persistent skills</span></div>
       <a href="/librarian/" class="fx-cell-link">Explore Librarian <span>&rarr;</span></a>
     </div>
@@ -73,13 +75,13 @@ hideAtmosphere: true
     <div class="fx-cell fx-cell--vexes reveal">
       <div class="fx-cell-meta"><span>Supply-chain security</span><span class="fx-status fx-status--dev">early access</span></div>
       <h3>vexes</h3>
-      <p>Cross-ecosystem dependency scanner. 4-layer behavioral analysis catches attacks that vulnerability databases miss — before they execute.</p>
+      <p>Agents install dependencies faster than anyone can review them. 4-layer behavioral analysis catches supply-chain attacks that vulnerability databases miss — before they execute.</p>
       <div class="fx-featlist"><span>AST analysis</span><span>pre-install guard</span><span>{{ versions.vexes.ecosystems }} ecosystems</span><span>zero deps</span></div>
       <a href="/vexes/" class="fx-cell-link">Explore vexes <span>&rarr;</span></a>
     </div>
 
     <div class="fx-cell fx-cell--umbra reveal">
-      <span class="fx-ghost" aria-hidden="true">☾</span>
+      <span class="fx-ghost" aria-hidden="true">{{ icon("crescent", 96) }}</span>
       <div class="fx-cell-meta"><span>Local AI studio</span><span class="fx-status fx-status--dev">in development</span></div>
       <h3>Umbra</h3>
       <p>A local-first AI studio — GUI and TUI — for running, orchestrating, and auditing large language models on your own hardware. Built for NVIDIA DGX Spark. No cloud, no subscriptions, no data leaving the machine.</p>
@@ -97,17 +99,17 @@ hideAtmosphere: true
 
   <div class="fx-principles">
     <div class="fx-principle reveal">
-      <span class="fx-glyph">☾</span>
+      <span class="fx-glyph">{{ icon("crescent") }}</span>
       <h3>In your browser</h3>
       <p>Our AI tools run quantized LLM inference and embeddings directly in the browser over WebGPU — chat, RAG, and security analysis without a single byte leaving the tab.</p>
     </div>
     <div class="fx-principle reveal">
-      <span class="fx-glyph">⌂</span>
+      <span class="fx-glyph">{{ icon("home") }}</span>
       <h3>On your machine</h3>
       <p>Every AI tool can point at your own runtime — Ollama or LM Studio on localhost — so your models, prompts, and data stay on hardware you control.</p>
     </div>
     <div class="fx-principle reveal">
-      <span class="fx-glyph">▲</span>
+      <span class="fx-glyph">{{ icon("chip") }}</span>
       <h3>On NVIDIA DGX</h3>
       <p>Umbra, our local AI studio, is built for NVIDIA DGX Spark — Grace Blackwell compute with 128&nbsp;GB of unified memory for serious local model work, CUDA-first.</p>
     </div>
@@ -141,17 +143,17 @@ hideAtmosphere: true
 
   <div class="fx-principles">
     <div class="fx-principle reveal">
-      <span class="fx-glyph">A</span>
+      <span class="fx-glyph">{{ icon("shield") }}</span>
       <h3>Client-side by default</h3>
       <p>Your data stays on your machine. A tool only touches the network when its function demands it — and it says so on the label.</p>
     </div>
     <div class="fx-principle reveal">
-      <span class="fx-glyph">B</span>
+      <span class="fx-glyph">{{ icon("terminal") }}</span>
       <h3>Dependencies are attack surface</h3>
       <p>Zero-dependency codebases built on platform primitives — Web Crypto, Workers, Node built-ins — instead of a framework stack that expires.</p>
     </div>
     <div class="fx-principle reveal">
-      <span class="fx-glyph">C</span>
+      <span class="fx-glyph">{{ icon("search") }}</span>
       <h3>Open and auditable</h3>
       <p>Everything is open source and small enough to audit in an afternoon. No telemetry, no accounts, no dark patterns. Ever.</p>
     </div>
