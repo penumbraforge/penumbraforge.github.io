@@ -5,7 +5,7 @@ description: "Technical write-ups on security engineering, tool architecture, an
 permalink: /blog/
 ---
 
-<link rel="stylesheet" href="/css/blog.css">
+<link rel="stylesheet" href="/css/blog.css?v={{ assetv }}">
 
 {% include "header.njk" %}
 
@@ -16,74 +16,17 @@ permalink: /blog/
     <p class="blog-hero-sub">Technical write-ups on security engineering, tool architecture, and field notes from the security trenches.</p>
   </div>
 
-  <a href="/blog/umbra-dgx-spark/" class="blog-post-card">
+  {%- for post in collections.blog | reverse %}{% if post.data.cardTitle %}
+  <a href="{{ post.url }}" class="blog-post-card">
     <div class="blog-post-meta">
-      <span class="blog-post-date">August 12, 2026</span>
-      <span class="blog-post-tag">local inference</span>
-      <span class="blog-post-tag">DGX Spark</span>
-      <span class="blog-post-tag">Umbra</span>
-      <span class="blog-post-read">6 min read</span>
+      <span class="blog-post-date">{{ post.data.date | postDate }}</span>
+      {%- for tag in post.data.postTags %}
+      <span class="blog-post-tag">{{ tag }}</span>
+      {%- endfor %}
+      <span class="blog-post-read">{{ post.data.readTime }}</span>
     </div>
-    <div class="blog-post-title">Umbra is moving to NVIDIA DGX Spark</div>
-    <p class="blog-post-excerpt">Why development of our local-first AI studio is moving from a 32GB MacBook Pro to NVIDIA DGX Spark — the memory ceiling problem, what 128GB of unified memory changes, and what CUDA-first means for the project.</p>
+    <div class="blog-post-title">{{ post.data.cardTitle }}</div>
+    <p class="blog-post-excerpt">{{ post.data.excerpt }}</p>
   </a>
-
-  <a href="/blog/16-new-tools/" class="blog-post-card">
-    <div class="blog-post-meta">
-      <span class="blog-post-date">March 27, 2026</span>
-      <span class="blog-post-tag">tools</span>
-      <span class="blog-post-tag">AI security</span>
-      <span class="blog-post-tag">detection engineering</span>
-      <span class="blog-post-read">8 min read</span>
-    </div>
-    <div class="blog-post-title">16 new tools, an AI category, and a few I couldn't find anywhere else</div>
-    <p class="blog-post-excerpt">I added 16 new tools to Penumbra Forge — including a browser-based prompt injection tester, a free SIEM query translator (the Uncoder replacement), an AI agent security auditor, and more.</p>
-  </a>
-
-
-  <a href="/blog/397b-on-a-macbook/" class="blog-post-card">
-    <div class="blog-post-meta">
-      <span class="blog-post-date">March 26, 2026</span>
-      <span class="blog-post-tag">local inference</span>
-      <span class="blog-post-tag">Metal</span>
-      <span class="blog-post-tag">MoE</span>
-      <span class="blog-post-read">8 min read</span>
-    </div>
-    <div class="blog-post-title">I got a 397B parameter model running on my MacBook</div>
-    <p class="blog-post-excerpt">The engineering story behind running Qwen3.5-397B-A17B locally on a MacBook Pro M5 with 32GB of RAM — Metal shader debugging, SSD expert streaming, and the bugs that almost stopped it.</p>
-  </a>
-
-
-  <a href="/blog/reading-logs-like-an-attacker/" class="blog-post-card">
-    <div class="blog-post-meta">
-      <span class="blog-post-date">March 26, 2026</span>
-      <span class="blog-post-tag">incident response</span>
-      <span class="blog-post-tag">log analysis</span>
-      <span class="blog-post-read">9 min read</span>
-    </div>
-    <div class="blog-post-title">Reading logs like an attacker</div>
-    <p class="blog-post-excerpt">How to read access logs and security events by understanding what each entry reveals about the attack chain — from recon signatures to the pivot point where scanning becomes targeted.</p>
-  </a>
-
-  <a href="/blog/jwt-is-not-encryption/" class="blog-post-card">
-    <div class="blog-post-meta">
-      <span class="blog-post-date">March 26, 2026</span>
-      <span class="blog-post-tag">security</span>
-      <span class="blog-post-tag">authentication</span>
-      <span class="blog-post-read">7 min read</span>
-    </div>
-    <div class="blog-post-title">JWT is not encryption</div>
-    <p class="blog-post-excerpt">The most common JWT mistakes I keep seeing — from treating base64 as encryption to tokens that live forever. What JWTs actually guarantee and what they don't.</p>
-  </a>
-
-  <a href="/blog/what-your-security-headers-actually-do/" class="blog-post-card">
-    <div class="blog-post-meta">
-      <span class="blog-post-date">March 26, 2026</span>
-      <span class="blog-post-tag">security</span>
-      <span class="blog-post-tag">web</span>
-      <span class="blog-post-read">10 min read</span>
-    </div>
-    <div class="blog-post-title">What your security headers actually do</div>
-    <p class="blog-post-excerpt">A practical breakdown of every security header that matters — what attack each one prevents, what happens when it's missing, and the exact values to use.</p>
-  </a>
+  {% endif %}{%- endfor %}
 </div>

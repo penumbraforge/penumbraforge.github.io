@@ -1,0 +1,93 @@
+---
+date: 2026-08-12
+layout: base.njk
+title: "Three releases in one day: gate 2.1, vexes 0.3, mcp-librarian 3.1 — Penumbra Forge"
+description: "What shipped across all three Penumbra Forge tools — a corrected rule count, opt-in credential verification, AI-assisted triage, SARIF output, and a hardening pass on the skill supply chain."
+permalink: /blog/three-releases-one-day/
+cardTitle: "Three releases in one day: gate 2.1, vexes 0.3, mcp-librarian 3.1"
+postTags: ["releases", "supply chain", "honesty"]
+readTime: "7 min read"
+excerpt: "All three tools shipped major versions on the same day. The theme wasn't features — it was making each tool tell the truth about what it actually does, including correcting a rule count that had been wrong on this very site."
+---
+
+<link rel="stylesheet" href="/css/blog.css?v={{ assetv }}">
+
+{% include "header.njk" %}
+
+<div class="blog-page">
+  <article class="blog-article">
+    <div class="blog-article-header">
+      <h1>Three releases in one day: gate 2.1, vexes 0.3, mcp-librarian 3.1</h1>
+      <div class="blog-post-meta">
+        <span class="blog-post-date">{{ page.date | postDate }}</span>
+        <span class="blog-post-tag">releases</span>
+        <span class="blog-post-tag">supply chain</span>
+        <span class="blog-post-tag">honesty</span>
+        <span class="blog-post-read">7 min read</span>
+      </div>
+    </div>
+
+    <p class="blog-article-lede">All three tools shipped major versions today. Looking back at the diffs, the through-line isn't a feature — it's that each release made the tool describe itself accurately. One of those corrections was to a number printed on this website.</p>
+
+    <div class="blog-body">
+      <h2>gate 2.1.0 — the rules were real, the count was not</h2>
+
+      <p>Gate shipped with a signed rule pack called FORTRESS: 68 additional detection rules covering PII, Kubernetes secrets, SQL injection patterns, and a handful of providers the built-in set missed. The signature on that pack was being verified correctly on every load. The rules in it were never merged into the live rule set.</p>
+
+      <p>So gate advertised 148 rules and scanned with 80. The pack coverage the docs described — this site included — did not exist at scan time. That's fixed: the loader now merges and de-duplicates both sets, which lands at <strong>{{ versions.gate.rules }} real, live rules</strong>. The number went down because it is now counted from what actually runs.</p>
+
+      <p>To keep that class of drift from recurring, rule-count tables in the docs are generated from the loader and checked in CI. If the number changes, the docs change with it or the build fails.</p>
+
+      <p>Two more things in 2.1.0 matter more than the count:</p>
+
+      <p><strong>Reports no longer contain your secrets.</strong> Findings used to carry the matched value in the report, the JSON, and the SARIF. A file documenting where your credentials leaked is a poor place to put the credentials. Matches are redacted now and findings carry a <code>secretHash</code> instead, which is enough to correlate across runs without storing the plaintext anywhere.</p>
+
+      <p><strong>Credential verification is opt-in.</strong> Verification takes a detected secret and asks the provider whether it's live — genuinely useful for triage, and it means sending a real credential over the network. That should never be something a scanner decides on your behalf. It now happens only when you run <code>gate verify</code> or pass <code>--verify</code>. A scan is silent on the network by default.</p>
+
+      <h2>vexes 0.3.0 — severity you can trust, and triage that reads like a person wrote it</h2>
+
+      <p>Before this release, vexes was inflating severity. OSV puts the CVSS vector string in <code>severity[].score</code>; the parser was looking for it in <code>severity[].vector</code>, finding nothing, and falling through to CRITICAL. Every PYSEC, RUSTSEC, and Go advisory came back critical. In the demo project that was 87 of 219 findings — a wall of red that told you nothing, which is the specific way a security tool becomes furniture.</p>
+
+      <p>0.2.0 replaced the lookup with full CVSS v3.1 spec math. The same demo project now reports 26 critical, 108 high, 84 moderate. Fewer alarms, each one meaning something.</p>
+
+      <p>0.3.0 built two things on top of that:</p>
+
+      <p><strong><code>vexes explain</code></strong> turns a scan result into a prioritized, plain-English action plan — what to fix first, what can wait, what is noise for your particular dependency graph. It is opt-in, runs only when <code>ANTHROPIC_API_KEY</code> is set, and sends summarized findings rather than your code. No source leaves the machine. This is the shape all AI in these tools will take: the deterministic scanner is the product, and the model is a layer you can switch on over the output, never a dependency sitting in the middle of the analysis.</p>
+
+      <p><strong>SARIF 2.1.0 output</strong> with cross-run fingerprints, so findings deduplicate properly in GitHub code scanning instead of reappearing as new every push. The GitHub Action was rebuilt around it and now reports findings by default, gating your build only if you ask it to with <code>fail-on-findings</code>. It also passes inputs through quoted <code>env:</code> — the previous version interpolated them directly into a shell step, which is a template-injection sink in a tool whose entire job is supply-chain security.</p>
+
+      <p>Homebrew support was removed. OSV has no Homebrew advisory data, so scanning a Brewfile produced confident-looking empty results. An ecosystem we cannot actually check is worse than one we do not claim.</p>
+
+      <h2>mcp-librarian 3.1.0 — treating a knowledge library as a supply chain</h2>
+
+      <p>mcp-librarian gives coding agents a searchable library of markdown skills. Skills are instructions an agent reads and acts on, which makes the library an attack surface with a very short path to consequences.</p>
+
+      <p>3.1.0 was mostly closing that surface:</p>
+
+      <p><strong>Signing actually happens at write time.</strong> Skills created by the agent or installed from a pack were being written unsigned and only signed later, so freshly created skills reported <code>UNSIGNED</code> — the status that means "no integrity guarantee." <code>create_skill</code> and <code>install_pack</code> now sign as part of the write.</p>
+
+      <p><strong>Every fetch is SSRF-hardened.</strong> Private, loopback, link-local, and cloud-metadata addresses are rejected; the resolved IP is pinned against DNS rebinding; each redirect hop is re-vetted. <code>GITHUB_TOKEN</code> is scoped to GitHub hosts, so a pack URL that redirects elsewhere loses the token rather than carrying it along.</p>
+
+      <p><strong>Fetched web content passes the prompt-injection guard</strong> and arrives wrapped in explicit untrusted-data delimiters. Auto-research — where a missing skill triggers a web lookup — is off by default. The version of that feature that shipped earlier also ended its output with an instruction telling the agent to create a skill immediately, which is the tool prompt-injecting its own user. That's gone.</p>
+
+      <p><strong>Installs are crash-safe.</strong> The old install order deleted before writing, so a failure part-way through a pack install destroyed skills you already had. It rolls back now.</p>
+
+      <p>One reliability bug worth naming because it was invisible: progressive disclosure read sections only from a TTL cache, so after about ten idle minutes the server would report <code>SKILL_NOT_FOUND</code> for skills sitting on disk. Section loads read through to disk now.</p>
+
+      <p>The license also moved from MIT to Apache-2.0, for the patent grant.</p>
+
+      <h2>The pattern</h2>
+
+      <p>Three tools, one theme: each had a gap between what it claimed and what it did. Advertised rules that never loaded. Severity levels computed from a field that was never populated. A signing system that left new files unsigned. None of these threw errors. Every one of them made the tool look like it was working.</p>
+
+      <p>That failure mode is worse in security tooling than anywhere else, because the output of a security tool is trust. A scanner that silently reports clean is not neutral — it actively tells you that you are fine. Which is why these tools are built to fail loud rather than pass quietly, and why "the count went down" is a release note worth leading with.</p>
+
+      <p>All three are open source and run entirely on your machine: <a href="/gate/">gate</a>, <a href="/vexes/">vexes</a>, <a href="/librarian/">mcp-librarian</a>. Found something that doesn't match what the docs say? <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a> — that's the category of bug I most want to hear about.</p>
+
+      <div class="blog-nav">
+        <a href="/blog/" class="blog-nav-link">&larr; All posts</a>
+      </div>
+    </div>
+
+  </article>
+</div>

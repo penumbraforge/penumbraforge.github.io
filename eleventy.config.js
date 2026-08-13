@@ -6,6 +6,13 @@ export default function (eleventyConfig) {
   // One cache-busting token per build, so asset links stop being hand-bumped.
   eleventyConfig.addGlobalData("assetv", Date.now().toString(36));
 
+  // Cards and article headers show the same human-readable date.
+  eleventyConfig.addFilter("postDate", (date) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric", month: "long", day: "numeric", timeZone: "UTC"
+    });
+  });
+
   eleventyConfig.addFilter("toISOString", (date) => {
     return new Date(date).toISOString().split("T")[0];
   });
