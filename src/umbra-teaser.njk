@@ -1,7 +1,7 @@
 ---
 layout: base.njk
-title: "Umbra — Local-First AI Studio, Built for NVIDIA DGX Spark | Penumbra Forge"
-description: "Umbra is a local-first AI studio for running, orchestrating, and auditing large language models entirely on your own hardware. Built for NVIDIA DGX Spark, CUDA-first. In active development."
+title: "Umbra — Local AI studio (in development) | Penumbra Forge"
+description: "Umbra is a local-first AI studio for running and inspecting language models on your own hardware. Being developed against NVIDIA DGX Spark. Early development — not usable yet."
 permalink: /umbra/
 ---
 
@@ -11,36 +11,36 @@ permalink: /umbra/
 
   <section class="umbra-hero">
     <span class="umbra-ghost" aria-hidden="true">☾</span>
-    <div class="umbra-status">In active development</div>
+    <div class="umbra-status">In development — not usable yet</div>
     <h1>Umbra</h1>
-    <p class="umbra-tagline">A local-first AI studio. Run, orchestrate, and audit large language models on hardware you own — with nothing leaving the machine.</p>
+    <p class="umbra-tagline">A local-first AI studio for running, orchestrating, and auditing large language models on hardware you own. This page describes what it's meant to do. It isn't finished, there's nothing to download, and the design may still change.</p>
   </section>
 
   <section class="umbra-section">
-    <h2>What it is</h2>
-    <p>Umbra is a desktop GUI and terminal TUI for working with local models seriously: loading and switching models, orchestrating multi-step inference, inspecting what a model actually does with your prompts, and auditing runs after the fact. No cloud endpoints, no subscriptions, no telemetry — local inference is the whole product, not a fallback mode.</p>
+    <h2>What it's meant to be</h2>
+    <p>A desktop GUI and a terminal TUI for working with local models: loading and switching models, running multi-step inference, inspecting what a model does with a prompt, and reviewing runs after the fact. Inference stays on the machine — no cloud endpoints, no telemetry. That's the intent. Most of it is still being built.</p>
   </section>
 
   <section class="umbra-section">
-    <h2>Built for NVIDIA DGX Spark</h2>
-    <p>Umbra is built for <strong>NVIDIA DGX Spark</strong> — Grace Blackwell compute with 128&nbsp;GB of unified memory — and that's the hardware it's being finished on. That budget changes what local AI can mean: larger models resident in memory, longer contexts, and real headroom for inference auditing alongside generation. Umbra targets CUDA first and runs where CUDA runs.</p>
+    <h2>Target hardware: NVIDIA DGX Spark</h2>
+    <p>Umbra is being developed on an <strong>NVIDIA DGX Spark</strong> — Grace Blackwell compute with 128&nbsp;GB of unified memory — and that's the hardware it targets. The memory budget is what the design leans on: larger models resident in memory, longer contexts, and room to inspect a run while it generates. CUDA first. I haven't tested it anywhere else.</p>
     <div class="umbra-pills">
       <span>NVIDIA DGX Spark</span>
       <span>CUDA-first</span>
       <span>128 GB unified memory</span>
       <span>GUI + TUI</span>
-      <span>fully offline</span>
+      <span>runs offline</span>
     </div>
   </section>
 
   <section class="umbra-section">
     <h2>Status</h2>
-    <p>Umbra is in deep development at Penumbra Forge and isn't released yet. When it ships, it ships the way everything here does: open to inspection, private by default.</p>
-    <p><strong>Free forever for individuals.</strong> Enterprise licensing — team deployment, management, and support — is planned for organizations.</p>
-    <p>Want to know when it's ready? Watch <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">github.com/penumbraforge</a> or write to <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a>.</p>
+    <p>Early development. Not released, not installable, and no date to give you. Some of what's described here works on my machine; some of it is still a plan. I'd rather say that than imply otherwise.</p>
+    <p>The intent is for it to be free for individuals, with paid licensing for organizations that want team deployment and support. That isn't settled.</p>
+    <p>If you want to follow along, watch <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">github.com/penumbraforge</a> or write to <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a>.</p>
     <div class="umbra-actions">
       <a href="/about/" class="umbra-btn">About Penumbra Forge</a>
-      <a href="/tools/" class="umbra-btn umbra-btn--ghost">Try our browser AI tools</a>
+      <a href="/tools/" class="umbra-btn umbra-btn--ghost">Browser AI tools</a>
     </div>
   </section>
 
@@ -52,7 +52,7 @@ permalink: /umbra/
   "@type": "SoftwareApplication",
   "name": "Umbra",
   "applicationCategory": "DeveloperApplication",
-  "description": "Local-first AI studio for running, orchestrating, and auditing large language models on your own hardware. Built for NVIDIA DGX Spark, CUDA-first.",
+  "description": "Local-first AI studio for running, orchestrating, and auditing large language models on your own hardware. Targets NVIDIA DGX Spark, CUDA first. In early development, not yet released.",
   "operatingSystem": "Linux, macOS",
   "url": "{{ site.url }}/umbra/",
   "author": { "@type": "Organization", "name": "Penumbra Forge", "url": "{{ site.url }}" }

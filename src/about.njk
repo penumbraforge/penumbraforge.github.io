@@ -11,25 +11,25 @@ permalink: /about/
 
   <section class="about-hero">
     <div class="about-label">About</div>
-    <h1>Software that answers to you,<br>not to a server.</h1>
-    <p class="about-sub">Penumbra Forge LLC is an independent software company founded in 2026. We build privacy-first AI and security tooling — software that runs on your hardware, with your data staying yours.</p>
+    <h1>About</h1>
+    <p class="about-sub">Penumbra Forge LLC is a one-person software company, started in 2026. I build developer and security tools that run on your own hardware. Most of the projects are still early — each one says where it stands.</p>
   </section>
 
   <section class="about-section">
     <h2>What we build</h2>
-    <p>Everything we ship follows one rule: computation belongs on hardware the user controls. That spans three fronts:</p>
+    <p>The common thread is that the work happens on your machine rather than someone else's server. Three areas:</p>
     <div class="about-grid">
       <div class="about-card">
         <h3>Local AI</h3>
-        <p><a href="/umbra/">Umbra</a>, our local-first AI studio, runs and audits large language models entirely on-device — built for NVIDIA DGX Spark. On this site, our AI tools run quantized LLM inference in your browser over WebGPU, or against your own Ollama / LM Studio runtime.</p>
+        <p><a href="/umbra/">Umbra</a> is a local-first AI studio for running and inspecting language models on your own hardware, being developed against an NVIDIA DGX Spark. It is early and not usable yet. On this site, the AI tools run a small model in your browser over WebGPU, or point at your own Ollama or LM Studio server.</p>
       </div>
       <div class="about-card">
         <h3>Security software</h3>
-        <p><a href="/gate/">Gate</a> stops secrets before they reach your repository. <a href="/vexes/">Vexes</a> catches supply-chain attacks across every major package ecosystem with behavioral analysis. <a href="/librarian/">mcp-librarian</a> gives AI coding agents a self-growing, cryptographically signed skills library.</p>
+        <p><a href="/gate/">Gate</a> scans staged changes for credentials before you commit. <a href="/vexes/">vexes</a> flags dependencies worth a second look across several ecosystems. <a href="/librarian/">mcp-librarian</a> gives coding agents a local, signed skill library. All three are experimental and use heuristics, so expect false positives and misses.</p>
       </div>
       <div class="about-card">
-        <h3>Open instruments</h3>
-        <p><a href="/tools/">{{ stats.liveTools }} browser-based tools</a> for security engineering, threat intel, encoding, and development — client-side by default, zero tracking, and <a href="/tools/agents/">usable by AI agents</a> through our MCP server.</p>
+        <h3>Browser tools</h3>
+        <p><a href="/tools/">{{ stats.liveTools }} browser tools</a> for security work, encoding, and development. Most run entirely in the page; the few that need the network say so. They are also <a href="/tools/agents/">usable by AI agents</a> through an MCP server.</p>
       </div>
     </div>
   </section>
@@ -40,7 +40,7 @@ permalink: /about/
       <div class="about-founder-body">
         <h3>Shadoe Myers</h3>
         <p class="about-founder-role">Founder</p>
-        <p>Shadoe is a senior security engineer who builds the automation and tooling behind a corporate cybersecurity incident-response team — the sole developer behind its security-automation playbooks, custom integrations, and internal tooling — with over a decade across security engineering, SOC operations, and software development. Years of watching security and AI tooling drift toward surveillance — telemetry in developer tools, prompts leaving machines, dependencies nobody audits — became the reason for Penumbra Forge: every product is open to inspection, runs locally, and treats your data as none of our business.</p>
+        <p>I'm a security engineer on a corporate incident-response team, where I build the automation and internal tooling. Penumbra Forge came out of a preference for tools that keep your data on your own machine and are open enough to check. That's the whole idea; the projects here are my attempt at it, and they're still works in progress.</p>
         <div class="about-founder-links">
           <a href="https://www.linkedin.com/in/shadoe-myers" target="_blank" rel="noopener">LinkedIn</a>
           <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">GitHub</a>
@@ -53,9 +53,9 @@ permalink: /about/
   <section class="about-section">
     <h2>How we work</h2>
     <ul class="about-principles">
-      <li><strong>Client-side by default.</strong> A tool only touches the network when its function demands it — and it says so on the label.</li>
-      <li><strong>Dependencies are attack surface.</strong> Zero-dependency codebases built on platform primitives instead of framework stacks that expire.</li>
-      <li><strong>Open and auditable.</strong> Small enough to audit in an afternoon. No telemetry, no accounts, no dark patterns.</li>
+      <li><strong>Local by default.</strong> Most tools do their work in the page. The ones that need the network are labelled, so you know before pasting anything in.</li>
+      <li><strong>Few dependencies.</strong> Mostly built on platform APIs rather than large framework stacks — fewer moving parts to trust and keep patched.</li>
+      <li><strong>Open to inspection.</strong> The projects are open source, so you can read what they do instead of taking my word for it. No accounts, and no analytics beyond basic traffic counts.</li>
     </ul>
   </section>
 

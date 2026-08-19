@@ -1,7 +1,7 @@
 {
   "layout": "product-layout.njk",
   "productName": "librarian",
-  "productTitle": "mcp-librarian \u2014 MCP Skills Server",
-  "productDescription": "A self-growing knowledge library for AI coding agents.",
+  "productTitle": "mcp-librarian — MCP Skills Server",
+  "productDescription": "A local skill library for MCP-speaking coding agents, with BM25 search, Ed25519 signing, and integrity checks on load. Experimental.",
   "productRepo": "https://github.com/penumbraforge/mcp-librarian"
 }

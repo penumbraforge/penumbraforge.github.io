@@ -8,7 +8,7 @@ permalink: /librarian/wiki/auto-research/
 
     <h2 id="overview">Overview</h2>
 
-    <p>Auto-research is the mechanism that makes the knowledge library self-growing. When an agent calls <code>find_and_load</code> and no matching skill exists in the library, mcp-librarian can search the web for authoritative sources, fetch their content, and return research material for the agent to synthesize into a permanent skill.</p>
+    <p>Auto-research is how the library adds skills it does not already have. When an agent calls <code>find_and_load</code> and no matching skill exists in the library, mcp-librarian can search the web for authoritative sources, fetch their content, and return research material for the agent to synthesize into a permanent skill.</p>
 
     <div class="info-box">
       <strong>Opt-in:</strong> auto-research is <strong style="color: var(--text-1);">off by default</strong>. Set <code>MCP_LIBRARIAN_AUTO_RESEARCH=true</code> to enable it. With it off, <code>find_and_load</code> stays entirely local &mdash; a no-match returns a suggestion to call <code>research_topic</code> explicitly, so the network is only ever reached by a deliberate tool call.

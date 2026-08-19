@@ -6,9 +6,9 @@ permalink: /vexes/
 <section class="vx-hero" aria-labelledby="hero-title">
   <div class="vx-wrap">
     <div class="vx-hero-product" id="hero-title">vexes</div>
-    <div class="vx-hero-badge">v{{ versions.vexes.version }}</div>
+    <div class="vx-hero-badge">v{{ versions.vexes.version }} · experimental</div>
     <p class="vx-hero-tagline">Shakes the dependency tree to see what falls</p>
-    <p class="vx-hero-desc">Cross-ecosystem supply chain security scanner with a 4-layer behavioral analysis engine. Detects typosquatting, account takeovers, capability escalation, and malicious code patterns — before they execute. Zero dependencies. Pure Node.js.</p>
+    <p class="vx-hero-desc">Cross-ecosystem supply chain scanner. It reads package code, dependency graphs, version history, and registry metadata, then flags typosquat names, maintainer changes, capability escalation, and risky code patterns for review. Detection is heuristic, so expect false positives and misses. No runtime dependencies. Pure Node.js. Experimental and pre-1.0: it runs and finds things, but it is unproven against live attacks. Expect rough edges, and please report what breaks.</p>
     <div class="vx-hero-actions">
       <a href="https://github.com/penumbraforge/vexes" class="vx-btn vx-btn-outline" rel="noopener noreferrer" target="_blank">View on GitHub</a>
       <a href="/vexes/wiki/" class="vx-btn vx-btn-subtle">Wiki</a>
@@ -38,20 +38,20 @@ permalink: /vexes/
 <section class="vx-section" aria-labelledby="engine-title">
   <div class="vx-wrap">
     <div class="section-label">Detection Engine</div>
-    <h2 id="engine-title">4 layers of behavioral analysis</h2>
-    <p>Traditional scanners check vulnerability databases. vexes goes deeper — it analyzes actual code, dependency graphs, version history, and registry metadata to catch attacks that no database has seen yet.</p>
+    <h2 id="engine-title">Four analysis layers</h2>
+    <p>Alongside vulnerability database lookups, vexes reads package code, dependency graphs, version history, and registry metadata. Each layer produces signals, not verdicts: they point you at packages worth reading before you trust them.</p>
     <div class="vx-features-grid vx-features-grid--pairs" role="list">
       <div class="vx-feature-card" role="listitem">
         <h3>Layer 1 — AST Code Analysis</h3>
-        <p>Parses JavaScript and Python source via acorn AST. Detects <code>eval()</code>, <code>child_process.exec()</code>, credential harvesting, obfuscated code, WebAssembly payloads, DNS exfiltration, and prototype chain escapes.</p>
+        <p>Parses JavaScript and Python source via acorn AST. Looks for <code>eval()</code>, <code>child_process.exec()</code>, credential-file reads, obfuscated code, WebAssembly payloads, DNS exfiltration, and prototype chain escapes. Plenty of legitimate packages use these, so a hit means read the code.</p>
       </div>
       <div class="vx-feature-card" role="listitem">
         <h3>Layer 2 — Dependency Graph</h3>
-        <p>Profiles newly added dependencies. Catches phantom packages (< 7 days old), typosquatting via edit distance, Unicode homoglyph attacks, and circular staging by the same author.</p>
+        <p>Profiles newly added dependencies. Flags packages under 7 days old, names a short edit distance from popular ones, Unicode homoglyphs, and circular staging by the same author.</p>
       </div>
       <div class="vx-feature-card" role="listitem">
         <h3>Layer 3 — Behavioral Fingerprinting</h3>
-        <p>Diffs capability profiles between versions. Catches when a utility library suddenly gains network + process execution capabilities — the hallmark of a hijacked package.</p>
+        <p>Diffs capability profiles between versions. Flags a utility library that gains network or process-execution capability in a new release. Refactors do this too, so it is a prompt to read the diff.</p>
       </div>
       <div class="vx-feature-card" role="listitem">
         <h3>Layer 4 — Registry Metadata</h3>
@@ -65,7 +65,7 @@ permalink: /vexes/
 <section class="vx-section" aria-labelledby="recorded-title">
   <div class="vx-wrap">
     <div class="section-label">In Action</div>
-    <h2 id="recorded-title">A real multi-ecosystem scan</h2>
+    <h2 id="recorded-title">A recorded multi-ecosystem scan</h2>
     {% set demo = "vexes" %}
     {% set width = 1200 %}{% set height = 760 %}
     {% set title = "vexes scan --path demo --severity high" %}
@@ -109,7 +109,7 @@ permalink: /vexes/
 <section class="vx-section" aria-labelledby="comparison-title">
   <div class="vx-wrap">
     <div class="section-label">Comparison</div>
-    <h2 id="comparison-title">What makes vexes different</h2>
+    <h2 id="comparison-title">How vexes compares</h2>
     <div class="vx-table-wrap" role="region" aria-label="Comparison with other tools">
       <table class="vx-table vx-comparison">
         <thead>
@@ -129,12 +129,12 @@ permalink: /vexes/
           <tr><td>Typosquat detection</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td class="vx-yes">Yes</td></tr>
           <tr><td>Pre-install guard</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td>No</td></tr>
           <tr><td>{{ versions.vexes.ecosystems }} ecosystems</td><td class="vx-yes">Yes</td><td>npm only</td><td class="vx-yes">Yes</td><td>Multiple</td></tr>
-          <tr><td>Zero dependencies</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td>No</td></tr>
+          <tr><td>No runtime dependencies</td><td class="vx-yes">Yes</td><td>No</td><td>No</td><td>No</td></tr>
           <tr><td>SARIF output</td><td class="vx-yes">Yes</td><td>No</td><td class="vx-yes">Yes</td><td>No</td></tr>
           <tr><td>No account required</td><td class="vx-yes">Yes</td><td class="vx-yes">Yes</td><td>No</td><td>No</td></tr>
         </tbody>
       </table>
-      <p style="margin-top: 12px; font-size: 12px; color: var(--text-3); line-height: 1.6;">Comparison reflects publicly documented free-tier capabilities as of August 2026. Spot an error? Email <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a> and it gets fixed.</p>
+      <p style="margin-top: 12px; font-size: 12px; color: var(--text-3); line-height: 1.6;">Comparison reflects publicly documented free-tier capabilities as of August 2026, read from vendor docs rather than tested side by side. A "Yes" for vexes means the feature exists, not that it matches a mature product. Spot an error? Email <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a> and it gets fixed.</p>
     </div>
   </div>
 </section>
@@ -143,8 +143,8 @@ permalink: /vexes/
 <section class="vx-section" aria-labelledby="proven-title">
   <div class="vx-wrap">
     <div class="section-label">Detection Testing</div>
-    <h2 id="proven-title">Tested against reconstructed real-world attacks</h2>
-    <p>The regression suite reconstructs known supply chain compromises and checks that vexes flags each one:</p>
+    <h2 id="proven-title">Reconstructed attacks in the test suite</h2>
+    <p>The regression suite rebuilds known supply chain compromises from their public write-ups and checks that vexes flags each one. These are fixtures written after the fact, so passing them shows the signals fire on patterns already understood — not that vexes would have caught the original attack, or will catch the next one.</p>
     <div class="vx-table-wrap" role="region" aria-label="Reconstructed attack detection">
       <table class="vx-table">
         <thead>
@@ -161,7 +161,7 @@ permalink: /vexes/
           <tr><td>ua-parser-js</td><td>2021</td><td>Account hijack, cryptominer + stealer</td></tr>
           <tr><td>litellm/TeamPCP</td><td>2026</td><td>CI/CD compromise, K8s lateral movement</td></tr>
           <tr><td>Typosquatting</td><td>&mdash;</td><td>expresss, loadash, reqeusts name confusion</td></tr>
-          <tr><td>Novel attacks</td><td>&mdash;</td><td>WASM payloads, DNS exfil, capability escalation</td></tr>
+          <tr><td>Synthetic fixtures</td><td>&mdash;</td><td>WASM payloads, DNS exfil, capability escalation</td></tr>
         </tbody>
       </table>
     </div>
@@ -201,23 +201,23 @@ permalink: /vexes/
 <section class="vx-section" aria-labelledby="features-title">
   <div class="vx-wrap">
     <div class="section-label">Features</div>
-    <h2 id="features-title">Beyond vulnerability databases</h2>
+    <h2 id="features-title">What else is in the box</h2>
     <div class="vx-features-grid" role="list">
       <div class="vx-feature-card" role="listitem">
         <h3>AI-Assisted Triage &mdash; Opt-In</h3>
-        <p><code>vexes explain</code> turns a wall of CVEs into a prioritized, plain-English action plan. Uses your own <code>ANTHROPIC_API_KEY</code>; only finding summaries are sent &mdash; no source code ever leaves the machine. AI layered on top, not bolted through the middle.</p>
+        <p><code>vexes explain</code> groups findings and suggests an order to work through them, in plain English. Off unless you set your own <code>ANTHROPIC_API_KEY</code>. Only finding summaries are sent; source code is not. Like any model output, check it before acting on it.</p>
       </div>
       <div class="vx-feature-card" role="listitem">
         <h3>SARIF for Code Scanning</h3>
-        <p>SARIF 2.1.0 output with cross-run fingerprints. <code>--format sarif</code> plugs straight into GitHub code scanning; the hardened Action reports findings first and gates builds only when you opt in.</p>
+        <p>SARIF 2.1.0 output with cross-run fingerprints. <code>--format sarif</code> uploads to GitHub code scanning. The Action reports findings by default and fails the build only when you ask it to.</p>
       </div>
       <div class="vx-feature-card" role="listitem">
         <h3>Pre-Install Guard</h3>
-        <p>Intercepts <code>npm install</code> and analyzes new packages before they execute. Diffs lockfiles, blocks critical threats, prompts on high signals, then runs the real install.</p>
+        <p>Wraps <code>npm install</code> and analyzes new packages before install scripts run. Diffs the lockfile, stops on critical signals, prompts on high ones, then hands off to the real install. It only sees what the analysis layers see.</p>
       </div>
       <div class="vx-feature-card" role="listitem">
-        <h3>Verified Fix Recommendations</h3>
-        <p>Every suggested upgrade version is cross-checked against OSV to ensure the fix itself isn't vulnerable. No circular fixes.</p>
+        <h3>Checked Fix Recommendations</h3>
+        <p>Suggested upgrade versions are looked up in OSV first, so the recommendation isn't a version with its own known advisory. That check is only as current as OSV.</p>
       </div>
       <div class="vx-feature-card" role="listitem">
         <h3>CI/CD Integration</h3>
@@ -225,15 +225,15 @@ permalink: /vexes/
       </div>
       <div class="vx-feature-card" role="listitem">
         <h3>Fail Loud, Not Clean</h3>
-        <p>If queries fail, vexes exits with code 2 and prints SCAN INCOMPLETE. A scanner that silently reports clean on failure is worse than useless.</p>
+        <p>If queries fail, vexes exits with code 2 and prints SCAN INCOMPLETE. A failed scan should not look like a clean one.</p>
       </div>
       <div class="vx-feature-card" role="listitem">
-        <h3>Zero Dependencies</h3>
-        <p>The dependency chain is the attack surface. vexes has none. Acorn parser is vendored. SQLite is Node.js built-in.</p>
+        <h3>No Runtime Dependencies</h3>
+        <p>A scanner's own dependency chain is attack surface, so vexes ships without one. The acorn parser is vendored into the source tree. SQLite comes from Node.js.</p>
       </div>
       <div class="vx-feature-card" role="listitem">
-        <h3>Undisableable Signals</h3>
-        <p><code>KNOWN_COMPROMISED</code>, <code>PHANTOM_DEPENDENCY</code>, <code>CIRCULAR_STAGING</code>, and <code>CAPABILITY_ESCALATION</code> cannot be turned off via config.</p>
+        <h3>Signals Config Can't Silence</h3>
+        <p><code>KNOWN_COMPROMISED</code>, <code>PHANTOM_DEPENDENCY</code>, <code>CIRCULAR_STAGING</code>, and <code>CAPABILITY_ESCALATION</code> stay on. A checked-in config file cannot suppress them.</p>
       </div>
     </div>
   </div>
@@ -298,28 +298,28 @@ permalink: /vexes/
 <section class="vx-section" aria-labelledby="security-title">
   <div class="vx-wrap">
     <div class="section-label">Security Design</div>
-    <h2 id="security-title">Defense in depth</h2>
-    <p>vexes is a security tool that scans untrusted code and metadata. Every layer is hardened against the data it processes.</p>
+    <h2 id="security-title">Handling untrusted input</h2>
+    <p>vexes reads code and metadata it has no reason to trust. These are the measures in place for that. There has been no external security audit.</p>
     <ul class="vx-security-list" role="list">
       <li>
         <span class="vx-security-icon" aria-hidden="true">&#10003;</span>
-        <span class="vx-security-text"><strong>Zero dependencies</strong> — the dependency chain is the attack surface. Acorn is vendored. SQLite is Node.js built-in. Nothing to compromise.</span>
+        <span class="vx-security-text"><strong>No runtime dependencies</strong> — a scanner's own dependency chain is attack surface. Acorn is vendored. SQLite is a Node.js built-in.</span>
       </li>
       <li>
         <span class="vx-security-icon" aria-hidden="true">&#10003;</span>
-        <span class="vx-security-text"><strong>Terminal injection protection</strong> — all external data is sanitized. CSI sequences, OSC (BEL and ST), DCS/APC/PM/SOS, C1 control codes, and bare ESC bytes are stripped.</span>
+        <span class="vx-security-text"><strong>Terminal escape stripping</strong> — package-supplied text is filtered before printing. CSI sequences, OSC (BEL and ST), DCS/APC/PM/SOS, C1 control codes, and bare ESC bytes are removed.</span>
       </li>
       <li>
         <span class="vx-security-icon" aria-hidden="true">&#10003;</span>
-        <span class="vx-security-text"><strong>Command injection prevention</strong> — guard uses <code>execFileSync</code> with no shell and an allowlist of known package managers. Fix commands are shell-escaped before display.</span>
+        <span class="vx-security-text"><strong>No shell in the guard path</strong> — guard uses <code>execFileSync</code> with no shell and an allowlist of known package managers. Fix commands are shell-escaped before display.</span>
       </li>
       <li>
         <span class="vx-security-icon" aria-hidden="true">&#10003;</span>
-        <span class="vx-security-text"><strong>Gzip bomb + SSRF protection</strong> — tarball downloads enforce streaming size limits, HTTPS-only URLs, and a registry host allowlist.</span>
+        <span class="vx-security-text"><strong>Download limits</strong> — tarball downloads enforce streaming size limits, HTTPS-only URLs, and a registry host allowlist.</span>
       </li>
       <li>
         <span class="vx-security-icon" aria-hidden="true">&#10003;</span>
-        <span class="vx-security-text"><strong>Never recommends vulnerable fixes</strong> — every suggested version is cross-checked against OSV before presenting it to the user.</span>
+        <span class="vx-security-text"><strong>Fix versions checked first</strong> — suggested versions are looked up in OSV before they are shown, so a recommendation isn't a version with its own known advisory.</span>
       </li>
       <li>
         <span class="vx-security-icon" aria-hidden="true">&#10003;</span>

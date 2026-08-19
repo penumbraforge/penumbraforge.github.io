@@ -2,8 +2,8 @@
   "name": "Penumbra Forge",
   "legalName": "Penumbra Forge LLC",
   "url": "https://penumbraforge.com",
-  "title": "Penumbra Forge — Private AI & Security Tooling",
-  "description": "Independent software company building privacy-first AI and security tools. Local LLM inference on your own hardware — from WebGPU in the browser to NVIDIA DGX — plus open source security software. No accounts, no tracking.",
+  "title": "Penumbra Forge — Local security & developer tools",
+  "description": "A one-person software company building developer and security tools that run locally — in your browser, or against a model you host yourself. Open source, no accounts. Several projects are still experimental.",
   "foundingYear": "2026",
   "author": {
     "name": "Shadoe Myers",

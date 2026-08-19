@@ -8,10 +8,13 @@ permalink: /gate/
     <h1 class="gate-hero-name">gate</h1>
   </div>
   <div class="reveal" style="transition-delay: 0.1s;">
-    <p class="gate-hero-tagline">The secret scanner that fixes what it finds.</p>
+    <p class="gate-hero-tagline">A command-line scanner that looks for hardcoded secrets and helps you move them out.</p>
   </div>
   <div class="reveal" style="transition-delay: 0.2s;">
-    <p class="gate-hero-sub">Free. Local. No accounts. No telemetry.</p>
+    <p class="gate-hero-sub">Free. Runs on your machine. No account, no telemetry.</p>
+  </div>
+  <div class="reveal" style="transition-delay: 0.25s;">
+    <p class="gate-hero-sub">Experimental, pre-1.0. Detection is pattern-based, so it will produce false positives and miss things. Read any fix before you commit it, and please report what breaks.</p>
   </div>
   <div class="reveal" style="transition-delay: 0.3s;">
     <p class="gate-hero-sub"><a href="/gate/wiki/">Documentation</a>&ensp;&middot;&ensp;<a href="https://github.com/penumbraforge/gate" target="_blank" rel="noopener">GitHub</a></p>
@@ -34,14 +37,14 @@ permalink: /gate/
         <button class="gate-copy-btn" data-copy="npm install -g @penumbraforge/gate">copy</button>
       </div>
     </div>
-    <p class="gate-install-note reveal" style="transition-delay: 0.1s;">One command. Zero config. Scanning in seconds. Requires Node.js {{ versions.gate.node }}+.</p>
+    <p class="gate-install-note reveal" style="transition-delay: 0.1s;">One command, no config file needed to start. Requires Node.js {{ versions.gate.node }}+.</p>
   </div>
 </section>
 
 <!-- WHAT MAKES GATE DIFFERENT -->
 <section class="gate-section" id="comparison">
   <div class="gate-container-wide">
-    <p class="section-label reveal">What makes Gate different</p>
+    <p class="section-label reveal">How Gate compares</p>
     <div class="gate-comparison-wrap reveal" style="transition-delay: 0.05s;">
       <table class="gate-comparison">
         <thead>
@@ -137,7 +140,7 @@ permalink: /gate/
           </tr>
         </tbody>
       </table>
-      <p style="margin-top: 12px; font-size: 12px; color: var(--text-3); line-height: 1.6;">Comparison reflects publicly documented free-tier capabilities as of August 2026. Spot an error? Email <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a> and it gets fixed.</p>
+      <p style="margin-top: 12px; font-size: 12px; color: var(--text-3); line-height: 1.6;">A feature checklist, not a quality ranking. The other tools here are mature and widely used; Gate is not. Rows reflect publicly documented free-tier capabilities as of August 2026. Spot an error? Email <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a> and I'll correct it.</p>
     </div>
   </div>
 </section>
@@ -208,19 +211,19 @@ permalink: /gate/
     <div class="gate-features-grid reveal" style="transition-delay: 0.05s;">
       <div class="gate-feature-card">
         <h3>{{ versions.gate.rules }} Detection Rules</h3>
-        <p>AWS, GCP, Azure, GitHub, Stripe, AI keys, databases, private keys. 25+ providers covered.</p>
+        <p>Patterns for AWS, GCP, Azure, GitHub, Stripe, AI keys, databases, and private keys, across 25+ providers.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Credential Verification</h3>
-        <p>Opt-in <code>--verify</code> checks if secrets are actually live against provider APIs. No network calls unless you ask.</p>
+        <p>Opt-in <code>--verify</code> asks provider APIs whether a matched secret is still live. No network calls unless you pass the flag.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Auto-Fix Engine</h3>
-        <p>Extracts hardcoded secrets to .env files and rewrites references across 9 languages automatically.</p>
+        <p>Can move a hardcoded secret into a .env file and rewrite the reference, across 9 languages. Check the diff before committing.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Interactive Remediation</h3>
-        <p>Single-keypress fix, vault, or ignore per finding. Fix everything in one pass through the terminal.</p>
+        <p>One keypress per finding to fix, vault, or ignore it, so you can work through a scan in a single pass.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Incident Response</h3>
@@ -228,19 +231,19 @@ permalink: /gate/
       </div>
       <div class="gate-feature-card">
         <h3>Compliance Reports</h3>
-        <p>Generate reports mapped to OWASP, NIST 800-63B, CIS Benchmark v8, and SOC2 controls.</p>
+        <p>Maps findings to OWASP, NIST 800-63B, CIS Benchmark v8, and SOC2 controls. A starting point for an audit, not a substitute for one.</p>
       </div>
       <div class="gate-feature-card">
         <h3>SARIF Output</h3>
-        <p>Native SARIF format for integration with GitHub Advanced Security code scanning alerts.</p>
+        <p>SARIF output for GitHub Advanced Security code scanning alerts.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Git History Scanning</h3>
-        <p>Find secrets buried in past commits. Generates purge scripts to clean repository history.</p>
+        <p>Scans past commits for secrets and generates purge scripts you can review and run to rewrite history.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Zero Config</h3>
-        <p>Smart defaults that work instantly. No setup files, no accounts, no API keys needed to start.</p>
+        <p>Runs on defaults. No setup file, account, or API key required to start; add a <code>.gaterc</code> when you need one.</p>
       </div>
     </div>
   </div>
@@ -252,7 +255,7 @@ permalink: /gate/
     <p class="section-label reveal">CI/CD</p>
     <div class="gate-docs-section reveal">
       <h2 class="gate-docs-heading">GitHub Action</h2>
-      <p class="gate-docs-text">Add Gate to your CI pipeline with the official GitHub Action. Scans pull requests and pushes, uploads SARIF results to GitHub code scanning.</p>
+      <p class="gate-docs-text">Run Gate in CI with the GitHub Action. It scans pull requests and pushes, and uploads SARIF results to GitHub code scanning.</p>
 
       <div class="gate-gh-action">
         <div class="gate-gh-action-bar">.github/workflows/gate.yml</div>
@@ -290,7 +293,7 @@ permalink: /gate/
         <li id="docs-verification"><a href="/gate/wiki/verification/">Credential verification</a> &mdash; opt-in liveness checks, privacy model</li>
         <li><a href="/gate/wiki/incident-response/">Incident response</a> &mdash; the 5-step guided workflow</li>
         <li><a href="/gate/wiki/compliance/">Compliance reports</a> &mdash; OWASP, NIST 800-63B, CIS v8, SOC2</li>
-        <li><a href="/gate/wiki/security/">Security design</a> &mdash; how Gate protects the secrets it finds</li>
+        <li><a href="/gate/wiki/security/">Security design</a> &mdash; how Gate handles the secrets it finds</li>
       </ul>
     </div>
   </div>
@@ -300,14 +303,14 @@ permalink: /gate/
 <!-- SECURITY PROMISE -->
 <section class="gate-section" id="security">
   <div class="gate-container">
-    <p class="section-label reveal">Security promise</p>
+    <p class="section-label reveal">How Gate handles your data</p>
     <div class="gate-security-list reveal" style="transition-delay: 0.05s;">
-      <div class="gate-security-item"><strong>Runs 100% locally.</strong> No telemetry, no cloud, no data ever leaves your machine.</div>
-      <div class="gate-security-item"><strong>File permissions hardened.</strong> Config and vault files created with 0o600/0o700 permissions.</div>
-      <div class="gate-security-item"><strong>Atomic file writes.</strong> Writes to temp files first, then renames. No partial writes, no corruption.</div>
-      <div class="gate-security-item"><strong>Secrets redacted in output.</strong> Terminal output masks credential values. Full values never displayed.</div>
-      <div class="gate-security-item"><strong>TLS enforced for verification.</strong> All provider API calls use TLS. No plaintext credential transmission.</div>
-      <div class="gate-security-item"><strong>No shell injection.</strong> All subprocesses use execFileSync with explicit argument arrays.</div>
+      <div class="gate-security-item"><strong>Runs locally.</strong> No telemetry and no cloud service. The only outbound requests are the opt-in <code>--verify</code> checks.</div>
+      <div class="gate-security-item"><strong>Restrictive file permissions.</strong> Config and vault files are created with 0o600/0o700 permissions.</div>
+      <div class="gate-security-item"><strong>Atomic file writes.</strong> Writes go to a temp file, then rename, so an interrupted write leaves the original intact.</div>
+      <div class="gate-security-item"><strong>Secrets redacted in output.</strong> Terminal output masks matched credential values.</div>
+      <div class="gate-security-item"><strong>TLS for verification.</strong> Provider API calls during <code>--verify</code> go over TLS.</div>
+      <div class="gate-security-item"><strong>No shell interpolation.</strong> Subprocesses use execFileSync with explicit argument arrays.</div>
     </div>
   </div>
 </section>

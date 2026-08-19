@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 title: "Free Developer & Security Tools — Run in Browser or via MCP | Penumbra Forge"
-description: "77 privacy-first developer and security tools that run in your browser — plus local AI, an MCP server for agents, and a command bar you can talk to. No signup, no tracking."
+description: "77 developer and security tools. Most run entirely in your browser; a few need the network. Includes local AI models, an MCP server for agents, and a command bar. No signup."
 permalink: /tools/
 hideAtmosphere: true
 ---
@@ -41,8 +41,8 @@ hideAtmosphere: true
   <div class="hub" id="hub">
     <section class="hub-hero">
       <p class="hub-kick">The console</p>
-      <h1>Tools that <em>run in your browser</em> — or on your agent.</h1>
-      <p class="hub-lede">{{ liveTools.length }} privacy-first developer &amp; security tools, a local-AI suite, and an MCP server so your terminal AI can use them too. Nothing you enter is ever uploaded.</p>
+      <h1>Tools that <em>run in your browser</em> — or from your agent.</h1>
+      <p class="hub-lede">{{ liveTools.length }} developer and security tools, a set of local AI models, and an MCP server so your terminal AI can call them. Most run entirely in your browser; the ones tagged edge or cloud send data over the network.</p>
       <div class="hub-searchwrap">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <input type="search" class="hub-search" id="hubSearch" placeholder="Search {{ liveTools.length }} tools…" autocomplete="off" spellcheck="false" aria-label="Search tools">
@@ -50,7 +50,7 @@ hideAtmosphere: true
       </div>
       <div class="hub-stats">
         <span class="hub-stat"><b>{{ liveTools.length }}</b> tools</span>
-        <span class="hub-stat"><b>{{ stats.localTools }}</b> fully in-browser · <b>0</b> tracking</span>
+        <span class="hub-stat"><b>{{ stats.localTools }}</b> run in-browser · <b>0</b> trackers</span>
         <span class="hub-stat"><b>{{ stats.mcpTools }}</b> callable over MCP</span>
       </div>
     </section>

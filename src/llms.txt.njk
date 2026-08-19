@@ -14,7 +14,7 @@ eleventyExcludeFromCollections: true
 ] -%}
 # Penumbra Forge — Tools
 
-> Free, privacy-first developer and security tools that run entirely in the browser — no accounts, no servers, nothing uploaded. Built to be used by humans AND by AI agents: tool pages are machine-readable, many are URL-invocable, and several are boosted by an in-browser LLM (WebGPU) or your own local model.
+> Free developer and security tools that run in the browser. No accounts, no server round-trips, no uploads. The pages are readable by people and by agents: each tool page carries a JSON descriptor, many accept input from the URL, and a few can use an in-browser LLM (WebGPU) or a local model you point them at.
 
 ## For AI agents
 
@@ -45,4 +45,4 @@ Deterministic tools available over MCP: hash, hmac, base64, base64url, hex, url_
 {%- endfor %}
 ## About
 
-Penumbra Forge LLC is an independent software company building privacy-first AI and security tools. Everything here is client-side and open source. Local AI tools run a model in your browser (WebGPU) or connect to your own Ollama / LM Studio / OpenAI-compatible endpoint — your data never leaves your machine. Our flagship product Umbra, a local-first AI studio built for NVIDIA DGX Spark, is in development: https://penumbraforge.com/umbra/
+Penumbra Forge LLC is an independent software company building local-first AI and security tools. The tools on this site are client-side and open source. The AI tools run a model in your browser (WebGPU) or talk to an Ollama / LM Studio / OpenAI-compatible endpoint you supply, so input stays on your machine. Umbra, a local-first AI studio for NVIDIA DGX Spark, is in early development and not usable yet: https://penumbraforge.com/umbra/

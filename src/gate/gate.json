@@ -1,7 +1,7 @@
 {
   "layout": "product-layout.njk",
   "productName": "gate",
-  "productTitle": "Gate \u2014 Pre-commit Secret Defense",
-  "productDescription": "Secret scanner that catches exposed credentials before they reach your repository.",
+  "productTitle": "Gate — Pre-commit Secret Scanner",
+  "productDescription": "A pre-commit hook that scans staged changes for credentials and can redact what it finds. Pattern-based, so expect false positives and misses. Experimental.",
   "productRepo": "https://github.com/penumbraforge/gate"
 }

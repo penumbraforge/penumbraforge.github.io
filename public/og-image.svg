@@ -13,6 +13,6 @@
   <rect width="1200" height="630" fill="url(#glow)"/>
   <circle cx="600" cy="240" r="32" fill="url(#orb)"/>
   <text x="600" y="326" text-anchor="middle" fill="#8b93b8" font-family="-apple-system, 'Helvetica Neue', sans-serif" font-size="15" letter-spacing="7">P E N U M B R A&#160;&#160;F O R G E</text>
-  <text x="600" y="372" text-anchor="middle" fill="#eceaf4" font-family="-apple-system, 'Helvetica Neue', sans-serif" font-size="30" font-weight="300">Precision tools for security &#38; software engineering</text>
-  <text x="600" y="410" text-anchor="middle" fill="#6b7280" font-family="-apple-system, 'Helvetica Neue', sans-serif" font-size="15">78 free tools &#183; Open source &#183; No tracking, no accounts</text>
+  <text x="600" y="372" text-anchor="middle" fill="#eceaf4" font-family="-apple-system, 'Helvetica Neue', sans-serif" font-size="30" font-weight="300">Security &#38; developer tools that run locally</text>
+  <text x="600" y="410" text-anchor="middle" fill="#6b7280" font-family="-apple-system, 'Helvetica Neue', sans-serif" font-size="15">Free &#183; Open source &#183; No accounts</text>
 </svg>

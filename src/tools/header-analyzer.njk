@@ -288,7 +288,7 @@ server: cloudflare" spellcheck="false" autocomplete="off" autocorrect="off" auto
     },
     'content-security-policy': {
       name: 'Content-Security-Policy',
-      what: 'Controls which resources the browser is allowed to load. The most powerful defense against XSS, injection, and data exfiltration attacks.',
+      what: 'Controls which resources the browser is allowed to load. A strong layer of defense against XSS, injection, and data exfiltration — though it takes care to configure correctly.',
       check: function (v) {
         if (!v) return { status: 'bad', verdict: 'Missing', fix: 'Start with a restrictive policy: <code>Content-Security-Policy: default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\'; font-src \'self\'</code>' };
         var issues = [];

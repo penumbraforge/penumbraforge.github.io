@@ -1,30 +1,30 @@
 [
   {
     "name": "umbra",
-    "description": "Local-first AI studio for running, orchestrating, and auditing large language models on your own hardware. Built for NVIDIA DGX Spark, CUDA-first.",
+    "description": "Local-first AI studio (GUI and TUI) for running and inspecting language models on your own hardware. Being built against an NVIDIA DGX Spark. Early development — not usable yet.",
     "url": "/umbra",
     "repo": null,
     "status": "in development"
   },
   {
     "name": "gate",
-    "description": "Pre-commit secret defense. Catches API keys, tokens, and credentials before they reach your repo.",
+    "description": "Pre-commit hook that scans staged changes for credentials and can redact what it finds. Pattern-based, so expect false positives and misses.",
     "url": "/gate",
     "repo": "https://github.com/penumbraforge/gate",
-    "status": "shipping"
+    "status": "experimental"
   },
   {
     "name": "vexes",
-    "description": "Cross-ecosystem dependency security scanner. 4-layer behavioral analysis catches supply chain attacks that vulnerability databases miss.",
+    "description": "Dependency scanner for several ecosystems. Flags install scripts, unexpected network or filesystem access, and names close to popular packages. Heuristics, not verdicts.",
     "url": "/vexes",
     "repo": "https://github.com/penumbraforge/vexes",
-    "status": "early access"
+    "status": "experimental"
   },
   {
     "name": "mcp-librarian",
-    "description": "Self-growing MCP skills server for AI coding agents. Researches authoritative sources and creates signed, persistent skills.",
+    "description": "MCP server giving coding agents a local skill library — BM25 search, Ed25519 signing, integrity checks on load.",
     "url": "/librarian",
     "repo": "https://github.com/penumbraforge/mcp-librarian",
-    "status": "shipping"
+    "status": "experimental"
   }
 ]

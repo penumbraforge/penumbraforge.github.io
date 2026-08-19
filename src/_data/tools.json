@@ -2,8 +2,8 @@
   {
     "name": "JSON Workbench",
     "slug": "json-formatter",
-    "description": "Format, validate, explore & query JSON in a live workbench.",
-    "longDescription": "A fast, private JSON workbench that pretty-prints, minifies, and validates JSON with precise line-and-column error reporting and a caret. Explore any document as a collapsible tree, run dot/bracket path queries, and read live stats — entirely in your browser, nothing uploaded.",
+    "description": "Format, validate, and query JSON in a live workbench.",
+    "longDescription": "Pretty-prints, minifies, and validates JSON with line-and-column error reporting, plus a collapsible tree view, dot/bracket path queries, and document stats. Parsing happens in the browser, so nothing you paste is uploaded.",
     "category": "encoding",
     "keywords": [
       "json formatter",
@@ -36,8 +36,8 @@
   {
     "name": "UUID Generator",
     "slug": "uuid-generator",
-    "description": "Generate UUID v4 & v7 in bulk, plus a full UUID inspector",
-    "longDescription": "Generate cryptographically random UUID v4 and time-ordered UUID v7 identifiers in bulk, with a live field-by-field anatomy view. Paste any UUID to inspect its version, variant, and — for v7 — the embedded Unix timestamp, all entirely in your browser.",
+    "description": "Generate UUID v4 and v7 in bulk, and inspect existing UUIDs.",
+    "longDescription": "Generates random v4 and time-ordered v7 UUIDs (RFC 9562) in bulk using the browser's crypto API, with a field-by-field anatomy view. Paste an existing UUID to read back its version, variant, and — for v7 — the embedded Unix timestamp.",
     "category": "security",
     "keywords": [
       "uuid",
@@ -70,8 +70,8 @@
   {
     "name": "Epoch Converter",
     "slug": "epoch-converter",
-    "description": "Convert Unix timestamps to dates and back — live, multi-timezone.",
-    "longDescription": "Convert Unix epoch timestamps (seconds or milliseconds) to ISO 8601, UTC, local, and relative time, and turn any date back into a timestamp. Includes a live clock and a multi-timezone view, running entirely in your browser.",
+    "description": "Convert Unix timestamps to dates and back, across timezones.",
+    "longDescription": "Converts Unix epoch timestamps in seconds or milliseconds to ISO 8601, UTC, local, and relative time, and turns a date back into a timestamp. Includes a running clock and a side-by-side multi-timezone view.",
     "category": "encoding",
     "keywords": [
       "epoch",
@@ -102,8 +102,8 @@
   {
     "name": "Subnet Calculator",
     "slug": "subnet-calculator",
-    "description": "Visual CIDR subnet calculator with binary mask breakdown.",
-    "longDescription": "Visual IPv4 CIDR subnet calculator for network engineers — instantly compute network, broadcast, subnet mask, wildcard, and usable host ranges from any IP/prefix. Includes an address-space map, binary mask breakdown, and scope detection, all client-side with zero telemetry.",
+    "description": "Work out network, broadcast, and host ranges from a CIDR block.",
+    "longDescription": "Takes an IPv4 address and prefix and returns the network and broadcast addresses, subnet mask, wildcard mask, and usable host range, alongside an address-space map and a binary breakdown of the mask. The math runs in the browser.",
     "category": "security",
     "keywords": [
       "subnet calculator",
@@ -134,7 +134,7 @@
     "name": "Cron Builder",
     "slug": "cron-builder",
     "description": "Build and explain cron expressions with a visual editor.",
-    "longDescription": "Visual cron expression builder and explainer. Construct or paste any cron schedule, see a plain-English description, and preview the next run times — no backend required.",
+    "longDescription": "Construct a schedule field by field, or paste an existing cron expression to read a plain-English description and a preview of the next run times. No backend involved.",
     "category": "devops",
     "keywords": [
       "cron",
@@ -157,8 +157,8 @@
   {
     "name": "Regex Tester",
     "slug": "regex-tester",
-    "description": "Test and debug regular expressions with live match highlighting.",
-    "longDescription": "Live regex tester with real-time match highlighting, group capture display, and flag toggles. Debug regular expressions instantly in your browser with zero data transmission.",
+    "description": "Test regular expressions with live match highlighting.",
+    "longDescription": "Highlights matches as you type, lists captured groups, and lets you toggle flags. It uses the browser's own JavaScript regex engine, so what you see is what your JS code will do.",
     "category": "text",
     "keywords": [
       "regex",
@@ -181,8 +181,8 @@
   {
     "name": "Permissions Auditor",
     "slug": "chmod-calculator",
-    "description": "Unix permission auditor: octal, symbolic, setuid & risk flags.",
-    "longDescription": "Visual Unix chmod permissions auditor with a read/write/execute grid plus setuid, setgid, and sticky bits. Converts octal and symbolic notation both ways and flags risky modes like setuid+world-writable or 0777 with severity-rated security callouts.",
+    "description": "Unix permissions: octal, symbolic, setuid, and risk flags.",
+    "longDescription": "Converts between octal and symbolic Unix permissions with a read/write/execute grid that covers the setuid, setgid, and sticky bits. It also flags modes worth a second look, such as setuid combined with world-writable, or 0777.",
     "category": "devops",
     "keywords": [
       "chmod",
@@ -216,8 +216,8 @@
   {
     "name": "Data Inspector",
     "slug": "base64-encoder",
-    "description": "Auto-detect & decode Base64, hex, data-URIs & JWTs + hex dump.",
-    "longDescription": "A forensic data inspector that auto-detects and decodes Base64, Base64URL, hex, data-URIs, and JWT segments, then shows the decoded text alongside a hex and ASCII dump with magic-byte content-type detection for PNG, GZIP, PDF, and ZIP. Encode text or dropped files to Base64, hex, or data-URIs — everything runs 100% in your browser.",
+    "description": "Decode Base64, hex, data-URIs, and JWTs, with a hex dump.",
+    "longDescription": "Detects and decodes Base64, Base64URL, hex, data-URIs, and JWT segments, showing the decoded text next to a hex and ASCII dump with magic-byte guesses for PNG, GZIP, PDF, and ZIP. It encodes text or dropped files in the same formats too, all in the page.",
     "category": "encoding",
     "keywords": [
       "base64",
@@ -249,8 +249,8 @@
   {
     "name": "Password Generator",
     "slug": "password-generator",
-    "description": "Secure passwords & passphrases with live entropy and crack-time.",
-    "longDescription": "Generate cryptographically secure passwords and diceware passphrases entirely in your browser with the Web Crypto API. Tune length, character sets, word count, and separators while a live strength meter shows real entropy bits and estimated offline crack time — nothing is ever transmitted.",
+    "description": "Passwords and diceware passphrases with an entropy readout.",
+    "longDescription": "Generates random passwords and diceware passphrases with the Web Crypto API, with controls for length, character sets, word count, and separators. The meter reports entropy in bits and an estimated offline cracking time — an estimate that depends on assumptions about the attacker.",
     "category": "security",
     "keywords": [
       "password generator",
@@ -288,8 +288,8 @@
   {
     "name": "Hash Generator",
     "slug": "hash-generator",
-    "description": "Generate SHA-256, SHA-512, and MD5 hashes for text or files.",
-    "longDescription": "Generate SHA-256, SHA-512, SHA-1, and MD5 cryptographic hashes for any text or file. Runs entirely in your browser via the Web Crypto API — your data is never uploaded.",
+    "description": "Generate SHA-256, SHA-512, SHA-1, and MD5 hashes.",
+    "longDescription": "Hashes text or files with SHA-256, SHA-512, SHA-1, or MD5 through the Web Crypto API. Files are read locally rather than uploaded. SHA-1 and MD5 are here for checksum compatibility, not for security work.",
     "category": "security",
     "keywords": [
       "hash",
@@ -321,8 +321,8 @@
   {
     "name": "JWT Decoder",
     "slug": "jwt-decoder",
-    "description": "Decode and inspect JSON Web Token headers, payloads, and claims.",
-    "longDescription": "Decode and inspect JWT headers, payloads, and claims without verifying the signature. Instantly parse any JSON Web Token to debug auth flows — processed entirely in your browser.",
+    "description": "Decode JWT headers, payloads, and claims.",
+    "longDescription": "Decodes the header and payload of a JSON Web Token and lays out its claims, including issued-at and expiry times. It does not verify the signature, so a token that decodes cleanly is not necessarily a valid one.",
     "category": "web",
     "keywords": [
       "jwt",
@@ -347,8 +347,8 @@
   {
     "name": "Color Converter",
     "slug": "color-converter",
-    "description": "Convert colors between HEX, RGB, HSL, and other formats.",
-    "longDescription": "Convert colors between HEX, RGB, HSL, and HSV formats with a live color preview. Instantly translate design tokens or CSS values across color spaces — no server required.",
+    "description": "Convert colors between HEX, RGB, HSL, and HSV.",
+    "longDescription": "Converts a color between HEX, RGB, HSL, and HSV with a live swatch, so a value can move between CSS, design tokens, and an image editor without a round trip.",
     "category": "encoding",
     "keywords": [
       "color",
@@ -373,8 +373,8 @@
   {
     "name": "URL Encoder",
     "slug": "url-encoder",
-    "description": "Percent-encode, decode & inspect URLs and query strings.",
-    "longDescription": "URL-encode and decode strings using encodeURIComponent or encodeURI semantics, then break any URL or query string into a table of percent-decoded parameters. Fully client-side — nothing is ever uploaded.",
+    "description": "Percent-encode, decode, and inspect URLs and query strings.",
+    "longDescription": "Encodes and decodes strings using encodeURIComponent or encodeURI semantics, and splits a URL or query string into a table of percent-decoded parameters. Everything runs in the page.",
     "category": "encoding",
     "keywords": [
       "url encode",
@@ -406,8 +406,8 @@
   {
     "name": "cURL Converter",
     "slug": "curl-converter",
-    "description": "Convert cURL commands to Python, JavaScript, Go, and Bash code.",
-    "longDescription": "Convert cURL commands into equivalent Python requests, JavaScript fetch, Go http, or Bash wget code. Paste your curl command and get idiomatic code snippets instantly.",
+    "description": "Convert cURL commands to Python, JavaScript, Go, or Bash.",
+    "longDescription": "Parses a curl command's method, headers, data, and auth flags and writes the equivalent Python requests, JavaScript fetch, Go net/http, or wget code. Unusual flags may not translate cleanly, so read the output before running it.",
     "category": "web",
     "keywords": [
       "curl",
@@ -433,8 +433,8 @@
   {
     "name": "Dockerfile Optimizer",
     "slug": "dockerfile-optimizer",
-    "description": "Analyze and optimize Dockerfiles for layer caching and best practices.",
-    "longDescription": "Analyze Dockerfiles for layer ordering, cache efficiency, and security best practices. Get actionable suggestions to shrink image size and improve build times — no data uploaded.",
+    "description": "Review Dockerfiles for layer caching and common pitfalls.",
+    "longDescription": "Reads a Dockerfile and points out layer ordering that busts the build cache, unpinned versions, missing ignore patterns, and steps that inflate image size. The suggestions are heuristics — apply the ones that fit your build.",
     "category": "devops",
     "keywords": [
       "dockerfile",
@@ -457,8 +457,8 @@
   {
     "name": "Secret Vault",
     "slug": "secret-lock",
-    "description": "Encrypt & decrypt text or files with a passphrase — AES-256-GCM.",
-    "longDescription": "Encrypt any text or file with a passphrase using AES-256-GCM and PBKDF2-HMAC-SHA256 at 600,000 iterations (OWASP), entirely in your browser. The self-describing blob carries its own salt, IV, and key-derivation settings, so anyone with the passphrase can decrypt it right here — nothing is ever uploaded.",
+    "description": "Encrypt and decrypt text or files with a passphrase.",
+    "longDescription": "Encrypts text or files with AES-256-GCM, deriving the key from your passphrase using PBKDF2-HMAC-SHA256 at 600,000 iterations (the current OWASP figure). The output blob carries its own salt, IV, and derivation parameters, so anyone with the passphrase can decrypt it on this page later.",
     "category": "security",
     "keywords": [
       "encrypt",
@@ -481,8 +481,8 @@
   {
     "name": "One-Time Secret",
     "slug": "one-time-secret",
-    "description": "Share passwords securely — burns after reading.",
-    "longDescription": "Create a self-destructing secret link that can only be read once. Ideal for sharing passwords, tokens, and sensitive data — the secret is deleted immediately after the first view.",
+    "description": "Share a secret through a link that works once.",
+    "longDescription": "Stores a secret on our server and returns a link that reveals it a single time before deleting it — useful for handing off a password without leaving it in a chat log. The secret does travel to the server, so for end-to-end protection encrypt it with Secret Vault first and share the ciphertext.",
     "category": "security",
     "keywords": [
       "one-time",
@@ -504,8 +504,8 @@
   {
     "name": "Secrets Scanner",
     "slug": "secrets-scanner",
-    "description": "Scan code for exposed API keys, tokens, and credentials.",
-    "longDescription": "Paste code or config files to scan for exposed secrets — AWS keys, GitHub tokens, private keys, connection strings, and 100+ other credential patterns. Runs entirely client-side.",
+    "description": "Scan pasted code and config for exposed keys and tokens.",
+    "longDescription": "Matches pasted code or config against patterns for AWS keys, GitHub tokens, private keys, connection strings, and other credential shapes, reporting hits with line numbers. Pattern matching produces both false positives and misses, so treat the output as a prompt to look, not a clean bill of health.",
     "category": "security",
     "keywords": [
       "secrets",
@@ -527,8 +527,8 @@
   {
     "name": "Security Headers Analyzer",
     "slug": "security-headers",
-    "description": "Analyze and generate CSP, HSTS, and other security headers.",
-    "longDescription": "Paste your HTTP response headers to get a security grade, identify missing or misconfigured headers, and receive ready-to-use corrected values for CSP, HSTS, X-Frame-Options, and more.",
+    "description": "Grade pasted HTTP response headers and suggest fixes.",
+    "longDescription": "Reads a block of HTTP response headers, scores what is present or missing across CSP, HSTS, X-Frame-Options, and related headers, and offers corrected values to paste into your server config. The grade reflects the headers you supply, not how the site actually behaves.",
     "category": "security",
     "keywords": [
       "security headers",
@@ -551,8 +551,8 @@
   {
     "name": "CSP Generator",
     "slug": "csp-generator",
-    "description": "Build Content-Security-Policy headers interactively.",
-    "longDescription": "Interactively build Content-Security-Policy headers by toggling directives and adding allowed sources. Preview the final header string and get the meta-tag equivalent for HTML pages.",
+    "description": "Build Content-Security-Policy headers directive by directive.",
+    "longDescription": "Toggle directives and add allowed sources to assemble a Content-Security-Policy, with the finished header string and its meta-tag equivalent updating as you go. Test any policy against your real pages before shipping it.",
     "category": "security",
     "keywords": [
       "csp",
@@ -575,8 +575,8 @@
   {
     "name": "DMARC / SPF / DKIM Builder",
     "slug": "dmarc-builder",
-    "description": "Generate email authentication records with plain-English explanations.",
-    "longDescription": "Generate DMARC, SPF, and DKIM DNS records with a guided form and plain-English explanations of every option. Copy ready-to-publish TXT records to lock down your email domain.",
+    "description": "Generate email auth records with plain-English explanations.",
+    "longDescription": "A guided form for DMARC, SPF, and DKIM DNS records that explains what each tag does and emits copy-ready TXT values. Roll DMARC out in monitoring mode and read the reports before moving to enforcement.",
     "category": "security",
     "keywords": [
       "dmarc",
@@ -599,8 +599,8 @@
   {
     "name": "TOTP Generator",
     "slug": "totp-generator",
-    "description": "Generate time-based one-time passwords from a secret key.",
-    "longDescription": "Generate TOTP codes compatible with Google Authenticator and Authy from any Base32 secret key. Countdown timer shows seconds remaining. All computation happens locally in your browser.",
+    "description": "Generate time-based one-time passwords from a Base32 secret.",
+    "longDescription": "Computes RFC 6238 TOTP codes from a Base32 secret with a countdown to the next window, matching what an authenticator app would show. Computation happens in the browser, which makes it handy for testing enrollment flows.",
     "category": "security",
     "keywords": [
       "totp",
@@ -623,8 +623,8 @@
   {
     "name": "SSH Key Generator",
     "slug": "ssh-keygen",
-    "description": "Real Ed25519 & RSA SSH keypairs, generated in your browser",
-    "longDescription": "Generate genuine Ed25519 and RSA SSH key pairs entirely in your browser with the Web Crypto API. Get the public key in OpenSSH format, the private key as native OpenSSH or PKCS#8 PEM, plus the SHA-256 fingerprint and randomart — nothing is ever uploaded.",
+    "description": "Generate Ed25519 and RSA SSH keypairs in your browser.",
+    "longDescription": "Generates Ed25519 and RSA key pairs with the Web Crypto API and exports the public key in OpenSSH format and the private key as OpenSSH or PKCS#8 PEM, along with the SHA-256 fingerprint and randomart. Keys are created in the page and not uploaded.",
     "category": "security",
     "keywords": [
       "ssh",
@@ -657,8 +657,8 @@
   {
     "name": ".gitignore Generator",
     "slug": "gitignore-generator",
-    "description": "Select languages and frameworks to generate a .gitignore file.",
-    "longDescription": "Select programming languages, frameworks, editors, and operating systems to generate a comprehensive .gitignore file. Combines official templates and community patterns into one clean file.",
+    "description": "Build a .gitignore from languages, frameworks, and editors.",
+    "longDescription": "Pick the languages, frameworks, editors, and operating systems you use and get one merged .gitignore drawn from the standard templates plus the usual editor and OS patterns.",
     "category": "devops",
     "keywords": [
       "gitignore",
@@ -680,8 +680,8 @@
   {
     "name": "Nginx Config Generator",
     "slug": "nginx-config",
-    "description": "Generate Nginx configs for reverse proxy, SSL, redirects, and more.",
-    "longDescription": "Generate production-ready Nginx server block configurations for reverse proxies, SSL termination, static sites, HTTP-to-HTTPS redirects, and rate limiting — with inline comments.",
+    "description": "Generate Nginx server blocks for proxying, SSL, and redirects.",
+    "longDescription": "Produces commented Nginx server block configs for reverse proxying, SSL termination, static sites, HTTP-to-HTTPS redirects, and rate limiting. Check the output against your own Nginx version before deploying it.",
     "category": "devops",
     "keywords": [
       "nginx",
@@ -703,8 +703,8 @@
   {
     "name": "GitHub Actions Generator",
     "slug": "github-actions-generator",
-    "description": "Build CI/CD workflows visually for any language and deploy target.",
-    "longDescription": "Visually compose GitHub Actions CI/CD workflows — choose your language, test runners, build steps, and deploy targets to generate a ready-to-commit .github/workflows YAML file.",
+    "description": "Compose GitHub Actions workflows with a visual builder.",
+    "longDescription": "Choose a language, test runner, build steps, and deploy target to assemble a .github/workflows YAML file you can commit. Treat it as a starting point — pin action versions and review secrets before it runs.",
     "category": "devops",
     "keywords": [
       "github actions",
@@ -726,8 +726,8 @@
   {
     "name": "Kubernetes Manifest Generator",
     "slug": "k8s-manifest-generator",
-    "description": "Generate Deployment, Service, Ingress, and ConfigMap YAML visually.",
-    "longDescription": "Visually generate Kubernetes Deployment, Service, Ingress, ConfigMap, and HPA manifests. Fill in a form, get production-ready YAML with resource limits, probes, and annotations.",
+    "description": "Generate Deployment, Service, Ingress, and ConfigMap YAML.",
+    "longDescription": "Fill in a form to produce Kubernetes Deployment, Service, Ingress, ConfigMap, and HPA manifests with resource requests and limits, liveness and readiness probes, and common annotations already wired in.",
     "category": "devops",
     "keywords": [
       "kubernetes",
@@ -750,8 +750,8 @@
   {
     "name": "JSON to TypeScript",
     "slug": "json-to-typescript",
-    "description": "Generate TypeScript interfaces from JSON data automatically.",
-    "longDescription": "Paste any JSON object or array and instantly get TypeScript interface or type definitions. Handles nested objects, optional fields, unions, and arrays — ready to drop into your TypeScript project.",
+    "description": "Generate TypeScript interfaces from a JSON sample.",
+    "longDescription": "Infers TypeScript interfaces or type aliases from a pasted JSON object or array, handling nesting, arrays, and unions. The types reflect the sample you paste, so fields missing from it will not appear.",
     "category": "web",
     "keywords": [
       "json",
@@ -773,8 +773,8 @@
   {
     "name": "API Request Builder",
     "slug": "api-request-builder",
-    "description": "Visual HTTP client — build and test API requests like mini-Postman.",
-    "longDescription": "Build and fire HTTP requests visually — set method, URL, headers, query params, and body. View response status, headers, and JSON in a formatted pane. A lightweight browser-native Postman alternative.",
+    "description": "Build and send HTTP requests from the browser.",
+    "longDescription": "Set a method, URL, headers, query params, and body, send the request from your browser, and read back the status, response headers, and formatted JSON. Cross-origin calls are subject to the target's CORS policy.",
     "category": "web",
     "keywords": [
       "api",
@@ -797,8 +797,8 @@
   {
     "name": "CSS Grid Generator",
     "slug": "css-grid-generator",
-    "description": "Design CSS Grid and Flexbox layouts visually with code export.",
-    "longDescription": "Drag-and-drop CSS Grid and Flexbox layout designer with live code export. Set columns, rows, gaps, and alignment visually and copy the generated CSS — no manual grid-template-areas required.",
+    "description": "Lay out CSS Grid and Flexbox visually and copy the CSS.",
+    "longDescription": "Set columns, rows, gaps, and alignment by dragging, and read the generated CSS Grid or Flexbox rules — grid-template-areas included — as the layout changes.",
     "category": "web",
     "keywords": [
       "css grid",
@@ -822,8 +822,8 @@
   {
     "name": "Meta Tag Generator",
     "slug": "meta-tag-generator",
-    "description": "Generate OG, Twitter Card, and SEO meta tags with live preview.",
-    "longDescription": "Fill in a form to generate Open Graph, Twitter Card, and standard SEO meta tags with a live social-share preview. Copy the HTML snippet directly into your page's head section.",
+    "description": "Generate Open Graph, Twitter Card, and SEO meta tags.",
+    "longDescription": "Fill in a title, description, image, and URL to get a block of Open Graph, Twitter Card, and standard SEO meta tags, next to a mock-up of how the share card will look.",
     "category": "web",
     "keywords": [
       "meta tags",
@@ -845,8 +845,8 @@
   {
     "name": "SVG Optimizer",
     "slug": "svg-optimizer",
-    "description": "Optimize and minify SVG files — remove metadata, simplify paths.",
-    "longDescription": "Optimize and minify SVG files by stripping editor metadata, collapsing groups, converting shapes to paths, and removing invisible elements. Reduce file size by up to 80% without visual loss.",
+    "description": "Minify SVGs by stripping metadata and redundant markup.",
+    "longDescription": "Removes editor metadata, collapses groups, converts basic shapes to paths, and drops invisible elements, reporting the before-and-after byte count. How much it saves depends entirely on the source file, so check the preview for visual changes.",
     "category": "web",
     "keywords": [
       "svg",
@@ -869,8 +869,8 @@
   {
     "name": "Diff Viewer",
     "slug": "diff-viewer",
-    "description": "Compare two text blocks side-by-side with highlighted differences.",
-    "longDescription": "Side-by-side and unified diff viewer that highlights added, removed, and changed lines between two text blocks. Supports word-level diffing for fine-grained change detection — all client-side.",
+    "description": "Compare two blocks of text side by side.",
+    "longDescription": "Shows added, removed, and changed lines between two texts in either side-by-side or unified view, with word-level highlighting inside the changed lines.",
     "category": "text",
     "keywords": [
       "diff",
@@ -893,7 +893,7 @@
     "name": "Word & Character Counter",
     "slug": "word-counter",
     "description": "Count words, characters, sentences, and reading time.",
-    "longDescription": "Instant word, character, sentence, and paragraph counter with estimated reading and speaking time. Paste any text — blog posts, essays, or tweets — and get live statistics as you type.",
+    "longDescription": "Counts words, characters, sentences, and paragraphs as you type, with reading and speaking time derived from average rates. Handy for drafts with a length limit.",
     "category": "text",
     "keywords": [
       "word count",
@@ -914,8 +914,8 @@
   {
     "name": "CSV ↔ JSON Converter",
     "slug": "csv-json-converter",
-    "description": "Convert between CSV and JSON with table preview.",
-    "longDescription": "Bidirectionally convert between CSV and JSON with a live interactive table preview. Handles headers, quoted fields, nested objects, and arrays — ideal for data wrangling and API prep.",
+    "description": "Convert between CSV and JSON with a table preview.",
+    "longDescription": "Converts CSV to JSON and back, handling header rows and quoted fields, with an interactive table so you can check the parse before copying the result.",
     "category": "text",
     "keywords": [
       "csv",
@@ -937,8 +937,8 @@
   {
     "name": ".env File Linter",
     "slug": "env-linter",
-    "description": "Validate .env files — find duplicates, missing values, and exposed secrets.",
-    "longDescription": "Paste your .env file to find duplicate keys, empty values, whitespace issues, unquoted special characters, and accidental secrets. Get a line-by-line report with actionable fix suggestions.",
+    "description": "Check .env files for duplicates, empty values, and secrets.",
+    "longDescription": "Reads a .env file and reports duplicate keys, empty values, stray whitespace, unquoted special characters, and values that look like live credentials, line by line with suggested fixes.",
     "category": "devops",
     "keywords": [
       ".env",
@@ -960,8 +960,8 @@
   {
     "name": "DNS Record Builder",
     "slug": "dns-builder",
-    "description": "Build and explain DNS records — A, AAAA, CNAME, MX, TXT, SRV, CAA.",
-    "longDescription": "Build and validate DNS records for every type — A, AAAA, CNAME, MX, TXT, SRV, NS, and CAA — with plain-English explanations of every field and copy-ready zone file output.",
+    "description": "Build and explain A, AAAA, CNAME, MX, TXT, SRV, and CAA records.",
+    "longDescription": "Builds and validates DNS records across the common types — A, AAAA, CNAME, MX, TXT, SRV, NS, and CAA — explaining each field in plain language and emitting zone-file lines to paste into your provider.",
     "category": "security",
     "keywords": [
       "dns",
@@ -986,8 +986,8 @@
   {
     "name": "IP & Network Toolkit",
     "slug": "ip-toolkit",
-    "description": "What's My IP, ASN lookup, CIDR overlap checker, and geolocation.",
-    "longDescription": "All-in-one IP and network toolkit: detect your public IP, look up ASN and geolocation, check CIDR range overlaps, and validate IP addresses. Combines local computation with minimal external lookups.",
+    "description": "Public IP, ASN lookup, CIDR overlap checks, and geolocation.",
+    "longDescription": "Shows your public IP and looks up its ASN and approximate location, and checks whether two CIDR ranges overlap. The IP, ASN, and geolocation lookups query third-party services; the CIDR math is local. IP geolocation is approximate by nature.",
     "category": "security",
     "keywords": [
       "ip address",
@@ -1010,8 +1010,8 @@
   {
     "name": "Log Parser & Highlighter",
     "slug": "log-parser",
-    "description": "Auto-detect log formats, syntax-highlight, and filter by level.",
-    "longDescription": "Paste log output to auto-detect the format — JSON, Apache, nginx, syslog, or plain — and get syntax-highlighted, level-filtered, and timestamp-sorted output. Runs entirely in your browser.",
+    "description": "Detect log formats, highlight syntax, and filter by level.",
+    "longDescription": "Works out whether pasted output is JSON, Apache, nginx, syslog, or plain text, then highlights the fields, filters by log level, and sorts by timestamp. Format detection is a guess; unfamiliar formats fall back to plain text.",
     "category": "security",
     "keywords": [
       "log",
@@ -1034,8 +1034,8 @@
   {
     "name": "Breach Checker",
     "slug": "breach-checker",
-    "description": "Check if your passwords or secrets have been exposed in known breaches.",
-    "longDescription": "Check if your passwords, tokens, or secrets have appeared in known data breaches — without sending them to a server. Uses k-anonymity via the Have I Been Pwned API so your secrets never leave your browser.",
+    "description": "Check a password against breach corpora using k-anonymity.",
+    "longDescription": "Hashes your input with SHA-1 in the browser and sends only the first five characters of that hash to the Have I Been Pwned range API, so the secret itself is never transmitted. No match means it is absent from that corpus — not that it is a good password.",
     "category": "intelligence",
     "keywords": [
       "breach",
@@ -1061,8 +1061,8 @@
   {
     "name": "IR Timeline Builder",
     "slug": "ir-timeline",
-    "description": "Build visual incident response timelines for post-incident reports.",
-    "longDescription": "Build visual incident response timelines from timestamps and events. Add, edit, and annotate entries with severity levels, then export to JSON or CSV for your post-incident reports. Persists in your browser.",
+    "description": "Build incident timelines and export them to JSON or CSV.",
+    "longDescription": "Add timestamped events with severity and notes to assemble an incident response timeline, then export it as JSON or CSV for the write-up. Entries live in your browser's local storage, so clearing site data removes them.",
     "category": "intelligence",
     "keywords": [
       "incident response",
@@ -1087,8 +1087,8 @@
   {
     "name": "Site Score",
     "slug": "site-score",
-    "description": "Scan any URL for security headers, SSL config, and privacy posture.",
-    "longDescription": "Scan any URL and get an instant security grade — checks HTTP security headers, SSL/TLS configuration, and privacy posture. Get actionable fix suggestions with ready-to-use header values.",
+    "description": "Scan a URL for security headers, TLS setup, and privacy signals.",
+    "longDescription": "Fetches a URL through our edge worker and grades its HTTP security headers, TLS configuration, and privacy signals, with header values you can copy to fix the gaps. The request comes from the worker rather than your browser, so the target sees our address, not yours.",
     "category": "intelligence",
     "keywords": [
       "security score",
@@ -1114,8 +1114,8 @@
   {
     "name": "Header Analyzer",
     "slug": "header-analyzer",
-    "description": "Paste raw HTTP headers and get a plain-English security breakdown.",
-    "longDescription": "Paste raw HTTP response headers from curl or browser DevTools and get a color-coded, plain-English security analysis. No live URL required — works for localhost, staging, and captured headers.",
+    "description": "Paste raw HTTP headers for a plain-English breakdown.",
+    "longDescription": "Takes response headers copied from curl or DevTools and explains what each security-relevant header does and where a value is weak. Since you supply the headers, it works for localhost, staging, and captured traffic.",
     "category": "intelligence",
     "keywords": [
       "http headers",
@@ -1139,8 +1139,8 @@
   {
     "name": ".env Exposure Analyzer",
     "slug": "env-analyzer",
-    "description": "Identify every secret type in your .env and map the blast radius.",
-    "longDescription": "Paste your .env file to identify every secret type, see which services are exposed, learn the blast radius of each leaked credential, and get step-by-step rotation instructions.",
+    "description": "Identify secret types in a .env and what each one unlocks.",
+    "longDescription": "Classifies the credentials in a pasted .env by service, describes what a leaked key of that type would give access to, and lays out the rotation steps for that provider. Classification is pattern-based, so unusual key formats may go unrecognized.",
     "category": "intelligence",
     "keywords": [
       ".env",
@@ -1164,8 +1164,8 @@
   {
     "name": "Privacy Scan",
     "slug": "privacy-scan",
-    "description": "Scan any website and get a plain-English privacy nutrition label.",
-    "longDescription": "Scan any URL to discover trackers, cookies, fingerprinting scripts, and data collection. Get a plain-English privacy nutrition label — what data is collected, who gets it, and how to opt out.",
+    "description": "Scan a site and read its trackers as a privacy label.",
+    "longDescription": "Loads a URL through our edge worker and reports the trackers, cookies, and fingerprinting scripts it finds as a plain-English label. It sees what one page load exposes, so scripts triggered later or behind a login will not show up.",
     "category": "intelligence",
     "keywords": [
       "privacy",
@@ -1189,8 +1189,8 @@
   {
     "name": "CT Monitor",
     "slug": "ct-monitor",
-    "description": "Search Certificate Transparency logs for certificates issued for your domain.",
-    "longDescription": "Search Certificate Transparency logs for all certificates issued for your domain and subdomains. Spot unauthorized issuance, phishing domains, and typosquatting attempts. Powered by crt.sh.",
+    "description": "Search Certificate Transparency logs for a domain's certificates.",
+    "longDescription": "Queries crt.sh through our worker for certificates issued to a domain and its subdomains — a practical way to notice issuance you did not authorize, or look-alike domains registered against your brand. CT logs cover publicly trusted CAs, and indexing can lag by hours.",
     "category": "intelligence",
     "keywords": [
       "certificate transparency",
@@ -1214,8 +1214,8 @@
   {
     "name": "ReDoS Tester",
     "slug": "redos-tester",
-    "description": "Test regular expressions for catastrophic backtracking vulnerabilities.",
-    "longDescription": "Paste any regex and instantly detect ReDoS (Regular Expression Denial of Service) vulnerabilities. Identifies nested quantifiers, overlapping alternations, and exponential backtracking. Shows attack strings and timing analysis.",
+    "description": "Check regexes for catastrophic backtracking.",
+    "longDescription": "Looks for nested quantifiers and overlapping alternations that let a regex blow up on crafted input, then times the pattern against generated attack strings to show the effect. Analysis of this kind flags likely problems; it cannot prove a pattern is safe.",
     "category": "intelligence",
     "keywords": [
       "redos",
@@ -1239,8 +1239,8 @@
   {
     "name": "JWT Attack Workbench",
     "slug": "jwt-attack",
-    "description": "Decode JWTs and test for real vulnerabilities — algorithm confusion, none attack, claim tampering.",
-    "longDescription": "Go beyond decoding — analyze JWTs for real-world vulnerabilities. Tests algorithm none attack (CVE-2015-9235), RS256/HS256 algorithm confusion, missing expiry, excessive lifetime, sensitive data exposure, and generates forged tokens for authorized pentesting.",
+    "description": "Inspect JWTs for alg confusion, alg:none, and weak claims.",
+    "longDescription": "Decodes a token and checks it against known JWT weaknesses — the alg:none bypass (CVE-2015-9235), RS256-to-HS256 confusion, missing or overlong expiry, and sensitive data in the payload — and can forge modified tokens for systems you are authorized to test. The findings describe the token; whether a server is actually vulnerable depends on how it verifies.",
     "category": "intelligence",
     "keywords": [
       "jwt",
@@ -1265,8 +1265,8 @@
   {
     "name": "IOC Workbench",
     "slug": "ioc-workbench",
-    "description": "Extract, defang, and export indicators of compromise from any text.",
-    "longDescription": "Paste threat reports, emails, or log data and instantly extract all IOCs — IPs, domains, URLs, hashes, CVEs, MITRE techniques. One-click defang for safe sharing. Export as CSV, JSON, STIX, or markdown. 100% client-side, no data leaves your browser.",
+    "description": "Extract, defang, and export indicators from any text.",
+    "longDescription": "Pulls IPs, domains, URLs, file hashes, CVEs, and MITRE ATT&CK technique IDs out of pasted reports or logs, defangs them for safe sharing, and exports to CSV, JSON, STIX, or markdown. Extraction is regex-based, so review the list before it goes into a case file.",
     "category": "security",
     "keywords": [
       "ioc",
@@ -1294,8 +1294,8 @@
   {
     "name": "Prompt Injection Tester",
     "slug": "prompt-injection-tester",
-    "description": "Test your LLM system prompts against 150+ known injection techniques.",
-    "longDescription": "Paste your AI system prompt and test it against 150+ prompt injection techniques — direct overrides, delimiter escapes, encoding bypasses, extraction attacks, and 2026-era agentic hijacking patterns. Get a vulnerability score with specific hardening recommendations. 100% client-side.",
+    "description": "Test an LLM system prompt against 150+ injection patterns.",
+    "longDescription": "Runs a pasted system prompt against a library of 150+ documented injection techniques — direct overrides, delimiter escapes, encoding tricks, extraction attempts, and agentic hijacking patterns — and scores where it looks weak. The checks are pattern-based rather than run against a live model, so read the score as a review aid.",
     "category": "ai",
     "keywords": [
       "prompt injection",
@@ -1322,8 +1322,8 @@
   {
     "name": "SIEM Query Translator",
     "slug": "siem-query-translator",
-    "description": "Translate detection queries between Splunk SPL, KQL, ES|QL, Sigma, and Sumo Logic.",
-    "longDescription": "Free SIEM query translator — paste a detection query in Splunk SPL, Microsoft Sentinel KQL, Elastic ES|QL, Sigma YAML, or Sumo Logic and get the equivalent in any other format. Includes field mapping, conversion caveats, and syntax highlighting. No signup, no paywall, 100% client-side.",
+    "description": "Translate detection queries between SPL, KQL, ES|QL, and Sigma.",
+    "longDescription": "Converts a detection query between Splunk SPL, Microsoft Sentinel KQL, Elastic ES|QL, Sigma YAML, and Sumo Logic, with field mapping and notes on what did not carry over. These languages do not map one-to-one — test the output against your own data.",
     "category": "security",
     "keywords": [
       "siem",
@@ -1352,8 +1352,8 @@
   {
     "name": "Email Header Forensics",
     "slug": "email-header-forensics",
-    "description": "Analyze email headers for phishing indicators, authentication results, and routing anomalies.",
-    "longDescription": "Paste raw email headers and get a visual hop-by-hop timeline, SPF/DKIM/DMARC authentication verdicts, delay analysis, phishing assessment score, and one-click IOC extraction. Built for SOC analysts investigating suspicious emails. 100% client-side.",
+    "description": "Read email headers for routing, auth results, and phishing signs.",
+    "longDescription": "Parses raw email headers into a hop-by-hop timeline with delivery delays, surfaces the SPF, DKIM, and DMARC verdicts the receiving server recorded, and scores common phishing indicators. Upstream headers can be forged, so weight the ones your own mail server added most heavily.",
     "category": "security",
     "keywords": [
       "email header",
@@ -1379,8 +1379,8 @@
   {
     "name": "AI Cost Calculator",
     "slug": "ai-cost-calculator",
-    "description": "Compare LLM API costs across Claude, GPT, Gemini, Mistral, and open-source models.",
-    "longDescription": "Calculate and compare AI API costs across all major providers — Claude, GPT, Gemini, Mistral, Llama. Enter token counts or paste text to estimate. See cost breakdowns, visual comparisons, and optimization suggestions. Pricing current as of March 2026.",
+    "description": "Compare LLM API prices across providers for a given workload.",
+    "longDescription": "Estimates and compares API costs for models from Anthropic, OpenAI, Google, Mistral, and open-source hosts, from token counts or pasted text, broken down by input and output. Pricing comes from a static table last updated March 2026 — check the provider's page before you budget against it.",
     "category": "ai",
     "keywords": [
       "llm cost",
@@ -1406,8 +1406,8 @@
   {
     "name": "PII & Secrets Redactor",
     "slug": "pii-secrets-redactor",
-    "description": "Detect and redact PII and secrets from logs, configs, and text with consistent pseudonymization.",
-    "longDescription": "Paste logs, configs, or error reports and instantly detect and redact all PII (emails, SSNs, phones, credit cards) and secrets (API keys, tokens, connection strings). Consistent pseudonymization preserves log correlation. 200+ detection patterns. 100% client-side, no data leaves your browser.",
+    "description": "Redact PII and secrets from logs with stable pseudonyms.",
+    "longDescription": "Finds emails, phone numbers, SSNs, card numbers, API keys, and connection strings in pasted logs or configs and replaces each with a stable pseudonym, so you can still correlate lines after redaction. Detection is pattern-based — read the result before sharing it.",
     "category": "security",
     "keywords": [
       "pii",
@@ -1434,8 +1434,8 @@
   {
     "name": "CORS Debugger",
     "slug": "cors-debugger",
-    "description": "Debug CORS errors and generate server configurations for Express, nginx, Cloudflare Workers, and more.",
-    "longDescription": "Diagnose CORS issues by entering your origin, target, method, and headers. Get a plain-English explanation of what's happening, see the preflight request, and generate copy-ready server configurations for Express, nginx, Cloudflare Workers, Flask, AWS API Gateway, and Apache.",
+    "description": "Explain a CORS failure and generate the config to fix it.",
+    "longDescription": "Describe your origin, target, method, and headers to get a plain-English account of why the browser is blocking the request, the preflight it would send, and copy-ready CORS config for Express, nginx, Cloudflare Workers, Flask, AWS API Gateway, or Apache.",
     "category": "web",
     "keywords": [
       "cors",
@@ -1461,8 +1461,8 @@
   {
     "name": "WAF Rule Builder",
     "slug": "waf-rule-builder",
-    "description": "Build and test WAF rules — regex to Cloudflare, AWS WAF, ModSecurity, or nginx format.",
-    "longDescription": "Write a regex detection pattern, test it against 100+ attack payloads (XSS, SQLi, path traversal, command injection), check for false positives, and export as a deployable rule for Cloudflare WAF, AWS WAF, ModSecurity, nginx, or Apache. Free, no signup, 100% client-side.",
+    "description": "Test a detection regex and export it as a WAF rule.",
+    "longDescription": "Runs your regex against 110+ sample attack payloads across six categories — XSS, SQLi, path traversal, command injection and more — plus benign strings to surface false positives, then exports the pattern as a Cloudflare, AWS WAF, ModSecurity, nginx, or Apache rule. The payload set is a smoke test, not coverage.",
     "category": "security",
     "keywords": [
       "waf",
@@ -1489,8 +1489,8 @@
   {
     "name": "Agent Security Audit",
     "slug": "agent-security-audit",
-    "description": "Audit AI agent tool configurations for over-permissions, injection risks, and data exfiltration paths.",
-    "longDescription": "Paste your AI agent's tool definitions — MCP servers, function calling schemas, or tool configs — and get a comprehensive security audit. Detects over-permissioned tools, prompt injection surfaces, data exfiltration paths, and unsafe tool combinations. The first tool of its kind for 2026-era agentic AI security.",
+    "description": "Review AI agent tool definitions for risky permissions.",
+    "longDescription": "Reads MCP server definitions, function-calling schemas, or agent tool configs and points out over-broad permissions, untrusted input reaching the model, plausible exfiltration paths, and tool combinations that are risky together. It reasons about the config you paste, not the running agent.",
     "category": "ai",
     "keywords": [
       "ai agent",
@@ -1518,8 +1518,8 @@
   {
     "name": "SSL Chain Debugger",
     "slug": "ssl-chain-debugger",
-    "description": "Parse, visualize, and fix SSL/TLS certificate chain ordering issues.",
-    "longDescription": "Paste PEM certificates and get a visual chain diagram, validation results, and automatic chain reordering. Detects missing intermediates, wrong order, expired certs, and weak cryptography. Generate openssl commands for live debugging. 100% client-side.",
+    "description": "Parse a PEM chain, spot ordering problems, and reorder it.",
+    "longDescription": "Parses pasted PEM certificates into a chain diagram, checks expiry, key strength, and issuer links, and reorders the chain when the pieces are out of sequence or an intermediate is missing. It also prints the openssl commands to check the same things against a live host.",
     "category": "security",
     "keywords": [
       "ssl",
@@ -1546,8 +1546,8 @@
   {
     "name": "Container Security Linter",
     "slug": "container-security-linter",
-    "description": "Lint Kubernetes YAML, Dockerfiles, and docker-compose for security misconfigurations.",
-    "longDescription": "Paste Kubernetes manifests, Dockerfiles, or docker-compose files and get instant security analysis with 40+ rules. Detects running as root, privileged containers, missing resource limits, exposed secrets, and more. Auto-generates a fixed version. 100% client-side.",
+    "description": "Lint Kubernetes YAML, Dockerfiles, and compose for misconfigs.",
+    "longDescription": "Checks Kubernetes manifests, Dockerfiles, and docker-compose files against rules for running as root, privileged containers, missing resource limits, hard-coded secrets, and similar issues, and offers a corrected version. Rule-based linting catches the patterns it knows about.",
     "category": "devops",
     "keywords": [
       "kubernetes",
@@ -1572,8 +1572,8 @@
   {
     "name": "LLM Privacy Analyzer",
     "slug": "llm-privacy-analyzer",
-    "description": "Scan LLM API requests for PII and secrets before they leave your infrastructure.",
-    "longDescription": "Paste an LLM API request and scan for accidentally included PII — emails, SSNs, API keys, credit cards, and sensitive data in your prompts. Supports OpenAI, Anthropic, and Google formats. 100% client-side — because sending your PII checker to a server would defeat the purpose.",
+    "description": "Check an LLM API request for PII before you send it.",
+    "longDescription": "Scans an OpenAI, Anthropic, or Google-format request body for emails, SSNs, card numbers, API keys, and other sensitive strings sitting in the prompt. The scan runs in your browser — shipping a privacy checker's input to a server would defeat the point — and pattern matching will miss some things.",
     "category": "ai",
     "keywords": [
       "llm privacy",
@@ -1597,8 +1597,8 @@
   {
     "name": "Email Auth Wizard",
     "slug": "email-auth-wizard",
-    "description": "Build correct SPF, DKIM, and DMARC DNS records with a guided wizard.",
-    "longDescription": "Generate production-ready SPF, DKIM, and DMARC records through a guided wizard. Select your email providers, configure policies, set up reporting — get copy-ready DNS TXT records with plain-English explanations and deployment guides.",
+    "description": "Build SPF, DKIM, and DMARC records with a guided wizard.",
+    "longDescription": "Walks through your sending providers, policy choices, and reporting addresses to produce SPF, DKIM, and DMARC TXT records with explanations and per-provider deployment notes. Start DMARC at p=none and read the reports before tightening it.",
     "category": "security",
     "keywords": [
       "dmarc",
@@ -1624,8 +1624,8 @@
   {
     "name": "YARA Playground",
     "slug": "yara-playground",
-    "description": "Write, validate, and test YARA detection rules with templates and analysis.",
-    "longDescription": "YARA rule editor with syntax validation, 10+ rule templates (malware, webshells, packers, crypto miners), performance analysis, hex string builder, and approximate pattern matching. The regex101 for threat detection. 100% client-side.",
+    "description": "Write and test YARA rules with templates and syntax checks.",
+    "longDescription": "A YARA rule editor with syntax validation, starter templates for malware families, webshells, packers, and miners, a hex string builder, and notes on constructs that scan slowly. In-browser matching is approximate — validate rules with the real YARA engine before deploying them.",
     "category": "security",
     "keywords": [
       "yara",
@@ -1650,8 +1650,8 @@
   {
     "name": "Sigma Rule Builder",
     "slug": "sigma-rule-builder",
-    "description": "Visual builder for Sigma detection rules with YAML preview and SIEM export.",
-    "longDescription": "Build Sigma detection rules through a guided form — define logsource, detection logic with modifiers, MITRE ATT&CK tags, and metadata. Get live YAML preview and one-click export to Splunk SPL, KQL, or ES|QL. No more hand-writing YAML. 100% client-side.",
+    "description": "Build Sigma detection rules with live YAML and SIEM export.",
+    "longDescription": "A guided form for Sigma rules — logsource, detection logic with field modifiers, MITRE ATT&CK tags, and metadata — with live YAML preview and export to Splunk SPL, KQL, or ES|QL. Backend conversion is approximate; run the query in your SIEM before trusting it.",
     "category": "security",
     "keywords": [
       "sigma",
@@ -1678,8 +1678,8 @@
   {
     "name": "AI Model Scanner",
     "slug": "ai-model-scanner",
-    "description": "Scan AI model cards and configs for security risks, unsafe serialization, and supply chain issues.",
-    "longDescription": "Paste a HuggingFace model card, config.json, or requirements.txt and scan for security risks — unsafe pickle serialization, vulnerable dependencies, missing safety metadata, supply chain red flags, and training data concerns. The npm audit for AI models. 100% client-side.",
+    "description": "Check model cards and configs for supply-chain red flags.",
+    "longDescription": "Reads a HuggingFace model card, config.json, or requirements.txt and flags pickle-based weights, trust_remote_code, vulnerable pinned dependencies, and missing license or safety metadata. It reads the metadata you paste, not the weights, so a clean report is not evidence the model is safe.",
     "category": "ai",
     "keywords": [
       "ai model",
@@ -1705,8 +1705,8 @@
   {
     "name": "Passkey Inspector",
     "slug": "passkey-inspector",
-    "description": "Decode WebAuthn attestation, authenticator data & COSE keys",
-    "longDescription": "Create a passkey live or paste an existing attestation object and decode everything — CBOR attestation, authenticator-data flags (UP/UV/BE/BS), AAGUID, credential ID, and the COSE public key. A free, fully client-side WebAuthn/FIDO2 inspector.",
+    "description": "Decode WebAuthn attestation, authenticator data, and COSE keys.",
+    "longDescription": "Create a passkey in the page or paste an existing attestation object to decode the CBOR structure, the authenticator-data flags (UP/UV/BE/BS), the AAGUID, the credential ID, and the COSE public key. Built for debugging a WebAuthn registration flow.",
     "category": "security",
     "keywords": [
       "webauthn",
@@ -1731,8 +1731,8 @@
   {
     "name": "Entropy X-ray",
     "slug": "entropy-xray",
-    "description": "Spot encryption, packing & secrets by byte entropy",
-    "longDescription": "Visualize Shannon entropy across any file or pasted data to reveal encrypted, compressed, or packed regions and embedded secrets. Includes a per-offset entropy sweep and a byte histogram — a browser-based malware-triage and reverse-engineering tool.",
+    "description": "Spot encrypted, compressed, or packed data by byte entropy.",
+    "longDescription": "Plots Shannon entropy across a file offset by offset alongside a byte histogram, which is how packed or encrypted regions and embedded keys tend to stand out from code and text. High entropy is a hint about structure, not a verdict — confirm by looking at the bytes.",
     "category": "intelligence",
     "keywords": [
       "entropy",
@@ -1757,8 +1757,8 @@
   {
     "name": "Key Converter",
     "slug": "key-converter",
-    "description": "Convert keys between JWK and PEM, generate keypairs locally",
-    "longDescription": "Free client-side cryptographic key converter and inspector. Convert between JWK and PEM (SPKI / PKCS#8), generate fresh RSA and EC keypairs, and inspect key parameters using the browser's Web Crypto API — nothing is ever uploaded.",
+    "description": "Convert keys between JWK and PEM, and generate RSA/EC pairs.",
+    "longDescription": "Converts keys between JWK and PEM (SPKI and PKCS#8), generates fresh RSA and EC key pairs, and shows the underlying key parameters, all through the browser's Web Crypto API. Nothing is uploaded.",
     "category": "encoding",
     "keywords": [
       "jwk",
@@ -1783,8 +1783,8 @@
   {
     "name": "Local Chat",
     "slug": "local-chat",
-    "description": "Chat with a real LLM that runs entirely on your machine.",
-    "longDescription": "A private AI assistant that runs 100% on your own device — in-browser via WebGPU, or wired to your own Ollama / LM Studio server, or an API key you control. No accounts, no servers of ours, nothing you type is ever uploaded.",
+    "description": "Chat with a small model in your browser, or your own server.",
+    "longDescription": "Runs a small quantized model in the browser over WebGPU, or connects to an Ollama or LM Studio server you host, or an API key you supply. The in-browser models are a few billion parameters, so expect something useful for quick questions rather than frontier quality; conversations stay on your machine.",
     "category": "ai",
     "keywords": [
       "local ai",
@@ -1810,8 +1810,8 @@
   {
     "name": "Chat with your files",
     "slug": "local-rag",
-    "description": "Drop your docs and ask questions — retrieval + LLM, 100% offline.",
-    "longDescription": "Chat with your own documents, notes, and code entirely offline. Drop in text, markdown, CSV, logs, or source files and this local RAG assistant chunks and embeds them right in your browser, retrieves the most relevant passages by semantic similarity, and answers with cited sources — nothing is ever uploaded.",
+    "description": "Ask questions over your own documents, in the browser.",
+    "longDescription": "Chunks and embeds text, markdown, CSV, log, and source files in your browser, retrieves the passages closest to your question by semantic similarity, and answers with citations using a local model. Answer quality is bounded by the small on-device model, so check the cited passages.",
     "category": "ai",
     "keywords": [
       "local ai",
@@ -1837,8 +1837,8 @@
   {
     "name": "Regex from English",
     "slug": "ai-regex-builder",
-    "description": "Describe a pattern in plain English; get a tested regex — locally.",
-    "longDescription": "Turn a plain-English description into a working regular expression for JavaScript, PCRE, or Python, then watch it match your sample text live in the browser. A local AI model does the translation and can explain any regex you paste token-by-token — with nothing ever leaving your machine.",
+    "description": "Describe a pattern in plain English, get a regex to test.",
+    "longDescription": "A small in-browser model turns your description into a regular expression for JavaScript, PCRE, or Python, which you then test against sample text on the same page; it can also explain a regex you paste, token by token. Generated patterns are drafts — check them against your real data.",
     "category": "ai",
     "keywords": [
       "regex generator",
@@ -1863,8 +1863,8 @@
   {
     "name": "Command Explainer",
     "slug": "ai-command-explainer",
-    "description": "Explain any shell/git/docker/kubectl command + flag a danger before you run it.",
-    "longDescription": "A local-AI command explainer that breaks down any shell, git, docker, or kubectl command line into plain English, part by part, and runs an instant in-browser danger scanner that flags destructive patterns like rm -rf, curl|sh, and fork bombs before you ever hit enter. Describe intent in English and it generates the command, then re-scans it — all client-side, nothing uploaded.",
+    "description": "Explain a shell command and flag dangerous parts first.",
+    "longDescription": "Breaks a shell, git, docker, or kubectl command into its parts in plain English with a local model, and runs a separate rule-based scan for destructive patterns like rm -rf, curl piped into a shell, and fork bombs. The scan covers known patterns, and the explanation comes from a small model — read the command yourself before running it.",
     "category": "ai",
     "keywords": [
       "command explainer",
@@ -1889,8 +1889,8 @@
   {
     "name": "AI Security Copilot",
     "slug": "ai-security-copilot",
-    "description": "Paste a header, JWT, cert, or config; get a local AI risk assessment.",
-    "longDescription": "A local-AI security analyst that runs entirely in your browser: it decodes JWTs, inventories HTTP security headers, parses X.509 TLS certificates, audits Content-Security-Policies, and scans configs for secrets deterministically, then reasons over those facts to produce a risk summary, severity-ranked findings, and concrete remediations — with nothing uploaded.",
+    "description": "Paste a header, JWT, cert, or config for a local risk read.",
+    "longDescription": "Decodes JWTs, inventories HTTP security headers, parses X.509 certificates, audits CSP directives, and scans configs for secrets using deterministic parsers, then has a small in-browser model summarize the findings and suggest fixes. The parsing is reliable; the commentary is only as good as a small local model gets.",
     "category": "ai",
     "keywords": [
       "local ai",
@@ -1915,8 +1915,8 @@
   {
     "slug": "exif-scrubber",
     "name": "EXIF Viewer & Scrubber",
-    "description": "See the GPS & camera data hidden in your photos, then strip it.",
-    "longDescription": "Inspect every hidden EXIF tag, GPS coordinate, timestamp, and metadata field baked into your JPEG, PNG, or WebP photos, then download a scrubbed copy with a single click. Everything runs entirely in your browser — your images are never uploaded, so the GPS location and device details they leak never leave your device.",
+    "description": "See the GPS and camera data in your photos, then strip it.",
+    "longDescription": "Reads the EXIF tags, GPS coordinates, timestamps, and PNG text chunks embedded in JPEG, PNG, and WebP files, then writes out a copy with them removed. Images are decoded in the browser, so the location and device details never leave your machine.",
     "category": "media",
     "keywords": [
       "exif viewer",
@@ -1942,8 +1942,8 @@
   {
     "slug": "image-converter",
     "name": "Image Converter & Compressor",
-    "description": "Convert & compress PNG, JPEG, WebP in your browser — batch, private",
-    "longDescription": "Convert and compress images between PNG, JPEG, and WebP with a live before/after preview, quality slider, and aspect-preserving resize — all processed entirely in your browser. Nothing is ever uploaded, so batch-optimizing sensitive images stays completely private.",
+    "description": "Convert and compress PNG, JPEG, and WebP in batches.",
+    "longDescription": "Converts between PNG, JPEG, and WebP with a quality slider, aspect-preserving resize, and a before/after preview showing the byte difference. Encoding uses the browser's canvas, so the files stay on your device.",
     "category": "media",
     "keywords": [
       "image converter",
@@ -1969,8 +1969,8 @@
   {
     "slug": "contrast-lab",
     "name": "Color Contrast Lab",
-    "description": "WCAG & APCA contrast checker with instant accessible-color fixes",
-    "longDescription": "Check WCAG 2.1 contrast ratios and APCA Lc scores for any text and background pair entirely in your browser — nothing is uploaded. Get instant AA/AAA pass-fail, one-click fixes for failing colors, and an accessible tonal palette generator.",
+    "description": "Check WCAG 2.1 and APCA contrast, with fixes for failures.",
+    "longDescription": "Reports WCAG 2.1 contrast ratios and APCA Lc scores for a text and background pair, shows AA/AAA pass-fail at each text size, and nudges failing colors to the nearest passing value. Includes a tonal palette generator built on the same checks.",
     "category": "media",
     "keywords": [
       "contrast checker",
@@ -1997,8 +1997,8 @@
   {
     "slug": "og-image-studio",
     "name": "Open Graph Image Studio",
-    "description": "Design 1200×630 social cards and export a PNG, all in your browser",
-    "longDescription": "Create polished Open Graph and Twitter card images at the exact 1200×630 size social platforms expect — with live canvas preview, tasteful presets, gradient and mesh backgrounds, and logo or emoji support. Everything renders in your browser and exports as a crisp PNG; your images and text are never uploaded.",
+    "description": "Design 1200×630 social cards and export a PNG.",
+    "longDescription": "Lays out Open Graph and Twitter card images at the 1200×630 size the platforms crop to, with presets, gradient and mesh backgrounds, and logo or emoji support. The card renders on a canvas in your browser and downloads as a PNG.",
     "category": "media",
     "keywords": [
       "open graph",
@@ -2024,8 +2024,8 @@
   {
     "slug": "favicon-generator",
     "name": "Favicon & PWA Asset Generator",
-    "description": "Generate a full favicon + PWA icon set from an image, emoji, or monogram",
-    "longDescription": "Build a complete favicon and PWA icon set — 16, 32, 48, 180, 192, and 512 PNGs plus a real favicon.ico, the exact HTML link tags, and a site.webmanifest — entirely in your browser. Your source image never leaves your device; nothing is uploaded.",
+    "description": "Generate favicon and PWA icons from an image, emoji, or monogram.",
+    "longDescription": "Produces 16, 32, 48, 180, 192, and 512 pixel PNGs, a multi-resolution favicon.ico, the matching HTML link tags, and a site.webmanifest from a single source image, emoji, or monogram. Rendering happens in the browser.",
     "category": "media",
     "keywords": [
       "favicon generator",

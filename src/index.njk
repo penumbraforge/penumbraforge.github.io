@@ -24,8 +24,8 @@ hideAtmosphere: true
     <div class="fx-hero-eclipse" aria-hidden="true"></div>
     <div class="fx-hero-inner">
       <p class="fx-kicker reveal">Independent software company</p>
-      <h1 class="reveal"><span class="fx-line">Private AI &amp; security tooling,</span><span class="fx-line"><span class="fx-accent">zero surveillance.</span></span></h1>
-      <p class="fx-hero-sub reveal">Security tooling for the AI-agent era. Agents install dependencies at machine speed, generate code that leaks credentials, and load third-party instructions on the fly — so these are deterministic tools you can run anywhere, with AI assistance layered on top rather than bolted through the middle. Local inference from WebGPU to NVIDIA DGX. No cloud dependency, no accounts, nothing leaves the machine.</p>
+      <h1 class="reveal"><span class="fx-line">Security tooling that</span><span class="fx-line"><span class="fx-accent">runs on your machine.</span></span></h1>
+      <p class="fx-hero-sub reveal">A small independent company building developer and security tools that work locally. The browser tools are client-side, the AI tools can point at a model you host, and the projects are open source so you can check what they do. Some are early — each one says where it stands.</p>
       <div class="fx-hero-actions reveal">
         <a href="/tools/" class="fx-btn fx-btn--solid"><span>Browse {{ liveTools.length }} tools</span></a>
         <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-btn"><span>Source on GitHub</span></a>
@@ -51,9 +51,9 @@ hideAtmosphere: true
 
   <div class="fx-bento">
     <div class="fx-cell fx-cell--gate reveal">
-      <div class="fx-cell-meta"><span>Pre-commit defense</span><span class="fx-status">shipping</span></div>
+      <div class="fx-cell-meta"><span>Pre-commit secret scanning</span><span class="fx-status fx-status--dev">experimental</span></div>
       <h3>Gate</h3>
-      <p>Agents write code that hardcodes credentials. Gate catches secrets before they reach your repository — and fixes them automatically. One command to install, runs on every commit.</p>
+      <p>A pre-commit hook that scans staged changes for credentials and can redact what it finds. Pattern-based, so expect false positives and misses — it's a safety net, not a guarantee. Early days; feedback welcome.</p>
       <div class="fx-term">
         <div class="fx-term-bar">gate scan --fix</div>
         <pre><span class="hl-dim">$</span> <span class="hl-key">gate scan --fix</span>
@@ -68,17 +68,17 @@ hideAtmosphere: true
     </div>
 
     <div class="fx-cell fx-cell--librarian reveal">
-      <div class="fx-cell-meta"><span>MCP skills server</span><span class="fx-status">shipping</span></div>
+      <div class="fx-cell-meta"><span>MCP skills server</span><span class="fx-status fx-status--dev">experimental</span></div>
       <h3>mcp-librarian</h3>
-      <p>Agents consume third-party instructions as readily as code. A signed skill library for them: Ed25519 on write, integrity-checked on load, tampering reported rather than served.</p>
+      <p>A local skill library for MCP-speaking coding agents. Skills are signed with Ed25519 when written and integrity-checked when loaded, so edits on disk are caught. Works with Claude Code and other MCP clients.</p>
       <div class="fx-featlist"><span>auto-research</span><span>Ed25519 signing</span><span>zero deps</span><span>persistent skills</span></div>
       <a href="/librarian/" class="fx-cell-link">Explore Librarian <span>&rarr;</span></a>
     </div>
 
     <div class="fx-cell fx-cell--vexes reveal">
-      <div class="fx-cell-meta"><span>Supply-chain security</span><span class="fx-status fx-status--dev">early access</span></div>
+      <div class="fx-cell-meta"><span>Dependency scanning</span><span class="fx-status fx-status--dev">experimental</span></div>
       <h3>vexes</h3>
-      <p>Agents install dependencies faster than anyone can review them. 4-layer behavioral analysis catches supply-chain attacks that vulnerability databases miss — before they execute.</p>
+      <p>Scans dependencies across several ecosystems and flags things worth a second look — install scripts, unexpected network or filesystem access, package names close to popular ones. Heuristics, not verdicts. Still experimental and unproven against real-world attacks.</p>
       <div class="fx-featlist"><span>AST analysis</span><span>pre-install guard</span><span>{{ versions.vexes.ecosystems }} ecosystems</span><span>zero deps</span></div>
       <a href="/vexes/" class="fx-cell-link">Explore vexes <span>&rarr;</span></a>
     </div>
@@ -87,7 +87,7 @@ hideAtmosphere: true
       <span class="fx-ghost" aria-hidden="true">{{ icon("crescent", 96) }}</span>
       <div class="fx-cell-meta"><span>Local AI studio</span><span class="fx-status fx-status--dev">in development</span></div>
       <h3>Umbra</h3>
-      <p>A local-first AI studio — GUI and TUI — for running, orchestrating, and auditing large language models on your own hardware. Built for NVIDIA DGX Spark. No cloud, no subscriptions, no data leaving the machine.</p>
+      <p>A local-first AI studio (GUI and TUI) for running and inspecting language models on your own hardware, being built against an NVIDIA DGX Spark. Early development — not usable yet.</p>
       <div class="fx-featlist"><span>NVIDIA DGX Spark</span><span>CUDA</span><span>GUI + TUI</span><span>fully offline</span></div>
       <a href="/umbra/" class="fx-cell-link">Explore Umbra <span>&rarr;</span></a>
     </div>
@@ -97,68 +97,68 @@ hideAtmosphere: true
     <span class="fx-index">02</span>
     <h2>Local AI</h2>
     <span class="fx-rule"></span>
-    <span class="fx-count">three runtimes, zero cloud</span>
+    <span class="fx-count">three ways to run it</span>
   </div>
 
   <div class="fx-principles">
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("crescent") }}</span>
       <h3>In your browser</h3>
-      <p>Our AI tools run quantized LLM inference and embeddings directly in the browser over WebGPU — chat, RAG, and security analysis without a single byte leaving the tab.</p>
+      <p>The AI tools can run a small quantized model in the browser over WebGPU. The model downloads once and runs on your GPU, so your input stays in the tab. Small models, so expect modest quality.</p>
     </div>
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("home") }}</span>
       <h3>On your machine</h3>
-      <p>Every AI tool can point at your own runtime — Ollama or LM Studio on localhost — so your models, prompts, and data stay on hardware you control.</p>
+      <p>Each AI tool can point at a model you already run — Ollama, LM Studio, or anything OpenAI-compatible on localhost. Your choice of model, on your hardware.</p>
     </div>
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("chip") }}</span>
       <h3>On NVIDIA DGX</h3>
-      <p>Umbra, our local AI studio, is built for NVIDIA DGX Spark — Grace Blackwell compute with 128&nbsp;GB of unified memory for serious local model work, CUDA-first.</p>
+      <p>Umbra is being developed on an NVIDIA DGX Spark (128&nbsp;GB unified memory, CUDA). That is the machine it is built and tested on; it is still early.</p>
     </div>
   </div>
 
   <div class="fx-section-head reveal">
     <span class="fx-index">03</span>
-    <h2>Instruments</h2>
+    <h2>Tools</h2>
     <span class="fx-rule"></span>
-    <span class="fx-count">{{ liveTools.length }} tools — zero tracking</span>
+    <span class="fx-count">{{ liveTools.length }} tools, no accounts</span>
   </div>
 
   <div class="fx-tools-grid">
     <a href="/tools/passkey-inspector/" class="fx-tool fx-tool--new reveal"><h4>Passkey Inspector</h4><p>Decode WebAuthn attestation &amp; COSE keys.</p><span class="fx-runtime">browser</span></a>
-    <a href="/tools/entropy-xray/" class="fx-tool fx-tool--new reveal"><h4>Entropy X-ray</h4><p>Spot encryption &amp; packing by byte entropy.</p><span class="fx-runtime">browser</span></a>
+    <a href="/tools/entropy-xray/" class="fx-tool fx-tool--new reveal"><h4>Entropy X-ray</h4><p>Look at byte entropy to spot packed or encrypted data.</p><span class="fx-runtime">browser</span></a>
     <a href="/tools/key-converter/" class="fx-tool fx-tool--new reveal"><h4>Key Converter</h4><p>JWK ↔ PEM, generate keypairs locally.</p><span class="fx-runtime">browser</span></a>
-    <a href="/tools/jwt-attack/" class="fx-tool reveal"><h4>JWT Attack Workbench</h4><p>Test tokens against real attack classes.</p><span class="fx-runtime">browser</span></a>
-    <a href="/tools/site-score/" class="fx-tool reveal"><h4>Site Score</h4><p>Scan any URL for security posture.</p><span class="fx-runtime fx-runtime--edge">edge worker</span></a>
-    <a href="/tools/env-analyzer/" class="fx-tool reveal"><h4>.env Exposure Analyzer</h4><p>Map the blast radius of leaked secrets.</p><span class="fx-runtime">browser</span></a>
-    <a href="/tools/redos-tester/" class="fx-tool reveal"><h4>ReDoS Tester</h4><p>Find catastrophic regex backtracking.</p><span class="fx-runtime">browser</span></a>
+    <a href="/tools/jwt-attack/" class="fx-tool reveal"><h4>JWT Attack Workbench</h4><p>Try common JWT attack classes against a token.</p><span class="fx-runtime">browser</span></a>
+    <a href="/tools/site-score/" class="fx-tool reveal"><h4>Site Score</h4><p>Check a URL for common security headers.</p><span class="fx-runtime fx-runtime--edge">edge worker</span></a>
+    <a href="/tools/env-analyzer/" class="fx-tool reveal"><h4>.env Exposure Analyzer</h4><p>See what a leaked .env file would expose.</p><span class="fx-runtime">browser</span></a>
+    <a href="/tools/redos-tester/" class="fx-tool reveal"><h4>ReDoS Tester</h4><p>Check a regex for catastrophic backtracking.</p><span class="fx-runtime">browser</span></a>
     <a href="/tools/ioc-workbench/" class="fx-tool reveal"><h4>IOC Workbench</h4><p>Extract &amp; defang indicators from reports.</p><span class="fx-runtime">browser</span></a>
   </div>
-  <a href="/tools/" class="fx-tools-cta reveal">View all {{ liveTools.length }} instruments &rarr;</a>
+  <a href="/tools/" class="fx-tools-cta reveal">View all {{ liveTools.length }} tools &rarr;</a>
 
   <div class="fx-section-head reveal">
     <span class="fx-index">04</span>
-    <h2>The Forge Standard</h2>
+    <h2>How these are built</h2>
     <span class="fx-rule"></span>
-    <span class="fx-count">how we build</span>
+    <span class="fx-count">the short version</span>
   </div>
 
   <div class="fx-principles">
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("shield") }}</span>
       <h3>Client-side by default</h3>
-      <p>Your data stays on your machine. A tool only touches the network when its function demands it — and it says so on the label.</p>
+      <p>Most tools do their work in the page. A few need the network to do their job — those are labelled, so you know before you paste anything in.</p>
     </div>
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("terminal") }}</span>
       <h3>Dependencies are attack surface</h3>
-      <p>Zero-dependency codebases built on platform primitives — Web Crypto, Workers, Node built-ins — instead of a framework stack that expires.</p>
+      <p>Mostly built on platform APIs — Web Crypto, Workers, Node built-ins — with few or no third-party packages. Fewer moving parts to trust or keep patched.</p>
     </div>
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("search") }}</span>
       <h3>Open and auditable</h3>
-      <p>Everything is open source and small enough to audit in an afternoon. No telemetry, no accounts, no dark patterns. Ever.</p>
+      <p>The projects are open source, so you can read what they actually do rather than take my word for it. No analytics beyond basic traffic counts, no accounts.</p>
     </div>
   </div>
 
