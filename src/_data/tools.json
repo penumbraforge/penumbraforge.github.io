@@ -470,13 +470,14 @@
       "secret",
       "in-browser"
     ],
-    "badge": "cloud",
+    "badge": "local",
     "relatedTools": [
       "one-time-secret",
       "hash-generator"
     ],
     "status": "live",
-    "isNew": true
+    "isNew": true,
+    "privacyNote": "Encryption and decryption happen in your browser using the Web Crypto API. The passphrase is never stored and the tool makes no network requests — the ciphertext only goes wherever you choose to send it."
   },
   {
     "name": "One-Time Secret",
@@ -499,7 +500,8 @@
       "secret-lock",
       "password-generator"
     ],
-    "status": "live"
+    "status": "live",
+    "privacyNote": "This one is not end-to-end encrypted: the secret is sent to an edge worker, stored until it is read once or expires, then deleted. The operator of that worker could read it in transit. For a secret you don't want anyone else to be able to read, encrypt it locally with Secret Vault first."
   },
   {
     "name": "Secrets Scanner",
@@ -787,12 +789,13 @@
       "headers",
       "json"
     ],
-    "badge": "local",
+    "badge": "cloud",
     "relatedTools": [
       "curl-converter",
       "jwt-decoder"
     ],
-    "status": "live"
+    "status": "live",
+    "privacyNote": "This sends the request you compose from your browser directly to the URL you enter. Anything you put in it — headers, tokens, body — goes to that server. It is not routed through us, and we don't see it."
   },
   {
     "name": "CSS Grid Generator",
@@ -999,13 +1002,14 @@
       "subnet",
       "lookup"
     ],
-    "badge": "local",
+    "badge": "cloud",
     "relatedTools": [
       "subnet-calculator",
       "dns-builder",
       "security-headers"
     ],
-    "status": "live"
+    "status": "live",
+    "privacyNote": "The CIDR and subnet math runs in your browser. The public-IP lookup is the exception: it calls a third-party service (api.ipify.org), which necessarily sees the address it reports back to you."
   },
   {
     "name": "Log Parser & Highlighter",
@@ -1048,7 +1052,7 @@
       "k-anonymity",
       "haveibeenpwned"
     ],
-    "badge": "local",
+    "badge": "cloud",
     "relatedTools": [
       "secrets-scanner",
       "env-analyzer",
@@ -1056,7 +1060,8 @@
     ],
     "status": "live",
     "featured": true,
-    "isNew": true
+    "isNew": true,
+    "privacyNote": "Your password is hashed in your browser, and only the first five characters of that hash are sent to the Have I Been Pwned range API. The service never receives the password or the full hash, and it can't tell which of the returned matches was yours."
   },
   {
     "name": "IR Timeline Builder",
@@ -1109,7 +1114,8 @@
     ],
     "status": "live",
     "featured": true,
-    "isNew": true
+    "isNew": true,
+    "privacyNote": "The URL you enter is sent to an edge worker we run, which fetches that site and returns the result. The page contents are analyzed in flight, not retained."
   },
   {
     "name": "Header Analyzer",
@@ -1184,7 +1190,8 @@
       "header-analyzer"
     ],
     "status": "live",
-    "isNew": true
+    "isNew": true,
+    "privacyNote": "The URL you enter is sent to an edge worker we run, which loads that page to inspect its trackers and headers, then returns the result."
   },
   {
     "name": "CT Monitor",
@@ -1209,7 +1216,8 @@
       "dmarc-builder"
     ],
     "status": "live",
-    "isNew": true
+    "isNew": true,
+    "privacyNote": "The domain you enter is sent to an edge worker we run, which queries public Certificate Transparency logs and returns the matches."
   },
   {
     "name": "ReDoS Tester",

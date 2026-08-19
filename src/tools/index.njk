@@ -30,7 +30,7 @@ hideAtmosphere: true
   <p>{{ tool.description }}</p>
   <div class="hub-card-foot">
     {% if tool.isNew %}<span class="hub-tag hub-tag--new">new</span>{% endif %}
-    {% if tool.category == "ai" %}<span class="hub-tag hub-tag--ai">local AI</span>{% elif tool.badge == "worker" %}<span class="hub-tag">edge</span>{% elif tool.badge == "cloud" %}<span class="hub-tag">cloud</span>{% else %}<span class="hub-tag hub-tag--local">browser</span>{% endif %}
+    {% if tool.category == "ai" %}<span class="hub-tag hub-tag--ai">local AI</span>{% elif tool.badge == "worker" %}<span class="hub-tag">edge</span>{% elif tool.badge == "cloud" %}<span class="hub-tag">network</span>{% else %}<span class="hub-tag hub-tag--local">browser</span>{% endif %}
   </div>
 </a>
 {% endmacro %}

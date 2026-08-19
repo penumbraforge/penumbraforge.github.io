@@ -67,7 +67,7 @@
     <div class="wb-head">
       <div class="wb-head-main">
         <h1>{{ toolData.name }}
-          {% if toolData.category == "ai" %}<span class="wb-chip">AI · local</span>{% elif toolData.badge == "worker" %}<span class="wb-chip">edge worker</span>{% elif toolData.badge == "cloud" %}<span class="wb-chip">cloud-assisted</span>{% else %}<span class="wb-chip">runs in browser</span>{% endif %}
+          {% if toolData.category == "ai" %}<span class="wb-chip">AI · local</span>{% elif toolData.badge == "worker" %}<span class="wb-chip">edge worker</span>{% elif toolData.badge == "cloud" %}<span class="wb-chip">makes a network call</span>{% else %}<span class="wb-chip">runs in browser</span>{% endif %}
         </h1>
         <p class="wb-about">{{ toolData.longDescription }}</p>
       </div>
@@ -92,7 +92,7 @@
     {% if toolData.category != "ai" %}
     <div class="wb-note">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/><path d="M9 12l2 2 4-4"/></svg>
-      <p><strong>Private by design.</strong> {% if toolData.badge == "worker" %}This tool scans via a stateless edge worker — nothing is stored or logged.{% elif toolData.badge == "cloud" %}This tool is cloud-assisted for the lookup step only; your other inputs stay in your browser.{% else %}Everything runs entirely in your browser. No accounts, no tracking, nothing uploaded.{% endif %}</p>
+      <p><strong>{% if toolData.badge == "local" %}Runs in your browser.{% else %}What this sends.{% endif %}</strong> {% if toolData.privacyNote %}{{ toolData.privacyNote }}{% elif toolData.badge == "worker" %}What you submit is sent to an edge worker we run, which performs the lookup and returns the result.{% elif toolData.badge == "cloud" %}This tool makes a network request to do its job. Everything else stays in the page.{% else %}Everything happens in the page. No account needed, and your input isn't sent anywhere.{% endif %}</p>
     </div>
     {% endif %}
 
