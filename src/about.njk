@@ -90,9 +90,9 @@ permalink: /about/
 
 <style>
 .about-page {
-  max-width: 760px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 48px 24px 96px;
+  padding: 48px clamp(24px, 4vw, 48px) 96px;
 }
 
 .about-hero {
@@ -110,18 +110,19 @@ permalink: /about/
 
 .about-hero h1 {
   font-family: var(--font-display);
-  font-size: clamp(30px, 5.4vw, 46px);
+  font-size: clamp(34px, 5vw, 58px);
   font-weight: 300;
-  line-height: 1.15;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   color: var(--text-1);
   margin-bottom: 20px;
 }
 
 .about-sub {
-  font-size: 16px;
+  font-size: 16.5px;
   line-height: 1.7;
   color: var(--text-2);
-  max-width: 60ch;
+  max-width: 62ch;
 }
 
 .about-section {
@@ -140,6 +141,7 @@ permalink: /about/
   font-size: 15px;
   line-height: 1.75;
   color: var(--text-2);
+  max-width: 70ch;
 }
 
 .about-section a {
@@ -153,19 +155,15 @@ permalink: /about/
 
 .about-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  margin-top: 20px;
-}
-
-@media (min-width: 720px) {
-  .about-grid { grid-template-columns: repeat(3, 1fr); }
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 18px;
+  margin-top: 24px;
 }
 
 .about-card {
   border: 1px solid rgba(184, 165, 214, 0.12);
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px;
   background: var(--surface-1, rgba(184, 165, 214, 0.03));
 }
 
@@ -177,15 +175,15 @@ permalink: /about/
 }
 
 .about-card p {
-  font-size: 13.5px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 1.7;
   color: var(--text-3);
 }
 
 .about-founder {
   border: 1px solid rgba(184, 165, 214, 0.12);
   border-radius: 12px;
-  padding: 24px;
+  padding: 28px;
   background: var(--surface-1, rgba(184, 165, 214, 0.03));
 }
 
@@ -195,6 +193,8 @@ permalink: /about/
   font-weight: 400;
   color: var(--text-1);
 }
+
+.about-founder-body p { max-width: 72ch; }
 
 .about-founder-role {
   font-family: var(--font-mono);
@@ -222,6 +222,7 @@ permalink: /about/
   font-size: 15px;
   line-height: 1.7;
   color: var(--text-2);
+  max-width: 72ch;
   padding-left: 18px;
   border-left: 2px solid rgba(184, 165, 214, 0.25);
 }

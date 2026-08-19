@@ -61,9 +61,9 @@ permalink: /umbra/
 
 <style>
 .umbra-page {
-  max-width: 720px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 48px 24px 96px;
+  padding: 48px clamp(24px, 4vw, 48px) 96px;
 }
 
 .umbra-hero {
@@ -106,7 +106,7 @@ permalink: /umbra/
   font-size: 17px;
   line-height: 1.7;
   color: var(--text-2);
-  max-width: 54ch;
+  max-width: 62ch;
 }
 
 .umbra-section {
@@ -127,6 +127,8 @@ permalink: /umbra/
   color: var(--text-2);
   margin-bottom: 12px;
 }
+
+.umbra-section p { max-width: 70ch; }
 
 .umbra-section strong {
   color: var(--text-1);
