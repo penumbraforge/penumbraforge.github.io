@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 title: "Free Developer & Security Tools — Browser, Network, AI & MCP | Penumbra Forge"
-description: "Developer and security tools with no signup. Many run entirely in your browser; network routes and selectable AI engines are labelled. Includes an MCP server for agents."
+description: "Mostly small developer and security utilities with no signup. Many run entirely in your browser; network routes and selectable AI engines are labelled. Selected operations are available to agents."
 permalink: /tools/
 hideAtmosphere: true
 ---
@@ -41,15 +41,15 @@ hideAtmosphere: true
   <div class="hub" id="hub">
     <section class="hub-hero">
       <p class="hub-kick">The console</p>
-      <h1>Tools with <em>visible data routes</em> — for you or your agent.</h1>
-      <p class="hub-lede">{{ liveTools.length }} developer and security tools plus an MCP server for agents. Many run entirely in your browser. Edge, network, and AI routes are labelled so you can see where input goes before you use one.</p>
+      <h1>Utilities with <em>visible data routes.</em></h1>
+      <p class="hub-lede">{{ liveTools.length }} mostly small, single-purpose developer and security utilities. Selected operations are available to agents through MCP or opted-in URL invocation. Many run entirely in your browser. Edge, network, and AI routes are labelled so you can see where input goes before use.</p>
       <div class="hub-searchwrap">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <input type="search" class="hub-search" id="hubSearch" placeholder="Search {{ liveTools.length }} tools…" autocomplete="off" spellcheck="false" aria-label="Search tools">
         <button class="hub-run-hint" data-open-palette title="Open the command bar"><b>&#8984;K</b> to run</button>
       </div>
       <div class="hub-stats">
-        <span class="hub-stat"><b>{{ liveTools.length }}</b> tools</span>
+        <span class="hub-stat"><b>{{ liveTools.length }}</b> utilities</span>
         <span class="hub-stat"><b>{{ stats.browserOnlyTools }}</b> labelled browser-only</span>
         <span class="hub-stat"><b>{{ stats.mcpTools }}</b> callable over MCP</span>
       </div>

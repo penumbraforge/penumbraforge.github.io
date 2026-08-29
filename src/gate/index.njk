@@ -54,7 +54,7 @@ permalink: /gate/
 <!-- RECORDED DEMO -->
 <section class="gate-section" id="demo">
   <div class="gate-container-wide">
-    <p class="section-label reveal">A real scan, start to finish</p>
+    <p class="section-label reveal">Recorded scan</p>
     <div class="reveal">
       {% set demo = "gate" %}
       {% set width = 1200 %}{% set height = 820 %}
@@ -116,7 +116,7 @@ permalink: /gate/
         <p>Opt-in <code>--verify</code> sends the credential to a provider adapter. “Inactive” currently lowers severity, so read the adapter and threshold caveats before enabling it.</p>
       </div>
       <div class="gate-feature-card">
-        <h3>Auto-Fix Engine</h3>
+        <h3>Bounded source rewrites</h3>
         <p>Can move selected hardcoded-string patterns into an environment file and rewrite bounded source forms. It is textual, not semantic, and has documented conflict and language gaps.</p>
       </div>
       <div class="gate-feature-card">
@@ -124,11 +124,11 @@ permalink: /gate/
         <p>Walk through findings to fix, vault, ignore, skip, or open guidance. Vault references have no application runtime resolver, and ignores are policy bypasses.</p>
       </div>
       <div class="gate-feature-card">
-        <h3>Incident Response</h3>
+        <h3>Incident artifacts</h3>
         <p>Prints rotation/audit guidance and creates purge and incident-record artifacts. It does not rotate, investigate, fix, execute a purge, or update completion state.</p>
       </div>
       <div class="gate-feature-card">
-        <h3>Compliance Reports</h3>
+        <h3>Reports with framework labels</h3>
         <p>Summarizes the current local audit log and attaches static OWASP 2021, NIST SP 800-53, CIS Controls, and SOC 2 labels. It is not an attestation.</p>
       </div>
       <div class="gate-feature-card">
@@ -140,7 +140,7 @@ permalink: /gate/
         <p>Scans past commits for secrets and generates purge scripts you can review and run to rewrite history.</p>
       </div>
       <div class="gate-feature-card">
-        <h3>Zero Config</h3>
+        <h3>Works without a config file</h3>
         <p>Runs on defaults. No setup file, account, or API key required to start; add a <code>.gaterc</code> when you need one.</p>
       </div>
     </div>
@@ -193,7 +193,7 @@ permalink: /gate/
         <li id="docs-config"><a href="/gate/wiki/configuration/">Configuration</a> &mdash; <code>.gaterc</code> options and custom rules</li>
         <li id="docs-gateignore"><a href="/gate/wiki/ignore-patterns/">Ignore patterns</a> &mdash; <code>.gateignore</code> and inline ignores</li>
         <li id="docs-commands"><a href="/gate/wiki/commands/">Commands reference</a> &mdash; scan, fix, verify, vault, report, audit</li>
-        <li id="docs-languages"><a href="/gate/wiki/auto-fix/">Auto-fix engine</a> &mdash; supported rewrite forms, dry runs, snapshots, and limitations</li>
+        <li id="docs-languages"><a href="/gate/wiki/auto-fix/">Bounded source rewrites</a> &mdash; supported rewrite forms, dry runs, snapshots, and limitations</li>
         <li id="docs-verification"><a href="/gate/wiki/verification/">Credential verification</a> &mdash; opt-in liveness checks, privacy model</li>
         <li><a href="/gate/wiki/incident-response/">Incident response</a> &mdash; generated guidance/artifacts and manual actions</li>
         <li><a href="/gate/wiki/compliance/">Reports and mappings</a> &mdash; local evidence and static control labels</li>

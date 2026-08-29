@@ -1,7 +1,7 @@
 {
   "layout": "product-layout.njk",
   "productName": "gate",
-  "productTitle": "Gate — Pre-commit Secret Scanner",
-  "productDescription": "A pre-commit hook that scans staged changes for credentials and can redact what it finds. Pattern-based, so expect false positives and misses. Experimental.",
+  "productTitle": "Gate — Experimental Secret-Pattern CLI",
+  "productDescription": "An experimental local CLI for finding secret-like patterns in source files and git history. It can install a repository-local pre-commit hook and attempt bounded source rewrites. Pattern matching can produce false positives and misses.",
   "productRepo": "https://github.com/penumbraforge/gate"
 }

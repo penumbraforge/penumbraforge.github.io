@@ -23,11 +23,11 @@ hideAtmosphere: true
     <div class="fx-hero-scrim" aria-hidden="true"></div>
     <div class="fx-hero-eclipse" aria-hidden="true"></div>
     <div class="fx-hero-inner">
-      <p class="fx-kicker reveal">Independent software company</p>
+      <p class="fx-kicker reveal">One-person software studio</p>
       <h1 class="reveal"><span class="fx-line">Developer and security tools</span><span class="fx-line"><span class="fx-accent">with visible boundaries.</span></span></h1>
-      <p class="fx-hero-sub reveal">A small independent company building source-visible tools and separately licensed open-source products. Many work locally; each page labels whether its active route stays in the browser, uses an edge worker, contacts a third party, or sends input to a selected AI endpoint. Most projects are early.</p>
+      <p class="fx-hero-sub reveal">Penumbra Forge is a one-person studio. I maintain a catalog of mostly small browser-delivered utilities and a few larger software projects. Many work locally; each page labels whether its active route stays in the browser, uses an edge worker, contacts a third party, or sends input to a selected AI endpoint. Most projects are early.</p>
       <div class="fx-hero-actions reveal">
-        <a href="/tools/" class="fx-btn fx-btn--solid"><span>Browse {{ liveTools.length }} tools</span></a>
+        <a href="/tools/" class="fx-btn fx-btn--solid"><span>Browse small utilities</span></a>
         <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-btn"><span>Source on GitHub</span></a>
       </div>
     </div>
@@ -44,16 +44,16 @@ hideAtmosphere: true
 
   <div class="fx-section-head reveal">
     <span class="fx-index">01</span>
-    <h2>Products</h2>
+    <h2>Larger projects</h2>
     <span class="fx-rule"></span>
-    <span class="fx-count">{{ products | length }} in the forge</span>
+    <span class="fx-count">{{ products | length }} current projects</span>
   </div>
 
   <div class="fx-bento">
     <div class="fx-cell fx-cell--gate reveal">
-      <div class="fx-cell-meta"><span>Pre-commit secret scanning</span><span class="fx-status fx-status--dev">experimental</span></div>
+      <div class="fx-cell-meta"><span>Secret-pattern scanning</span><span class="fx-status fx-status--dev">experimental</span></div>
       <h3>Gate</h3>
-      <p>A pre-commit hook that scans staged changes for credentials and can attempt bounded rewrites for supported source forms. Pattern-based, so expect false positives and misses — it's a safety net, not a guarantee. Early days; feedback welcome.</p>
+      <p>An experimental local CLI that looks for secret-like patterns in source files and git history. It can install a repository-local pre-commit hook and attempt bounded source rewrites. Pattern matching can produce false positives and misses.</p>
       <div class="fx-term">
         <div class="fx-term-bar">illustrative — gate scan --staged</div>
         <pre><span class="hl-dim">$</span> <span class="hl-key">gate scan --staged</span>
@@ -70,7 +70,7 @@ hideAtmosphere: true
       <div class="fx-cell-meta"><span>MCP skills server</span><span class="fx-status fx-status--dev">experimental</span></div>
       <h3>mcp-librarian</h3>
       <p>A local Markdown skill library for MCP-speaking clients. BM25 search stays local; web research and pack operations are network tools. Ed25519 status is recorded during indexing, but load responses do not enforce it.</p>
-      <div class="fx-featlist"><span>opt-in auto-research</span><span>indexed integrity status</span><span>zero runtime deps</span><span>persistent skills</span></div>
+      <div class="fx-featlist"><span>opt-in auto-research</span><span>indexed integrity status</span><span>no external runtime packages</span><span>persistent skills</span></div>
       <a href="/librarian/" class="fx-cell-link">Explore Librarian <span>&rarr;</span></a>
     </div>
 
@@ -84,10 +84,10 @@ hideAtmosphere: true
 
     <div class="fx-cell fx-cell--umbra reveal">
       <span class="fx-ghost" aria-hidden="true">{{ icon("crescent", 96) }}</span>
-      <div class="fx-cell-meta"><span>Local AI studio</span><span class="fx-status fx-status--dev">in development</span></div>
+      <div class="fx-cell-meta"><span>Local AI prototype</span><span class="fx-status fx-status--dev">private prototype</span></div>
       <h3>Umbra</h3>
-      <p>A local-first AI studio (GUI and TUI) for running and inspecting language models on your own hardware, being built against an NVIDIA DGX Spark. Early development — not usable yet.</p>
-      <div class="fx-featlist"><span>NVIDIA DGX Spark</span><span>CUDA target</span><span>GUI + TUI plan</span><span>offline design target</span></div>
+      <p>A private, unreleased local AI application being developed on Apple Silicon with MLX. A working prototype exists, but there is no public build or supported release yet.</p>
+      <div class="fx-featlist"><span>Apple Silicon</span><span>MLX</span><span>desktop interface</span><span>no public release</span></div>
       <a href="/umbra/" class="fx-cell-link">Explore Umbra <span>&rarr;</span></a>
     </div>
   </div>
@@ -96,7 +96,7 @@ hideAtmosphere: true
     <span class="fx-index">02</span>
     <h2>Local AI</h2>
     <span class="fx-rule"></span>
-    <span class="fx-count">three ways to run it</span>
+    <span class="fx-count">two public routes + one private prototype</span>
   </div>
 
   <div class="fx-principles">
@@ -112,8 +112,8 @@ hideAtmosphere: true
     </div>
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("chip") }}</span>
-      <h3>On NVIDIA DGX</h3>
-      <p>Umbra is being developed on an NVIDIA DGX Spark (128&nbsp;GB unified memory, CUDA). That is the machine it is built and tested on; it is still early.</p>
+      <h3>In the Umbra prototype</h3>
+      <p>Umbra's private development build runs local models through Apple MLX on an Apple Silicon Mac. There is no public build or supported hardware matrix yet.</p>
     </div>
   </div>
 
@@ -121,7 +121,7 @@ hideAtmosphere: true
     <span class="fx-index">03</span>
     <h2>Tools</h2>
     <span class="fx-rule"></span>
-    <span class="fx-count">{{ liveTools.length }} tools, no accounts</span>
+    <span class="fx-count">{{ liveTools.length }} mostly small utilities</span>
   </div>
 
   <div class="fx-tools-grid">
@@ -134,7 +134,7 @@ hideAtmosphere: true
     <a href="/tools/redos-tester/" class="fx-tool reveal"><h4>ReDoS Tester</h4><p>Check a regex for catastrophic backtracking.</p><span class="fx-runtime">browser</span></a>
     <a href="/tools/ioc-workbench/" class="fx-tool reveal"><h4>IOC Workbench</h4><p>Extract &amp; defang indicators from reports.</p><span class="fx-runtime">browser</span></a>
   </div>
-  <a href="/tools/" class="fx-tools-cta reveal">View all {{ liveTools.length }} tools &rarr;</a>
+  <a href="/tools/" class="fx-tools-cta reveal">View all {{ liveTools.length }} utilities &rarr;</a>
 
   <div class="fx-section-head reveal">
     <span class="fx-index">04</span>

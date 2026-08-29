@@ -1,7 +1,7 @@
 ---
 layout: base.njk
-title: "Umbra — Local AI studio (in development) | Penumbra Forge"
-description: "Umbra is a local-first AI studio for running and inspecting language models on your own hardware. Being developed against NVIDIA DGX Spark. Early development — not usable yet."
+title: "Umbra — Private local AI prototype | Penumbra Forge"
+description: "Umbra is a private, unreleased local AI application being developed on Apple Silicon with MLX. A working prototype exists, but there is no public build or supported release yet."
 permalink: /umbra/
 ---
 
@@ -11,33 +11,32 @@ permalink: /umbra/
 
   <section class="umbra-hero">
     <span class="umbra-ghost" aria-hidden="true">☾</span>
-    <div class="umbra-status">In development — not usable yet</div>
+    <div class="umbra-status">Private prototype — not publicly released</div>
     <h1>Umbra</h1>
-    <p class="umbra-tagline">A local-first AI studio for running, orchestrating, and auditing large language models on hardware you own. This page describes what it's meant to do. It isn't finished, there's nothing to download, and the design may still change.</p>
+    <p class="umbra-tagline">A private, unreleased local AI application being developed on Apple Silicon with MLX. A working prototype exists, but there is no public build or supported release yet.</p>
   </section>
 
   <section class="umbra-section">
-    <h2>What it's meant to be</h2>
-    <p>The design target is a desktop GUI and terminal TUI for local models: loading and switching models, running multi-step inference, inspecting prompt/run records, and reviewing runs after the fact. On-device inference and no product telemetry are goals, not released guarantees. Most of it is still being built.</p>
+    <h2>What exists today</h2>
+    <p>The private development tree includes a browser interface, a Tauri desktop shell, a local FastAPI backend, MLX inference, chat, a workspace, plugins, and local knowledge features. These are parts of an unreleased development build, not a public product or support commitment.</p>
   </section>
 
   <section class="umbra-section">
-    <h2>Target hardware: NVIDIA DGX Spark</h2>
-    <p>Umbra is being developed on an <strong>NVIDIA DGX Spark</strong> — Grace Blackwell compute with 128&nbsp;GB of unified memory — and that's the hardware it targets. The memory budget is what the design leans on: larger models resident in memory, longer contexts, and room to inspect a run while it generates. CUDA first. I haven't tested it anywhere else.</p>
+    <h2>Current development environment</h2>
+    <p>The current prototype is being developed on an <strong>Apple Silicon Mac with 32&nbsp;GB of memory</strong> and uses Apple MLX for local inference. That describes the machine and runtime in use today; there is no supported hardware matrix or reproducible performance claim.</p>
     <div class="umbra-pills">
-      <span>NVIDIA DGX Spark</span>
-      <span>CUDA-first</span>
-      <span>128 GB unified memory</span>
-      <span>GUI + TUI</span>
-      <span>offline target</span>
+      <span>Apple Silicon</span>
+      <span>MLX</span>
+      <span>32 GB development machine</span>
+      <span>browser + Tauri interface</span>
+      <span>private prototype</span>
     </div>
   </section>
 
   <section class="umbra-section">
     <h2>Status</h2>
-    <p>Early development. Not released, not installable, and no date to give you. Some of what's described here works on my machine; some of it is still a plan. I'd rather say that than imply otherwise.</p>
-    <p>The intent is for it to be free for individuals, with paid licensing for organizations that want team deployment and support. That isn't settled.</p>
-    <p>If you want to follow along, watch <a href="https://github.com/penumbraforge" target="_blank" rel="noopener">github.com/penumbraforge</a> or write to <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a>.</p>
+    <p>A working private prototype exists. It is not publicly released, packaged, or supported, and I do not have a release date.</p>
+    <p>Questions can be sent to <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a>.</p>
     <div class="umbra-actions">
       <a href="/about/" class="umbra-btn">About Penumbra Forge</a>
       <a href="/tools/" class="umbra-btn umbra-btn--ghost">Browser AI tools</a>
@@ -52,8 +51,8 @@ permalink: /umbra/
   "@type": "SoftwareApplication",
   "name": "Umbra",
   "applicationCategory": "DeveloperApplication",
-  "description": "Local-first AI studio for running, orchestrating, and auditing large language models on your own hardware. Targets NVIDIA DGX Spark, CUDA first. In early development, not yet released.",
-  "operatingSystem": "Linux, macOS",
+  "description": "Private, unreleased local AI application being developed on Apple Silicon with MLX. A working prototype exists, but there is no public build or supported release yet.",
+  "operatingSystem": "macOS",
   "url": "{{ site.url }}/umbra/",
   "author": { "@type": "Organization", "name": "Penumbra Forge", "url": "{{ site.url }}" }
 }

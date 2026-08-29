@@ -25,7 +25,7 @@ permalink: /librarian/wiki/
 <p>Current <code>load_skill</code>, <code>load_section</code>, and <code>find_and_load</code> responses do not refuse tampered content or reliably include its integrity status. There is no file watcher. A caller that needs this boundary must check status and decide what to reject.</p>
 
 <h2 id="packs">Current pack registry</h2>
-<p>The checked-in community registry currently has {{ versions.librarian.packs }} packs and {{ versions.librarian.packSkills }} skill files: one file per pack. A pack install can accept safe files while rejecting other files, and a same-name incoming skill can update an existing local skill. Read the <a href="/librarian/wiki/community-packs/">Community Packs</a> page before treating installs as atomic or non-destructive.</p>
+<p>The checked-in pack registry currently has {{ versions.librarian.packs }} packs and {{ versions.librarian.packSkills }} skill files: one file per pack. A pack install can accept safe files while rejecting other files, and a same-name incoming skill can update an existing local skill. Read the <a href="/librarian/wiki/community-packs/">Indexed Packs</a> page before treating installs as atomic or non-destructive.</p>
 
 <h2 id="docs">Documentation</h2>
 <div class="wiki-cards">
@@ -33,7 +33,7 @@ permalink: /librarian/wiki/
   <a href="/librarian/wiki/tools-reference/" class="wiki-card"><h3>Tools Reference</h3><p>Actual argument names, return shapes, and network behavior for all 14 tools.</p></a>
   <a href="/librarian/wiki/skill-format/" class="wiki-card"><h3>Skill Format</h3><p>The YAML-lite fields the parser reads, flat files, chunking, and ranking.</p></a>
   <a href="/librarian/wiki/auto-research/" class="wiki-card"><h3>Auto-Research</h3><p>Opt-in behavior, coarse source tiers, extraction, and non-persistence.</p></a>
-  <a href="/librarian/wiki/community-packs/" class="wiki-card"><h3>Community Packs</h3><p>The nine one-skill packs, schema, partial acceptance, overwrite behavior, and URLs.</p></a>
+  <a href="/librarian/wiki/community-packs/" class="wiki-card"><h3>Indexed Packs</h3><p>The nine one-skill packs, schema, partial acceptance, overwrite behavior, and URLs.</p></a>
   <a href="/librarian/wiki/configuration/" class="wiki-card"><h3>Configuration</h3><p>Defaults, config-file merge, environment overrides, layout, and MCP logging.</p></a>
   <a href="/librarian/wiki/content-guard/" class="wiki-card"><h3>Content Guard</h3><p>The exact pattern categories, code exemptions, write paths, and bypasses.</p></a>
   <a href="/librarian/wiki/signing/" class="wiki-card"><h3>Ed25519 Signing</h3><p>Keys, manifest, rebuild-time status, stale state, and trust limits.</p></a>

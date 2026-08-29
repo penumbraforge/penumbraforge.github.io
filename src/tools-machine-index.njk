@@ -6,7 +6,7 @@ eleventyExcludeFromCollections: true
 {%- for t in tools -%}{%- if t.status == "live" -%}{%- set list = (list.push(t), list) -%}{%- endif -%}{%- endfor -%}
 {
   "site": "Penumbra Forge",
-  "description": "Developer and security tools for humans and AI agents. Many are browser-only; edge, network, and configurable AI routes are labelled on tool pages.",
+  "description": "Mostly small developer and security utilities. Selected pages and MCP operations support agent invocation; edge, network, and configurable AI routes are labelled on utility pages.",
   "agentContract": {
     "descriptor": "script#pf-tool (application/json) on each /tools/<slug>/ page",
     "result": "script#pf-result (application/json) and window.PF_RESULT after run; html[data-pf-ready=1]",

@@ -29,7 +29,7 @@
     <p class="updated">Last updated: August 29, 2026</p>
 
     <h2>Overview</h2>
-    <p>Penumbra Forge LLC ("Penumbra Forge") is an independent software company building developer, AI, and security tools. Some routes are browser-local and others use workers, third-party services, or endpoints you configure; this policy describes those differences. It covers penumbraforge.com and the services we operate.</p>
+    <p>Penumbra Forge LLC ("Penumbra Forge") is a one-person software studio maintaining developer, AI, and security projects. Some routes are browser-local and others use workers, third-party services, or endpoints you configure; this policy describes those differences. It covers penumbraforge.com and services operated by Penumbra Forge.</p>
 
     <h2>How Data Moves</h2>
     <p>Many tools run entirely in the browser, but not every feature is offline. Each tool page labels its route as browser, edge, network, or selectable AI and includes a short disclosure. Do not assume that every Penumbra Forge tool keeps input on your device.</p>
@@ -44,7 +44,7 @@
     <p>The site has no user accounts and does not use advertising cookies. Favorites, recent tools, AI settings, and any API key you choose to save are stored in your browser's local storage. Anyone with access to that browser profile may be able to read them. Tool-invocation fragments such as <code>#in=</code> are not sent in the HTTP request; legacy query-string inputs are sent to the hosting/CDN layer before the tool page runs.</p>
 
     <h2>Analytics</h2>
-    <p>We use Cloudflare Web Analytics for aggregate traffic measurements. Penumbra Forge does not use it for advertising or set its own analytics cookies. Cloudflare still processes request and device metadata under its own privacy policy.</p>
+    <p>The site uses Cloudflare Web Analytics for aggregate traffic measurements. Penumbra Forge does not use it for advertising or set its own analytics cookies. Cloudflare still processes request and device metadata under its own privacy policy.</p>
 
     <h2>Edge Workers and the Remote MCP Endpoint</h2>
     <p>Site Score, Privacy Scan, and CT Monitor send the submitted URL or domain to a Cloudflare Worker, which makes the requested lookup. The remote MCP endpoint likewise receives the arguments needed for the tool call. Hosting and security infrastructure may create ordinary request metadata or logs; do not send sensitive material merely because a worker normally processes a payload in memory.</p>
@@ -54,7 +54,7 @@
     <p>Gate, vexes, and mcp-librarian run on your machine and do not require a Penumbra Forge account, but some requested features contact other services:</p>
     <ul>
         <li><strong>Gate</strong> can send a bounded credential value to the relevant provider API when you explicitly enable credential verification.</li>
-        <li><strong>vexes</strong> sends package coordinates to OSV, deps.dev, and package registries, can download package archives for deep analysis, and can send sanitized finding data to a model endpoint when AI explanation is explicitly configured.</li>
+        <li><strong>vexes</strong> sends package coordinates to OSV, deps.dev, and package registries, can download bounded package archives for requested source inspection, and can send sanitized finding data to a model endpoint when AI explanation is explicitly configured.</li>
         <li><strong>mcp-librarian</strong> makes outbound requests when a network or research tool is invoked. The destination receives the requested URL or query.</li>
     </ul>
     <p>These projects do not intentionally send telemetry to Penumbra Forge. Consult each project's documentation and configuration before using it with sensitive data.</p>
@@ -72,12 +72,12 @@
     <p>Browser-local state remains until you clear site data. One-Time Secret retains its submitted value until TTL expiry or until a post-retrieval KV deletion propagates. User-selected providers and destinations apply their own retention policies. Penumbra Forge does not promise that CDN, hosting, abuse-prevention, or worker infrastructure creates no operational logs.</p>
 
     <h2>Children's Privacy</h2>
-    <p>Our services are not directed at children under 13. We do not knowingly collect information from children.</p>
+    <p>The services are not directed at children under 13. Penumbra Forge does not knowingly collect information from children.</p>
 
     <h2>Changes</h2>
-    <p>We may update this policy as our services evolve. The "last updated" date above reflects the most recent revision.</p>
+    <p>This policy may be updated as the services evolve. The "last updated" date above reflects the most recent revision.</p>
 
     <h2>Contact</h2>
-    <p>Questions about privacy? Reach us at <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a></p>
+    <p>Questions about privacy can be sent to <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a>.</p>
 </body>
 </html>

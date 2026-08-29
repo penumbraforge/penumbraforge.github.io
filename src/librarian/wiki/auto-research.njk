@@ -23,7 +23,7 @@ permalink: /librarian/wiki/auto-research/
 <tr><td><code>research_topic</code></td><td><code>topic</code>; optional <code>urls</code></td><td>Sends a derived query to DuckDuckGo, combines results with supplied URLs, and fetches up to five pages.</td></tr>
 <tr><td><code>fetch_page</code></td><td><code>url</code></td><td>Fetches one public HTTP(S) URL and returns extracted text.</td></tr>
 </tbody></table>
-<p>These tools always use the network when called. Pack browsing and installation are separate network paths described in <a href="/librarian/wiki/community-packs/">Community Packs</a>.</p>
+<p>These tools always use the network when called. Pack browsing and installation are separate network paths described in <a href="/librarian/wiki/community-packs/">Indexed Packs</a>.</p>
 
 <h2 id="search">Search flow</h2>
 <p><code>research_topic</code> appends <code>official documentation best practices</code> to the topic and tries DuckDuckGo's HTML endpoint, then its lite endpoint if no links are extracted. Those endpoints and their markup are not an API contract, so search is best-effort.</p>

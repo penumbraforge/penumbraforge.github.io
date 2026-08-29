@@ -62,17 +62,17 @@ permalink: /librarian/
       </div>
 
       <div class="lib-feature-card" role="listitem">
-        <h3>Quality-Weighted Search</h3>
+        <h3>BM25 plus a heuristic score</h3>
         <p><code>find_skill</code> blends normalized BM25 relevance with a heuristic score based on token shapes, code examples, imperative steps, and optional source domains. Results point at indexed chunks; the score is not a correctness or safety rating.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
-        <h3>{{ versions.librarian.packs }} Community Packs</h3>
+        <h3>{{ versions.librarian.packs }} indexed packs</h3>
         <p>The current public index lists {{ versions.librarian.packs }} packs with {{ versions.librarian.packSkills }} skills total: one Markdown file in each pack. The registry CI checks manifest structure, basic frontmatter, headings, and bundled content-guard patterns.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
-        <h3>Ed25519 Integrity</h3>
+        <h3>Recorded signature status</h3>
         <p>With <code>keys/private.pem</code> present, <code>create_skill</code> and a changing <code>install_pack</code> re-sign every flat skill. The store records status while loading or rebuilding. <code>skill_status</code> returns that snapshot; it does not hash the file again on each call.</p>
       </div>
 
@@ -87,7 +87,7 @@ permalink: /librarian/
       </div>
 
       <div class="lib-feature-card" role="listitem">
-        <h3>Zero Dependencies</h3>
+        <h3>No external runtime packages</h3>
         <p>The published package declares no external runtime dependencies and requires Node.js 22 or newer. It uses Node built-ins for stdio MCP transport, search storage, cryptography, filesystem access, DNS, and HTTP(S).</p>
       </div>
 
@@ -99,7 +99,7 @@ permalink: /librarian/
 <section class="lib-section" aria-labelledby="tools-title">
   <div class="lib-wrap">
     <div class="section-label">Tools Reference</div>
-    <h2 id="tools-title">14 MCP tools exposed to your agent</h2>
+    <h2 id="tools-title">14 MCP tools</h2>
     <div class="lib-table-wrap" role="region" aria-label="MCP tools reference table">
       <table class="lib-table">
         <thead>
@@ -131,7 +131,7 @@ permalink: /librarian/
           </tr>
           <tr>
             <td>browse_packs</td>
-            <td>Browse available community skill packs with descriptions and install commands. Searchable by keyword.</td>
+            <td>Browse indexed skill packs with descriptions and install commands. Searchable by keyword.</td>
           </tr>
           <tr>
             <td>install_pack</td>
@@ -203,7 +203,7 @@ permalink: /librarian/
     <div class="lib-examples-list">
 
       <div class="lib-example-block">
-        <div class="lib-example-header">Agent pulls a skill on its own</div>
+        <div class="lib-example-header">A client loads a skill</div>
         <div class="lib-example-prompt">Build me a REST API for user management</div>
         <div class="lib-example-response">
           A client exposes the catalog notification &#8594; its model calls <code>find_skill</code> &#8594; receives ranked section matches &#8594; calls <code>load_section</code> with a returned slug. Tool selection is client/model behavior, not a server guarantee.
@@ -222,7 +222,7 @@ permalink: /librarian/
         <div class="lib-example-header">Browse and install packs</div>
         <div class="lib-example-prompt">What skill packs are available?</div>
         <div class="lib-example-response">
-          Calling <code>browse_packs</code> &#8594; 9 packs found: security-hardening, api-design, git-patterns, testing-patterns, typescript-advanced, docker-and-compose, postgres-patterns, writing-skills, prompt-engineering. Pick any to install with one command.
+          Calling <code>browse_packs</code> &#8594; 9 packs found: security-hardening, api-design, git-patterns, testing-patterns, typescript-advanced, docker-and-compose, postgres-patterns, writing-skills, prompt-engineering. A client can request installation by name.
         </div>
       </div>
 
@@ -241,7 +241,7 @@ permalink: /librarian/
 <!-- AVAILABLE PACKS -->
 <section class="lib-section" aria-labelledby="packs-title">
   <div class="lib-wrap">
-    <div class="section-label">Community Packs</div>
+    <div class="section-label">Indexed Packs</div>
     <h2 id="packs-title">9 indexed packs, one skill each</h2>
     <p>The checked-in registry currently lists nine packs and nine Markdown files. <code>browse_packs</code> fetches that live index, so the count may change after this page is published.</p>
     <div class="lib-table-wrap" role="region" aria-label="Available skill packs">
@@ -329,7 +329,7 @@ permalink: /librarian/
           <tr>
             <td>MCP_LIBRARIAN_SKILLS_REPO</td>
             <td><code>penumbraforge/mcp-librarian-skills</code></td>
-            <td>GitHub repository used as the community pack source for <code>install_pack</code>.</td>
+            <td>GitHub repository used as the indexed pack source for <code>install_pack</code>.</td>
           </tr>
         </tbody>
       </table>

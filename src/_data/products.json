@@ -1,14 +1,14 @@
 [
   {
     "name": "umbra",
-    "description": "Local-first AI studio (GUI and TUI) for running and inspecting language models on your own hardware. Being built against an NVIDIA DGX Spark. Early development — not usable yet.",
+    "description": "A private, unreleased local AI application being developed on Apple Silicon with MLX. A working prototype exists, but there is no public build or supported release yet.",
     "url": "/umbra",
     "repo": null,
     "status": "in development"
   },
   {
     "name": "gate",
-    "description": "Pre-commit hook that scans staged changes for credentials and can attempt bounded rewrites for supported source forms. Pattern-based, so expect false positives and misses.",
+    "description": "An experimental local CLI for finding secret-like patterns in source files and git history. It can install a repository-local pre-commit hook and attempt bounded source rewrites. Pattern matching can produce false positives and misses.",
     "url": "/gate",
     "repo": "https://github.com/penumbraforge/gate",
     "status": "experimental"

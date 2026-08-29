@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 title: "Tools for AI agents — MCP, llms.txt & URL-invoke | Penumbra Forge"
-description: "Three ways for an agent to use Penumbra Forge tools: MCP, a machine index, or URL invocation. Processing routes vary by tool and are labelled. No accounts."
+description: "Agents can discover the catalog through machine-readable indexes and invoke selected operations through MCP or opted-in URLs. Processing routes vary and are labelled."
 permalink: /tools/agents/
 hideAtmosphere: true
 ---
@@ -15,7 +15,7 @@ hideAtmosphere: true
 
     <div class="wb-head">
       <div class="wb-head-main">
-        <h1>Tools for AI agents <span class="wb-chip">MCP · llms.txt · URL</span></h1>
+        <h1>Selected operations for AI agents <span class="wb-chip">MCP · llms.txt · URL</span></h1>
         <p class="wb-about">The catalog currently has <strong>{{ stats.liveTools }} live tool pages</strong>, the MCP registry exposes <strong>{{ stats.mcpTools }} callable tools</strong>, and <strong>{{ stats.urlInvocableTools }} pages</strong> declare the documented URL-input/result contract. Routes are labelled browser, edge worker, direct network, or selectable AI. These integrations are experimental, so inspect the descriptor and route before relying on one.</p>
       </div>
     </div>

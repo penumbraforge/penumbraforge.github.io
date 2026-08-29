@@ -1,28 +1,26 @@
 ### Hey, I'm Shadoe
 
-Information security engineer on a CIRT, and the person behind **Penumbra Forge LLC** — a one-person company building developer and security tools with local-first designs and explicit network boundaries.
+Information security engineer on a CIRT, and the person behind **Penumbra Forge LLC** — a one-person software studio maintaining developer and security utilities with explicit network boundaries.
 
-Most of what's here is early. I'd rather say that up front than oversell it. If you try something and it breaks, an issue is genuinely useful to me.
+Most of this work is early. Reproducible bug reports are welcome.
 
 ---
 
 #### Projects
 
-**[Gate](https://github.com/penumbraforge/gate)** — *experimental* — A pre-commit hook that scans staged changes for credentials and can attempt bounded rewrites for supported source forms. Pattern-based detection across several languages, with optional verification for a few provider types. Expect false positives and misses; it's a safety net, not a guarantee. Runs locally by default; requested verification and update paths use the network.
+**[Gate](https://github.com/penumbraforge/gate)** — *experimental* — A local CLI that looks for secret-like patterns in source files and git history. It can install a repository-local pre-commit hook and attempt bounded rewrites for supported source forms. Optional provider verification sends matched credentials to the selected provider. Expect false positives and misses.
 
 **[vexes](https://github.com/penumbraforge/vexes)** — *experimental* — A local CLI that matches dependency coordinates to OSV across ten ecosystems and, for npm/PyPI, surfaces bounded source and registry heuristics. Findings may be incomplete and are not safety verdicts. Zero external runtime npm dependencies; scans still contact documented upstream services.
 
 **[mcp-librarian](https://github.com/penumbraforge/mcp-librarian)** — *experimental* — An MCP server that gives coding agents a local skill library. BM25 search, Ed25519 signing on supported writes, and integrity status recorded during indexing. Current load responses do not enforce refusal of tampered content, so clients must check status. No external runtime dependencies.
 
-**[penumbraforge.com](https://penumbraforge.com)** — Developer and security tools with browser, edge, direct-network, and selectable AI routes labelled on each page. There's also a machine-readable index and an MCP server for non-model utility functions. No accounts; check a tool's disclosure before entering sensitive data.
+**[penumbraforge.com](https://penumbraforge.com)** — A catalog of mostly small developer and security utilities with browser, edge, direct-network, and selectable-AI routes labelled on each page. There's also a machine-readable index and an MCP server for non-model utility functions. No accounts; check a utility's disclosure before entering sensitive data.
 
 ---
 
 #### In progress
 
-**[Umbra](https://penumbraforge.com/umbra/)** — A local-first AI studio (GUI + TUI) for running and inspecting language models on your own hardware. Being built against an NVIDIA DGX Spark. Early development, not usable yet.
-
-Also working on: expanding Gate's rules and SARIF output, broadening vexes' ecosystem coverage and cutting down its false positives, and adding skill packs for mcp-librarian.
+**[Umbra](https://penumbraforge.com/umbra/)** — A private, unreleased local AI application being developed on Apple Silicon with MLX. A working prototype exists, but there is no public build or supported release yet.
 
 ---
 

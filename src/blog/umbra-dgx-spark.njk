@@ -1,13 +1,13 @@
 ---
 date: 2026-08-12
 layout: base.njk
-title: "Correction: Umbra and DGX Spark — Penumbra Forge"
-description: "A correction to the original Umbra hardware-direction post, separating a development target from unverified history and future capability claims."
+title: "Second correction: Umbra's current development target — Penumbra Forge"
+description: "The prior correction is now stale: Umbra's active development tree uses Apple Silicon and MLX, not the previously stated DGX Spark and CUDA target."
 permalink: /blog/umbra-dgx-spark/
-cardTitle: "Correction: Umbra and DGX Spark"
-postTags: ["correction", "Umbra", "DGX Spark"]
+cardTitle: "Second correction: Umbra's current target"
+postTags: ["correction", "Umbra", "Apple Silicon", "MLX"]
 readTime: "2 min read"
-excerpt: "The original post mixed a hardware direction with an unsupported 397B story and projected capabilities. This version keeps only the current, limited status."
+excerpt: "The August 28 correction is now stale. Umbra's active development tree uses Apple Silicon and MLX, and the working prototype remains private and unreleased."
 ---
 
 <link rel="stylesheet" href="/css/blog.css?v={{ assetv }}">
@@ -16,24 +16,24 @@ excerpt: "The original post mixed a hardware direction with an unsupported 397B 
 <div class="blog-page">
   <article class="blog-article">
     <div class="blog-article-header">
-      <h1>Correction: Umbra and DGX Spark</h1>
+      <h1>Second correction: Umbra's current development target</h1>
       <div class="blog-post-meta">
-        <span class="blog-post-date">Originally August 12, 2026 · corrected August 28, 2026</span>
+        <span class="blog-post-date">Originally August 12, 2026 · corrected August 28 and August 29, 2026</span>
         <span class="blog-post-tag">correction</span>
       </div>
     </div>
 
-    <p class="blog-article-lede">The original article combined a reasonable development direction with first-person and performance claims that were not backed by retained, reproducible evidence. It also described planned Umbra behavior too confidently for an unreleased project.</p>
+    <p class="blog-article-lede">The August 28 correction is now stale. Umbra's active development tree moved from the stated DGX Spark/CUDA target to Apple Silicon and MLX. A working private prototype exists, but there is no public build, supported hardware matrix, benchmark set, support commitment, or release date.</p>
 
     <div class="blog-body">
-      <h2>What remains true</h2>
-      <p>Umbra is an early, unreleased attempt at a GUI and terminal interface for local model work. NVIDIA DGX Spark and CUDA are the current target environment. There is no public build, supported hardware matrix, benchmark set, or release date.</p>
+      <h2>What is current</h2>
+      <p>Umbra's private development tree includes a browser interface, a Tauri desktop shell, a local FastAPI backend, and MLX inference on Apple Silicon. It is a working development prototype, not a public or supported release.</p>
 
       <h2>What has been removed</h2>
       <p>The original post repeated the now-withdrawn claim that a 397B mixture-of-experts model had been run on a 32&nbsp;GB MacBook through custom Metal work. It also stated projected resident-model, activation-capture, and multi-model behavior as though those capabilities had already been measured. Those statements should not be relied on without exact artifacts, commands, raw logs, and repeatable measurements.</p>
 
       <h2>Current status</h2>
-      <p>The <a href="/umbra/">Umbra page</a> is intentionally a design-status page: some details are goals and may change. Any future performance claim should name the hardware, model revision, quantization, runtime, command, prompt or workload, measurement method, and raw result. Until then, “target” and “planned” are the honest words.</p>
+      <p>The <a href="/umbra/">Umbra page</a> records the current private prototype without making performance or release claims. Any future performance claim should name the hardware, model revision, quantization, runtime, command, workload, measurement method, and raw result.</p>
 
       <div class="blog-nav"><a href="/blog/" class="blog-nav-link">&larr; All posts</a></div>
     </div>

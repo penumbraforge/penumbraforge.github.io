@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 title: "Playground — experiments, easter eggs, and the site console | Penumbra Forge"
-description: "Things built for the fun of it: a browser terminal, a security roguelike, a snake game, and a command console that drives this entire site from the keyboard."
+description: "Things built for the fun of it: a browser terminal, a security roguelike, a snake game, and a keyboard command palette for navigating the site."
 permalink: /playground/
 ---
 
@@ -19,8 +19,8 @@ permalink: /playground/
   <section class="pg-feature" aria-labelledby="console-title">
     <div class="pg-feature-body">
       <p class="section-label">Site console</p>
-      <h2 id="console-title">Drive this whole site from a command line</h2>
-      <p>Press <kbd>⌘</kbd><kbd>`</kbd> (or <kbd>Ctrl</kbd><kbd>`</kbd>) anywhere on this site and a real console opens. It searches all {{ stats.liveTools }} tools by name and keyword, navigates between products and docs, jumps straight to a recorded demo, and launches everything below.</p>
+      <h2 id="console-title">Navigate the site from a command palette</h2>
+      <p>Press <kbd>⌘</kbd><kbd>`</kbd> (or <kbd>Ctrl</kbd><kbd>`</kbd>) anywhere on this site to open a keyboard command palette. It searches all {{ stats.liveTools }} utilities by name and keyword, navigates between projects and docs, jumps to recorded demos, and launches the experiments below.</p>
       <p>It reads the same machine-readable tool index that AI agents consume at <a href="/tools/index.json">/tools/index.json</a>, so its catalog is generated from the site's current tool data. Tab completes, <kbd>↑</kbd> walks history, <kbd>Esc</kbd> closes.</p>
       <button type="button" class="pg-btn" data-open-console>{{ icon("terminal", 16) }} <span>Open the console</span></button>
     </div>

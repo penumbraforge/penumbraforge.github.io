@@ -1,7 +1,7 @@
 {
   "name": "Penumbra Forge",
   "short_name": "Penumbra Forge",
-  "description": "Security and developer tools with labelled browser, edge, network, and AI processing routes. Free to use online, source-visible, no accounts.",
+  "description": "Mostly small security and developer utilities with labelled browser, edge, network, and AI processing routes. Free to use online, source-visible, no accounts.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#050509",
