@@ -1609,68 +1609,6 @@ a.t-card {
   color: var(--text-3);
 }
 
-/* -- Gate Comparison Table -- */
-.gate-comparison-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  margin-top: 16px;
-}
-
-.gate-comparison {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-  min-width: 520px;
-}
-
-.gate-comparison th,
-.gate-comparison td {
-  padding: 8px 10px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
-
-.gate-comparison th {
-  font-size: 10px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 400;
-  white-space: nowrap;
-}
-
-.gate-comparison th:first-child {
-  color: var(--text-3);
-}
-
-.gate-comparison th.highlight {
-  color: var(--accent);
-}
-
-.gate-comparison td:first-child {
-  color: var(--text-2);
-  white-space: nowrap;
-  text-align: left;
-}
-
-.gate-comparison td {
-  color: var(--text-3);
-  text-align: center;
-}
-
-.gate-comparison .yes { color: var(--sage); }
-.gate-comparison .no { color: var(--text-3); }
-.gate-comparison .paid { color: #cfb86b; }
-
-.gate-comparison tr:last-child td { border-bottom: none; }
-
-.gate-comparison tbody tr {
-  transition: background 100ms ease;
-}
-.gate-comparison tbody tr:hover {
-  background: rgba(184, 165, 214, 0.03);
-}
-
 /* -- Gate Terminal Demo -- */
 .gate-terminal {
   background: var(--surface-1);
@@ -2687,12 +2625,6 @@ a.t-card {
     grid-template-columns: 1fr;
   }
 
-  .gate-comparison-wrap {
-    margin-left: -24px;
-    margin-right: -24px;
-    padding: 0 24px;
-  }
-
   .gate-install-block code { font-size: 11px; }
 
   .gate-lang-grid {
@@ -3143,11 +3075,6 @@ a.t-card {
     padding: 12px 14px;
   }
 
-  /* Gate tables: ensure scroll wrapper works */
-  .gate-comparison-wrap {
-    -webkit-overflow-scrolling: touch;
-  }
-
   .gate-cmd-table {
     display: block;
     overflow-x: auto;
@@ -3584,16 +3511,6 @@ html:has(.tools-hub-page) {
   color: var(--accent);
   white-space: nowrap;
 }
-
-/* -- Vexes Comparison Extras -- */
-.vx-comparison td:first-child {
-  color: var(--text-2);
-}
-.vx-highlight { color: var(--accent) !important; }
-.vx-yes { color: var(--sage); }
-.vx-paid { color: #cfb86b; }
-.vx-comparison td { text-align: center; }
-.vx-comparison td:first-child { text-align: left; }
 
 /* -- Vexes Security -- */
 .vx-security-list {
