@@ -4,7 +4,7 @@ description: "Current scope, evidence model, and limitations for vexes."
 permalink: /vexes/wiki/
 ---
 <h1>vexes Wiki</h1>
-<p class="subtitle">Documentation for an experimental dependency-evidence CLI. This copy follows the v{{ versions.vexes.sourceVersion }} source tree; npm <code>latest</code> is currently v{{ versions.vexes.version }}.</p>
+<p class="subtitle">Documentation for an experimental dependency-evidence CLI. {% if versions.vexes.version == versions.vexes.sourceVersion %}This copy and npm <code>latest</code> both describe v{{ versions.vexes.version }}.{% else %}This copy follows the v{{ versions.vexes.sourceVersion }} source tree; npm <code>latest</code> is currently v{{ versions.vexes.version }}.{% endif %}</p>
 
 <div class="warning-box"><strong>Do not read a quiet result as “safe.”</strong> vexes can match supported dependency coordinates to OSV and surface bounded heuristic evidence. It can miss malicious behavior, report benign behavior, or return incomplete evidence. Incomplete requested checks exit 2.</div>
 

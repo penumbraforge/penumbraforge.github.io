@@ -7,7 +7,11 @@ permalink: /vexes/wiki/getting-started/
 <p class="subtitle">Start with advisory matching, then add heuristic analysis only where its bounded evidence helps.</p>
 
 <h2>Requirements and versions</h2>
+{% if versions.vexes.version == versions.vexes.sourceVersion %}
+<p>Node.js {{ versions.vexes.node }} or later is required. The published npm package, GitHub source tree, and this wiki currently describe v{{ versions.vexes.version }}.</p>
+{% else %}
 <p>Node.js {{ versions.vexes.node }} or later is required. The published npm package is currently v{{ versions.vexes.version }}. The GitHub source tree and this wiki describe v{{ versions.vexes.sourceVersion }} until that source is published.</p>
+{% endif %}
 
 <div class="code-block"><span class="cmt"># Published package</span>
 <span class="prompt">$ </span><span class="cmd">npx @penumbraforge/vexes scan</span>

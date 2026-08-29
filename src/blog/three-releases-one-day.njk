@@ -31,7 +31,7 @@ excerpt: "The original release story overstated several guarantees. This correct
       <p>Default scans are local, but “no network” is too broad: verification sends a credential to its provider, and update operations can contact remote sources. Core source rewrites use a temporary-file-and-rename path; not every Gate state or configuration write shares that guarantee. Some subprocess paths use argument arrays and some are shell-backed.</p>
 
       <h2>vexes 0.3.0</h2>
-      <p>This was a historical release in a project now at source v{{ versions.vexes.sourceVersion }} (npm latest v{{ versions.vexes.version }}). CVSS parsing, model-assisted explanation, SARIF, and GitHub Action behavior evolved over subsequent releases. Old demo counts were point-in-time OSV observations and should not be repeated as a stable benchmark.</p>
+      <p>This was a historical release in a project now at v{{ versions.vexes.sourceVersion }}. CVSS parsing, model-assisted explanation, SARIF, and GitHub Action behavior evolved over subsequent releases. Old demo counts were point-in-time OSV observations and should not be repeated as a stable benchmark.</p>
       <p>Current AI support is pluggable across configured OpenAI-compatible and Anthropic-compatible endpoints. Model output is a draft. SARIF fingerprints are intended to help cross-run correlation; deduplication ultimately depends on the receiving platform. Vexes contacts OSV and registries during normal use, so it runs locally but is not an offline scanner.</p>
 
       <h2>mcp-librarian 3.1.0</h2>
