@@ -70,6 +70,32 @@ function inputSchema(schema, name) {
   return { type: 'object', properties: props, required: REQUIRED_FIELDS[name] || [], additionalProperties: false };
 }
 
+function validateToolArguments(name, args) {
+  if (!args || typeof args !== 'object' || Array.isArray(args)) {
+    throw new Error('Invalid arguments: expected an object');
+  }
+
+  const schema = inputSchema(TOOLS[name].schema, name);
+  for (const field of schema.required) {
+    if (!Object.prototype.hasOwnProperty.call(args, field)) {
+      throw new Error('Invalid arguments: missing required field "' + field + '"');
+    }
+  }
+
+  for (const [field, value] of Object.entries(args)) {
+    const property = schema.properties[field];
+    if (!property) {
+      throw new Error('Invalid arguments: unknown field "' + field + '"');
+    }
+    if (typeof value !== property.type) {
+      throw new Error('Invalid arguments: field "' + field + '" must be ' + property.type);
+    }
+    if (property.enum && !property.enum.includes(value)) {
+      throw new Error('Invalid arguments: field "' + field + '" must be one of ' + property.enum.join(', '));
+    }
+  }
+}
+
 function toolRoute(name) {
   return NETWORK_TOOL_NAMES.has(name) ? 'outbound-network' : 'mcp-process';
 }
@@ -114,7 +140,9 @@ async function handleOne(msg) {
       const tool = TOOLS[name];
       if (!tool) return isNotification ? null : ok(id, { content: [{ type: 'text', text: 'Unknown tool: ' + name }], isError: true });
       try {
-        const out = await tool.run((params && params.arguments) || {});
+        const args = (params && params.arguments) || {};
+        validateToolArguments(name, args);
+        const out = await tool.run(args);
         return isNotification ? null : ok(id, { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }] });
       } catch (e) {
         return isNotification ? null : ok(id, { content: [{ type: 'text', text: 'Error: ' + e.message }], isError: true });
