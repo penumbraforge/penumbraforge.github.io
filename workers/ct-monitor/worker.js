@@ -20,7 +20,7 @@ export default {
     }
 
     const origin = request.headers.get('Origin') || '';
-    if (env.ALLOWED_ORIGIN && !origin.startsWith(env.ALLOWED_ORIGIN)) {
+    if (env.ALLOWED_ORIGIN && origin !== env.ALLOWED_ORIGIN) {
       return json({ error: 'Forbidden' }, 403, env);
     }
 
@@ -40,7 +40,7 @@ export default {
 
     const { domain, token } = body;
 
-    if (env.TURNSTILE_SECRET && token) {
+    if (env.TURNSTILE_SECRET) {
       const verified = await verifyTurnstile(token, ip, env.TURNSTILE_SECRET);
       if (!verified) {
         return json({ error: 'Turnstile verification failed' }, 403, env);
@@ -52,7 +52,7 @@ export default {
       return json({ error: 'Invalid domain name' }, 400, env);
     }
 
-    /* Strip any subdomain prefix — search base domain and wildcards */
+    /* Normalize a leading www.; otherwise preserve the requested domain. */
     const cleanDomain = domain.replace(/^www\./, '').toLowerCase();
 
     try {
@@ -95,16 +95,16 @@ export default {
           entryTimestamp: cert.entry_timestamp || '',
         });
 
-        if (results.length >= 100) break;
       }
 
       /* Sort by most recent first */
       results.sort((a, b) => new Date(b.entryTimestamp || b.notBefore) - new Date(a.entryTimestamp || a.notBefore));
+      const returned = results.slice(0, 100);
 
       return json({
         domain: cleanDomain,
-        totalFound: certs.length,
-        certificates: results,
+        totalFound: results.length,
+        certificates: returned,
       }, 200, env);
 
     } catch (err) {

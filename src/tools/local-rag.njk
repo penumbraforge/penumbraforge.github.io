@@ -51,7 +51,7 @@ permalink: /tools/local-rag/
       <div class="rag-drop" id="dropZone" role="button" tabindex="0" aria-label="Add source files by dropping or choosing">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4"/></svg>
         <p><strong>Drop files here</strong> or <button type="button" class="btn" id="chooseBtn">choose files</button></p>
-        <p class="rag-hint">.txt · .md · .json · .csv · .log · source code — plain text only. Nothing is uploaded.</p>
+        <p class="rag-hint">.txt · .md · .json · .csv · .log · source code — plain text only. Files stay in the page until indexing; the selected AI engine determines whether derived chunks and questions are sent to an endpoint.</p>
         <input type="file" id="fileInput" multiple hidden aria-hidden="true">
       </div>
     </div>
@@ -318,7 +318,7 @@ permalink: /tools/local-rag/
     } else {
       m.appendChild(el('b', null, 'No sources yet.'));
       m.appendChild(document.createElement('br'));
-      m.appendChild(document.createTextNode('Drop a file or paste text above, or try “Load example docs”. Everything stays on your machine.'));
+      m.appendChild(document.createTextNode('Drop a file or paste text above, or try “Load example docs”. Check the selected engine before adding sensitive material.'));
     }
     log.appendChild(m);
   }
@@ -419,14 +419,14 @@ permalink: /tools/local-rag/
       "the chunks whose meaning is closest to your question using cosine similarity. The five most " +
       "relevant chunks are handed to the language model as context, and the model answers using only " +
       "that context, citing which source it used.\n\n" +
-      "Nothing you add or ask is uploaded. Files never leave your browser; the whole pipeline runs on your machine.";
+      "The original File objects are read in the page. WebGPU mode keeps chunks and questions in the page; endpoint modes send the text needed for embeddings and answers to the configured server.";
     var engines =
       "# Engines and privacy\n\n" +
-      "You can run this tool three ways, all private:\n\n" +
+      "You can run this tool three ways, with different data routes:\n\n" +
       "- In-browser (WebGPU): a real LLM and an embedding model run inside your browser on your GPU. " +
       "The models download once from Hugging Face and are then cached for offline use.\n" +
-      "- Your local server: point the tool at your own Ollama or LM Studio instance. The model runs on your own hardware.\n" +
-      "- API key: bring your own OpenAI-compatible key. Requests go only to the endpoint you configure, never to Penumbra Forge.\n\n" +
+      "- Configured server: point the tool at an Ollama, LM Studio, or compatible endpoint. Text chunks and questions are sent to that URL.\n" +
+      "- API key: requests, relevant text chunks, and the key go to the OpenAI-compatible endpoint you configure; its privacy terms apply.\n\n" +
       "The recommended fast in-browser model is Llama 3.2 1B. For higher quality, choose a larger model in the engine settings. " +
       "In-browser embeddings use the Snowflake Arctic Embed model.";
     indexAll([{ name: 'how-it-works.md', text: welcome }, { name: 'engines.md', text: engines }]).then(function () {

@@ -1,159 +1,89 @@
 ---
 title: "Getting Started"
-description: "Install mcp-librarian, run the installer, verify the setup, and perform your first skill search."
+description: "Install mcp-librarian 3.1.0, configure its real stdio entrypoint, inspect the starter skill, and verify the server's actual status response."
 permalink: /librarian/wiki/getting-started/
 ---
 <h1>Getting Started</h1>
-    <p class="subtitle">Install mcp-librarian, run the installer, verify the setup, and perform your first skill search.</p>
+<p class="subtitle">Install the server, connect an MCP client, and verify what is actually on disk.</p>
 
-    <h2 id="prerequisites">Prerequisites</h2>
+<h2 id="requirements">Requirements</h2>
+<ul>
+  <li>Node.js 22 or newer.</li>
+  <li>An MCP client that can launch a stdio server.</li>
+  <li>Network access only if you use pack or research tools.</li>
+</ul>
 
-    <p>mcp-librarian requires <strong style="color: var(--text-1);">Node.js {{ versions.librarian.node }} or later</strong>. No other dependencies are needed -- the project is built entirely on Node.js built-in modules. There is no <code>npm install</code> step.</p>
+<h2 id="install">Install from source</h2>
+<div class="code-block"><span class="cmd">git clone https://github.com/penumbraforge/mcp-librarian.git</span>
+<span class="cmd">cd mcp-librarian</span>
+<span class="cmd">node bin/install.js</span></div>
 
-    <div class="code-block"><span class="cmt"># Check your Node.js version</span>
-<span class="prompt">$ </span><span class="cmd">node --version</span>
-<span class="dim">v22.11.0</span></div>
+<p>The installer uses Node built-ins; there is no dependency-install step. It:</p>
+<ol>
+  <li>Creates the selected home directory, defaulting to <code>~/.mcp-librarian/</code>.</li>
+  <li>Creates <code>skills/</code> and <code>keys/</code>.</li>
+  <li>Writes <code>keys/private.pem</code> and <code>keys/public.pem</code> with mode <code>0600</code>, unless you keep an existing pair.</li>
+  <li>Creates a skeleton <code>manifest.json</code> if one is absent.</li>
+  <li>Copies the bundled <code>getting-started.md</code> skill if that filename is absent.</li>
+  <li>Detects Claude Code by its CLI and looks for Cursor and Windsurf configuration directories, then asks before configuring any of them.</li>
+</ol>
 
-    <p>You also need <strong style="color: var(--text-1);">Git</strong> for cloning the repository, and an MCP-compatible client (Claude Code, Cursor, Windsurf, or a local model runner with MCP support).</p>
+<div class="info-box"><strong>Fresh installs are not empty.</strong> The repository currently bundles one starter skill. The installer does not sign it during installation, so its initial status is normally <code>UNSIGNED</code> despite the generated keypair.</div>
 
-    <h2 id="installation">Installation</h2>
+<h2 id="entrypoint">Manual client configuration</h2>
+<p>Use the actual repository path to <code>bin/mcp-librarian.js</code>. There is no <code>server.js</code> entrypoint.</p>
 
-    <p>Clone the repository and run the installer. Three commands, nothing else.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">git clone https://github.com/penumbraforge/mcp-librarian.git</span>
-<span class="prompt">$ </span><span class="cmd">cd mcp-librarian</span>
-<span class="prompt">$ </span><span class="cmd">node bin/install.js</span></div>
-
-    <p>The installer is interactive and handles everything automatically. No <code>npm install</code> is required because mcp-librarian has zero external dependencies.</p>
-
-    <h2 id="what-the-installer-does">What the Installer Does</h2>
-
-    <p>The installer performs four operations in sequence:</p>
-
-    <ol>
-      <li><strong style="color: var(--text-1);">Generates Ed25519 signing keys.</strong> A keypair is created at <code>~/.mcp-librarian/keys/</code>. The private key signs every skill on write. The public key verifies integrity on every load. See <a href="/librarian/wiki/signing/">Ed25519 Signing</a> for details.</li>
-      <li><strong style="color: var(--text-1);">Creates the home directory.</strong> The default location is <code>~/.mcp-librarian/</code>. This directory holds your skills, search index, keys, and exports. See <a href="/librarian/wiki/configuration/">Configuration</a> for the full directory structure.</li>
-      <li><strong style="color: var(--text-1);">Detects your MCP client.</strong> The installer scans for Claude Code, Cursor, and Windsurf configuration files. If it finds one (or more), it offers to configure them automatically.</li>
-      <li><strong style="color: var(--text-1);">Configures the MCP client.</strong> The installer writes the correct MCP server configuration to your client's config file, pointing it to the mcp-librarian entry point with the correct arguments.</li>
-    </ol>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">node bin/install.js</span>
-
-<span class="dim">  mcp-librarian installer</span>
-
-<span class="ok">  Generated Ed25519 keypair</span>
-<span class="dim">  Private key: ~/.mcp-librarian/keys/signing.key</span>
-<span class="dim">  Public key:  ~/.mcp-librarian/keys/signing.pub</span>
-
-<span class="ok">  Created home directory</span>
-<span class="dim">  Location: ~/.mcp-librarian/</span>
-
-<span class="ok">  Detected MCP client: Claude Code</span>
-<span class="dim">  Config: ~/.claude/mcp_servers.json</span>
-
-<span class="ok">  Configured mcp-librarian for Claude Code</span>
-<span class="dim">  Ready to use. Restart your editor to activate.</span></div>
-
-    <h2 id="manual-configuration">Manual Configuration</h2>
-
-    <p>If the installer does not detect your MCP client, or you prefer manual setup, add the following to your client's MCP configuration file.</p>
-
-    <h3>Claude Code</h3>
-    <p>Add to <code>~/.claude/mcp_servers.json</code>:</p>
-
-    <div class="code-block">{
-  <span class="kw">"mcp-librarian"</span>: {
-    <span class="kw">"command"</span>: <span class="str">"node"</span>,
-    <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>],
-    <span class="kw">"env"</span>: {}
-  }
-}</div>
-
-    <h3>Cursor</h3>
-    <p>Add to your Cursor MCP settings (<code>~/.cursor/mcp.json</code>):</p>
-
-    <div class="code-block">{
+<div class="code-block">{
   <span class="kw">"mcpServers"</span>: {
     <span class="kw">"mcp-librarian"</span>: {
       <span class="kw">"command"</span>: <span class="str">"node"</span>,
-      <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>]
+      <span class="kw">"args"</span>: [<span class="str">"/absolute/path/to/mcp-librarian/bin/mcp-librarian.js"</span>]
     }
   }
 }</div>
 
-    <h3>Windsurf</h3>
-    <p>Add to your Windsurf MCP configuration:</p>
+<p>The installer writes this shape for Cursor and Windsurf. Its Claude Code path invokes:</p>
+<div class="code-block"><span class="cmd">claude mcp add mcp-librarian node -- "/absolute/path/to/mcp-librarian/bin/mcp-librarian.js"</span></div>
 
-    <div class="code-block">{
-  <span class="kw">"mcpServers"</span>: {
-    <span class="kw">"mcp-librarian"</span>: {
-      <span class="kw">"command"</span>: <span class="str">"node"</span>,
-      <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>]
-    }
+<h2 id="verify">Verify the connection</h2>
+<p>Restart the client, list the tools, then call <code>server_status</code> with no arguments. The handler currently returns this shape:</p>
+
+<div class="code-block">{
+  <span class="kw">"version"</span>: <span class="str">"3.0.0"</span>,
+  <span class="kw">"skillCount"</span>: <span class="val">1</span>,
+  <span class="kw">"indexStats"</span>: {
+    <span class="kw">"chunkCount"</span>: <span class="val">4</span>,
+    <span class="kw">"uniqueTerms"</span>: <span class="val">72</span>
+  },
+  <span class="kw">"uptime"</span>: <span class="val">12.34</span>,
+  <span class="kw">"config"</span>: {
+    <span class="kw">"logLevel"</span>: <span class="str">"info"</span>,
+    <span class="kw">"rateLimit"</span>: <span class="val">200</span>,
+    <span class="kw">"cacheSize"</span>: <span class="val">100</span>,
+    <span class="kw">"skillsRepo"</span>: <span class="str">"penumbraforge/mcp-librarian-skills"</span>
   }
 }</div>
 
-    <p>Replace <code>/path/to/mcp-librarian</code> with the actual path where you cloned the repository.</p>
+<p>The counts above are illustrative because they depend on installed content. Field names and types are not illustrative: uptime is numeric seconds, and the response does not include a home path, signing state, or human-formatted duration.</p>
+<div class="warning-box"><strong>Known version mismatch:</strong> package.json is {{ versions.librarian.version }}, while the current initialize and <code>server_status</code> handlers are hardcoded to <code>3.0.0</code>.</div>
 
-    <h2 id="verifying-the-setup">Verifying the Setup</h2>
+<h2 id="first-search">Search and load</h2>
+<p>Start by listing the bundled skill or searching it:</p>
+<div class="code-block">list_skills({})
 
-    <p>After installation, restart your editor or MCP client to pick up the new server configuration. Then verify that mcp-librarian is running by calling the <code>server_status</code> tool.</p>
+find_skill({ <span class="kw">query</span>: <span class="str">"using librarian"</span>, <span class="kw">limit</span>: <span class="val">5</span> })</div>
 
-    <p>In Claude Code, you can simply ask:</p>
+<p><code>find_skill</code> returns section-level matches. Use the returned <code>skill</code> and <code>section</code> values with:</p>
+<div class="code-block">load_section({ <span class="kw">skill</span>: <span class="str">"getting-started"</span>, <span class="kw">section</span>: <span class="str">"available-tools"</span> })</div>
 
-    <div class="code-block"><span class="dim">"Check if mcp-librarian is running."</span>
+<p>To load the whole file, call:</p>
+<div class="code-block">load_skill({ <span class="kw">skill</span>: <span class="str">"getting-started"</span> })</div>
 
-<span class="cmt"># The agent will call server_status and return something like:</span>
+<h2 id="network">Add content deliberately</h2>
+<p><code>browse_packs</code> and <code>install_pack</code> use the network. The current public registry lists nine one-skill packs. Read <a href="/librarian/wiki/community-packs/">Community Packs</a> first: same-name skills may be updated, and unsafe files can be rejected while accepted siblings install.</p>
+<p><code>research_topic</code> and <code>fetch_page</code> also use the network. Automatic research from <code>find_and_load</code> is disabled by default. Enable it only after reading <a href="/librarian/wiki/auto-research/">Auto-Research</a>.</p>
 
-<span class="ok">  mcp-librarian v{{ versions.librarian.version }}</span>
-<span class="dim">  Skills:    0</span>
-<span class="dim">  Uptime:    3s</span>
-<span class="dim">  Index:     empty (no skills loaded)</span>
-<span class="dim">  Home:      ~/.mcp-librarian</span>
-<span class="dim">  Signing:   Ed25519 keypair loaded</span></div>
-
-    <p>If you see a version number, skill count, and signing status, the server is running correctly. The skill count will be 0 until you install packs or create skills.</p>
-
-    <h2 id="first-skill-search">Your First Skill Search</h2>
-
-    <p>With a fresh installation, the library is empty. The fastest way to populate it is to install a community pack. Ask your agent:</p>
-
-    <div class="code-block"><span class="dim">"Install the security-hardening pack."</span>
-
-<span class="cmt"># The agent calls install_pack({ pack: "security-hardening" })</span>
-
-<span class="ok">  Installed pack: security-hardening</span>
-<span class="dim">  Skills added: 7</span>
-<span class="dim">  Index rebuilt: 7 skills, 42 sections</span></div>
-
-    <p>Now try a search. Ask your agent about any security topic:</p>
-
-    <div class="code-block"><span class="dim">"What are the best practices for input validation?"</span>
-
-<span class="cmt"># The agent calls find_and_load({ query: "input validation" })</span>
-<span class="cmt"># BM25 search finds the matching skill and returns the relevant section.</span></div>
-
-    <p>The agent receives the skill content and uses it to inform its response. You never need to explicitly ask the agent to check the library -- it does this automatically when it recognizes a relevant topic from the skill catalog.</p>
-
-    <h2 id="auto-research-example">Auto-Research in Action</h2>
-
-    <p>If you ask about a topic with no matching skill, auto-research activates automatically:</p>
-
-    <div class="code-block"><span class="dim">"Help me set up GraphQL federation."</span>
-
-<span class="cmt"># The agent calls find_and_load({ query: "GraphQL federation" })</span>
-<span class="cmt"># No skill found -- auto-research triggers</span>
-<span class="cmt"># Searches the web, scores sources by authority</span>
-<span class="cmt"># Returns research from Apollo docs, graphql.org, and more</span>
-<span class="cmt"># Agent creates a skill with create_skill</span>
-<span class="cmt"># Permanently indexed -- next time, instant hit</span></div>
-
-    <p>See <a href="/librarian/wiki/auto-research/">Auto-Research</a> for the full breakdown of how source scoring and research works.</p>
-
-    <h2 id="next-steps">Next Steps</h2>
-    <ul>
-      <li><a href="/librarian/wiki/tools-reference/">Tools Reference</a> -- learn every MCP tool and its parameters</li>
-      <li><a href="/librarian/wiki/community-packs/">Community Packs</a> -- browse and install curated skill collections</li>
-      <li><a href="/librarian/wiki/skill-format/">Skill Format</a> -- understand how skills are structured</li>
-      <li><a href="/librarian/wiki/configuration/">Configuration</a> -- customize the environment and directory layout</li>
-    </ul>
+<h2 id="sign">Create an integrity snapshot</h2>
+<p>Run the signing subcommand to sign every flat <code>.md</code> file with the current private key:</p>
+<div class="code-block"><span class="cmd">node bin/mcp-librarian.js sign</span></div>
+<p>Restart the server so it reloads the new manifest, then call <code>skill_status</code> using the argument name <code>skill</code>. Signing is described in <a href="/librarian/wiki/signing/">Ed25519 Signing</a>; it is not an automatic refusal gate.</p>

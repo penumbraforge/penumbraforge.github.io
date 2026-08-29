@@ -361,8 +361,8 @@ layout: tool-layout.njk
     if (analysis.severity === 'safe') {
       resultEl.innerHTML = '<div class="redos-result-card redos-safe">' +
         '<div class="redos-result-icon">&#x2705;</div>' +
-        '<div class="redos-result-title">No ReDoS vulnerability detected</div>' +
-        '<div class="redos-result-detail">This regex does not contain known vulnerable patterns. No exponential backtracking behavior was observed during testing.</div>' +
+        '<div class="redos-result-title">No issue observed in bounded checks</div>' +
+        '<div class="redos-result-detail">The bundled structural checks and short timing samples did not observe their target patterns. Longer inputs, a different engine, or an untested construction may still behave badly.</div>' +
         '<div class="redos-timing">' +
           '<div class="redos-timing-item"><div class="redos-timing-num">' + safeTime.toFixed(2) + 'ms</div><div class="redos-timing-label">Normal input</div></div>' +
           '<div class="redos-timing-item"><div class="redos-timing-num">' + medTime.toFixed(2) + 'ms</div><div class="redos-timing-label">Adversarial input</div></div>' +
@@ -379,11 +379,11 @@ layout: tool-layout.njk
 
       resultEl.innerHTML = '<div class="redos-result-card redos-vuln">' +
         '<div class="redos-result-icon">&#x1f6a8;</div>' +
-        '<div class="redos-result-title">ReDoS vulnerability ' + (analysis.severity === 'vulnerable' ? 'confirmed' : 'likely') + '</div>' +
-        '<div class="redos-result-detail">This regex contains patterns that cause catastrophic backtracking. A crafted input can freeze the regex engine for seconds or minutes.</div>' +
+        '<div class="redos-result-title">Potential ReDoS pattern ' + (analysis.severity === 'vulnerable' ? 'observed' : 'flagged') + '</div>' +
+        '<div class="redos-result-detail">A bundled structural rule or bounded timing sample found risky growth. Confirm with the same regex engine, flags, and realistic input limits used in production.</div>' +
         issueHtml +
         '<div class="redos-attack-string">' +
-          '<div class="redos-attack-label">Attack string (would cause freeze)</div>' +
+          '<div class="redos-attack-label">Generated stress string (bounded test candidate)</div>' +
           '<div class="redos-attack-value">' + esc(attack) + '</div>' +
         '</div>' +
         '<div class="redos-timing">' +

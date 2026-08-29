@@ -139,7 +139,7 @@ permalink: /tools/ai-cost-calculator/
 <div id="acc-empty" class="acc-empty-msg">Select models and click "Calculate costs" to see the comparison.</div>
 
 <hr style="margin:2rem 0;border:none;border-top:1px solid var(--border,#2a2a3a);">
-<p class="acc-pricing-note">Prices as of March 2026 per million tokens. Verify current pricing on provider sites before making budget decisions. Open-source models (Llama) show a $0 self-hosted cost; actual API provider rates will vary.</p>
+<p class="acc-pricing-note">Provider-price snapshot from March 2026, per million tokens. Verify current pricing on provider sites before making budget decisions. Open-weight/self-hosted rows show a $0 provider API price; hardware, electricity, hosting, and operations are not included.</p>
 
 <style>
   .acc-mode-row {
@@ -657,7 +657,7 @@ permalink: /tools/ai-cost-calculator/
     var meta = document.createElement('div');
     meta.className = 'acc-model-meta';
     if (m.opensource) {
-      meta.textContent = '$0 self-hosted (open source)';
+      meta.textContent = '$0 API price (open-weight/self-hosted)';
     } else {
       meta.textContent = '$' + fmt(m.inputPer1M) + ' / $' + fmt(m.outputPer1M) + ' per 1M tokens';
     }
@@ -830,7 +830,7 @@ permalink: /tools/ai-cost-calculator/
       return { model: m, inCost: costs.inCost, outCost: costs.outCost, total: costs.total };
     });
 
-    // Sort cheapest first; open-source ($0) sorts by capability tier then name
+    // Sort cheapest first; self-hosted entries ($0 API price) then sort by name.
     rows.sort(function (a, b) {
       if (a.total !== b.total) return a.total - b.total;
       return a.model.name.localeCompare(b.model.name);
@@ -864,7 +864,7 @@ permalink: /tools/ai-cost-calculator/
       if (row.model.opensource) {
         var freeBadge = document.createElement('span');
         freeBadge.className = 'acc-free-badge';
-        freeBadge.textContent = 'open source';
+        freeBadge.textContent = 'open weight';
         tdModel.appendChild(freeBadge);
       }
 
@@ -982,10 +982,10 @@ permalink: /tools/ai-cost-calculator/
       }
     });
 
-    // Open source hint
+    // Self-hosting hint
     var hasOpenSource = rows.some(function (r) { return r.model.opensource; });
     if (!hasOpenSource) {
-      tips.push('Self-hosted open-source models like <strong>Llama 4 Maverick</strong> have $0 API cost at scale, though inference infrastructure adds operational overhead. Enable it above to include in the comparison.');
+      tips.push('Open-weight models such as <strong>Llama 4 Maverick</strong> can be self-hosted without a per-token API price, but hardware, energy, operations, and the model license still apply. Enable it above to include the rough comparison.');
     }
 
     if (!tips.length) {

@@ -1,12 +1,14 @@
 /* ============================================================
    Penumbra Forge — Tool I/O contract (agent + human)
-   Makes every tool URL-invocable and machine-readable so an AI
-   agent can navigate to a tool URL and read a structured result,
-   and humans get shareable "here's the exact result" links.
+   Provides a shared URL-input and result contract for tools that
+   explicitly opt in. Other tool pages still expose their descriptor,
+   but do not promise automatic execution or a structured result.
 
    Agent contract:
-     1. GET /tools/<slug>/?in=<input>&<param>=<value>   (params also accepted in the #hash)
-        Large/binary-safe input may be passed as ?inb64=<base64url>.
+     1. Navigate to /tools/<slug>/#in=<input>&<param>=<value>.
+        Large/binary-safe input may be passed as #inb64=<base64url>.
+        Legacy query parameters remain readable, but are sent to the
+        hosting/CDN layer before this browser script can process them.
      2. The tool auto-runs and, when finished, sets:
           <html data-pf-ready="1" data-pf-status="ok|error">
           window.PF_RESULT           -> { tool, ok, output, data?, error? }
@@ -15,7 +17,8 @@
      3. Read #pf-result (JSON) or window.PF_RESULT.
 
    API (window.PF):
-     input()            -> merged {param: value} from query + hash (inb64 decoded to .in)
+     input()            -> merged {param: value} from legacy query + hash;
+                           hash values win (inb64 decoded to .in)
      ready(obj)         -> publish a machine-readable result (see shape above)
      fail(msg)          -> publish an error result
      shareUrl(params)   -> absolute URL to this tool with params applied
@@ -33,14 +36,19 @@
   }
 
   function input() {
-    var out = {};
+    var query = {}, fragment = {}, out = {};
     try {
       var u = new URL(location.href);
-      u.searchParams.forEach(function (v, k) { out[k] = v; });
+      u.searchParams.forEach(function (v, k) { query[k] = v; out[k] = v; });
       if (location.hash.length > 1) {
-        new URLSearchParams(location.hash.slice(1)).forEach(function (v, k) { if (!(k in out)) out[k] = v; });
+        new URLSearchParams(location.hash.slice(1)).forEach(function (v, k) { fragment[k] = v; out[k] = v; });
       }
-      if (out.inb64 != null) out.in = b64urlDecode(out.inb64);
+      var fragmentHasInput = Object.prototype.hasOwnProperty.call(fragment, 'in') || Object.prototype.hasOwnProperty.call(fragment, 'inb64');
+      if (fragmentHasInput) {
+        out.in = fragment.in != null ? fragment.in : b64urlDecode(fragment.inb64);
+      } else if (query.in != null || query.inb64 != null) {
+        out.in = query.in != null ? query.in : b64urlDecode(query.inb64);
+      }
     } catch (e) {}
     return out;
   }
@@ -60,9 +68,12 @@
   }
 
   function shareUrl(params) {
-    var u = new URL(location.href.split('#')[0]);
+    var u = new URL(location.href);
     u.search = '';
-    Object.keys(params || {}).forEach(function (k) { if (params[k] != null && params[k] !== '') u.searchParams.set(k, params[k]); });
+    u.hash = '';
+    var fragment = new URLSearchParams();
+    Object.keys(params || {}).forEach(function (k) { if (params[k] != null && params[k] !== '') fragment.set(k, params[k]); });
+    u.hash = fragment.toString();
     return u.toString();
   }
 

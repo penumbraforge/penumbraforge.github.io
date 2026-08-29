@@ -354,8 +354,8 @@ permalink: /tools/ir-timeline/
           '<div class="irt-event-title">' + esc(evt.title) + '</div>' +
           (evt.detail ? '<div class="irt-event-detail">' + esc(evt.detail) + '</div>' : '') +
           '<div class="irt-event-actions">' +
-            '<button onclick="window._irtEdit(' + i + ')">edit</button>' +
-            '<button class="irt-btn-delete" onclick="window._irtDelete(' + i + ')">delete</button>' +
+            '<button type="button" data-irt-action="edit" data-irt-index="' + i + '">edit</button>' +
+            '<button type="button" class="irt-btn-delete" data-irt-action="delete" data-irt-index="' + i + '">delete</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -422,16 +422,27 @@ permalink: /tools/ir-timeline/
     hideForm();
   });
 
-  window._irtEdit = function (idx) {
+  function editEvent(idx) {
     editingIdx = idx;
     showForm(timeline[idx]);
-  };
+  }
 
-  window._irtDelete = function (idx) {
+  function deleteEvent(idx) {
     timeline.splice(idx, 1);
     save();
     render();
-  };
+  }
+
+  timelineEl.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-irt-action]');
+    if (!button || !timelineEl.contains(button)) return;
+
+    var idx = Number(button.getAttribute('data-irt-index'));
+    if (!Number.isInteger(idx) || idx < 0 || idx >= timeline.length) return;
+
+    if (button.getAttribute('data-irt-action') === 'edit') editEvent(idx);
+    if (button.getAttribute('data-irt-action') === 'delete') deleteEvent(idx);
+  });
 
   btnClear.addEventListener('click', function () {
     if (timeline.length === 0) return;

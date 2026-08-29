@@ -230,6 +230,7 @@ layout: tool-layout.njk
   var vulnsEl = document.getElementById('jwt-vulns');
   var btnDecode = document.getElementById('btn-decode');
   var btnClear = document.getElementById('btn-clear');
+  var renderedVulns = [];
 
   function b64decode(str) {
     str = str.replace(/-/g, '+').replace(/_/g, '/');
@@ -338,7 +339,7 @@ layout: tool-layout.njk
       vulns.push({
         name: 'No Expiration Claim',
         severity: 'high',
-        explain: 'This token has no "exp" claim, meaning it never expires. If stolen, it grants permanent access until the signing key is rotated. All JWTs should have a reasonable expiration.',
+        explain: 'This token declares no expiration through an "exp" claim. Its effective acceptance lifetime still depends on verifier policy, key lifecycle, revocation or session controls, and other application state. Where the token profile expects bounded lifetime, require and validate an appropriate expiration.',
         applicable: true,
       });
     }
@@ -368,7 +369,7 @@ layout: tool-layout.njk
       vulns.push({
         name: 'Sensitive Data in Payload',
         severity: 'high',
-        explain: 'The payload contains potentially sensitive fields: ' + foundSensitive.join(', ') + '. JWT payloads are only Base64-encoded, NOT encrypted. Anyone who intercepts the token can read all claims. Never put secrets, passwords, or PII in JWT payloads.',
+        explain: 'The payload contains potentially sensitive fields: ' + foundSensitive.join(', ') + '. This three-part signed-token payload is Base64url-encoded, not encrypted, so any party that obtains the token can decode its claims. Do not place passwords or secrets here; minimize PII and use an encrypted or reference-token design when confidentiality is required.',
         applicable: true,
       });
     }
@@ -388,7 +389,7 @@ layout: tool-layout.njk
       vulns.push({
         name: 'No Audience Claim',
         severity: 'low',
-        explain: 'The "aud" claim is missing. Without it, a token issued for one service could potentially be replayed against another service that shares the same signing key. Always include and validate the audience claim.',
+        explain: 'The "aud" claim is missing, so a verifier cannot use this claim to bind the token to an intended recipient. Cross-service acceptance is possible when services share issuer or key trust and do not apply another recipient check. Profiles that rely on audience separation should require and validate the expected audience.',
         applicable: true,
       });
     }
@@ -415,24 +416,56 @@ layout: tool-layout.njk
     /* Render vulnerabilities */
     var vulnHtml = '<div class="ha-section-label">Vulnerability Analysis</div>';
     var vulnCount = vulns.filter(function (v) { return v.severity === 'critical' || v.severity === 'high'; }).length;
+    renderedVulns = vulns;
 
     vulns.forEach(function (v, i) {
       var sevClass = v.severity === 'info' ? 'jwt-status-warn' : '';
       vulnHtml += '<div class="jwt-vuln-card" id="jwt-v-' + i + '">' +
-        '<div class="jwt-vuln-header" onclick="document.getElementById(\'jwt-v-' + i + '\').classList.toggle(\'open\')">' +
+        '<div class="jwt-vuln-header" data-jwt-toggle role="button" tabindex="0" aria-expanded="false">' +
           '<span class="jwt-vuln-sev" style="' + (v.severity === 'medium' ? 'color:#e8b84d;background:rgba(232,184,77,0.1);' : v.severity === 'low' ? 'color:var(--text-3);background:rgba(102,102,102,0.1);' : v.severity === 'info' ? 'color:var(--accent);background:rgba(184,165,214,0.1);' : '') + '">' + v.severity + '</span>' +
           '<span class="jwt-vuln-name">' + esc(v.name) + '</span>' +
           '<span class="jwt-vuln-chevron">&#x203a;</span>' +
         '</div>' +
         '<div class="jwt-vuln-detail">' +
           '<div class="jwt-vuln-explain">' + esc(v.explain) + '</div>' +
-          (v.attackToken ? '<div class="jwt-attack-token"><div class="jwt-attack-label">Forged token</div><div class="jwt-attack-value">' + esc(v.attackToken) + '</div><button class="jwt-attack-copy" onclick="navigator.clipboard.writeText(\'' + v.attackToken.replace(/'/g, "\\'") + '\');this.textContent=\'Copied\';">Copy token</button></div>' : '') +
+          (v.attackToken ? '<div class="jwt-attack-token"><div class="jwt-attack-label">Forged token</div><div class="jwt-attack-value">' + esc(v.attackToken) + '</div><button type="button" class="jwt-attack-copy" data-jwt-copy="' + i + '">Copy token</button></div>' : '') +
         '</div>' +
       '</div>';
     });
 
     vulnsEl.innerHTML = vulnHtml;
   }
+
+  function toggleVulnerability(header) {
+    var card = header.closest('.jwt-vuln-card');
+    if (!card) return;
+    var open = card.classList.toggle('open');
+    header.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  vulnsEl.addEventListener('click', function (event) {
+    var copyButton = event.target.closest('[data-jwt-copy]');
+    if (copyButton && vulnsEl.contains(copyButton)) {
+      var idx = Number(copyButton.getAttribute('data-jwt-copy'));
+      var vulnerability = renderedVulns[idx];
+      if (vulnerability && vulnerability.attackToken) {
+        navigator.clipboard.writeText(vulnerability.attackToken);
+        copyButton.textContent = 'Copied';
+      }
+      return;
+    }
+
+    var header = event.target.closest('[data-jwt-toggle]');
+    if (header && vulnsEl.contains(header)) toggleVulnerability(header);
+  });
+
+  vulnsEl.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var header = event.target.closest('[data-jwt-toggle]');
+    if (!header || !vulnsEl.contains(header)) return;
+    event.preventDefault();
+    toggleVulnerability(header);
+  });
 
   btnDecode.addEventListener('click', analyze);
   btnClear.addEventListener('click', function () {

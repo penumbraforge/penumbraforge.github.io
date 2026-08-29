@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 title: "About — Penumbra Forge"
-description: "Penumbra Forge LLC is an independent software company building privacy-first AI and security tools. Founded 2026 by Shadoe Myers."
+description: "Penumbra Forge LLC is an independent software company building local-first AI and security tools. Founded 2026 by Shadoe Myers."
 permalink: /about/
 ---
 
@@ -12,24 +12,24 @@ permalink: /about/
   <section class="about-hero">
     <div class="about-label">About</div>
     <h1>About</h1>
-    <p class="about-sub">Penumbra Forge LLC is a one-person software company, started in 2026. I build developer and security tools that run on your own hardware. Most of the projects are still early — each one says where it stands.</p>
+    <p class="about-sub">Penumbra Forge LLC is a one-person software company, started in 2026. I build developer and security tools with local-first designs and explicit network boundaries. Most projects are still early — each one says where it stands.</p>
   </section>
 
   <section class="about-section">
     <h2>What we build</h2>
-    <p>The common thread is that the work happens on your machine rather than someone else's server. Three areas:</p>
+    <p>The common thread is local-first work with explicit network boundaries. Three areas:</p>
     <div class="about-grid">
       <div class="about-card">
         <h3>Local AI</h3>
-        <p><a href="/umbra/">Umbra</a> is a local-first AI studio for running and inspecting language models on your own hardware, being developed against an NVIDIA DGX Spark. It is early and not usable yet. On this site, the AI tools run a small model in your browser over WebGPU, or point at your own Ollama or LM Studio server.</p>
+        <p><a href="/umbra/">Umbra</a> is a local-first AI studio for running and inspecting language models on your own hardware, being developed against an NVIDIA DGX Spark. It is early and not usable yet. Site AI features can use WebGPU in the browser or an OpenAI-compatible endpoint you configure; that endpoint may be local or hosted.</p>
       </div>
       <div class="about-card">
         <h3>Security software</h3>
-        <p><a href="/gate/">Gate</a> scans staged changes for credentials before you commit. <a href="/vexes/">vexes</a> flags dependencies worth a second look across several ecosystems. <a href="/librarian/">mcp-librarian</a> gives coding agents a local, signed skill library. All three are experimental and use heuristics, so expect false positives and misses.</p>
+        <p><a href="/gate/">Gate</a> scans staged changes for credential patterns. <a href="/vexes/">vexes</a> combines deterministic OSV advisory matches with heuristic evidence. <a href="/librarian/">mcp-librarian</a> gives coding agents a local skill library with recorded signature status. All three are experimental; heuristic results can produce false positives and miss things.</p>
       </div>
       <div class="about-card">
         <h3>Browser tools</h3>
-        <p><a href="/tools/">{{ stats.liveTools }} browser tools</a> for security work, encoding, and development. Most run entirely in the page; the few that need the network say so. They are also <a href="/tools/agents/">usable by AI agents</a> through an MCP server.</p>
+        <p><a href="/tools/">{{ stats.liveTools }} browser-delivered tools</a> for security work, encoding, and development. Many run entirely in the page; edge, network, and selectable-AI routes say where input goes. A subset of {{ stats.mcpTools }} deterministic operations is also <a href="/tools/agents/">exposed through MCP</a>.</p>
       </div>
     </div>
   </section>
@@ -54,8 +54,8 @@ permalink: /about/
     <h2>How we work</h2>
     <ul class="about-principles">
       <li><strong>Local by default.</strong> Most tools do their work in the page. The ones that need the network are labelled, so you know before pasting anything in.</li>
-      <li><strong>Few dependencies.</strong> Mostly built on platform APIs rather than large framework stacks — fewer moving parts to trust and keep patched.</li>
-      <li><strong>Open to inspection.</strong> The projects are open source, so you can read what they do instead of taking my word for it. No accounts, and no analytics beyond basic traffic counts.</li>
+      <li><strong>Prefer platform APIs.</strong> Use browser and runtime primitives where practical, while documenting the dependencies and upstream services that remain.</li>
+      <li><strong>Open to inspection.</strong> The website repository is source-visible but not open-source licensed. Gate, vexes, and mcp-librarian publish separate open-source licenses. No accounts; analytics are limited to aggregate traffic measurement.</li>
     </ul>
   </section>
 

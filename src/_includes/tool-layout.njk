@@ -19,7 +19,7 @@
 {% block headExtra %}<link rel="stylesheet" href="/css/tools.css?v={{ assetv }}">
 <link rel="alternate" type="text/markdown" href="/llms.txt" title="Penumbra Forge tools — for AI agents">
 <meta name="pf-tool" content="{{ toolSlug }}">
-<script src="/js/tool-io.js"></script>{% if toolData.category == "ai" %}
+<script src="/js/tool-io.js"></script>{% if toolData.usesAiEngine %}
 <script src="/js/ai-engine.js"></script>
 <script src="/js/ai-ui.js"></script>{% endif %}{% endblock %}
 
@@ -28,13 +28,13 @@
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "{{ toolData.name }}",
-  "description": "{{ toolData.longDescription }}",
-  "url": "{{ site.url }}{{ page.url }}",
+  "name": {{ toolData.name | dump | safe }},
+  "description": {{ toolData.longDescription | dump | safe }},
+  "url": {{ (site.url ~ page.url) | dump | safe }},
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Any (browser-based)",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-  "author": { "@type": "Organization", "name": "Penumbra Forge", "url": "{{ site.url }}" }
+  "author": { "@type": "Organization", "name": "Penumbra Forge", "url": {{ site.url | dump | safe }} }
 }
 </script>
 <script type="application/ld+json">
@@ -42,17 +42,17 @@
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Home", "item": "{{ site.url }}/" },
-    { "@type": "ListItem", "position": 2, "name": "Tools", "item": "{{ site.url }}/tools/" },
-    { "@type": "ListItem", "position": 3, "name": "{{ toolData.category | capitalize }}", "item": "{{ site.url }}/tools/?cat={{ toolData.category }}" },
-    { "@type": "ListItem", "position": 4, "name": "{{ toolData.name }}", "item": "{{ site.url }}{{ page.url }}" }
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": {{ (site.url ~ '/') | dump | safe }} },
+    { "@type": "ListItem", "position": 2, "name": "Tools", "item": {{ (site.url ~ '/tools/') | dump | safe }} },
+    { "@type": "ListItem", "position": 3, "name": {{ (toolData.category | capitalize) | dump | safe }}, "item": {{ (site.url ~ '/tools/?cat=' ~ toolData.category) | dump | safe }} },
+    { "@type": "ListItem", "position": 4, "name": {{ toolData.name | dump | safe }}, "item": {{ (site.url ~ page.url) | dump | safe }} }
   ]
 }
 </script>
 {% endblock %}
 
 {% block body %}
-<script type="application/json" id="pf-tool">{"slug":"{{ toolSlug }}","name":"{{ toolData.name | replace('"','') }}","category":"{{ toolData.category }}","url":"{{ site.url }}{{ page.url }}","description":"{{ toolData.description | replace('"','') }}"{% if toolData.invoke %},"invoke":{{ toolData.invoke | dump | safe }}{% endif %}}</script>
+<script type="application/json" id="pf-tool">{"slug":{{ toolSlug | dump | safe }},"name":{{ toolData.name | dump | safe }},"category":{{ toolData.category | dump | safe }},"route":"{% if toolData.usesAiEngine %}selectable-ai{% elif toolData.badge == 'worker' %}edge-worker{% elif toolData.badge == 'cloud' %}direct-network{% else %}browser{% endif %}","url":{{ (site.url ~ page.url) | dump | safe }},"description":{{ toolData.description | dump | safe }}{% if toolData.invoke %},"invoke":{{ toolData.invoke | dump | safe }}{% endif %}}</script>
 <div class="wb-page" data-slug="{{ toolSlug }}">
 
   {% include "header.njk" %}
@@ -67,7 +67,7 @@
     <div class="wb-head">
       <div class="wb-head-main">
         <h1>{{ toolData.name }}
-          {% if toolData.category == "ai" %}<span class="wb-chip">AI · local</span>{% elif toolData.badge == "worker" %}<span class="wb-chip">edge worker</span>{% elif toolData.badge == "cloud" %}<span class="wb-chip">makes a network call</span>{% else %}<span class="wb-chip">runs in browser</span>{% endif %}
+          {% if toolData.usesAiEngine %}<span class="wb-chip">AI · routing varies</span>{% elif toolData.badge == "worker" %}<span class="wb-chip">edge worker</span>{% elif toolData.badge == "cloud" %}<span class="wb-chip">makes a network call</span>{% else %}<span class="wb-chip">runs in browser</span>{% endif %}
         </h1>
         <p class="wb-about">{{ toolData.longDescription }}</p>
       </div>
@@ -83,13 +83,17 @@
       </div>
     </div>
 
-    {% if toolData.category == "ai" %}<div id="aiBar"></div>{% endif %}
+    {% if toolData.usesAiEngine %}<div id="aiBar"></div>
+    <div class="wb-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/><path d="M9 12l2 2 4-4"/></svg>
+      <p><strong>Check the selected engine.</strong> In-browser WebGPU keeps prompts in the page after model files download. Local-server mode sends input to the URL you configure, which may be local or remote. API-key mode sends input to the configured provider, whose privacy and retention terms apply.</p>
+    </div>{% endif %}
 
     <div class="tool-content">
       {{ content | safe }}
     </div>
 
-    {% if toolData.category != "ai" %}
+    {% if not toolData.usesAiEngine %}
     <div class="wb-note">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/><path d="M9 12l2 2 4-4"/></svg>
       <p><strong>{% if toolData.badge == "local" %}Runs in your browser.{% else %}What this sends.{% endif %}</strong> {% if toolData.privacyNote %}{{ toolData.privacyNote }}{% elif toolData.badge == "worker" %}What you submit is sent to an edge worker we run, which performs the lookup and returns the result.{% elif toolData.badge == "cloud" %}This tool makes a network request to do its job. Everything else stays in the page.{% else %}Everything happens in the page. No account needed, and your input isn't sent anywhere.{% endif %}</p>
@@ -115,7 +119,7 @@
   </div>
 
   <footer class="wb-foot">
-    <span>&copy; 2026 Penumbra Forge · 0 servers · 0 tracking</span>
+    <span>&copy; 2026 Penumbra Forge · no account required · network use labelled</span>
     <div class="links">
       <a href="/tools/">All tools</a>
       <a href="/blog/">Blog</a>
@@ -128,7 +132,7 @@
   <div class="wb-toast" id="wbToast" role="status" aria-live="polite"></div>
 </div>
 
-{% if toolData.category == "ai" %}
+{% if toolData.usesAiEngine %}
 <script>(function(){ var b=document.getElementById('aiBar'); if(b && window.PenumbraAIUI) PenumbraAIUI.mountBar(b); })();</script>
 {% endif %}
 

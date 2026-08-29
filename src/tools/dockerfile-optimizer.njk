@@ -605,7 +605,7 @@ permalink: /tools/dockerfile-optimizer/
     if (!issues.length) {
       var good = document.createElement("div");
       good.className = "df-all-good";
-      good.textContent = "No issues found — this Dockerfile looks well-optimized!";
+      good.textContent = "No configured optimization checks matched. Review for workload-specific concerns.";
       resultsEl.appendChild(good);
       resultsEl.style.display = "";
       return;

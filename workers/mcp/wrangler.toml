@@ -1,6 +1,9 @@
 name = "penumbra-mcp"
 main = "worker.js"
-compatibility_date = "2026-01-01"
+compatibility_date = "2026-08-29"
+
+[vars]
+ALLOWED_ORIGIN = "https://penumbraforge.com"
 
 # Deploy:  npx wrangler deploy
 # Optional custom domain (set up the route in the Cloudflare dashboard):

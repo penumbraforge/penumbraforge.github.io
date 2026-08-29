@@ -5,19 +5,16 @@ permalink: /tools/prompt-injection-tester/
 
 <div class="tool-group">
   <label for="pit-input">Paste your LLM system prompt</label>
-  <textarea id="pit-input" rows="12" placeholder="You are a helpful assistant that...&#10;&#10;Paste the full system prompt you send to your LLM. This tool will test it against 150+ known prompt injection techniques and report which attack categories it defends against." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-</div>
-
-<div class="tool-group" style="margin-top:0;">
-  <label for="pit-response">Model response template <span style="font-weight:400;color:var(--text-3);font-size:0.8rem;">(optional)</span></label>
-  <textarea id="pit-response" rows="4" placeholder="Optional: paste your model's typical response format or template to test extraction defenses..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  <textarea id="pit-input" rows="12" placeholder="You are a helpful assistant that...&#10;&#10;Paste a system prompt to check it for configured defense-language patterns across ten categories. No model behavior is tested." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
 </div>
 
 <div class="tool-row">
-  <button class="btn btn--primary" id="pit-scan-btn">Test for Injections</button>
+  <button class="btn btn--primary" id="pit-scan-btn">Review defense language</button>
   <button class="btn" id="pit-example-btn">Try Example</button>
   <button class="btn" id="pit-clear-btn">Clear</button>
 </div>
+
+<p style="font-size:0.8125rem;color:var(--text-3,#888);line-height:1.55;">This is a static phrase-matching checklist. It does not send attacks to a model, observe model behavior, or establish that a prompt is resistant or vulnerable.</p>
 
 <div id="pit-results" style="display:none;">
   <div id="pit-score-section"></div>
@@ -25,7 +22,7 @@ permalink: /tools/prompt-injection-tester/
   <div id="pit-hardening"></div>
 </div>
 
-<div id="pit-empty" class="pit-empty-msg">Paste a system prompt above and click "Test for Injections".</div>
+<div id="pit-empty" class="pit-empty-msg">Paste a system prompt above and click “Review defense language.”</div>
 
 <style>
   /* ── Score section ── */
@@ -410,7 +407,6 @@ permalink: /tools/prompt-injection-tester/
   'use strict';
 
   var inputEl    = document.getElementById('pit-input');
-  var responseEl = document.getElementById('pit-response');
   var scanBtn    = document.getElementById('pit-scan-btn');
   var exampleBtn = document.getElementById('pit-example-btn');
   var clearBtn   = document.getElementById('pit-clear-btn');
@@ -421,7 +417,7 @@ permalink: /tools/prompt-injection-tester/
   var emptyEl    = document.getElementById('pit-empty');
 
   /* ════════════════════════════════════════════════════════════════════
-     INJECTION LIBRARY — 150+ techniques across 10 categories
+     INJECTION TEST-CASE LIBRARY — bundled patterns across 10 categories
      ════════════════════════════════════════════════════════════════════ */
 
   var CATEGORIES = [
@@ -842,7 +838,7 @@ permalink: /tools/prompt-injection-tester/
       weight: 8
     },
     overrideResistance: {
-      label: 'Override resistance',
+      label: 'Override-language rule',
       patterns: [
         /cannot\s+be\s+(overridden|changed|modified|replaced)/i,
         /instructions?\s+(are|is)\s+(permanent|immutable|fixed|final)/i,
@@ -1075,16 +1071,16 @@ permalink: /tools/prompt-injection-tester/
           '<circle class="pit-grade-ring-bg" cx="48" cy="48" r="40"/>' +
           '<circle class="pit-grade-ring-fg" cx="48" cy="48" r="40" stroke="' + color + '" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '"/>' +
         '</svg>' +
-        '<div class="pit-grade-letter" style="color:' + color + '">' + esc(result.grade) + '</div>' +
+        '<div class="pit-grade-letter" style="color:' + color + '">' + result.score + '</div>' +
       '</div>' +
       '<div class="pit-score-details">' +
-        '<div class="pit-score-title">Prompt Injection Resistance: ' + result.score + '/100</div>' +
-        '<div class="pit-score-subtitle">' + result.totals.injections + ' injection techniques tested across ' + result.categories.length + ' attack categories</div>' +
+        '<div class="pit-score-title">Configured phrase-match score: ' + result.score + '/100</div>' +
+        '<div class="pit-score-subtitle">' + result.totals.injections + ' bundled injection shapes represented across ' + result.categories.length + ' categories; none were run against a model</div>' +
         '<div class="pit-score-bar-outer"><div class="pit-score-bar-inner" style="width:' + result.score + '%;background:' + color + '"></div></div>' +
         '<div class="pit-score-breakdown">' +
-          '<span class="pit-score-stat pit-stat-def">' + defendedCats + ' defended</span>' +
-          '<span class="pit-score-stat pit-stat-part">' + partialCats + ' partial</span>' +
-          '<span class="pit-score-stat pit-stat-vuln">' + vulnCats + ' vulnerable</span>' +
+          '<span class="pit-score-stat pit-stat-def">' + defendedCats + ' configured phrase matches</span>' +
+          '<span class="pit-score-stat pit-stat-part">' + partialCats + ' partial phrase matches</span>' +
+          '<span class="pit-score-stat pit-stat-vuln">' + vulnCats + ' no configured phrase match</span>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1096,13 +1092,13 @@ permalink: /tools/prompt-injection-tester/
     var html = '';
 
     result.categories.forEach(function (cat, ci) {
-      var statusLabel = cat.status.charAt(0).toUpperCase() + cat.status.slice(1);
+      var statusLabel = cat.status === 'defended' ? 'Configured phrases matched' : cat.status === 'partial' ? 'Partial phrase match' : 'No configured phrase match';
       var totalInCat = cat.injections.length;
 
       html += '<div class="pit-cat-card pit-cat-card--' + cat.status + '" id="pit-cat-' + ci + '">' +
-        '<div class="pit-cat-header" onclick="document.getElementById(\'pit-cat-' + ci + '\').classList.toggle(\'open\')">' +
+        '<div class="pit-cat-header" data-pit-toggle role="button" tabindex="0" aria-expanded="false">' +
           '<span class="pit-cat-name">' + esc(cat.name) + '</span>' +
-          '<span class="pit-cat-count">' + totalInCat + ' techniques</span>' +
+          '<span class="pit-cat-count">' + totalInCat + ' bundled shapes</span>' +
           '<span class="pit-badge pit-badge--' + cat.status + '">' + statusLabel + '</span>' +
           '<span class="pit-cat-chevron">&#x203a;</span>' +
         '</div>' +
@@ -1115,7 +1111,7 @@ permalink: /tools/prompt-injection-tester/
 
       shown.forEach(function (inj) {
         var statusClass = 'pit-example-status--' + (inj.status === 'defended' ? 'defended' : inj.status === 'partial' ? 'partial' : 'vuln');
-        var statusText = inj.status === 'defended' ? 'Defended' : inj.status === 'partial' ? 'Partial' : 'Likely bypasses';
+        var statusText = inj.status === 'defended' ? 'Phrase match' : inj.status === 'partial' ? 'Partial phrase match' : 'No phrase match';
         html += '<div class="pit-injection-example">' +
           '<span class="pit-example-status ' + statusClass + '">' + statusText + '</span>' +
           esc(inj.text) +
@@ -1140,25 +1136,49 @@ permalink: /tools/prompt-injection-tester/
     result.categories.forEach(function (cat, ci) {
       if (cat.status === 'vulnerable') {
         var el = document.getElementById('pit-cat-' + ci);
-        if (el) el.classList.add('open');
+        if (el) {
+          el.classList.add('open');
+          var header = el.querySelector('[data-pit-toggle]');
+          if (header) header.setAttribute('aria-expanded', 'true');
+        }
       }
     });
   }
+
+  function toggleCategory(header) {
+    var card = header.closest('.pit-cat-card');
+    if (!card) return;
+    var open = card.classList.toggle('open');
+    header.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  catsEl.addEventListener('click', function (event) {
+    var header = event.target.closest('[data-pit-toggle]');
+    if (header && catsEl.contains(header)) toggleCategory(header);
+  });
+
+  catsEl.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var header = event.target.closest('[data-pit-toggle]');
+    if (!header || !catsEl.contains(header)) return;
+    event.preventDefault();
+    toggleCategory(header);
+  });
 
   function renderHardening(result) {
     var vulnerableCats = result.categories.filter(function (c) { return c.status !== 'defended'; });
 
     if (vulnerableCats.length === 0) {
-      hardenEl.innerHTML = '<div class="pit-hardening-section"><div class="pit-hardening-header"><span class="pit-hardening-title">Hardened Prompt Suggestions</span></div><div class="pit-hardening-body"><div style="text-align:center;padding:20px;color:var(--text-3,#888);font-size:13px;">Your system prompt has strong defenses across all tested categories. Continue monitoring for new injection techniques as they emerge.</div></div></div>';
+      hardenEl.innerHTML = '<div class="pit-hardening-section"><div class="pit-hardening-header"><span class="pit-hardening-title">Defense-language checklist</span></div><div class="pit-hardening-body"><div style="text-align:center;padding:20px;color:var(--text-3,#888);font-size:13px;">Configured phrases matched in every category. No live model behavior was tested, so this is not evidence of prompt-injection resistance.</div></div></div>';
       return;
     }
 
     var additions = [];
-    additions.push('# SECURITY HARDENING ADDITIONS');
-    additions.push('# Add the following to your system prompt to address detected vulnerabilities.\n');
+    additions.push('# DEFENSE-LANGUAGE IDEAS');
+    additions.push('# Review and adapt these clauses for your system and threat model.\n');
 
     vulnerableCats.forEach(function (cat) {
-      additions.push('## ' + cat.name + ' Defense');
+      additions.push('## ' + cat.name + ' language');
       additions.push(cat.recommendation.replace(/^Add [^:]+:\s*/i, ''));
       additions.push('');
     });
@@ -1178,12 +1198,12 @@ permalink: /tools/prompt-injection-tester/
 
     hardenEl.innerHTML = '<div class="pit-hardening-section">' +
       '<div class="pit-hardening-header">' +
-        '<span class="pit-hardening-title">Hardened Prompt Suggestions</span>' +
+        '<span class="pit-hardening-title">Defense-language suggestions</span>' +
         '<button class="pit-copy-btn" id="pit-copy-hardening">Copy to clipboard</button>' +
       '</div>' +
       '<div class="pit-hardening-body">' +
         '<pre class="pit-hardening-block" id="pit-hardening-text">' + esc(hardeningText) + '</pre>' +
-        '<div class="pit-hardening-note">Add these clauses to your existing system prompt to improve injection resistance. Each section addresses a specific attack category detected as vulnerable or partially defended.</div>' +
+        '<div class="pit-hardening-note">These are wording ideas for categories where configured phrases did not fully match. They may clarify intended behavior, but they do not establish runtime resistance.</div>' +
       '</div>' +
     '</div>';
 
@@ -1249,13 +1269,11 @@ permalink: /tools/prompt-injection-tester/
 
   exampleBtn.addEventListener('click', function () {
     inputEl.value = EXAMPLE_PROMPT;
-    responseEl.value = '';
     runScan();
   });
 
   clearBtn.addEventListener('click', function () {
     inputEl.value = '';
-    responseEl.value = '';
     resultsEl.style.display = 'none';
     emptyEl.style.display = '';
     scoreEl.innerHTML = '';

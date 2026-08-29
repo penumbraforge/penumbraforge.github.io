@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* Penumbra Forge — local MCP server (stdio).
-   Runs the exact same tools on YOUR machine — nothing leaves it.
+   The MCP process runs on this machine. Net-labelled tools still contact the
+   destinations disclosed by tools/list; other tools make no outbound request.
    Connect (Claude Code): claude mcp add penumbra -- node /path/to/local.mjs
    or in a client config: { "command": "node", "args": ["/path/to/local.mjs"] } */
 import { handleRpc } from '../../src/js/mcp-handler.js';

@@ -1,176 +1,54 @@
 ---
 title: "Security Model"
-description: "How Gate protects your files, credentials, and data at every layer."
+description: "Gate's implemented protections, network paths, and limits without universal guarantees."
 permalink: /gate/wiki/security/
 ---
 <h1>Security Model</h1>
-    <p class="subtitle">How Gate protects your data: file permissions, atomic writes, TLS, shell injection prevention, rule signing, and audit integrity.</p>
+<p class="subtitle">Gate handles credential-shaped data and modifies files. Its controls are scoped; review the exact operation before relying on them.</p>
 
-    <h2 id="overview">Overview</h2>
+<h2>Local and network behavior</h2>
+<p>Ordinary scans run on the local machine and Gate has no intentional product telemetry. Opt-in credential verification sends the matched credential value needed for the check directly to the named provider API. Update operations can also contact remote sources. Provider, proxy, DNS, and network infrastructure may observe request metadata.</p>
 
-    <p>Gate is a security tool that handles sensitive data -- your credentials. Its own security model is designed around these principles:</p>
+<h2>Files and permissions</h2>
+<p>Gate attempts to create sensitive local artifacts with restrictive owner permissions on supported Unix-like systems. Permission semantics vary by operating system, filesystem, mount, umask, and backup/sync tooling; inspect the resulting files in your environment.</p>
 
-    <ul>
-      <li><strong style="color: var(--text-1);">100% local.</strong> No telemetry, no cloud services, no data exfiltration. Everything runs on your machine.</li>
-      <li><strong style="color: var(--text-1);">Least privilege.</strong> Files are created with restrictive permissions. Network calls are limited to credential verification against provider APIs.</li>
-      <li><strong style="color: var(--text-1);">Defense in depth.</strong> Multiple layers of protection: file permissions, atomic writes, TLS, input sanitization, and output redaction.</li>
-    </ul>
+<h2>Writes and rollback</h2>
+<p>Core source-file rewrites use a same-directory temporary file and rename, reducing partial-write risk for that path. Not every config, environment, vault, cache, report, snapshot, or state write currently uses the same atomic pattern. A crash-safe claim therefore applies only to the code path that implements it.</p>
 
-    <h2 id="file-permissions">File Permissions</h2>
+<h2>Subprocesses</h2>
+<p>Some Gate paths use <code>execFileSync</code> with argument arrays. Other current paths use shell-backed synchronous commands. Do not rely on a global “no shell” guarantee. Review untrusted repository paths and any generated command before execution.</p>
 
-    <p>Gate uses restrictive Unix file permissions for all sensitive files it creates.</p>
+<h2>Output and artifacts</h2>
+<p>Supported terminal and report paths redact detected credential values. That is a mitigation, not a proof that a secret can never appear through an error, debug path, provider response, generated artifact, or future format. Review output before sharing it. Generated purge/recovery artifacts can contain sensitive values or destructive commands and must be protected and reviewed.</p>
 
-    <table class="cmd-table">
-      <thead><tr><th>File</th><th>Permission</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>.env</td><td>0o600</td><td>Owner read/write only. Contains extracted secret values.</td></tr>
-        <tr><td>.env.enc</td><td>0o600</td><td>Owner read/write only. Encrypted vault file.</td></tr>
-        <tr><td>.gate/</td><td>0o700</td><td>Owner read/write/execute only. Contains config, cache, snapshots.</td></tr>
-        <tr><td>.gate/cache/</td><td>0o700</td><td>Verification cache directory.</td></tr>
-        <tr><td>.gate/snapshots/</td><td>0o700</td><td>Auto-fix snapshot directory.</td></tr>
-        <tr><td>.gate/incidents/</td><td>0o700</td><td>Incident records directory.</td></tr>
-        <tr><td>Audit log</td><td>0o600</td><td>Append-only audit log with integrity chain.</td></tr>
-        <tr><td>Purge scripts</td><td>0o700</td><td>Generated history purge scripts (executable).</td></tr>
-      </tbody>
-    </table>
+<h2>Snapshots and vault state</h2>
+<p>Batch-fix snapshots can contain the pre-fix source and environment files in plaintext under <code>~/.gate/snapshots</code>. Vault encryption uses a local AES-256-GCM key stored alongside local ciphertext state; compromise or loss of that key affects every stored value. Short <code>VAULT:&lt;id&gt;</code> references created by interactive remediation have no public CLI or application-runtime resolver.</p>
 
-    <p>Permissions are set immediately upon file creation using <code>fs.writeFileSync</code> with the <code>mode</code> option. Gate does not create files with permissive defaults and then <code>chmod</code> them -- the permissions are correct from the start.</p>
+<h2>Credential verification</h2>
+<p>Current adapters are intended to call validation or identity-style endpoints without mutating user resources. APIs and provider behavior can change, and some checks use POST for non-mutating queries. Review the documented endpoint and scopes before opting in. A “live” result shows that the provider accepted the credential for that check; “inactive” can also reflect scope, endpoint, account, network, or provider changes.</p>
 
-    <h2 id="atomic-writes">Atomic File Writes</h2>
+<h2>Rules and signatures</h2>
+<p>Rule-pack signatures can detect modification relative to the trusted signing key. They do not make rule logic correct and do not protect against compromise of the key, updater, runtime, or trust configuration.</p>
 
-    <p>Gate never writes directly to target files. Instead, it follows the atomic write pattern:</p>
+<h2>Audit history</h2>
+<p>Gate's local audit data is hash-chained, which can make some edits detectable when the chain is verified. It is tamper-evident, not append-only or tamper-proof: a user or attacker with sufficient filesystem access can replace, truncate, or recompute local state.</p>
+<div class="warning-box"><strong>Known plaintext audit exposure:</strong> the current writer masks <code>match</code> but retains the separate scanner <code>secret</code> field when it spreads a finding into <code>~/.gate/audit.jsonl</code>. <code>gate audit --export</code> can therefore disclose raw credentials. Treat the audit file and exports as secret-bearing until the writer is corrected.</div>
 
-    <ol>
-      <li>Write the full content to a temporary file in the same directory (e.g., <code>.env.tmp.abc123</code>).</li>
-      <li>Set the correct permissions on the temporary file.</li>
-      <li>Rename the temporary file to the target path using <code>fs.renameSync</code>.</li>
-    </ol>
+<h2>Generated hooks</h2>
+<p>Generated hooks export <code>GATE_HOOK_TYPE</code>, but the CLI branches that suppress config verification and re-stage fixes check <code>GATE_PRE_COMMIT</code>. Keep <code>verify: false</code> for hook-driven scans, and inspect the Git index after remediation. Hooks also have explicit bypass variables and cannot replace protected-branch or server-side controls.</p>
 
-    <p>This ensures that if Gate crashes or is interrupted mid-write, the original file is not corrupted. The rename operation is atomic on all supported file systems (ext4, APFS, NTFS).</p>
+<h2>Offline mode</h2>
+<p><code>GATE_OFFLINE=1</code> is intended to disable Gate's documented verification and update network features. Enforce air-gapped policy at the operating-system/network layer as well; an environment flag is not an external network boundary.</p>
 
-    <div class="code-block"><span class="cmt">// Simplified atomic write implementation</span>
-<span class="kw">const</span> tmpPath = target + <span class="str">'.tmp.'</span> + randomId();
-fs.writeFileSync(tmpPath, content, { mode: <span class="val">0o600</span> });
-fs.renameSync(tmpPath, target);</div>
+<h2>Known limits</h2>
+<ul>
+  <li>Pattern and entropy detection can miss secrets and flag benign strings.</li>
+  <li>Auto-fix is pattern-based and can produce an incorrect or incomplete rewrite.</li>
+  <li>File history, generated reports, caches, and backups may preserve material after a source edit.</li>
+  <li>Credential verification transmits the credential to a provider and cannot guarantee the provider performs no side effects.</li>
+  <li>Verification labelled inactive currently lowers severity to low, which can move a finding below a CI threshold.</li>
+  <li>Auto-fix can write a <code>NAME_NEW</code> value while leaving source pointed at <code>NAME</code> when an environment variable conflicts.</li>
+  <li>Gate has not had an external security or efficacy audit.</li>
+</ul>
 
-    <h2 id="tls-enforcement">TLS Enforcement</h2>
-
-    <p>All network calls made by Gate use TLS (HTTPS). This applies to:</p>
-
-    <ul>
-      <li>Credential verification API calls (16 providers)</li>
-      <li>Update checks (npm registry)</li>
-    </ul>
-
-    <p>Gate rejects non-TLS connections. There is no flag to disable TLS enforcement. If a provider endpoint does not support TLS, verification for that provider is skipped.</p>
-
-    <p>Gate uses Node.js's built-in <code>https</code> module with the system certificate store. No custom certificate pinning is used, which allows Gate to work behind corporate proxies that perform TLS inspection.</p>
-
-    <h2 id="shell-injection">Shell Injection Prevention</h2>
-
-    <p>Gate never passes user-controlled input through a shell interpreter. All subprocess execution uses <code>execFileSync</code> with explicit argument arrays instead of <code>execSync</code> with string interpolation.</p>
-
-    <div class="code-block"><span class="cmt">// CORRECT: execFileSync with argument array</span>
-execFileSync(<span class="str">'git'</span>, [<span class="str">'log'</span>, <span class="str">'--oneline'</span>, <span class="str">'-n'</span>, <span class="str">'10'</span>]);
-
-<span class="cmt">// NEVER USED: string interpolation through shell</span>
-<span class="cmt">// execSync(`git log --oneline -n ${userInput}`);</span></div>
-
-    <p>This prevents shell metacharacter injection even if file paths or git refs contain special characters like <code>;</code>, <code>|</code>, <code>$</code>, or backticks.</p>
-
-    <h2 id="secret-redaction">Secret Redaction in Output</h2>
-
-    <p>Gate never displays full credential values in terminal output, logs, or reports.</p>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">Terminal output:</strong> Secret values are truncated to show only the first few and last few characters (e.g., <code>sk_live_51Hb3a...R4pM</code>).</li>
-      <li><strong style="color: var(--text-1);">JSON reports:</strong> Same truncation applied to the <code>match</code> field.</li>
-      <li><strong style="color: var(--text-1);">SARIF output:</strong> Redacted values in all message and location fields.</li>
-      <li><strong style="color: var(--text-1);">Audit log:</strong> Only the rule ID, file path, and line number are recorded. The credential value is never logged.</li>
-      <li><strong style="color: var(--text-1);">Error messages:</strong> Stack traces and error output are sanitized to remove any credential values that might appear in variable names or error contexts.</li>
-    </ul>
-
-    <p>The only place full credential values are stored is in the <code>.env</code> file (after auto-fix) and the verification cache (as a SHA-256 hash, not the value itself).</p>
-
-    <h2 id="rule-signing">Rule Signing (HMAC-SHA256)</h2>
-
-    <p>Gate's {{ versions.gate.rules }} built-in detection rules are shipped as signed JSON files. Each rule file includes an HMAC-SHA256 signature that is verified at load time.</p>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">Signing algorithm:</strong> HMAC-SHA256</li>
-      <li><strong style="color: var(--text-1);">Verification:</strong> Gate verifies the signature of each rule file before loading it. If a signature does not match, the rule is rejected and a warning is printed.</li>
-      <li><strong style="color: var(--text-1);">Tampering protection:</strong> This prevents malicious modification of rule files (e.g., weakening patterns to allow secrets through, or adding patterns that exfiltrate data).</li>
-    </ul>
-
-    <div class="code-block"><span class="cmt">// Rule file structure</span>
-{
-  <span class="kw">"rules"</span>: [ ... ],
-  <span class="kw">"signature"</span>: <span class="str">"a1b2c3d4...hmac-sha256-signature"</span>,
-  <span class="kw">"version"</span>: <span class="str">"2.0.0"</span>
-}</div>
-
-    <p>Custom rules defined in <code>.gaterc</code> are not signed (they are user-provided). Only the built-in rule pack is signed.</p>
-
-    <h2 id="audit-log-integrity">Audit Log Integrity Chain (SHA-256)</h2>
-
-    <p>Gate's audit log uses a hash chain to ensure integrity. Each log entry includes the SHA-256 hash of the previous entry, forming a tamper-evident chain.</p>
-
-    <div class="code-block"><span class="cmt">// Audit log entry structure</span>
-{
-  <span class="kw">"timestamp"</span>: <span class="str">"2026-03-21T14:30:22Z"</span>,
-  <span class="kw">"action"</span>: <span class="str">"scan"</span>,
-  <span class="kw">"files"</span>: <span class="val">847</span>,
-  <span class="kw">"findings"</span>: <span class="val">2</span>,
-  <span class="kw">"duration"</span>: <span class="str">"1.2s"</span>,
-  <span class="kw">"prevHash"</span>: <span class="str">"sha256:a1b2c3d4e5f6..."</span>,
-  <span class="kw">"hash"</span>: <span class="str">"sha256:f6e5d4c3b2a1..."</span>
-}</div>
-
-    <p>Verify the integrity of the audit log at any time:</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate audit --verify</span>
-
-<span class="val">  Audit log integrity: OK</span>
-<span class="dim">  Entries: 142</span>
-<span class="dim">  First entry: 2026-01-15T10:00:00Z</span>
-<span class="dim">  Last entry: 2026-03-21T14:30:22Z</span>
-<span class="dim">  Chain: unbroken</span></div>
-
-    <p>If any entry has been modified, added, or removed, the verification will fail and report which entries are affected.</p>
-
-    <h2 id="gate-offline">GATE_OFFLINE Mode</h2>
-
-    <p>Set the <code>GATE_OFFLINE=1</code> environment variable to disable all network communication. In offline mode:</p>
-
-    <ul>
-      <li>Credential verification is skipped (all results marked UNKNOWN)</li>
-      <li>Update checks are disabled</li>
-      <li>No DNS resolution or TCP connections are made</li>
-      <li>All other functionality works normally</li>
-    </ul>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">GATE_OFFLINE=1 gate scan</span></div>
-
-    <p>This is useful for air-gapped environments, CI systems without internet access, or situations where you want to ensure zero network traffic.</p>
-
-    <h2 id="supply-chain">Supply Chain Security</h2>
-
-    <p>Gate minimizes its dependency surface to reduce supply chain risk:</p>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">Minimal dependencies.</strong> Gate uses as few npm packages as possible. Core scanning and fixing logic is implemented from scratch.</li>
-      <li><strong style="color: var(--text-1);">No native modules.</strong> Gate is pure JavaScript/TypeScript. No compiled native code, no node-gyp, no platform-specific binaries.</li>
-      <li><strong style="color: var(--text-1);">Signed rule packs.</strong> Detection rules are signed to prevent tampering (see above).</li>
-      <li><strong style="color: var(--text-1);">Open source.</strong> All code is available for inspection on GitHub.</li>
-    </ul>
-
-    <h2 id="vulnerability-reporting">Vulnerability Reporting</h2>
-
-    <p>If you discover a security vulnerability in Gate, please report it responsibly:</p>
-
-    <ul>
-      <li>Email: shadoe@penumbraforge.com</li>
-      <li>Do not open a public GitHub issue for security vulnerabilities</li>
-      <li>Include steps to reproduce and the expected impact</li>
-      <li>We will respond within 48 hours and aim to patch within 7 days</li>
-    </ul>
+<div class="warning-box"><strong>Practical policy:</strong> inspect diffs, rotate exposed credentials at the provider, test the application, and keep an independent secret-scanning control in CI. Gate output is evidence, not proof that a repository is clean.</div>

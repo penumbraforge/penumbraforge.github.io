@@ -463,7 +463,7 @@ permalink: /tools/ai-model-scanner/
       name: 'joblib.load() call detected',
       severity: 'critical',
       detect: function(t) {
-        var m = t.match(/joblib\.(?:load|dump)/i);
+        var m = t.match(/joblib\.load/i);
         return m ? m[0] : null;
       },
       why: 'joblib uses pickle internally — calling joblib.load() on untrusted model files is equivalent to running arbitrary Python code. Joblib serialized files (.joblib) carry the same risk as .pkl files.',
@@ -484,8 +484,8 @@ permalink: /tools/ai-model-scanner/
         if (/weights_only\s*=\s*True/i.test(snippet)) return null;
         return snippet.split('\n')[0].trim().substring(0, 80);
       },
-      why: 'torch.load() without weights_only=True uses Python pickle under the hood and can execute arbitrary code. PyTorch >= 2.0 added weights_only=True to load only tensors safely, but it is not the default.',
-      fix: 'Always use torch.load(path, weights_only=True) when loading weights. Better yet, migrate to safetensors which has no pickle layer at all.',
+      why: 'Depending on the PyTorch version and arguments, torch.load() may deserialize through Python pickle and execute code embedded in an untrusted artifact. This regex cannot determine the installed version or call path.',
+      fix: 'Review the documentation for the exact supported PyTorch version and pass weights_only=True explicitly where appropriate. Prefer a tensor-only format such as safetensors when the workflow supports it.',
       checklist: 'torch.load() with weights_only=True'
     },
     {
@@ -499,7 +499,7 @@ permalink: /tools/ai-model-scanner/
         if (/\b(?:pytorch_model|model\.bin|\.pkl|\.pt\b|weights\.bin|torch\.save|torch\.load)\b/i.test(t)) return 'safetensors not mentioned';
         return null;
       },
-      why: 'Safetensors is a safe, fast serialization format for ML model weights that cannot execute code. Models distributed only as PyTorch .bin or .pt files require pickle deserialization, which carries execution risk.',
+      why: 'Safetensors is a tensor-only format that avoids Python pickle semantics. A .bin or .pt filename alone does not prove how the artifact is encoded or loaded, so inspect the repository and loader.',
       fix: 'Check whether the model repository also offers *.safetensors files. If not, treat the model with extra caution and only load from highly trusted sources.',
       checklist: 'Safetensors format available'
     },
@@ -521,30 +521,30 @@ permalink: /tools/ai-model-scanner/
     {
       id: 'torch-old',
       category: 'Dependencies',
-      name: 'Old PyTorch version with known CVEs',
-      severity: 'high',
+      name: 'Legacy PyTorch pin needs review',
+      severity: 'medium',
       detect: function(t) {
-        // torch < 2.0 has CVE-2022-45907, CVE-2023-27374 and others
+        // Treat legacy major-version pins as review prompts, not CVE proof.
         var m = t.match(/\btorch\s*(?:==|<=|~=)\s*(0\.\d+|1\.\d+(?:\.\d+)?)\b/i);
         return m ? m[0] : null;
       },
-      why: 'PyTorch versions before 2.0 contain multiple CVEs including CVE-2022-45907 (arbitrary code execution via malformed model) and CVE-2023-27374 (unsafe deserialization). These versions also lack the weights_only parameter for safe loading.',
-      fix: 'Upgrade to torch>=2.0. If the model explicitly requires an old torch version, investigate why — it may indicate the model relies on unsafe loading patterns that were fixed in newer versions.',
-      checklist: 'PyTorch >= 2.0'
+      why: 'The pasted requirements pin a legacy major version. This static check does not resolve the environment, support window, backports, or which advisories apply.',
+      fix: 'Review current official PyTorch release and security advisories, then test an upgrade to a supported version. If the old pin is required, document and isolate that dependency.',
+      checklist: 'PyTorch version reviewed against current advisories'
     },
     {
       id: 'transformers-old',
       category: 'Dependencies',
-      name: 'Old transformers version with known vulnerabilities',
-      severity: 'high',
+      name: 'Legacy transformers pin needs review',
+      severity: 'medium',
       detect: function(t) {
-        // transformers < 4.36 has code injection in tokenizer (CVE-2023-7018)
+        // Treat older pins as review prompts; this does not resolve advisories.
         var m = t.match(/\btransformers\s*(?:==|<=|~=)\s*(0\.\d+|1\.\d+|2\.\d+|3\.\d+|4\.(?:[012]?\d|3[0-5])(?:\.\d+)?)\b/i);
         return m ? m[0] : null;
       },
-      why: 'Transformers versions before 4.36.0 contain CVE-2023-7018, a code injection vulnerability in the tokenizer configuration loading. Versions before 4.30.0 also had unsafe pickle loading in several AutoClass methods.',
-      fix: 'Update to transformers>=4.36.0. Check the model card or repository requirements to see if the model was specifically tested with vulnerable versions.',
-      checklist: 'transformers >= 4.36'
+      why: 'The pasted requirements pin an older transformers release. This static check does not resolve the environment, backports, loader path, or which current advisories apply.',
+      fix: 'Review current official Transformers release and security advisories, then test an upgrade to a supported version. Document any compatibility reason for retaining the old pin.',
+      checklist: 'Transformers version reviewed against current advisories'
     },
     {
       id: 'git-source-dep',
@@ -555,9 +555,9 @@ permalink: /tools/ai-model-scanner/
         var m = t.match(/git\+https?:\/\/[^\s\n"']+/i);
         return m ? m[0] : null;
       },
-      why: 'Dependencies pulled directly from git repositories bypass PyPI security scanning, version pinning, and release integrity checks. The referenced commit can be force-pushed or deleted, introducing supply chain risk.',
+      why: 'A git dependency uses repository content rather than a registry release. Reproducibility depends on whether it uses a full commit hash; that still does not establish publisher identity, review quality, or artifact integrity.',
       fix: 'Verify the referenced repository is legitimate and the commit hash is pinned. Consider whether the dependency can be sourced from PyPI instead. At minimum, audit the full repository before use.',
-      checklist: 'No git+https:// dependencies'
+      checklist: 'Git dependency ref and provenance reviewed'
     },
     {
       id: 'unpinned-deps',
@@ -819,28 +819,28 @@ permalink: /tools/ai-model-scanner/
 
   // ── Safety checklist items ───────────────────────────────────────────────────
   var CHECKLIST_ITEMS = [
-    { label: 'No pickle/joblib files',          ids: ['pickle-file-ext','pickle-load','joblib-load'] },
-    { label: 'No trust_remote_code',            ids: ['trust-remote-code','config-trust-remote'] },
-    { label: 'Safetensors format available',    ids: ['no-safetensors'] },
-    { label: 'torch.load() safe usage',         ids: ['torch-load-unsafe'] },
-    { label: 'PyTorch >= 2.0',                  ids: ['torch-old'] },
-    { label: 'transformers >= 4.36',            ids: ['transformers-old'] },
-    { label: 'No git+https:// dependencies',    ids: ['git-source-dep'] },
-    { label: 'License specified',               ids: ['no-license'] },
-    { label: 'Training data disclosed',         ids: ['no-training-data'] },
-    { label: 'Bias/fairness assessed',          ids: ['no-bias-assessment'] },
-    { label: 'Evaluation results present',      ids: ['no-eval-results'] },
-    { label: 'No typosquatting indicators',     ids: ['typosquatting'] },
-    { label: 'Base model provenance verified',  ids: ['suspicious-base-model'] },
-    { label: 'No unaudited custom code',        ids: ['custom-code-files','config-custom-code'] }
+    { label: 'pickle/joblib indicators',         ids: ['pickle-file-ext','pickle-load','joblib-load'] },
+    { label: 'trust_remote_code indicators',     ids: ['trust-remote-code','config-trust-remote'] },
+    { label: 'missing safetensors reference',    ids: ['no-safetensors'] },
+    { label: 'unsafe torch.load pattern',        ids: ['torch-load-unsafe'] },
+    { label: 'old PyTorch version string',       ids: ['torch-old'] },
+    { label: 'old transformers version string',  ids: ['transformers-old'] },
+    { label: 'git dependency pattern',           ids: ['git-source-dep'] },
+    { label: 'missing license text',              ids: ['no-license'] },
+    { label: 'missing training-data text',        ids: ['no-training-data'] },
+    { label: 'missing bias/fairness text',        ids: ['no-bias-assessment'] },
+    { label: 'missing evaluation text',           ids: ['no-eval-results'] },
+    { label: 'typosquatting indicator',           ids: ['typosquatting'] },
+    { label: 'suspicious base-model string',      ids: ['suspicious-base-model'] },
+    { label: 'custom-code indicator',             ids: ['custom-code-files','config-custom-code'] }
   ];
 
   // ── Risk rating ──────────────────────────────────────────────────────────────
   function getRating(score) {
-    if (score <= 8)  return { label: 'SAFE',     cls: 'safe',     color: '#4ade80', desc: 'No significant security concerns detected.' };
-    if (score <= 24) return { label: 'CAUTION',  cls: 'caution',  color: '#fbbf24', desc: 'Some concerns found — review before deployment.' };
-    if (score <= 49) return { label: 'WARNING',  cls: 'warning',  color: '#fb923c', desc: 'Significant risks found — do not deploy without review.' };
-    return            { label: 'CRITICAL', cls: 'critical', color: '#f87171', desc: 'Critical security risks — do not load or run this model.' };
+    if (score <= 8)  return { label: 'LOW HEURISTIC SCORE', cls: 'safe', color: '#4ade80', desc: 'Few configured metadata patterns matched; this is not a model-safety verdict.' };
+    if (score <= 24) return { label: 'MODERATE HEURISTIC SCORE', cls: 'caution', color: '#fbbf24', desc: 'Some configured metadata patterns matched; review the underlying files.' };
+    if (score <= 49) return { label: 'HIGH HEURISTIC SCORE', cls: 'warning', color: '#fb923c', desc: 'Several configured metadata patterns matched; investigate before loading.' };
+    return            { label: 'VERY HIGH HEURISTIC SCORE', cls: 'critical', color: '#f87171', desc: 'Severe configured patterns matched; do not load until they are understood.' };
   }
 
   // ── Ring SVG helper ──────────────────────────────────────────────────────────
@@ -912,7 +912,7 @@ permalink: /tools/ai-model-scanner/
     var title = document.createElement('div');
     title.className = 'ams-score-title';
     title.style.color = rating.color;
-    title.textContent = 'Risk Score: ' + score + ' / 100';
+    title.textContent = 'Configured-rule score: ' + score + ' / 100';
     body.appendChild(title);
 
     var sub = document.createElement('div');
@@ -945,7 +945,7 @@ permalink: /tools/ai-model-scanner/
     if (findings.length === 0) {
       var clean = document.createElement('div');
       clean.style.cssText = 'display:flex;align-items:center;gap:8px;padding:16px 20px;background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.2);border-radius:8px;color:#4ade80;font-size:0.875rem;font-weight:600;margin-bottom:16px;';
-      clean.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>No security issues detected. Always review manually — static analysis is not exhaustive.';
+      clean.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>No configured metadata patterns matched. This is not evidence that the model or its files are safe.';
       findingsEl.appendChild(clean);
     } else {
       // Group by category
@@ -1026,12 +1026,12 @@ permalink: /tools/ai-model-scanner/
       });
     }
 
-    // ── Safe model checklist ─────────────────────────────────────────────────
+    // ── Configured-rule review ───────────────────────────────────────────────
     while (checklistEl.firstChild) checklistEl.removeChild(checklistEl.firstChild);
 
     var clHdr = document.createElement('div');
     clHdr.className = 'ams-section-header';
-    clHdr.textContent = 'Safe Model Checklist';
+    clHdr.textContent = 'Configured-rule review';
     checklistEl.appendChild(clHdr);
 
     var clBox = document.createElement('div');
@@ -1044,7 +1044,7 @@ permalink: /tools/ai-model-scanner/
       var failed = item.ids.some(function(id) { return triggered[id]; });
       if (!failed) passCount++;
     });
-    clTitle.textContent = passCount + ' / ' + CHECKLIST_ITEMS.length + ' criteria met';
+    clTitle.textContent = passCount + ' / ' + CHECKLIST_ITEMS.length + ' topics had no configured finding';
     clBox.appendChild(clTitle);
 
     var grid = document.createElement('div');
@@ -1057,12 +1057,12 @@ permalink: /tools/ai-model-scanner/
 
       var icon = document.createElement('span');
       icon.className = 'ams-check-icon';
-      icon.textContent = failed ? '\u2717' : '\u2713';
-      icon.style.color = failed ? '#f87171' : '#4ade80';
+      icon.textContent = failed ? '!' : '\u2022';
+      icon.style.color = failed ? '#f87171' : '#888';
 
       var lbl = document.createElement('span');
       lbl.className = 'ams-check-label';
-      lbl.textContent = item.label;
+      lbl.textContent = (failed ? 'Flagged: ' : 'Not flagged: ') + item.label;
 
       row.appendChild(icon);
       row.appendChild(lbl);

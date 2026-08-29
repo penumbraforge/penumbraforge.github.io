@@ -3,7 +3,7 @@ permalink: /llms.txt
 eleventyExcludeFromCollections: true
 ---
 {%- set cats = [
-  { key: "ai", label: "AI (local, in-browser)" },
+  { key: "ai", label: "AI and AI security" },
   { key: "security", label: "Security" },
   { key: "intelligence", label: "Intelligence & forensics" },
   { key: "media", label: "Media & creative" },
@@ -14,7 +14,7 @@ eleventyExcludeFromCollections: true
 ] -%}
 # Penumbra Forge — Tools
 
-> Free developer and security tools that run in the browser. No accounts, no server round-trips, no uploads. The pages are readable by people and by agents: each tool page carries a JSON descriptor, many accept input from the URL, and a few can use an in-browser LLM (WebGPU) or a local model you point them at.
+> Free developer and security tools with no account required. Many run entirely in the browser; tools that use an edge worker, contact a third party, or offer a configurable AI endpoint are labelled on their pages. Each live page carries a machine-readable JSON descriptor; {{ stats.urlInvocableTools }} currently declare the URL-input/result contract.
 
 ## For AI agents
 
@@ -22,27 +22,27 @@ Each tool page at https://penumbraforge.com/tools/<slug>/ exposes:
 - a descriptor `<script type="application/json" id="pf-tool">` (slug, name, category, description, invoke spec if any);
 - after the tool runs, a result `<script type="application/json" id="pf-result">` and `window.PF_RESULT` = `{ tool, ok, output, data?, error? }`, with `<html data-pf-ready="1" data-pf-status="ok|error">` signalling completion.
 
-URL-invocable tools accept input via `?in=<text>` (or `?inb64=<base64url>` for binary-safe/large input) plus tool-specific params, and auto-run on load. Example: `https://penumbraforge.com/tools/hash-generator/?in=hello&algo=SHA-256` → read `#pf-result` once `data-pf-ready="1"`.
+Only entries whose descriptor includes `invoke` promise automatic execution and a result. Pass input in the fragment as `#in=<text>` (or `#inb64=<base64url>`) plus tool-specific params. Example: `https://penumbraforge.com/tools/hash-generator/#in=hello&algo=SHA-256` → read `#pf-result` once `data-pf-ready="1"`. Legacy query input remains compatible, but it reaches the site/CDN before the page runs; fragments are not sent in the HTTP request.
 
 The full machine-readable index of every tool is at https://penumbraforge.com/tools/index.json .
 
 Prefer native tool calls? Connect over MCP (Model Context Protocol):
 - Remote (HTTP): `https://penumbra-mcp.penumbraforge.workers.dev` — POST JSON-RPC 2.0 (initialize, tools/list, tools/call).
-- Local (stdio, runs on your machine): `node workers/mcp/local.mjs` from the open-source repo.
-Deterministic tools available over MCP: hash, hmac, base64, base64url, hex, url_encode, jwt_decode, uuid, uuid_inspect, entropy, epoch, password, json, color, cidr, case_convert.
+- Local (stdio, runs on your machine): `node workers/mcp/local.mjs` from the website repository. That repository is source-visible, not open-source licensed; review its `LICENSE` before use.
+The current MCP registry exposes {{ stats.mcpTools }} tools; use `tools/list` for the authoritative names and route descriptions. Non-model utility examples include hash, hmac, base64, base64url, hex, url_encode, jwt_decode, uuid, entropy, epoch, password, json, color, cidr, and case conversion. Four `net` tools make the outbound requests disclosed by their descriptions.
 
 {% for cat in cats -%}
 {%- set list = [] -%}
 {%- for t in tools -%}{%- if t.status == "live" and t.category == cat.key -%}{%- set list = (list.push(t), list) -%}{%- endif -%}{%- endfor -%}
 {%- if list.length -%}
-## {{ cat.label }}
+## {{ cat.label | safe }}
 
 {% for t in list -%}
-- [{{ t.name }}](https://penumbraforge.com/tools/{{ t.slug }}/): {{ t.description }}{% if t.invoke and t.invoke.example %} — invoke: `{{ t.invoke.example }}`{% endif %}
+- [{{ t.name | safe }}](https://penumbraforge.com/tools/{{ t.slug | safe }}/): {{ t.description | safe }}{% if t.invoke and t.invoke.example %} — invoke: `{{ t.invoke.example | safe }}`{% endif %}
 
 {% endfor %}
 {% endif -%}
 {%- endfor %}
 ## About
 
-Penumbra Forge LLC is an independent software company building local-first AI and security tools. The tools on this site are client-side and open source. The AI tools run a model in your browser (WebGPU) or talk to an Ollama / LM Studio / OpenAI-compatible endpoint you supply, so input stays on your machine. Umbra, a local-first AI studio for NVIDIA DGX Spark, is in early development and not usable yet: https://penumbraforge.com/umbra/
+Penumbra Forge LLC is an independent software company building local-first AI and security tools. Many site tools are client-side and the website source is visible under its repository license; separately licensed open-source products include Gate, vexes, and mcp-librarian. AI features can run in the browser with WebGPU, send requests to a user-configured local or remote OpenAI-compatible endpoint, or use non-model logic depending on the page. The active route determines where input goes. Umbra is in early development and not usable yet: https://penumbraforge.com/umbra/

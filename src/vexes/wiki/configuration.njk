@@ -1,103 +1,45 @@
 ---
 title: "Configuration"
-description: "Configure vexes with .vexesrc.json — ignore lists, signal toggles, severity thresholds, and ecosystem settings."
+description: "Project and user policy, config precedence, and reproducible enforcement flags."
 permalink: /vexes/wiki/configuration/
 ---
 <h1>Configuration</h1>
-    <p class="subtitle">.vexesrc.json format, ignore lists, signal toggles, severity thresholds, and output settings.</p>
+<p class="subtitle">Defaults &lt; user config &lt; allowed project policy &lt; CLI flags.</p>
 
-    <h2 id="zero-config">Zero Configuration</h2>
+<h2>Project policy: <code>.vexesrc.json</code></h2>
+<div class="code-block"><span class="pun">{</span>
+  <span class="str">"ecosystems"</span>: [<span class="str">"npm"</span>, <span class="str">"pypi"</span>],
+  <span class="str">"severity"</span>: <span class="str">"high"</span>,
+  <span class="str">"ignore"</span>: [],
+  <span class="str">"analyze"</span>: { <span class="str">"signals"</span>: { <span class="str">"NO_REPOSITORY"</span>: <span class="str">"off"</span> } },
+  <span class="str">"output"</span>: { <span class="str">"color"</span>: <span class="str">"auto"</span>, <span class="str">"format"</span>: <span class="str">"text"</span> }
+<span class="pun">}</span></div>
+<p>Repository config may set reporting policy: ecosystems, severity, ignores, strict/verbose/top, the deprecated reachability field, signal switches, and output color/format. It cannot enable sandbox execution, deep sampling, fix output, AI, or stale-cache use, and it cannot select cache storage or TTLs.</p>
 
-    <p>vexes works with zero configuration. All defaults are designed for security: every signal is enabled, nothing is ignored, and the scanner uses the strictest safe defaults. Configuration is only needed when you want to customize behavior.</p>
+<div class="warning-box"><strong>Project config is untrusted policy input.</strong> A checked-out branch can change what an ordinary report displays. Use <code>--no-project-config</code> for enforcement unless repository-owned policy is intentionally trusted.</div>
 
-    <h2 id="vexesrc">.vexesrc.json</h2>
+<h2>User policy</h2>
+<p><code>~/.config/vexes/config.json</code> may set the reporting keys plus ordinary cache directory/TTL settings. Operational modes still require explicit CLI flags. Use <code>--no-user-config</code> when a run must not vary with runner-account policy.</p>
 
-    <p>Create a <code>.vexesrc.json</code> file in your project root for per-project configuration. A user-level config at <code>~/.config/vexes/config.json</code> uses the same format.</p>
+<h2>Selected options</h2>
+<table class="cmd-table">
+  <thead><tr><th>Setting</th><th>Values / behavior</th></tr></thead>
+  <tbody>
+    <tr><td><code>ecosystems</code></td><td><code>npm</code>, <code>pypi</code>, <code>cargo</code>, <code>go</code>, <code>ruby</code>, <code>php</code>, <code>nuget</code>, <code>java</code>, <code>hex</code>, <code>pub</code></td></tr>
+    <tr><td><code>severity</code></td><td><code>critical</code>, <code>high</code>, <code>moderate</code>, <code>low</code></td></tr>
+    <tr><td><code>analyze.signals</code></td><td>Every documented analysis signal may be set to <code>"off"</code> for ordinary reporting</td></tr>
+    <tr><td><code>cache.advisoryTtlMs</code></td><td>Default 1 hour; clamped to at most 7 days</td></tr>
+    <tr><td><code>cache.metadataTtlMs</code></td><td>Historical name for analysis-signal TTL; default 24 hours, max 30 days</td></tr>
+    <tr><td><code>output.format</code></td><td><code>text</code>, <code>json</code>, or <code>sarif</code> where supported</td></tr>
+  </tbody>
+</table>
 
-    <div class="code-block"><span class="cmt">// .vexesrc.json</span>
-{
-  <span class="kw">"severity"</span>: <span class="val">"high"</span>,
-  <span class="kw">"ecosystems"</span>: [<span class="val">"npm"</span>, <span class="val">"cargo"</span>],
-  <span class="kw">"ignore"</span>: [
-    <span class="val">"GHSA-xxxx-yyyy-zzzz"</span>,          <span class="cmt">// suppress a specific advisory</span>
-    <span class="val">"internal-tool"</span>,                 <span class="cmt">// skip a package entirely</span>
-    <span class="val">"lodash@4.17.21"</span>                 <span class="cmt">// skip one pinned version only</span>
-  ],
-  <span class="kw">"analyze"</span>: {
-    <span class="kw">"signals"</span>: {
-      <span class="kw">"DORMANT_REACTIVATION"</span>: <span class="val">"off"</span>  <span class="cmt">// disable a noisy signal</span>
-    }
-  },
-  <span class="kw">"output"</span>: {
-    <span class="kw">"format"</span>: <span class="val">"text"</span>
-  }
-}</div>
+<p>Guard clears configured ignores and signal suppression before deciding an install. This prevents repository policy from silencing guard evidence, but it does not make guard a complete package-safety boundary.</p>
 
-    <h2 id="ignore">The ignore Key</h2>
-
-    <p>The <code>ignore</code> key is a flat array of strings. Each entry takes one of three forms:</p>
-
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Form</th><th>Example</th><th>Effect</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Advisory ID</td><td><code>GHSA-xxxx-yyyy-zzzz</code>, <code>CVE-2021-1234</code>, <code>PYSEC-...</code></td><td>Suppresses findings for that specific advisory</td></tr>
-        <tr><td>Package name</td><td><code>lodash</code>, <code>@scope/name</code></td><td>Suppresses all findings for that package</td></tr>
-        <tr><td>Pinned package</td><td><code>lodash@4.17.21</code>, <code>@scope/name@1.2.3</code></td><td>Suppresses findings for that exact version only</td></tr>
-      </tbody>
-    </table>
-
-    <p>Suppressed findings are partitioned out of the results, not silently dropped -- the output notes how many findings were suppressed by your ignore list.</p>
-
-    <h2 id="configuration-options">All Options</h2>
-
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Key</th><th>Default</th><th>Description</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>severity</code></td><td><code>moderate</code></td><td>Minimum severity to report. One of: low, moderate, high, critical.</td></tr>
-        <tr><td><code>ecosystems</code></td><td>all {{ versions.vexes.ecosystems }}</td><td>Array of ecosystem names to scan: npm, pypi, cargo, go, ruby, php, nuget, java. Unknown names are rejected rather than silently scanning nothing.</td></tr>
-        <tr><td><code>ignore</code></td><td><code>[]</code></td><td>Array of advisory IDs, package names, or <code>pkg@version</code> entries to suppress.</td></tr>
-        <tr><td><code>analyze.signals</code></td><td><code>{}</code></td><td>Map of signal name to <code>"off"</code> to disable a signal. Undisableable signals ignore this.</td></tr>
-        <tr><td><code>output.format</code></td><td><code>text</code></td><td>Output format. One of: text, json, sarif.</td></tr>
-        <tr><td><code>output.color</code></td><td><code>auto</code></td><td>Color output: auto, or never.</td></tr>
-        <tr><td><code>cache.dir</code></td><td><code>~/.cache/vexes</code></td><td>Cache directory for advisory and metadata lookups.</td></tr>
-        <tr><td><code>cache.advisoryTtlMs</code></td><td>(built-in)</td><td>Advisory cache TTL. Clamped to a maximum of 7 days so stale results cannot persist.</td></tr>
-        <tr><td><code>cache.metadataTtlMs</code></td><td>(built-in)</td><td>Registry metadata cache TTL. Clamped to a maximum of 30 days.</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="undisableable">Undisableable Signals</h2>
-
-    <p>Four signals cannot be turned off via configuration:</p>
-
-    <ul>
-      <li><code>KNOWN_COMPROMISED</code></li>
-      <li><code>PHANTOM_DEPENDENCY</code></li>
-      <li><code>CIRCULAR_STAGING</code></li>
-      <li><code>CAPABILITY_ESCALATION</code></li>
-    </ul>
-
-    <p>Setting these to <code>"off"</code> in <code>analyze.signals</code> has no effect -- they are still reported. This is a deliberate security design choice: these signals detect active compromises, and suppressing them is never safe.</p>
-
-    <h2 id="config-merging">Configuration Merging</h2>
-
-    <p>vexes looks for <code>.vexesrc.json</code> in the current directory, then walks up toward the filesystem root and uses the first one found. Configuration layers merge in increasing precedence: built-in defaults, then <code>~/.config/vexes/config.json</code>, then the project <code>.vexesrc.json</code>, then CLI flags.</p>
-
-    <h3>Prototype pollution protection</h3>
-    <p>The config merger rejects <code>__proto__</code>, <code>constructor</code>, and <code>prototype</code> keys. This prevents prototype pollution attacks via malicious config files.</p>
-
-    <h2 id="environment-variables">Environment Variables</h2>
-
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Variable</th><th>Description</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Enables the opt-in <code>vexes explain</code> AI triage command. Without it, <code>explain</code> refuses to run.</td></tr>
-        <tr><td><code>VEXES_AI_MODEL</code></td><td>Overrides the model used by <code>vexes explain</code> (default: <code>claude-sonnet-5</code>).</td></tr>
-        <tr><td><code>NO_COLOR</code></td><td>Standard variable to disable colored output.</td></tr>
-      </tbody>
-    </table>
+<h2>AI provider variables</h2>
+<ul>
+  <li><code>VEXES_AI_BASE</code>, optional <code>VEXES_AI_KEY</code>, and model variables for an OpenAI-compatible endpoint.</li>
+  <li><code>ANTHROPIC_BASE_URL</code> plus <code>ANTHROPIC_AUTH_TOKEN</code> or <code>ANTHROPIC_API_KEY</code> for a compatible endpoint.</li>
+  <li><code>ANTHROPIC_API_KEY</code> alone for the hosted Anthropic API.</li>
+</ul>
+<p>Remote endpoints receive sanitized summary data when the AI feature is explicitly invoked. No provider is contacted merely because a key is absent or present without an AI flag/command.</p>

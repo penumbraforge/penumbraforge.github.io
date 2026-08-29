@@ -1,95 +1,46 @@
 ---
 title: "Getting Started"
-description: "Install vexes, run your first scan, and understand what the output means."
+description: "Install vexes, run the first advisory scan, and interpret its result without overclaiming."
 permalink: /vexes/wiki/getting-started/
 ---
 <h1>Getting Started</h1>
-    <p class="subtitle">Install vexes, run your first scan and analysis, and understand the output.</p>
+<p class="subtitle">Start with advisory matching, then add heuristic analysis only where its bounded evidence helps.</p>
 
-    <h2 id="prerequisites">Prerequisites</h2>
+<h2>Requirements and versions</h2>
+<p>Node.js {{ versions.vexes.node }} or later is required. The published npm package is currently v{{ versions.vexes.version }}. The GitHub source tree and this wiki describe v{{ versions.vexes.sourceVersion }} until that source is published.</p>
 
-    <p>vexes requires <strong style="color: var(--text-1);">Node.js 22.5 or later</strong>. The SQLite module used for caching is a Node.js built-in starting in v22.5. No other dependencies are needed -- vexes has zero external dependencies.</p>
+<div class="code-block"><span class="cmt"># Published package</span>
+<span class="prompt">$ </span><span class="cmd">npx @penumbraforge/vexes scan</span>
 
-    <div class="code-block"><span class="cmt"># Check your Node.js version</span>
-<span class="prompt">$ </span><span class="cmd">node --version</span>
-<span class="dim">v22.12.0</span></div>
+<span class="cmt"># Current source</span>
+<span class="prompt">$ </span><span class="cmd">git clone https://github.com/penumbraforge/vexes.git</span>
+<span class="prompt">$ </span><span class="cmd">node vexes/bin/vexes.js scan --path /path/to/project</span></div>
 
-    <h2 id="installation">Installation</h2>
+<h2>First scan</h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes scan --path ./project</span></div>
+<p><code>scan</code> reads recognized dependency inputs and sends package names, versions, and ecosystem identifiers to OSV. It reports versions that OSV places in affected ranges. This is deterministic matching to an upstream advisory record, not proof of reachability, exploitation, or malicious intent.</p>
 
-    <h3>Zero-install (npx)</h3>
-    <p>The fastest way to try vexes. No installation required -- npx downloads and runs it in one step.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npx @penumbraforge/vexes scan</span></div>
+<h2>Add heuristic evidence</h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes analyze</span>
+<span class="prompt">$ </span><span class="cmd">vexes analyze --deep</span></div>
+<p><code>analyze</code> currently covers npm/PyPI registry evidence. <code>--deep</code> downloads and inspects a bounded set of selected entry/install-like files: JavaScript with vendored Acorn and Python with pattern matching. It is not a whole-package review. When sampling occurs, the result remains explicitly incomplete and exits 2 while retaining findings.</p>
 
-    <h3>Global install (npm)</h3>
-    <p>For regular use, install globally so the <code>vexes</code> command is always available.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npm install -g @penumbraforge/vexes</span>
+<h2>Interpret the result</h2>
+<table class="cmd-table">
+  <thead><tr><th>Exit</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>0</code></td><td>Requested supported checks completed with no finding at the active threshold. Not a safety verdict.</td></tr>
+    <tr><td><code>1</code></td><td>One or more findings met the active reporting/failure policy.</td></tr>
+    <tr><td><code>2</code></td><td>Error or incomplete requested evidence. Read the warnings; do not treat it as clean.</td></tr>
+  </tbody>
+</table>
 
-<span class="cmt"># Verify the installation</span>
-<span class="prompt">$ </span><span class="cmd">vexes --version</span>
-<span class="dim">vexes v{{ versions.vexes.version }}</span></div>
+<h2>Data routing</h2>
+<ul>
+  <li>OSV scans send dependency coordinates to <code>api.osv.dev</code>.</li>
+  <li>Analysis and licenses may contact npm, PyPI, provenance, and deps.dev endpoints.</li>
+  <li>Deep analysis downloads bounded package archives.</li>
+  <li>AI explanation is opt-in and sends sanitized finding data to the configured local or hosted model endpoint.</li>
+</ul>
 
-    <h2 id="first-scan">Your First Scan</h2>
-
-    <p>Run <code>vexes scan</code> in any project directory. vexes auto-detects lockfiles and queries the OSV.dev vulnerability database.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes scan</span>
-
-<span class="dim">  vexes v{{ versions.vexes.version }} — scanning dependencies
-  Found 312 packages in package-lock.json
-  Ecosystem: npm</span>
-
-<span class="err">  CRITICAL</span>  lodash 4.17.20 <span class="dim">(npm)</span>
-<span class="dim">  vuln:</span> GHSA-jf85-cpcp-j695
-<span class="dim">  fix:</span>  upgrade to 4.17.21
-
-<span class="dim">  ──────────────────────────────────────
-  1 vulnerability found · 312 packages scanned — 1.8s</span></div>
-
-    <p>The scan command checks known vulnerabilities via OSV.dev. For behavioral analysis (typosquatting, account takeovers, capability escalation), use the <code>analyze</code> command.</p>
-
-    <h2 id="first-analysis">Your First Analysis</h2>
-
-    <p>The <code>analyze</code> command runs the 4-layer behavioral detection engine. This goes far beyond vulnerability databases -- it examines actual code patterns, dependency graphs, and registry metadata.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes analyze</span>
-
-<span class="dim">  vexes v{{ versions.vexes.version }} — analyzing dependencies
-  Found 312 packages in package-lock.json
-  Ecosystem: npm</span>
-
-<span class="warn">  HIGH</span>     some-util 1.0.3 <span class="dim">(npm)</span>
-<span class="dim">  signal:</span> <span class="warn">PHANTOM_DEPENDENCY</span>
-<span class="dim">  detail:</span> first published 2 days ago
-
-<span class="dim">  ──────────────────────────────────────
-  1 signal · 0 critical · 1 high
-  312 packages — 3.1s</span></div>
-
-    <h3>Deep analysis</h3>
-    <p>Add <code>--deep</code> to download and AST-inspect actual package tarballs. This enables Layer 1 (AST code analysis) which detects <code>eval()</code>, <code>child_process.exec()</code>, credential harvesting, and obfuscated code patterns.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes analyze --deep</span></div>
-
-    <p>Deep analysis takes longer because it downloads package tarballs from the registry. The tradeoff is significantly more comprehensive detection.</p>
-
-    <h2 id="understanding-output">Understanding the Output</h2>
-
-    <h3>Severity levels</h3>
-    <p>Every finding has a severity level:</p>
-    <ul>
-      <li><strong style="color: var(--error);">CRITICAL</strong> -- immediate action required. Known compromised packages, active account takeovers with dangerous code patterns.</li>
-      <li><strong style="color: var(--warn);">HIGH</strong> -- likely malicious. Typosquatting, phantom dependencies, capability escalation between versions.</li>
-      <li><strong style="color: var(--text-2);">MODERATE</strong> -- suspicious but may be legitimate. Unusual publish patterns, minor capability changes.</li>
-      <li><strong style="color: var(--text-3);">LOW</strong> -- informational. Dormant package reactivation, missing provenance attestations.</li>
-    </ul>
-
-    <h3>Signal types</h3>
-    <p>Signals are the individual findings from each detection layer. A single package can trigger multiple signals. See <a href="/vexes/wiki/detection-engine/">Detection Engine</a> for the complete signal reference.</p>
-
-    <h2 id="next-steps">Next Steps</h2>
-    <ul>
-      <li><a href="/vexes/wiki/commands/">Commands Reference</a> -- learn every command and flag</li>
-      <li><a href="/vexes/wiki/detection-engine/">Detection Engine</a> -- understand the 4-layer analysis architecture</li>
-      <li><a href="/vexes/wiki/pre-install-guard/">Pre-Install Guard</a> -- block threats before they execute</li>
-      <li><a href="/vexes/wiki/ci-cd/">CI/CD Integration</a> -- add vexes to your pipeline</li>
-    </ul>
+<div class="warning-box"><strong>Use it as a review aid.</strong> A CRITICAL or HIGH label prioritizes evidence; it does not itself say a package is malicious. A clean-looking result can still miss unpublished advisories, unsupported inputs, unsampled code, runtime-only behavior, or a novel technique.</div>

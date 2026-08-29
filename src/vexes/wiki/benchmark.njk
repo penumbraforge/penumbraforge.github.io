@@ -1,0 +1,32 @@
+---
+title: "Detection Benchmark"
+description: "Dated Vexes observations, reproducibility controls, and explicit limits."
+permalink: /vexes/wiki/benchmark/
+---
+<h1>Detection Benchmark</h1>
+<p class="subtitle">A dated measurement of bounded checks—not a prevention-rate claim.</p>
+
+<p>The source repository's <a href="https://github.com/penumbraforge/vexes/blob/main/BENCHMARK.md" target="_blank" rel="noopener noreferrer">BENCHMARK.md</a> and <code>benchmark/manifest.json</code> are authoritative. They record exact coordinates, digests, expected evidence, scoring, and run date.</p>
+
+<table class="cmd-table">
+  <thead><tr><th>Part</th><th>Latest recorded observation</th><th>What it establishes</th></tr></thead>
+  <tbody>
+    <tr><td>A — historical advisory coordinates</td><td>5/5 expected advisory identities matched</td><td>OSV contained the expected record for those exact historical coordinates at run time</td></tr>
+    <tr><td>B — synthetic techniques</td><td>5/5 hand-built attack fixtures detected; 2/2 gated negative controls passed</td><td>Selected signals behave as asserted on repository-authored fixtures</td></tr>
+    <tr><td>C — live pinned benign controls</td><td>1/10 emitted HIGH/CRITICAL heuristic evidence; 0/10 had current blocking advisory evidence on 2026-08-28</td><td>A bounded false-positive/control observation for exact pinned samples</td></tr>
+  </tbody>
+</table>
+
+<h2>Integrity and completeness</h2>
+<p>Live artifacts are exact-version and digest-pinned. The runner checks its manifest and policy assumptions before scoring. Part C inspects bounded entry/install-like samples, not every file, so the overall run is expected to report <code>INCOMPLETE</code>. That expected status exits 0 only when benchmark integrity and policy gates pass; <code>--require-complete</code> makes bounded coverage blocking. Execution errors exit 2 and scoring regressions exit 1.</p>
+
+<h2>What is not in the benchmark</h2>
+<ul>
+  <li>No historical malware artifact is downloaded or executed.</li>
+  <li>Part A does not show that Vexes knew about an incident before OSV publication.</li>
+  <li>Part B fixtures are synthetic, not faithful reconstructions of named incidents.</li>
+  <li>Ten benign controls cannot estimate a population-wide false-positive rate.</li>
+  <li>The benchmark does not measure novel-attack recall, package safety, or superiority over another product.</li>
+</ul>
+
+<div class="warning-box"><strong>Honest reading:</strong> the benchmark demonstrates reproducible behavior on specific inputs and exposes its ceiling. It is evidence that can be improved over time, not proof that Vexes catches supply-chain attacks.</div>

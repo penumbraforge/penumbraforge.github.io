@@ -8,7 +8,7 @@ permalink: /tools/passkey-inspector/
   <button class="tool-option" id="pk-mode-create" data-mode="create" aria-pressed="false">Create a passkey (live)</button>
 </div>
 
-<p class="pk-note">Everything runs locally in your browser — nothing is uploaded. Decode a WebAuthn / FIDO2 <span class="pk-code">attestationObject</span>, <span class="pk-code">authenticatorData</span>, or <span class="pk-code">clientDataJSON</span>, or mint a real passkey and inspect exactly what your authenticator returns.</p>
+<p class="pk-note">Decode mode processes WebAuthn / FIDO2 data in this page without uploading it. Live-create mode asks your authenticator or password manager to create a real credential scoped to <span class="pk-code">penumbraforge.com</span>; the site does not submit the returned registration data to an application server.</p>
 
 <!-- ============ DECODE MODE ============ -->
 <div id="pk-panel-decode">
@@ -40,7 +40,7 @@ permalink: /tools/passkey-inspector/
   <div class="tool-row">
     <button class="btn btn--primary" id="pk-create-btn">Create passkey and inspect</button>
   </div>
-  <p class="pk-note pk-note--dim">This calls <span class="pk-code">navigator.credentials.create()</span> with a random 32-byte challenge, ES256 + RS256 params, resident-key preferred, and <span class="pk-code">attestation: "direct"</span>. Your authenticator (Touch ID, Windows Hello, a security key, or your phone) will prompt you. The credential is decoded and discarded &mdash; it is never sent anywhere.</p>
+  <p class="pk-note pk-note--dim">This calls <span class="pk-code">navigator.credentials.create()</span> with a random 32-byte challenge, ES256 + RS256 params, resident-key preferred, and <span class="pk-code">attestation: "direct"</span>. Your authenticator (Touch ID, Windows Hello, a security key, a phone, or a synced password manager) may retain or sync the new credential. The page decodes the returned registration data without submitting it to an application server, but that does not delete the credential from the authenticator. Remove it in your credential manager if you do not want it kept.</p>
 </div>
 
 <div id="pk-error" class="tool-error" role="alert" aria-live="assertive" style="display:none;"></div>
@@ -344,7 +344,7 @@ permalink: /tools/passkey-inspector/
   function fmtHint(fmt) {
     switch (fmt) {
       case 'none': return 'No attestation. The authenticator makes no verifiable claim about its make/model — the most privacy-preserving option and very common for passkeys.';
-      case 'packed': return 'Compact FIDO2 attestation. attStmt carries an algorithm, a signature, and optionally an x5c certificate chain proving the authenticator model.';
+      case 'packed': return 'Compact FIDO2 attestation. attStmt may carry an algorithm, signature, and x5c chain associated with an authenticator model or batch. This page decodes fields but does not verify the attestation statement or certificate chain.';
       case 'fido-u2f': return 'Legacy U2F attestation format, produced by older security keys.';
       case 'tpm': return 'Attestation backed by a Trusted Platform Module (Windows Hello).';
       case 'android-key': return 'Android hardware keystore attestation.';
@@ -402,9 +402,9 @@ permalink: /tools/passkey-inspector/
     return wrap;
   }
   function backupNote(f) {
-    if (!f.BE) { return 'Backup Eligible is OFF — this is a single-device (hardware-bound) credential that cannot be synced or copied off the authenticator.'; }
-    if (f.BE && f.BS) { return 'Backup Eligible + Backup State are ON — this is a multi-device passkey currently backed up / synced to a credential provider (e.g. iCloud Keychain, Google Password Manager).'; }
-    return 'Backup Eligible is ON but Backup State is OFF — the credential is allowed to sync but has not been backed up yet.';
+    if (!f.BE) { return 'The authenticator reports Backup Eligible is OFF. This flag does not prove hardware construction, non-exportability, or that no other copy exists.'; }
+    if (f.BE && f.BS) { return 'The authenticator reports Backup Eligible and Backup State are ON, meaning the credential is currently backed up. These flags do not identify or independently verify the backup provider.'; }
+    return 'The authenticator reports Backup Eligible is ON and Backup State is OFF, meaning it is eligible but not currently reported as backed up.';
   }
   function cborShort(val) {
     if (val instanceof Uint8Array) {
@@ -564,7 +564,7 @@ permalink: /tools/passkey-inspector/
               lines.push('Certificate ' + (c + 1) + ': ' + certLen + ' bytes (DER)');
             }
             sec.body.appendChild(kvEl('attStmt.x5c (certificate chain)', lines.join('\n'),
-              'X.509 chain attesting the authenticator model. The leaf certificate identifies the device.'));
+              'A supplied X.509 chain may be associated with an authenticator model or batch. This page reports DER lengths only; it does not validate signatures, trust anchors, RP ID hash, challenge, or origin, and it does not establish a unique device identity.'));
             attSummary.attStmt.x5c = val.length + ' certificate(s)';
           } else {
             sec.body.appendChild(kvEl('attStmt.' + key, cborShort(val)));

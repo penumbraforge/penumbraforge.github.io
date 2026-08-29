@@ -29,7 +29,7 @@
         "indent": "2|4|tab (default 2)",
         "path": "optional dot/bracket query, e.g. $.users[0].name"
       },
-      "example": "/tools/json-formatter/?in=%7B%22b%22%3A2%2C%22a%22%3A1%7D"
+      "example": "/tools/json-formatter/#in=%7B%22b%22%3A2%2C%22a%22%3A1%7D"
     },
     "isNew": true
   },
@@ -63,7 +63,7 @@
         "v": "4 | 7 — UUID version to generate",
         "count": "how many to generate (1-1000)"
       },
-      "example": "/tools/uuid-generator/?v=7&count=5"
+      "example": "/tools/uuid-generator/#v=7&count=5"
     },
     "isNew": true
   },
@@ -95,7 +95,7 @@
         "in": "unix seconds/millis or a date string",
         "unit": "auto|s|ms (optional; default auto)"
       },
-      "example": "/tools/epoch-converter/?in=1700000000"
+      "example": "/tools/epoch-converter/#in=1700000000"
     },
     "isNew": true
   },
@@ -126,7 +126,7 @@
       "params": {
         "in": "IPv4 CIDR block, e.g. 10.0.0.0/24"
       },
-      "example": "/tools/subnet-calculator/?in=10.0.0.0/24"
+      "example": "/tools/subnet-calculator/#in=10.0.0.0/24"
     },
     "isNew": true
   },
@@ -209,7 +209,7 @@
         "type": "optional: file | script | dir (tunes the security audit)",
         "name": "optional: filename used in the generated chmod command"
       },
-      "example": "/tools/chmod-calculator/?in=4755"
+      "example": "/tools/chmod-calculator/#in=4755"
     },
     "isNew": true
   },
@@ -242,7 +242,7 @@
         "mode": "decode | encode (default decode)",
         "fmt": "decode: auto|base64|base64url|hex|data-uri|jwt · encode: base64|base64url|hex|data-uri (optional)"
       },
-      "example": "/tools/base64-encoder/?in=SGVsbG8sIHdvcmxkIQ%3D%3D&mode=decode"
+      "example": "/tools/base64-encoder/#in=SGVsbG8sIHdvcmxkIQ%3D%3D&mode=decode"
     },
     "isNew": true
   },
@@ -281,7 +281,7 @@
         "sep": "passphrase separator: dash/dot/space/under/digit or a literal char",
         "cap": "capitalize passphrase words: 1/0"
       },
-      "example": "/tools/password-generator/?len=32&symbols=1"
+      "example": "/tools/password-generator/#len=32&symbols=1"
     },
     "isNew": true
   },
@@ -289,7 +289,7 @@
     "name": "Hash Generator",
     "slug": "hash-generator",
     "description": "Generate SHA-256, SHA-512, SHA-1, and MD5 hashes.",
-    "longDescription": "Hashes text or files with SHA-256, SHA-512, SHA-1, or MD5 through the Web Crypto API. Files are read locally rather than uploaded. SHA-1 and MD5 are here for checksum compatibility, not for security work.",
+    "longDescription": "Hashes text or files locally. SHA-256, SHA-512, and SHA-1 use Web Crypto; MD5 uses a local legacy JavaScript implementation. Files are read locally rather than uploaded. SHA-1 and MD5 are here for checksum compatibility, not for security work.",
     "category": "security",
     "keywords": [
       "hash",
@@ -315,7 +315,7 @@
         "in": "text to hash",
         "algo": "SHA-256 | SHA-512 | SHA-1 | MD5"
       },
-      "example": "/tools/hash-generator/?in=hello&algo=SHA-256"
+      "example": "/tools/hash-generator/#in=hello&algo=SHA-256"
     }
   },
   {
@@ -399,7 +399,7 @@
         "mode": "encode | decode",
         "scope": "component | full"
       },
-      "example": "/tools/url-encoder/?in=hello%20world%20%C3%A9&mode=decode&scope=component"
+      "example": "/tools/url-encoder/#in=hello%20world%20%C3%A9&mode=decode&scope=component"
     },
     "isNew": true
   },
@@ -482,8 +482,8 @@
   {
     "name": "One-Time Secret",
     "slug": "one-time-secret",
-    "description": "Share a secret through a link that works once.",
-    "longDescription": "Stores a secret on our server and returns a link that reveals it a single time before deleting it — useful for handing off a password without leaving it in a chat log. The secret does travel to the server, so for end-to-end protection encrypt it with Secret Vault first and share the ciphertext.",
+    "description": "Share a secret through an expiring, best-effort burn-after-read link.",
+    "longDescription": "Stores a secret in Cloudflare KV and returns an unguessable retrieval link. The worker requests deletion after a successful read, but KV is eventually consistent, so this is not a guaranteed one-read channel. The secret travels to infrastructure we operate; encrypt it locally with Secret Lock first if the operator must not be able to read it.",
     "category": "security",
     "keywords": [
       "one-time",
@@ -495,13 +495,13 @@
       "secure link",
       "ephemeral"
     ],
-    "badge": "cloud",
+    "badge": "worker",
     "relatedTools": [
       "secret-lock",
       "password-generator"
     ],
     "status": "live",
-    "privacyNote": "This one is not end-to-end encrypted: the secret is sent to an edge worker, stored until it is read once or expires, then deleted. The operator of that worker could read it in transit. For a secret you don't want anyone else to be able to read, encrypt it locally with Secret Vault first."
+    "privacyNote": "This is not end-to-end encrypted: the secret is sent to an edge worker and stored in eventually consistent KV until expiry or a deletion request after retrieval. Concurrent or geographically separated reads may succeed more than once. The worker operator could read the value; use browser-local Secret Lock first when that is unacceptable."
   },
   {
     "name": "Secrets Scanner",
@@ -652,7 +652,7 @@
         "comment": "key comment, e.g. user@host",
         "format": "openssh | pkcs8 (RSA only)"
       },
-      "example": "/tools/ssh-keygen/?type=ed25519&comment=me@laptop"
+      "example": "/tools/ssh-keygen/#type=ed25519&comment=me@laptop"
     },
     "isNew": true
   },
@@ -826,7 +826,7 @@
     "name": "Meta Tag Generator",
     "slug": "meta-tag-generator",
     "description": "Generate Open Graph, Twitter Card, and SEO meta tags.",
-    "longDescription": "Fill in a title, description, image, and URL to get a block of Open Graph, Twitter Card, and standard SEO meta tags, next to a mock-up of how the share card will look.",
+    "longDescription": "Fill in a title, description, image, and URL to get Open Graph, Twitter Card, and SEO tags beside a mock share card. Tag generation is local; if you enter an image URL, the browser loads that image directly from its host for the preview.",
     "category": "web",
     "keywords": [
       "meta tags",
@@ -838,12 +838,13 @@
       "preview",
       "html head"
     ],
-    "badge": "local",
+    "badge": "cloud",
     "relatedTools": [
       "css-grid-generator",
       "svg-optimizer"
     ],
-    "status": "live"
+    "status": "live",
+    "privacyNote": "Text and tag generation stay in the page. Entering an OG image URL makes the browser request that image directly from its host, which receives ordinary request and network metadata."
   },
   {
     "name": "SVG Optimizer",
@@ -989,18 +990,17 @@
   {
     "name": "IP & Network Toolkit",
     "slug": "ip-toolkit",
-    "description": "Public IP, ASN lookup, CIDR overlap checks, and geolocation.",
-    "longDescription": "Shows your public IP and looks up its ASN and approximate location, and checks whether two CIDR ranges overlap. The IP, ASN, and geolocation lookups query third-party services; the CIDR math is local. IP geolocation is approximate by nature.",
+    "description": "Public IP display, address details, and IPv4 CIDR overlap checks.",
+    "longDescription": "Fetches your public IP from api.ipify.org (with an httpbin fallback), shows local address representations and classification, and checks IPv4 CIDR overlap in the browser. It does not perform ASN or geolocation lookup.",
     "category": "security",
     "keywords": [
       "ip address",
-      "asn",
-      "geolocation",
       "cidr",
       "network",
       "whats my ip",
       "subnet",
-      "lookup"
+      "binary ip",
+      "ip format"
     ],
     "badge": "cloud",
     "relatedTools": [
@@ -1092,8 +1092,8 @@
   {
     "name": "Site Score",
     "slug": "site-score",
-    "description": "Scan a URL for security headers, TLS setup, and privacy signals.",
-    "longDescription": "Fetches a URL through our edge worker and grades its HTTP security headers, TLS configuration, and privacy signals, with header values you can copy to fix the gaps. The request comes from the worker rather than your browser, so the target sees our address, not yours.",
+    "description": "Check a URL against a fixed list of HTTP response headers.",
+    "longDescription": "Fetches a URL through our edge worker and grades a fixed list of HTTP response headers such as HSTS, CSP, and Referrer-Policy. It does not inspect certificates, TLS protocol configuration, page content, or overall application security; the result is a limited header checklist.",
     "category": "intelligence",
     "keywords": [
       "security score",
@@ -1115,7 +1115,7 @@
     "status": "live",
     "featured": true,
     "isNew": true,
-    "privacyNote": "The URL you enter is sent to an edge worker we run, which fetches that site and returns the result. The page contents are analyzed in flight, not retained."
+    "privacyNote": "The URL you enter is sent to an edge worker we run. The worker fetches it and returns response headers, status, and final URL; it does not read the response body for this check."
   },
   {
     "name": "Header Analyzer",
@@ -1170,8 +1170,8 @@
   {
     "name": "Privacy Scan",
     "slug": "privacy-scan",
-    "description": "Scan a site and read its trackers as a privacy label.",
-    "longDescription": "Loads a URL through our edge worker and reports the trackers, cookies, and fingerprinting scripts it finds as a plain-English label. It sees what one page load exposes, so scripts triggered later or behind a login will not show up.",
+    "description": "Check fetched HTML for bundled tracker and fingerprinting-related patterns.",
+    "longDescription": "Fetches one page through our edge worker and searches its static HTML, response cookies, and referenced domains for a bundled set of tracker names and fingerprinting-related API strings. It does not execute scripts or prove runtime collection; ordinary API uses can match and later, authenticated, consent-gated, or interactive behavior is out of scope.",
     "category": "intelligence",
     "keywords": [
       "privacy",
@@ -1191,13 +1191,13 @@
     ],
     "status": "live",
     "isNew": true,
-    "privacyNote": "The URL you enter is sent to an edge worker we run, which loads that page to inspect its trackers and headers, then returns the result."
+    "privacyNote": "The URL you enter is sent to an edge worker we run, which fetches up to 2 MB of static HTML plus response headers and returns heuristic matches. The scan does not execute the page."
   },
   {
     "name": "CT Monitor",
     "slug": "ct-monitor",
     "description": "Search Certificate Transparency logs for a domain's certificates.",
-    "longDescription": "Queries crt.sh through our worker for certificates issued to a domain and its subdomains — a practical way to notice issuance you did not authorize, or look-alike domains registered against your brand. CT logs cover publicly trusted CAs, and indexing can lag by hours.",
+    "longDescription": "Queries crt.sh through our worker for certificate records matching an entered domain and its subdomains, returning up to 100 recent unique rows. It can help review unexpected issuance, but does not search typo or look-alike sibling domains; results inherit crt.sh coverage, ordering, and indexing lag.",
     "category": "intelligence",
     "keywords": [
       "certificate transparency",
@@ -1300,10 +1300,10 @@
     "isNew": true
   },
   {
-    "name": "Prompt Injection Tester",
+    "name": "Prompt Defense Checklist",
     "slug": "prompt-injection-tester",
-    "description": "Test an LLM system prompt against 150+ injection patterns.",
-    "longDescription": "Runs a pasted system prompt against a library of 150+ documented injection techniques — direct overrides, delimiter escapes, encoding tricks, extraction attempts, and agentic hijacking patterns — and scores where it looks weak. The checks are pattern-based rather than run against a live model, so read the score as a review aid.",
+    "description": "Check an LLM system prompt for configured defense-language patterns.",
+    "longDescription": "Matches a pasted system prompt against configured defense-language patterns associated with ten injection categories. Bundled injection shapes are shown only as review context; they are not executed against a model. The score reports phrase coverage, not whether a model will resist or succumb to injection.",
     "category": "ai",
     "keywords": [
       "prompt injection",
@@ -1388,7 +1388,7 @@
     "name": "AI Cost Calculator",
     "slug": "ai-cost-calculator",
     "description": "Compare LLM API prices across providers for a given workload.",
-    "longDescription": "Estimates and compares API costs for models from Anthropic, OpenAI, Google, Mistral, and open-source hosts, from token counts or pasted text, broken down by input and output. Pricing comes from a static table last updated March 2026 — check the provider's page before you budget against it.",
+    "longDescription": "Estimates and compares API costs for models from Anthropic, OpenAI, Google, Mistral, and open-weight/self-hosted options, from token counts or pasted text, broken down by input and output. Pricing comes from a static table last updated March 2026 — check the provider's page before you budget against it.",
     "category": "ai",
     "keywords": [
       "llm cost",
@@ -1714,7 +1714,7 @@
     "name": "Passkey Inspector",
     "slug": "passkey-inspector",
     "description": "Decode WebAuthn attestation, authenticator data, and COSE keys.",
-    "longDescription": "Create a passkey in the page or paste an existing attestation object to decode the CBOR structure, the authenticator-data flags (UP/UV/BE/BS), the AAGUID, the credential ID, and the COSE public key. Built for debugging a WebAuthn registration flow.",
+    "longDescription": "Paste an existing attestation object to decode its CBOR, authenticator flags, AAGUID, credential ID, and COSE key locally. Optional live-create mode asks the authenticator or password manager to create a real penumbraforge.com credential, which it may retain or sync; returned registration data is not submitted to an application server.",
     "category": "security",
     "keywords": [
       "webauthn",
@@ -1792,8 +1792,9 @@
     "name": "Local Chat",
     "slug": "local-chat",
     "description": "Chat with a small model in your browser, or your own server.",
-    "longDescription": "Runs a small quantized model in the browser over WebGPU, or connects to an Ollama or LM Studio server you host, or an API key you supply. The in-browser models are a few billion parameters, so expect something useful for quick questions rather than frontier quality; conversations stay on your machine.",
+    "longDescription": "Runs a small quantized model in the browser over WebGPU, or sends conversations to an OpenAI-compatible endpoint you configure. In-browser models are useful for quick questions rather than frontier quality. The selected engine determines whether conversation text stays in the page or goes to an endpoint.",
     "category": "ai",
+    "usesAiEngine": true,
     "keywords": [
       "local ai",
       "llm",
@@ -1819,8 +1820,9 @@
     "name": "Chat with your files",
     "slug": "local-rag",
     "description": "Ask questions over your own documents, in the browser.",
-    "longDescription": "Chunks and embeds text, markdown, CSV, log, and source files in your browser, retrieves the passages closest to your question by semantic similarity, and answers with citations using a local model. Answer quality is bounded by the small on-device model, so check the cited passages.",
+    "longDescription": "Chunks text, markdown, CSV, log, and source files in the browser, retrieves passages by embedding similarity, and answers with citations. WebGPU mode keeps processing in-page; configured endpoint modes send text chunks and questions to that endpoint. Check the cited passages and the selected route.",
     "category": "ai",
+    "usesAiEngine": true,
     "keywords": [
       "local ai",
       "rag",
@@ -1846,8 +1848,9 @@
     "name": "Regex from English",
     "slug": "ai-regex-builder",
     "description": "Describe a pattern in plain English, get a regex to test.",
-    "longDescription": "A small in-browser model turns your description into a regular expression for JavaScript, PCRE, or Python, which you then test against sample text on the same page; it can also explain a regex you paste, token by token. Generated patterns are drafts — check them against your real data.",
+    "longDescription": "A selected AI engine turns your description into a regular expression for JavaScript, PCRE, or Python, which you then test against sample text on the page; it can also explain a regex you paste. WebGPU stays in-page, while endpoint modes send the prompt to the configured URL. Generated patterns are drafts.",
     "category": "ai",
+    "usesAiEngine": true,
     "keywords": [
       "regex generator",
       "english to regex",
@@ -1872,8 +1875,9 @@
     "name": "Command Explainer",
     "slug": "ai-command-explainer",
     "description": "Explain a shell command and flag dangerous parts first.",
-    "longDescription": "Breaks a shell, git, docker, or kubectl command into its parts in plain English with a local model, and runs a separate rule-based scan for destructive patterns like rm -rf, curl piped into a shell, and fork bombs. The scan covers known patterns, and the explanation comes from a small model — read the command yourself before running it.",
+    "longDescription": "Breaks a shell, git, docker, or kubectl command into its parts with a selected AI engine, and runs a separate browser-local rule scan for known destructive patterns. WebGPU keeps the command in-page; endpoint modes send it to the configured URL. Read the command yourself before running it.",
     "category": "ai",
+    "usesAiEngine": true,
     "keywords": [
       "command explainer",
       "local ai",
@@ -1898,8 +1902,9 @@
     "name": "AI Security Copilot",
     "slug": "ai-security-copilot",
     "description": "Paste a header, JWT, cert, or config for a local risk read.",
-    "longDescription": "Decodes JWTs, inventories HTTP security headers, parses X.509 certificates, audits CSP directives, and scans configs for secrets using deterministic parsers, then has a small in-browser model summarize the findings and suggest fixes. The parsing is reliable; the commentary is only as good as a small local model gets.",
+    "longDescription": "Decodes JWTs, inventories HTTP security headers, parses X.509 certificates, audits CSP directives, and scans configs for secrets with browser-local parsers, then asks the selected AI engine to summarize. Endpoint modes send the relevant input and findings to the configured URL. Treat model commentary as a draft.",
     "category": "ai",
+    "usesAiEngine": true,
     "keywords": [
       "local ai",
       "security analyzer",

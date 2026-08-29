@@ -1,155 +1,66 @@
 ---
 title: "Ed25519 Signing"
-description: "How mcp-librarian uses Ed25519 cryptographic signing to protect skill integrity -- key generation, signing, verification, and tamper detection."
+description: "How mcp-librarian signs all flat skills, records manifest status on load/rebuild, exposes stale snapshots, and leaves enforcement to callers."
 permalink: /librarian/wiki/signing/
 ---
 <h1>Ed25519 Signing</h1>
-    <p class="subtitle">Cryptographic integrity for every skill -- key generation, signing, verification, and tamper detection.</p>
+<p class="subtitle">Local change-detection evidence with no automatic refusal gate.</p>
 
-    <h2 id="overview">Overview</h2>
+<div class="warning-box"><strong>Current load tools do not enforce integrity.</strong> <code>load_skill</code>, <code>load_section</code>, and <code>find_and_load</code> can return content without refusing <code>TAMPERED</code> or attaching a current status. A caller must enforce its own policy.</div>
 
-    <p>Every skill in mcp-librarian is cryptographically signed using Ed25519. When a skill is created or installed, the server hashes the file content and signs the hash with the private key. When a skill is loaded, the server verifies the signature against the public key. If the file has been modified since signing, the verification fails and the skill is flagged as TAMPERED.</p>
+<h2 id="files">Keys and manifest</h2>
+<p>The installer creates:</p>
+<div class="code-block"><span class="dim">~/.mcp-librarian/</span>
+<span class="dim">  keys/private.pem</span>   <span class="cmt"># PKCS8 Ed25519 private key</span>
+<span class="dim">  keys/public.pem</span>    <span class="cmt"># SPKI Ed25519 public key</span>
+<span class="dim">  manifest.json</span>      <span class="cmt"># one entry per signed skill name</span></div>
+<p>Both PEM files are written with mode <code>0600</code>. For each flat skill, the signer stores a SHA-256 content hash, an Ed25519 signature over <code>hash|signedAt</code>, and the timestamp. The manifest also has a top-level timestamp.</p>
 
-    <p>Signing happens <strong style="color: var(--text-1);">at runtime, on write</strong>. <code>create_skill</code> and <code>install_pack</code> sign as part of the write itself whenever a signing key is present, so a freshly created or freshly installed skill reports <code>VERIFIED</code> immediately &mdash; not <code>UNSIGNED</code> until some later batch job runs.</p>
+<h2 id="when-signing-runs">When signing runs</h2>
+<ul>
+  <li><code>node bin/mcp-librarian.js sign</code> signs every top-level <code>.md</code> file using <code>keys/private.pem</code>.</li>
+  <li>A successful <code>create_skill</code> attempts the same all-skills signing pass before rebuilding.</li>
+  <li><code>install_pack</code> attempts it after at least one install/update, before rebuilding.</li>
+  <li>If the private key is absent, runtime signing is a silent no-op. <code>create_skill</code> reports <code>signed: false</code>; <code>install_pack</code> does not expose a signing flag.</li>
+</ul>
+<p>The fresh installer copies <code>getting-started.md</code> after creating a skeleton manifest but does not run the signer, so the starter normally begins as <code>UNSIGNED</code>.</p>
 
-    <p>This protects against a critical threat: an attacker (or a compromised agent) modifying skill files on disk to inject malicious content. Even if the <a href="/librarian/wiki/content-guard/">content guard</a> is bypassed at the file system level, the signature check catches the modification before the content reaches the agent.</p>
+<div class="warning-box"><strong>Signing is library-wide.</strong> A supported write re-signs all flat skills, not only the new file. Review direct disk changes first, or the signing pass can incorporate them into a fresh manifest.</div>
 
-    <h2 id="key-generation">Key Generation</h2>
+<h2 id="verification">When verification runs</h2>
+<p>The store reads <code>manifest.json</code> and a public PEM while loading or rebuilding. It calculates one status per indexed skill:</p>
+<table class="cmd-table"><thead><tr><th>Status</th><th>Meaning at that load/rebuild</th></tr></thead><tbody>
+<tr><td><code>VERIFIED</code></td><td>The file content matched the manifest hash and its signature verified under the loaded public key.</td></tr>
+<tr><td><code>TAMPERED</code></td><td>The hash differed, the signature failed, or signature verification threw.</td></tr>
+<tr><td><code>UNSIGNED</code></td><td>No usable manifest entry and public key combination was available for that skill.</td></tr>
+</tbody></table>
 
-    <p>During installation (<code>node bin/install.js</code>), the installer generates an Ed25519 keypair:</p>
+<p>There is no filesystem watcher. <code>skill_status</code> returns the stored snapshot; it does not reread or rehash the file. Only a restart or supported mutation rebuilds that status. Skill content is also initially placed in an LRU cache, so a disk edit may continue returning cached old content until eviction or expiry; a later disk read still does not refresh integrity status.</p>
 
-    <div class="code-block"><span class="dim">~/.mcp-librarian/keys/</span>
-<span class="dim">  signing.key</span>   <span class="cmt"># Private key (0o600 -- owner read/write only)</span>
-<span class="dim">  signing.pub</span>   <span class="cmt"># Public key</span></div>
-
-    <p>The private key is created with restrictive file permissions (0o600) -- only the owner can read or write it. The public key is readable but not security-sensitive.</p>
-
-    <p>Key generation uses Node.js's built-in <code>crypto.generateKeyPairSync</code> with the <code>ed25519</code> algorithm. No external cryptographic libraries are used.</p>
-
-    <div class="code-block"><span class="cmt">// Simplified key generation (what the installer does)</span>
-<span class="kw">const</span> { publicKey, privateKey } = crypto.generateKeyPairSync(<span class="str">'ed25519'</span>);
-fs.writeFileSync(keyPath, privateKey.export({
-  <span class="kw">type</span>: <span class="str">'pkcs8'</span>,
-  <span class="kw">format</span>: <span class="str">'pem'</span>
-}), { <span class="kw">mode</span>: <span class="val">0o600</span> });</div>
-
-    <h2 id="how-signing-works">How Signing Works</h2>
-
-    <p>When a skill is created (via <code>create_skill</code> or <code>install_pack</code>), the signing process runs automatically:</p>
-
-    <ol>
-      <li><strong style="color: var(--text-1);">Hash the content.</strong> The entire file content (frontmatter + body) is hashed using SHA-256. This produces a fixed-length digest of the file.</li>
-      <li><strong style="color: var(--text-1);">Sign the hash.</strong> The SHA-256 hash is signed using the Ed25519 private key. This produces a 64-byte signature that is unique to both the content and the private key.</li>
-      <li><strong style="color: var(--text-1);">Store the signature.</strong> The signature is written to <code>~/.mcp-librarian/signatures/{skill-name}.sig</code> alongside the original hash.</li>
-    </ol>
-
-    <div class="code-block"><span class="cmt">// Simplified signing process</span>
-<span class="kw">const</span> content = fs.readFileSync(skillPath, <span class="str">'utf8'</span>);
-<span class="kw">const</span> hash = crypto.createHash(<span class="str">'sha256'</span>).update(content).digest();
-<span class="kw">const</span> signature = crypto.sign(<span class="val">null</span>, hash, privateKey);
-
-<span class="cmt">// Store signature</span>
-fs.writeFileSync(sigPath, JSON.stringify({
-  <span class="kw">hash</span>: hash.toString(<span class="str">'hex'</span>),
-  <span class="kw">signature</span>: signature.toString(<span class="str">'base64'</span>),
-  <span class="kw">algorithm</span>: <span class="str">'ed25519'</span>,
-  <span class="kw">signed_at</span>: <span class="kw">new</span> Date().toISOString()
-}));</div>
-
-    <p>The signing step adds negligible overhead -- Ed25519 is one of the fastest signature algorithms available.</p>
-
-    <h2 id="verification">Verification on Every Load</h2>
-
-    <p>Every time a skill is loaded (via <code>load_skill</code>, <code>load_section</code>, or <code>find_and_load</code>), the server verifies its integrity:</p>
-
-    <ol>
-      <li><strong style="color: var(--text-1);">Read the current file content.</strong> The skill file is read from disk.</li>
-      <li><strong style="color: var(--text-1);">Compute the current hash.</strong> SHA-256 hash of the current file content.</li>
-      <li><strong style="color: var(--text-1);">Compare hashes.</strong> If the current hash does not match the stored hash, the file has been modified. The skill is flagged as TAMPERED.</li>
-      <li><strong style="color: var(--text-1);">Verify the signature.</strong> The stored signature is verified against the stored hash using the Ed25519 public key. This confirms the signature was created by the holder of the private key.</li>
-    </ol>
-
-    <p>The integrity status is included in the tool response so the agent knows whether the skill content can be trusted.</p>
-
-    <h2 id="integrity-states">Integrity States</h2>
-
-    <table class="cmd-table">
-      <thead><tr><th>Status</th><th>Meaning</th><th>Agent Behavior</th></tr></thead>
-      <tbody>
-        <tr><td><span style="color: var(--sage);">VERIFIED</span></td><td>The file content matches the stored hash and the signature is valid. The skill has not been modified since it was signed.</td><td>Content is trusted and used normally.</td></tr>
-        <tr><td><span style="color: #cf6b6b;">TAMPERED</span></td><td>The file content has changed since signing. The stored hash no longer matches the current content, or the signature verification failed.</td><td>The agent is warned that the content may have been modified. The content is still returned but flagged.</td></tr>
-        <tr><td><span style="color: #cfb86b;">UNSIGNED</span></td><td>No signature file exists for this skill. The skill was created before signing was enabled, or the signature file was deleted.</td><td>The agent is informed that no integrity guarantee exists for this skill.</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="skill-status-tool">Checking Integrity with skill_status</h2>
-
-    <p>Use the <code>skill_status</code> tool to check a specific skill's integrity at any time.</p>
-
-    <div class="code-block"><span class="cmt"># Check a clean skill</span>
-skill_status({ <span class="kw">name</span>: <span class="str">"sql-injection"</span> })
+<h2 id="inspect">Inspect status</h2>
+<div class="code-block">skill_status({ <span class="kw">skill</span>: <span class="str">"api-design"</span> })
 
 {
-  <span class="kw">"name"</span>: <span class="str">"sql-injection"</span>,
+  <span class="kw">"name"</span>: <span class="str">"api-design"</span>,
   <span class="kw">"integrity"</span>: <span class="str">"VERIFIED"</span>,
-  <span class="kw">"signed_at"</span>: <span class="str">"2026-03-21T10:00:00Z"</span>,
-  <span class="kw">"algorithm"</span>: <span class="str">"ed25519"</span>
+  <span class="kw">"hash"</span>: <span class="str">"64-character SHA-256 hex"</span>,
+  <span class="kw">"signedAt"</span>: <span class="str">"2026-...Z"</span>,
+  <span class="kw">"quality"</span>: <span class="val">0.48</span>,
+  <span class="kw">"filename"</span>: <span class="str">"api-design.md"</span>
 }</div>
+<p>The argument is <code>skill</code>, not <code>name</code>. The response has no <code>reason</code> field. <code>list_skills</code> also includes each recorded integrity value.</p>
 
-    <div class="code-block"><span class="cmt"># Check a tampered skill</span>
-skill_status({ <span class="kw">name</span>: <span class="str">"sql-injection"</span> })
+<h2 id="trust">What a valid signature means</h2>
+<p><code>VERIFIED</code> means consistency with this installation's current manifest and public key at the last rebuild. It does not establish who authored the content, whether sources are accurate, or whether instructions are safe.</p>
+<p>The public key, private key, manifest, skills, and server process are all local. An attacker who controls the home directory or process can replace content and trust material together. The manifest itself is not anchored to an external key or transparency log.</p>
 
-{
-  <span class="kw">"name"</span>: <span class="str">"sql-injection"</span>,
-  <span class="kw">"integrity"</span>: <span class="str">"TAMPERED"</span>,
-  <span class="kw">"reason"</span>: <span class="str">"content hash mismatch -- file modified since signing"</span>,
-  <span class="kw">"signed_at"</span>: <span class="str">"2026-03-21T10:00:00Z"</span>,
-  <span class="kw">"algorithm"</span>: <span class="str">"ed25519"</span>
-}</div>
+<h2 id="policy">A practical caller policy</h2>
+<ol>
+  <li>Restart or rebuild after expected external file changes.</li>
+  <li>Call <code>skill_status</code> before loading content when integrity matters.</li>
+  <li>Reject <code>TAMPERED</code>; decide explicitly whether <code>UNSIGNED</code> is allowed.</li>
+  <li>Only then call <code>load_skill</code> or <code>load_section</code>.</li>
+  <li>Still review <code>VERIFIED</code> content as potentially untrusted knowledge.</li>
+</ol>
 
-    <p>The <code>list_skills</code> tool also includes integrity status for every skill, so you can get a full overview of the library's health in one call.</p>
-
-    <h2 id="tampered-files">What Happens When a File Is Tampered With</h2>
-
-    <p>When a skill fails integrity verification:</p>
-
-    <ol>
-      <li><strong style="color: var(--text-1);">The content is still returned</strong> to the agent, but with a <code>TAMPERED</code> integrity flag. The agent can decide whether to use it.</li>
-      <li><strong style="color: var(--text-1);">A warning is logged</strong> at the <code>warn</code> level with the skill name and the nature of the mismatch.</li>
-      <li><strong style="color: var(--text-1);">The agent is informed</strong> in the tool response that the skill's integrity check failed. Well-configured agents will treat tampered skills with skepticism or refuse to use them.</li>
-    </ol>
-
-    <p>To fix a tampered skill, you have two options:</p>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">Re-sign it.</strong> If the modification was intentional (you edited the skill by hand), use <code>create_skill</code> with the updated content to re-sign and re-index it.</li>
-      <li><strong style="color: var(--text-1);">Restore it.</strong> If the modification was unexpected, delete the skill file and reinstall the pack that contained it, or recreate it from scratch.</li>
-    </ul>
-
-    <h2 id="key-management">Key Management</h2>
-
-    <h3>Key Location</h3>
-    <p>Keys are stored at <code>~/.mcp-librarian/keys/signing.key</code> (private) and <code>~/.mcp-librarian/keys/signing.pub</code> (public). Moving the home directory (via <code>MCP_LIBRARIAN_HOME</code>) moves the keys with it.</p>
-
-    <h3>Key Rotation</h3>
-    <p>If you need to rotate keys (e.g., if the private key was compromised), delete both key files and run the installer again. All existing skills will become UNSIGNED because their signatures were created with the old key. Reinstall packs and recreate custom skills to re-sign them with the new key.</p>
-
-    <h3>Sharing Keys</h3>
-    <p>The keypair is local to each installation. In a team environment, each team member has their own keypair. Skills signed by one member will show as UNSIGNED or fail verification on another member's machine. This is by design -- each installation independently verifies its own library.</p>
-
-    <p>If you need shared verification (e.g., a team server), distribute the same keypair to all installations. The private key must be protected with the same care as any other cryptographic secret.</p>
-
-    <h3>Backup</h3>
-    <p>Back up the <code>keys/</code> directory if you want to preserve signing continuity. Losing the private key means all existing signatures become unverifiable. Skills still work (they are just Markdown files), but integrity verification will show UNSIGNED for all skills signed with the lost key.</p>
-
-    <h2 id="why-ed25519">Why Ed25519</h2>
-
-    <p>Ed25519 was chosen for several reasons:</p>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">Speed.</strong> Ed25519 is extremely fast for both signing and verification. Signing a skill adds less than 1ms of overhead.</li>
-      <li><strong style="color: var(--text-1);">Small signatures.</strong> 64-byte signatures keep the <code>.sig</code> files tiny.</li>
-      <li><strong style="color: var(--text-1);">No configuration.</strong> Ed25519 has no parameters to choose (unlike RSA key sizes or ECDSA curves). One algorithm, one key size, deterministic signatures.</li>
-      <li><strong style="color: var(--text-1);">Built-in support.</strong> Node.js 18+ supports Ed25519 natively via the <code>crypto</code> module. No external libraries required.</li>
-      <li><strong style="color: var(--text-1);">Proven security.</strong> Ed25519 is widely used in SSH, TLS, and other security-critical protocols. The curve and algorithm are well-analyzed.</li>
-    </ul>
+<p>For an actual enforced boundary, the server would need to verify at read time and refuse or attach status atomically. Version 3.1.0 does not yet do that.</p>

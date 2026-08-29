@@ -1,200 +1,96 @@
 ---
 title: "Skill Format"
-description: "How mcp-librarian skills are structured: Markdown with YAML frontmatter, sections, BM25 indexing, and best practices."
+description: "The YAML-lite fields, flat-file layout, section chunking, and heuristic ranking actually implemented by mcp-librarian 3.1.0."
 permalink: /librarian/wiki/skill-format/
 ---
 <h1>Skill Format</h1>
-    <p class="subtitle">Markdown with YAML frontmatter -- how skills are structured, indexed, and loaded.</p>
+<p class="subtitle">Plain Markdown, a deliberately small frontmatter parser, and section-level search.</p>
 
-    <h2 id="overview">Overview</h2>
+<h2 id="files">One flat file per skill</h2>
+<p>The current store reads only top-level <code>.md</code> files from <code>&lt;home&gt;/skills/</code>. It does not recursively index pack subdirectories.</p>
+<div class="code-block"><span class="dim">~/.mcp-librarian/</span>
+<span class="dim">  skills/</span>
+<span class="dim">    api-design.md</span>
+<span class="dim">    security-hardening.md</span></div>
+<p>If an older installation uses <code>skills/&lt;name&gt;/SKILL.md</code>, run <code>node bin/migrate.js</code>. The migration writes flat copies and intentionally leaves old directories in place.</p>
 
-    <p>A skill is a plain Markdown file with YAML frontmatter. The frontmatter provides metadata for search and categorization. The body contains the actual knowledge, organized into sections and sub-sections that map directly to the BM25 search index.</p>
+<h2 id="frontmatter">Recognized frontmatter</h2>
+<p>The runtime does not use a general YAML library. It splits the opening <code>---</code> block into lines at the first colon and recognizes these fields:</p>
+<table class="cmd-table"><thead><tr><th>Field</th><th>Runtime status</th><th>Use</th></tr></thead><tbody>
+<tr><td><code>name</code></td><td>Required by <code>validate_skill</code>/<code>create_skill</code></td><td>Skill identity and search metadata.</td></tr>
+<tr><td><code>version</code></td><td>Required by validation</td><td>Returned as metadata. Runtime pack deduplication does not compare versions.</td></tr>
+<tr><td><code>category</code></td><td>Required by validation</td><td>Inline bracket list used in metadata search.</td></tr>
+<tr><td><code>description</code></td><td>Required by validation</td><td>Returned and indexed as metadata.</td></tr>
+<tr><td><code>sources</code></td><td>Optional</td><td>Inline bracket list used by the heuristic quality score.</td></tr>
+</tbody></table>
 
-    <p>Skills live in the <code>~/.mcp-librarian/skills/</code> directory. Each skill is a single <code>.md</code> file. When a skill is created (via <code>create_skill</code> or pack installation), it is signed with Ed25519 and indexed immediately.</p>
-
-    <h2 id="frontmatter">Required Frontmatter Fields</h2>
-
-    <p>Every skill must include these four frontmatter fields. The <code>validate_skill</code> tool checks for these and reports any that are missing.</p>
-
-    <table class="cmd-table">
-      <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>name</td><td>string</td><td>Unique identifier. Lowercase, hyphens for spaces. Used as the filename stem and in tool calls.</td></tr>
-        <tr><td>version</td><td>string</td><td>Semantic version (e.g., <code>1.0.0</code>). Used for deduplication during pack installs.</td></tr>
-        <tr><td>category</td><td>array</td><td>One or more category tags as a YAML list. Used for filtering and search boosting.</td></tr>
-        <tr><td>description</td><td>string</td><td>Brief description shown in search results and the skill catalog. Keep it under 120 characters.</td></tr>
-      </tbody>
-    </table>
-
-    <div class="code-block"><span class="dim">---</span>
-<span class="kw">name</span>: <span class="str">sql-injection-prevention</span>
-<span class="kw">version</span>: <span class="str">1.0.0</span>
-<span class="kw">category</span>: <span class="str">[security, database]</span>
-<span class="kw">description</span>: <span class="str">Patterns for preventing SQL injection across languages and ORMs</span>
-<span class="dim">---</span></div>
-
-    <h2 id="optional-fields">Optional Frontmatter Fields</h2>
-
-    <p>These fields are not required but can provide additional context for the agent and for pack manifests.</p>
-
-    <table class="cmd-table">
-      <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>author</td><td>string</td><td>Who created or contributed the skill.</td></tr>
-        <tr><td>source</td><td>string</td><td>URL of the original source if the skill was created from auto-research.</td></tr>
-        <tr><td>tags</td><td>array</td><td>Additional keywords for search. These are indexed alongside category.</td></tr>
-        <tr><td>requires</td><td>array</td><td>Names of skills that complement this one. Informational only -- no automatic loading.</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="section-structure">Section and Sub-Section Structure</h2>
-
-    <p>The body of a skill is standard Markdown. Sections are delimited by <code>##</code> headings and sub-sections by <code>###</code> headings. This structure is not just for readability -- it directly determines how the BM25 index chunks the content.</p>
-
-    <div class="code-block"><span class="dim">---</span>
-<span class="kw">name</span>: <span class="str">error-handling</span>
-<span class="kw">version</span>: <span class="str">1.0.0</span>
-<span class="kw">category</span>: <span class="str">[api, patterns]</span>
-<span class="kw">description</span>: <span class="str">API error handling patterns and RFC 7807</span>
+<div class="code-block"><span class="dim">---</span>
+<span class="kw">name</span>: api-design
+<span class="kw">version</span>: 1.0.0
+<span class="kw">category</span>: [api, backend]
+<span class="kw">description</span>: Patterns for an HTTP API
+<span class="kw">sources</span>: [https://www.rfc-editor.org/rfc/rfc9457.html]
 <span class="dim">---</span>
 
-<span class="cmd">## RFC 7807 Problem Details</span>
-<span class="dim">Content about the standard error format...</span>
+<span class="cmd">## Error responses</span>
 
-<span class="cmd">### Required Fields</span>
-<span class="dim">type, title, status, detail, instance...</span>
+Use one stable error shape.
 
-<span class="cmd">### Example Response</span>
-<span class="dim">JSON example of a 422 error...</span>
+<span class="cmd">### Problem details</span>
 
-<span class="cmd">## HTTP Status Codes</span>
-<span class="dim">When to use 400 vs 422 vs 500...</span>
+Return an appropriate media type and status code.</div>
 
-<span class="cmd">## Error Envelopes</span>
-<span class="dim">Wrapping errors in a consistent envelope...</span></div>
+<p>Fields such as singular <code>source</code>, <code>tags</code>, <code>author</code>, and <code>requires</code> are not read by the current runtime. They may remain in Markdown as human metadata, but they do not affect retrieval or dependency loading.</p>
+<div class="warning-box"><strong>YAML-lite means literal constraints.</strong> Use the inline bracket form for <code>category</code> and <code>sources</code>. Multiline YAML arrays are not parsed as arrays by the current store.</div>
 
-    <p>This skill produces the following section slugs:</p>
-    <ul>
-      <li><code>rfc-7807-problem-details</code></li>
-      <li><code>rfc-7807-problem-details/required-fields</code></li>
-      <li><code>rfc-7807-problem-details/example-response</code></li>
-      <li><code>http-status-codes</code></li>
-      <li><code>error-envelopes</code></li>
-    </ul>
+<h2 id="validation">What validation checks</h2>
+<p><code>validate_skill</code> and <code>create_skill</code> check:</p>
+<ul>
+  <li>The content begins with a <code>---</code>-delimited frontmatter block.</li>
+  <li>The four required field names appear in that block.</li>
+  <li>At least one line begins with <code>## </code>.</li>
+  <li>The prose passes the bundled content-guard regexes.</li>
+</ul>
+<p>They do not fully parse YAML, enforce semantic versions, verify URLs, fact-check the body, enforce a description length, or validate optional fields. Runtime <code>install_pack</code> applies the content guard and path/dedup logic but does not call this full validation helper for each file.</p>
 
-    <p>Each slug can be loaded independently with <code>load_section</code>. Sub-section slugs use the <code>parent/child</code> format.</p>
+<h2 id="filenames">create_skill filenames</h2>
+<p><code>create_skill</code> requires a flat filename ending in <code>.md</code>. It must start with an ASCII letter or digit; remaining characters may be letters, digits, dot, dash, or underscore. Slashes are rejected.</p>
+<div class="code-block">create_skill({
+  <span class="kw">filename</span>: <span class="str">"api-design.md"</span>,
+  <span class="kw">content</span>: <span class="str">"complete Markdown string"</span>
+})</div>
+<p>The response's <code>skill</code> value comes from the frontmatter <code>name</code>, falling back to the filename stem.</p>
 
-    <h2 id="bm25-indexing">How BM25 Indexing Works</h2>
+<h2 id="chunking">How sections become search chunks</h2>
+<p>The BM25 content index starts at <code>##</code> headings:</p>
+<ul>
+  <li>A <code>##</code> section with body text and no <code>###</code> child becomes one chunk.</li>
+  <li>Text between a <code>##</code> heading and its first <code>###</code> becomes a parent chunk only when it contains body text.</li>
+  <li>Each <code>###</code> subsection becomes its own child chunk.</li>
+  <li>Text before the first <code>##</code>, including an <code>#</code> title, is not a body chunk.</li>
+</ul>
+<p>Slugs are lowercase heading text with spaces changed to hyphens and non-alphanumeric characters removed. The example produces <code>error-responses</code> and <code>error-responses/problem-details</code>.</p>
 
-    <p>When a skill is created or the index is rebuilt, mcp-librarian splits the content at <code>##</code> and <code>###</code> boundaries. Each chunk becomes a separate document in the BM25 index with its own term frequencies.</p>
+<p>Each chunk includes its heading in its ordinary text. Headings do not receive a separate BM25 boost. Names, descriptions, and categories are indexed in a separate metadata chunk.</p>
 
-    <p>The indexing process:</p>
+<h2 id="retrieval">Sections versus full files</h2>
+<ul>
+  <li><code>find_skill</code> returns matching chunks, their slugs, snippets, and scores.</li>
+  <li><code>load_section</code> reads the file and returns one exact slug.</li>
+  <li><code>load_skill</code> returns the full file and all slugs.</li>
+  <li><code>find_and_load</code> uses search to choose a skill but returns that skill's full file.</li>
+</ul>
 
-    <ol>
-      <li><strong style="color: var(--text-1);">Parse frontmatter.</strong> The name, description, and category fields are indexed as document-level metadata. These terms receive a relevance boost.</li>
-      <li><strong style="color: var(--text-1);">Split into sections.</strong> The Markdown body is split at <code>##</code> headings. Each section becomes a separate index document.</li>
-      <li><strong style="color: var(--text-1);">Split into sub-sections.</strong> Within each section, <code>###</code> headings create sub-documents. These are indexed independently but inherit the parent section's heading as context.</li>
-      <li><strong style="color: var(--text-1);">Tokenize and stem.</strong> Content is tokenized into words. Common stop words are removed. Remaining terms are stemmed (e.g., "running" becomes "run") for broader matching.</li>
-      <li><strong style="color: var(--text-1);">Compute term frequencies.</strong> BM25 scores are computed using term frequency (TF), inverse document frequency (IDF), and document length normalization. Shorter, focused sections naturally score higher for specific queries than long, general ones.</li>
-    </ol>
+<h2 id="ranking">Quality-weighted ranking</h2>
+<p>With quality weighting enabled (the default), search over-fetches BM25 candidates, normalizes each raw score against the best candidate, then blends relevance with a per-skill heuristic. The default blend uses <code>qualityWeight: 0.4</code>.</p>
+<p>The skill-quality heuristic combines:</p>
+<ul>
+  <li>Token shapes treated as specificity signals.</li>
+  <li>Fenced blocks and inline code as example signals.</li>
+  <li>Numbered steps, a small imperative-verb list, and shell fences as actionability signals.</li>
+  <li>The maximum recognized reputation score from optional <code>sources</code>.</li>
+</ul>
+<p>Content signals make up 70% of that skill-quality score and source reputation 30%. This is a formatting/domain heuristic, not an evaluation of truth, security, or usefulness. Disable it with <code>qualityWeighting: false</code> in <code>config.json</code> for pure BM25.</p>
 
-    <div class="info-box">
-      <strong>Why section-level indexing matters:</strong> An agent asking about "RFC 7807 error format" will match the specific sub-section about RFC 7807 rather than the entire error-handling skill. The agent loads only 200 bytes of focused content instead of 4KB of everything. This keeps context windows small and responses precise.
-    </div>
-
-    <h2 id="code-blocks">Code Blocks in Skills</h2>
-
-    <p>Use standard Markdown fenced code blocks for examples. These are preserved verbatim during indexing and loading. Code blocks have special significance for the <a href="/librarian/wiki/content-guard/">content guard</a> -- instruction-like patterns inside fenced code blocks are permitted, while the same patterns outside code blocks are blocked.</p>
-
-    <div class="code-block"><span class="cmd">## SQL Injection Prevention</span>
-
-<span class="dim">Always use parameterized queries:</span>
-
-<span class="cmt">```javascript</span>
-<span class="cmt">// SAFE: parameterized query</span>
-<span class="kw">const</span> result = <span class="kw">await</span> db.query(
-  <span class="str">'SELECT * FROM users WHERE id = $1'</span>,
-  [userId]
-);
-
-<span class="cmt">// DANGEROUS: string interpolation</span>
-<span class="cmt">// const result = await db.query(</span>
-<span class="cmt">//   `SELECT * FROM users WHERE id = ${userId}`</span>
-<span class="cmt">// );</span>
-<span class="cmt">```</span></div>
-
-    <h2 id="best-practices">Best Practices for Writing Skills</h2>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">One topic per skill.</strong> A skill about "SQL injection" should not also cover "XSS prevention." Separate concerns into separate skills for better search precision.</li>
-      <li><strong style="color: var(--text-1);">Use descriptive section headings.</strong> Headings are heavily weighted in BM25 scoring. "Parameterized Queries" is a better heading than "Method 1" because it contains searchable terms.</li>
-      <li><strong style="color: var(--text-1);">Keep sections focused.</strong> Each <code>##</code> section should cover one aspect of the topic. Agents load sections independently, so each section should stand on its own.</li>
-      <li><strong style="color: var(--text-1);">Include code examples.</strong> Skills with concrete code examples are more useful to agents than abstract descriptions. Use fenced code blocks with language identifiers.</li>
-      <li><strong style="color: var(--text-1);">Write the description for search.</strong> The description field appears in search results. Include the key terms someone would search for. "Patterns for preventing SQL injection across languages and ORMs" is better than "A skill about database security."</li>
-      <li><strong style="color: var(--text-1);">Use sub-sections for detail.</strong> If a section has multiple distinct sub-topics, use <code>###</code> headings. This creates finer-grained index entries without fragmenting the skill into multiple files.</li>
-      <li><strong style="color: var(--text-1);">Keep frontmatter categories broad.</strong> Use 1-3 category tags that describe the domain. Avoid over-tagging -- the BM25 index handles specificity through content matching.</li>
-    </ul>
-
-    <h2 id="complete-example">Complete Skill Example</h2>
-
-    <p>Here is a complete, well-structured skill file:</p>
-
-    <div class="code-block"><span class="dim">---</span>
-<span class="kw">name</span>: <span class="str">input-validation</span>
-<span class="kw">version</span>: <span class="str">1.0.0</span>
-<span class="kw">category</span>: <span class="str">[security, validation]</span>
-<span class="kw">description</span>: <span class="str">Server-side input validation patterns for web applications</span>
-<span class="dim">---</span>
-
-<span class="cmd">## Validation Strategy</span>
-
-<span class="dim">Always validate on the server. Client-side validation is a UX</span>
-<span class="dim">convenience, not a security boundary. Every input that crosses a</span>
-<span class="dim">trust boundary must be validated server-side.</span>
-
-<span class="cmd">### Allow-Lists Over Deny-Lists</span>
-
-<span class="dim">Define what IS allowed rather than what IS NOT. Deny-lists are</span>
-<span class="dim">incomplete by definition -- attackers find bypass patterns that</span>
-<span class="dim">you did not anticipate.</span>
-
-<span class="cmt">```javascript</span>
-<span class="cmt">// Allow-list: only permitted characters</span>
-<span class="cmt">const USERNAME_RE = /^[a-zA-Z0-9_-]{3,32}$/;</span>
-<span class="cmt">if (!USERNAME_RE.test(input)) throw new ValidationError('Invalid username');</span>
-<span class="cmt">```</span>
-
-<span class="cmd">## Type Coercion</span>
-
-<span class="dim">Parse inputs into their expected types early. A numeric ID that</span>
-<span class="dim">arrives as a string should be parsed to a number and validated</span>
-<span class="dim">before reaching any business logic.</span>
-
-<span class="cmt">```javascript</span>
-<span class="cmt">const id = Number(req.params.id);</span>
-<span class="cmt">if (!Number.isInteger(id) || id < 1) {</span>
-<span class="cmt">  throw new ValidationError('Invalid ID');</span>
-<span class="cmt">}</span>
-<span class="cmt">```</span>
-
-<span class="cmd">## Length and Size Limits</span>
-
-<span class="dim">Enforce maximum lengths on all string inputs and maximum sizes</span>
-<span class="dim">on file uploads. This prevents memory exhaustion attacks and</span>
-<span class="dim">oversized payloads from reaching downstream systems.</span></div>
-
-    <p>This skill has three top-level sections and one sub-section, producing four index entries. Each can be loaded independently via <code>load_section</code>.</p>
-
-    <h2 id="filename-conventions">Filename Conventions</h2>
-
-    <p>Skill filenames follow these rules:</p>
-    <ul>
-      <li>Lowercase only</li>
-      <li>Hyphens for word separation (no spaces or underscores)</li>
-      <li><code>.md</code> extension</li>
-      <li>The filename stem must match the <code>name</code> field in frontmatter</li>
-    </ul>
-
-    <p>Examples: <code>sql-injection.md</code>, <code>api-error-handling.md</code>, <code>docker-multi-stage.md</code>.</p>
-
-    <p>Pack skills are stored in subdirectories named after the pack: <code>~/.mcp-librarian/skills/security-hardening/sql-injection.md</code>.</p>
+<h2 id="duplicates">Names and duplicate files</h2>
+<p>If multiple flat files have the same frontmatter <code>name</code>, the newest modification time wins during store load. Pack deduplication first skips an exact content-hash match; otherwise, the same frontmatter name is treated as an update regardless of the <code>version</code> field.</p>

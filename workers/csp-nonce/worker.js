@@ -27,17 +27,97 @@ const SECURITY_HEADERS = {
   'X-Permitted-Cross-Domain-Policies': 'none',
 };
 
-function buildCSP(nonce) {
+const AI_ENDPOINT_PATHS = new Set([
+  '/tools/local-chat',
+  '/tools/local-rag',
+  '/tools/ai-regex-builder',
+  '/tools/ai-command-explainer',
+  '/tools/ai-security-copilot',
+]);
+
+const TOOL_API_ORIGINS = new Map([
+  ['/tools/one-time-secret', 'https://one-time-secret.penumbraforge.workers.dev'],
+  ['/tools/ct-monitor', 'https://ct-monitor.penumbraforge.workers.dev'],
+  ['/tools/privacy-scan', 'https://privacy-scan.penumbraforge.workers.dev'],
+  ['/tools/site-score', 'https://site-score.penumbraforge.workers.dev'],
+]);
+
+function normalizedPath(pathname) {
+  const withoutIndex = pathname.replace(/\/index\.html$/, '/');
+  return withoutIndex.length > 1 ? withoutIndex.replace(/\/+$/, '') : withoutIndex;
+}
+
+function buildCSP(nonce, pathname) {
+  const path = normalizedPath(pathname);
+  const scriptSources = ["'nonce-" + nonce + "'", "'strict-dynamic'", "'self'"];
+  const connectSources = [
+    "'self'",
+    'https://cloudflareinsights.com',
+    'https://challenges.cloudflare.com',
+  ];
+  const imageSources = ["'self'", 'data:', 'blob:'];
+  const workerSources = ["'self'"];
+  const childSources = ["'self'"];
+
+  if (path === '/tools/breach-checker') {
+    connectSources.push('https://api.pwnedpasswords.com');
+  }
+  if (path === '/tools/ip-toolkit') {
+    connectSources.push('https://api.ipify.org', 'https://httpbin.org');
+  }
+  if (path === '/snake') {
+    connectSources.push('https://tools.penumbraforge.com');
+  }
+  if (path === '/tools/meta-tag-generator') {
+    imageSources.push('https:');
+  }
+  if (TOOL_API_ORIGINS.has(path)) {
+    connectSources.push(TOOL_API_ORIGINS.get(path));
+  }
+
+  /*
+   * These pages explicitly let the visitor choose a remote HTTPS endpoint.
+   * Restrict the broader connection source to those routes; local development
+   * endpoints are likewise allowed only there and in API Request Builder.
+   */
+  if (AI_ENDPOINT_PATHS.has(path)) {
+    scriptSources.push("'wasm-unsafe-eval'");
+    connectSources.push(
+      'https:',
+      'http://localhost:*',
+      'http://127.0.0.1:*',
+      'ws://localhost:*',
+      'ws://127.0.0.1:*'
+    );
+    workerSources.push('blob:');
+    childSources.push('blob:');
+  }
+  if (path === '/tools/api-request-builder') {
+    connectSources.push(
+      'https:',
+      'http://localhost:*',
+      'http://127.0.0.1:*',
+      'ws://localhost:*',
+      'ws://127.0.0.1:*'
+    );
+  }
+
   return [
     "default-src 'none'",
-    `script-src 'nonce-${nonce}' 'strict-dynamic' https: 'self'`,
-    "connect-src 'self' https://cloudflareinsights.com https://*.penumbraforge.workers.dev https://api.pwnedpasswords.com https://challenges.cloudflare.com",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
-    "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
-    "frame-src https://challenges.cloudflare.com https://*.penumbraforge.workers.dev",
+    'script-src ' + scriptSources.join(' '),
+    'connect-src ' + connectSources.join(' '),
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    'img-src ' + imageSources.join(' '),
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "media-src 'self' blob:",
+    "manifest-src 'self'",
+    'worker-src ' + workerSources.join(' '),
+    'child-src ' + childSources.join(' '),
+    "frame-src https://challenges.cloudflare.com",
+    "object-src 'none'",
     "base-uri 'self'",
     "form-action 'none'",
+    "frame-ancestors 'none'",
   ].join('; ');
 }
 
@@ -68,10 +148,10 @@ export default {
 
     const headers = new Headers(transformed.headers);
     applySecurityHeaders(headers, contentType);
-    headers.set('Content-Security-Policy', buildCSP(nonce));
+    headers.set('Content-Security-Policy', buildCSP(nonce, new URL(request.url).pathname));
 
-    /* Prevent CDN from caching the nonced HTML */
-    headers.set('Cache-Control', 'public, max-age=0, must-revalidate');
+    /* A nonce belongs to one response and must not be stored or replayed. */
+    headers.set('Cache-Control', 'private, no-store');
 
     return new Response(transformed.body, {
       status: transformed.status,

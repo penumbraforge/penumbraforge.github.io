@@ -1,166 +1,67 @@
 ---
 title: "Local Models"
-description: "Running mcp-librarian with local models via Ollama, LM Studio, llama.cpp, and other MCP-compatible local clients."
+description: "How a local model can reach mcp-librarian through an MCP client, which data remains local, and which behavior still depends on the client/model."
 permalink: /librarian/wiki/local-models/
 ---
 <h1>Local Models</h1>
-    <p class="subtitle">Model-agnostic by design -- cloud or local, large or small, mcp-librarian works the same.</p>
+<p class="subtitle">The server is model-provider neutral, but it is not a model host or a direct Ollama integration.</p>
 
-    <h2 id="design-philosophy">Model-Agnostic MCP Protocol</h2>
+<h2 id="architecture">Where Librarian fits</h2>
+<div class="code-block"><span class="dim">model provider</span>  &larr;&rarr;  <span class="dim">MCP-capable client</span>  &larr;&rarr;  <span class="dim">mcp-librarian stdio process</span>  &larr;&rarr;  <span class="dim">local skill files</span></div>
+<p>mcp-librarian only implements the MCP server side. It does not start Ollama, LM Studio, llama.cpp, MLX, or a cloud model API. To use a local model, choose a client that can both talk to that model provider and launch stdio MCP servers.</p>
 
-    <p>mcp-librarian speaks the MCP protocol over stdio. It does not care what model is on the other side of the connection. The server exposes 14 tools, receives tool calls as JSON, and returns structured results. Whether the model calling those tools is Claude, GPT-4, Llama 3, Mistral, or a quantized 7B model running on a laptop makes no difference to the server.</p>
-
-    <p>This is a fundamental design choice: the server handles all the "hard" operations (search indexing, cryptographic signing, web research, source scoring, content guard, path guard) independently of the model. The model's job is to decide when to call which tool and what to do with the results.</p>
-
-    <h2 id="cloud-clients">Cloud Clients</h2>
-
-    <p>Cloud-hosted models accessed through MCP-compatible clients. These offer the best experience because they combine large model capability with native MCP support.</p>
-
-    <h3>Claude Code</h3>
-    <p>Anthropic's CLI for Claude. Full MCP support, automatic tool discovery, and the ability to chain multiple tool calls in a single response. mcp-librarian's installer auto-detects Claude Code.</p>
-
-    <div class="code-block"><span class="cmt"># Configuration: ~/.claude/mcp_servers.json</span>
-{
-  <span class="kw">"mcp-librarian"</span>: {
-    <span class="kw">"command"</span>: <span class="str">"node"</span>,
-    <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>],
-    <span class="kw">"env"</span>: {}
-  }
+<p>The installer contains configuration paths for Claude Code, Cursor, and Windsurf. That does not establish compatibility with every release or prove those clients use a local model. Other clients can use the manual entrypoint if they support the necessary MCP capabilities:</p>
+<div class="code-block">{
+  <span class="kw">"command"</span>: <span class="str">"node"</span>,
+  <span class="kw">"args"</span>: [<span class="str">"/absolute/path/to/mcp-librarian/bin/mcp-librarian.js"</span>]
 }</div>
 
-    <h3>Cursor</h3>
-    <p>AI-native code editor with MCP support. Cursor can use mcp-librarian tools during inline edits, chat, and composer sessions.</p>
+<h2 id="same-server">What is independent of the model</h2>
+<p>The server advertises the same 14 tool schemas regardless of the provider behind the client. Once a valid tool call reaches it, Node code performs:</p>
+<ul>
+  <li>BM25 indexing and search.</li>
+  <li>Heuristic quality-score blending.</li>
+  <li>Skill file reads and writes.</li>
+  <li>Content-guard regex checks.</li>
+  <li>Ed25519 signing and rebuild-time verification.</li>
+  <li>Pack and research network requests.</li>
+</ul>
+<p>Given the same files, configuration, query, and call arguments, those server operations do not change because the client used a different model.</p>
 
-    <div class="code-block"><span class="cmt"># Configuration: ~/.cursor/mcp.json</span>
-{
-  <span class="kw">"mcpServers"</span>: {
-    <span class="kw">"mcp-librarian"</span>: {
-      <span class="kw">"command"</span>: <span class="str">"node"</span>,
-      <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>]
-    }
-  }
-}</div>
+<h2 id="client-dependent">What still depends on the client and model</h2>
+<ul>
+  <li>Whether the client exposes tools, resources, prompts, and logging notifications correctly.</li>
+  <li>Whether the model notices the catalog notification and chooses to search.</li>
+  <li>Whether it calls <code>find_skill</code> plus <code>load_section</code>, or asks <code>find_and_load</code> for a full file.</li>
+  <li>Whether tool arguments use the actual names and types.</li>
+  <li>Whether untrusted research is reviewed instead of followed as instructions.</li>
+  <li>Whether <code>TAMPERED</code> and <code>UNSIGNED</code> status is enforced before content is loaded.</li>
+  <li>The accuracy of any new skill text a model authors.</li>
+</ul>
 
-    <h3>Windsurf</h3>
-    <p>AI-powered code editor from Codeium with MCP integration. Configuration is similar to Cursor.</p>
+<p>There is no repository benchmark showing that a particular model size, quantization, or provider creates better Librarian skills. This documentation therefore makes no “larger models are better” or minimum-parameter claim.</p>
 
-    <div class="code-block"><span class="cmt"># Configuration: ~/.windsurf/mcp.json</span>
-{
-  <span class="kw">"mcpServers"</span>: {
-    <span class="kw">"mcp-librarian"</span>: {
-      <span class="kw">"command"</span>: <span class="str">"node"</span>,
-      <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>]
-    }
-  }
-}</div>
+<h2 id="data-routing">Data routing</h2>
+<table class="cmd-table"><thead><tr><th>Operation</th><th>Librarian network request</th><th>Other possible data path</th></tr></thead><tbody>
+<tr><td><code>find_skill</code>, <code>load_skill</code>, <code>load_section</code>, status, validation, creation, export</td><td>No</td><td>The MCP client receives results. If its model is cloud-hosted, the client may send skill content or tool results to that provider.</td></tr>
+<tr><td><code>browse_packs</code>, <code>install_pack</code></td><td>Yes</td><td>GitHub-hosted endpoints receive pack requests; optional token scope is documented separately.</td></tr>
+<tr><td><code>research_topic</code>, <code>fetch_page</code></td><td>Yes</td><td>DuckDuckGo and/or selected page hosts receive requests; returned text also flows through the client to its model.</td></tr>
+<tr><td><code>find_and_load</code></td><td>No by default</td><td>Becomes networked on a weak match only when <code>autoResearch</code> is enabled.</td></tr>
+</tbody></table>
 
-    <h2 id="local-model-setup">Local Model Setup</h2>
+<div class="warning-box"><strong>“Local server” does not mean “data never leaves the machine.”</strong> That depends on both the tool called and the MCP client's model provider. Inspect the client's own data handling as well as Librarian's.</div>
 
-    <p>Running mcp-librarian with local models requires an MCP-compatible client that can manage tool calls. The model itself does not need to know about mcp-librarian -- the client mediates.</p>
+<h2 id="offline">Offline use</h2>
+<p>Once Node, the repository, and skills are present, local search/load/manage operations can run without internet access. Do not call the four network tools, and keep auto-research disabled. There is no offline replacement for pack browsing/install or web research built into the server.</p>
 
-    <h3>Ollama</h3>
-    <p>Ollama is the most popular local model runner. To use mcp-librarian with Ollama, you need an MCP client layer that bridges between Ollama and MCP tools. Several community projects provide this bridge.</p>
+<h2 id="integrity">Integrity with any model</h2>
+<p>Integrity status is server-side, but enforcement is not. A model-provider change does not fix the current load gap: clients must still query <code>skill_status({ skill: "..." })</code> and refuse content according to their policy before loading it.</p>
 
-    <div class="code-block"><span class="cmt"># 1. Install Ollama and pull a model</span>
-<span class="prompt">$ </span><span class="cmd">ollama pull llama3.1:70b</span>
-
-<span class="cmt"># 2. Configure your MCP bridge to include mcp-librarian</span>
-<span class="cmt"># (Configuration depends on which MCP bridge you use)</span>
-
-<span class="cmt"># 3. The bridge starts mcp-librarian as a subprocess:</span>
-<span class="prompt">$ </span><span class="cmd">node /path/to/mcp-librarian/src/index.js</span>
-<span class="cmt"># Server communicates over stdio -- same as any other MCP client</span></div>
-
-    <p>The key requirement is that the MCP bridge correctly handles tool call/response round-trips over stdio. The mcp-librarian server does not need any Ollama-specific configuration.</p>
-
-    <h3>LM Studio</h3>
-    <p>LM Studio provides a local model server with an OpenAI-compatible API. Like Ollama, connecting it to mcp-librarian requires an MCP client that can issue tool calls.</p>
-
-    <div class="code-block"><span class="cmt"># 1. Download and run a model in LM Studio</span>
-<span class="cmt"># 2. Enable the local server (Settings > Local Server)</span>
-<span class="cmt"># 3. Configure your MCP bridge to use the LM Studio API endpoint</span>
-<span class="cmt"># 4. Register mcp-librarian as a tool server in the bridge</span></div>
-
-    <h3>llama.cpp</h3>
-    <p>For advanced users running models directly with llama.cpp. The same MCP bridge approach applies. The server mode in llama.cpp exposes an OpenAI-compatible API that MCP bridges can connect to.</p>
-
-    <div class="code-block"><span class="cmt"># Run the model with llama.cpp server</span>
-<span class="prompt">$ </span><span class="cmd">./llama-server -m model.gguf --port 8080</span>
-
-<span class="cmt"># Connect via MCP bridge that talks to localhost:8080</span></div>
-
-    <h2 id="model-dependent-vs-independent">Model-Dependent vs Model-Independent Features</h2>
-
-    <p>This distinction is critical for understanding what works well with any model and what improves with larger models.</p>
-
-    <h3>Model-Independent (handled by the server)</h3>
-    <p>These features work identically regardless of which model is calling the tools:</p>
-
-    <table class="cmd-table">
-      <thead><tr><th>Feature</th><th>Why It Is Model-Independent</th></tr></thead>
-      <tbody>
-        <tr><td>BM25 search</td><td>Index and scoring are computed by the server. The model only provides the query string.</td></tr>
-        <tr><td>Skill loading</td><td>File reading, signature verification, and content delivery are server operations.</td></tr>
-        <tr><td>Pack browsing and installation</td><td>Downloading, validating, signing, and indexing are server operations.</td></tr>
-        <tr><td>Ed25519 signing and verification</td><td>All cryptographic operations run on the server.</td></tr>
-        <tr><td>Content guard</td><td>Pattern matching runs on the server at write time.</td></tr>
-        <tr><td>Source authority scoring</td><td>URL analysis and domain recognition are server-side logic.</td></tr>
-        <tr><td>Web content extraction</td><td>HTML parsing, code block preservation, and content trimming are server operations.</td></tr>
-        <tr><td>Rate limiting</td><td>Request counting and enforcement are server-side.</td></tr>
-      </tbody>
-    </table>
-
-    <h3>Model-Dependent (handled by the agent)</h3>
-    <p>These features depend on the model's capability:</p>
-
-    <table class="cmd-table">
-      <thead><tr><th>Feature</th><th>Why It Depends on the Model</th></tr></thead>
-      <tbody>
-        <tr><td>Tool selection</td><td>The model decides when to call which tool. Larger models make better decisions about when to search the library.</td></tr>
-        <tr><td>Query formulation</td><td>The quality of search queries affects BM25 results. Better query formulation leads to better matches.</td></tr>
-        <tr><td>Skill creation quality</td><td>When creating skills from auto-research, the model synthesizes raw content into structured documentation. Larger models produce cleaner, better-organized skills.</td></tr>
-        <tr><td>Section selection</td><td>Choosing which section to load with load_section requires understanding the task context. Larger models are more precise.</td></tr>
-        <tr><td>Automatic awareness</td><td>Recognizing when a task would benefit from library knowledge and proactively searching. This is emergent behavior that improves with model capability.</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="quality-by-model-size">Quality Considerations by Model Size</h2>
-
-    <p>A practical guide to what works well at different capability levels.</p>
-
-    <h3>Large models (70B+, cloud API models)</h3>
-    <ul>
-      <li>Full automatic awareness -- proactively searches the library when relevant.</li>
-      <li>Excellent query formulation for BM25 search.</li>
-      <li>High-quality skill creation from auto-research with proper structure, code examples, and categorization.</li>
-      <li>Reliable multi-step tool chaining (search, load section, apply knowledge).</li>
-    </ul>
-
-    <h3>Medium models (13B - 34B)</h3>
-    <ul>
-      <li>Good tool usage when prompted or when the skill catalog makes the connection obvious.</li>
-      <li>Reasonable query formulation. May miss some nuances in search terms.</li>
-      <li>Skill creation works but may require manual cleanup -- less consistent structure and categorization.</li>
-      <li>Basic tool chaining works. Complex multi-step workflows may need prompting.</li>
-    </ul>
-
-    <h3>Small models (7B and below)</h3>
-    <ul>
-      <li>Tool usage works but may need explicit prompting ("search the library for X").</li>
-      <li>Query formulation can be hit-or-miss. Simple queries work; complex topic searches may need help.</li>
-      <li>Skill creation quality is lower -- basic structure but may lack good section organization or code examples.</li>
-      <li>Single tool calls work reliably. Multi-step chains may break or require guidance.</li>
-    </ul>
-
-    <div class="info-box">
-      <strong>Bottom line:</strong> All models can search, load, and install. The difference is in how proactively and skillfully they use the tools. Larger models use the library without being asked. Smaller models may need you to say "check the library for that."
-    </div>
-
-    <h2 id="recommendations">Recommendations</h2>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">Start with packs.</strong> Pre-installing community packs fills the library so the model has skills to find. This reduces dependence on auto-research (the most model-dependent feature).</li>
-      <li><strong style="color: var(--text-1);">Use explicit tool calls.</strong> If your model does not proactively search the library, ask it directly: "Search the librarian for SQL injection patterns." This works with any model size.</li>
-      <li><strong style="color: var(--text-1);">Review auto-researched skills.</strong> If you are using a smaller model, review the skills it creates from auto-research. You can ask the model (or a larger model in a different session) to rewrite a skill with <code>create_skill</code>.</li>
-      <li><strong style="color: var(--text-1);">Quantization trade-offs.</strong> Q4 and Q5 quantized models work fine for tool calling. The quality impact of quantization on skill creation is minimal compared to the impact of model size.</li>
-    </ul>
+<h2 id="explicit-prompts">Reduce tool-selection ambiguity</h2>
+<p>With any model, explicit requests are easier to verify:</p>
+<ul>
+  <li>“Call <code>find_skill</code> for this topic and show me the returned skill and section before loading.”</li>
+  <li>“Call <code>skill_status</code>; do not load if the status is <code>TAMPERED</code>.”</li>
+  <li>“Keep this task offline; do not call pack, research, or fetch tools.”</li>
+  <li>“Validate the draft and show me the issues before calling <code>create_skill</code>.”</li>
+</ul>

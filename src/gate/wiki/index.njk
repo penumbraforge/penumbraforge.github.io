@@ -1,10 +1,10 @@
 ---
 title: "Gate Wiki"
-description: "Gate wiki — comprehensive documentation for the secret scanner that fixes what it finds."
+description: "Gate wiki — current documentation and limitations for the experimental secret scanner."
 permalink: /gate/wiki/
 ---
 <h1>Gate Wiki</h1>
-    <p class="subtitle">Comprehensive documentation for the secret scanner that fixes what it finds.</p>
+    <p class="subtitle">Current documentation for the experimental secret scanner. Pattern detection and rewrites can miss or be wrong; review every result and diff.</p>
 
     <div class="wiki-cards">
       <a href="/gate/wiki/getting-started/" class="wiki-card">
@@ -13,7 +13,7 @@ permalink: /gate/wiki/
       </a>
       <a href="/gate/wiki/commands/" class="wiki-card">
         <h3>Commands Reference</h3>
-        <p>Every command and flag. Scanning, fixing, reporting, vault, and utilities.</p>
+        <p>Implemented commands, default scopes, write/network paths, vault limits, and flags that are not wired through.</p>
       </a>
       <a href="/gate/wiki/configuration/" class="wiki-card">
         <h3>Configuration</h3>
@@ -25,19 +25,19 @@ permalink: /gate/wiki/
       </a>
       <a href="/gate/wiki/auto-fix/" class="wiki-card">
         <h3>Auto-Fix Engine</h3>
-        <p>How auto-fix works across 9 languages. Dry-run, undo, .env handling, and dotenv injection.</p>
+        <p>Supported pattern-based rewrite forms, dry-run, undo, environment-file handling, and limitations.</p>
       </a>
       <a href="/gate/wiki/verification/" class="wiki-card">
         <h3>Credential Verification</h3>
-        <p>16 supported providers, timeout budgets, caching, offline mode, and privacy model.</p>
+        <p>Current provider adapters, timeout budgets, caching, network disclosure, and limits.</p>
       </a>
       <a href="/gate/wiki/incident-response/" class="wiki-card">
         <h3>Incident Response</h3>
-        <p>5-step guided workflow: rotate, audit, clean, scrub, document. Exposure assessment.</p>
+        <p>Exposure assessment plus printed guidance and local artifacts; provider, cleanup, and history actions remain manual.</p>
       </a>
       <a href="/gate/wiki/compliance/" class="wiki-card">
         <h3>Compliance Reports</h3>
-        <p>OWASP, NIST 800-63B, CIS v8, SOC2 mappings, SARIF output, and JSON format.</p>
+        <p>Local audit-log summaries and static OWASP 2021, NIST SP 800-53, CIS Controls, and SOC 2 labels—not attestations.</p>
       </a>
       <a href="/gate/wiki/github-action/" class="wiki-card">
         <h3>GitHub Action</h3>
@@ -45,6 +45,6 @@ permalink: /gate/wiki/
       </a>
       <a href="/gate/wiki/security/" class="wiki-card">
         <h3>Security Model</h3>
-        <p>Report redaction (findings carry a <code>secretHash</code> — plaintext secrets never stored in reports), file permissions, atomic writes, TLS enforcement, rule signing.</p>
+        <p>Scoped report redaction, file permissions, write paths, subprocess/network boundaries, rule signing, and known limits.</p>
       </a>
     </div>

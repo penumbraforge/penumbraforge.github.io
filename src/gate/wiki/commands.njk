@@ -1,196 +1,104 @@
 ---
 title: "Commands Reference"
-description: "Complete reference for every Gate command and flag."
+description: "Gate v2.1 CLI behavior, including default scopes, local files, network paths, and flags that are advertised but not wired through."
 permalink: /gate/wiki/commands/
 ---
 <h1>Commands Reference</h1>
-    <p class="subtitle">Every Gate command and flag, organized by function.</p>
+<p class="subtitle">The implemented command surface, with defaults and side effects called out.</p>
 
-    <h2 id="gate-bare">gate (bare)</h2>
-    <p>Running <code>gate</code> with no subcommand shows the current status — or installs the pre-commit hook on first run.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate</span></div>
+<h2 id="bare">Bare <code>gate</code></h2>
+<p>With no arguments, Gate does not scan the repository. If its pre-commit marker is absent, it attempts to install a pre-commit hook and prints a banner. Otherwise it shows status.</p>
 
-    <h2 id="gate-scan">gate scan</h2>
-    <p>Scan files for hardcoded secrets. This is the core command. Without arguments, it scans git-staged files (the same set the pre-commit hook checks). Use <code>--all</code> for a full repository scan, or pass explicit file paths.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate scan [files...] [options]</span></div>
-
-    <h3>Flags</h3>
-    <table class="cmd-table">
-      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>--all</td><td>Scan all tracked files in the repository</td></tr>
-        <tr><td>--staged</td><td>Scan only git-staged files (default; used by the pre-commit hook)</td></tr>
-        <tr><td>--verify</td><td>Check if detected credentials are still active via provider APIs (opt-in — verification is off by default)</td></tr>
-        <tr><td>--no-verify</td><td>Skip credential verification even if enabled in .gaterc</td></tr>
-        <tr><td>--interactive</td><td>Prompt for action on each finding (fix, vault, ignore, report)</td></tr>
-        <tr><td>--history N</td><td>Scan the last N commits in git history for secrets</td></tr>
-        <tr><td>--format text</td><td>Output as human-readable text (default)</td></tr>
-        <tr><td>--format json</td><td>Output as JSON</td></tr>
-        <tr><td>--format sarif</td><td>Output as SARIF 2.1.0 for GitHub Advanced Security</td></tr>
-        <tr><td>--changed</td><td>Scan files changed since upstream branch (default for pre-push hook)</td></tr>
-        <tr><td>--max-file-size &lt;size&gt;</td><td>Skip files larger than this size (default: 2MB, e.g. 5MB, 512KB)</td></tr>
-        <tr><td>--entropy-threshold &lt;N&gt;</td><td>Set entropy threshold for high-entropy string detection (default: 4.8)</td></tr>
-        <tr><td>--no-color</td><td>Disable colored output (useful for piping)</td></tr>
-      </tbody>
-    </table>
-
-    <h3>Examples</h3>
-    <div class="code-block"><span class="cmt"># Scan current directory</span>
-<span class="prompt">$ </span><span class="cmd">gate scan</span>
-
-<span class="cmt"># Scan specific files</span>
-<span class="prompt">$ </span><span class="cmd">gate scan src/config.ts .env.production</span>
-
-<span class="cmt"># Scan with verification</span>
-<span class="prompt">$ </span><span class="cmd">gate scan --verify</span>
-
-<span class="cmt"># Scan staged files (pre-commit)</span>
-<span class="prompt">$ </span><span class="cmd">gate scan --staged</span>
-
-<span class="cmt"># Scan git history</span>
+<h2 id="scan"><code>gate scan [targets]</code></h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">gate scan</span><span class="dim">                  # staged files</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --all</span><span class="dim">            # files from git ls-files</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --changed</span><span class="dim">        # upstream...HEAD, or all on comparison failure</span>
+<span class="prompt">$ </span><span class="cmd">gate scan src/app.js config/</span>
 <span class="prompt">$ </span><span class="cmd">gate scan --history 50</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --format json</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --format sarif</span></div>
+<p>Useful flags: <code>--verify</code>, <code>--no-verify</code>, <code>--interactive</code>, <code>--entropy-threshold N</code>, <code>--format text|json|sarif</code>, and <code>--no-color</code>. <code>--staged</code> names the default behavior when no target is supplied.</p>
+<p>The help text advertises <code>--max-file-size</code>, but the scan handler currently does not pass that flag into the scanner. Set <code>max_file_size</code> in <code>.gaterc</code>.</p>
 
-<span class="cmt"># Output SARIF for CI</span>
-<span class="prompt">$ </span><span class="cmd">gate scan --format sarif > results.sarif</span></div>
+<h2 id="verify"><code>gate verify [targets]</code></h2>
+<p>Equivalent to the corresponding scan with <code>--verify</code>. Default scope is staged files; <code>--all</code> and explicit targets are supported. It can transmit credential values and lower inactive findings to low severity. See <a href="/gate/wiki/verification/">Credential Verification</a>.</p>
 
-    <h2 id="gate-verify">gate verify</h2>
-    <p>Scan and verify detected credentials in one step. Credential verification is opt-in and off by default — a plain <code>gate scan</code> never makes live API calls with detected secrets. <code>gate verify</code> is the dedicated way to ask for it (equivalent to <code>gate scan --verify</code>).</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate verify [files...] [options]</span></div>
-    <p>Like <code>gate scan</code>, it checks git-staged files by default, accepts explicit file paths, and takes <code>--all</code> for a full scan of tracked files.</p>
-    <div class="code-block"><span class="cmt"># Verify findings in staged files (default)</span>
-<span class="prompt">$ </span><span class="cmd">gate verify</span>
+<h2 id="fix"><code>gate fix [targets]</code></h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">gate fix</span><span class="dim">                   # all tracked files</span>
+<span class="prompt">$ </span><span class="cmd">gate fix --staged</span>
+<span class="prompt">$ </span><span class="cmd">gate fix --dry-run</span>
+<span class="prompt">$ </span><span class="cmd">gate fix --interactive</span>
+<span class="prompt">$ </span><span class="cmd">gate fix --undo</span>
+<span class="prompt">$ </span><span class="cmd">gate fix --file src/app.js</span></div>
+<p>The default is all tracked files, whether or not <code>--all</code> is written. Explicit files/directories and <code>--entropy-threshold</code> are accepted. Fixing writes source and environment-related files; undo uses the newest local batch snapshot. Read <a href="/gate/wiki/auto-fix/">the known correctness gaps</a> first.</p>
 
-<span class="cmt"># Full scan with credential verification</span>
-<span class="prompt">$ </span><span class="cmd">gate verify --all</span></div>
+<h2 id="incident"><code>gate incident [targets]</code></h2>
+<p>Scans staged files by default, all tracked files with <code>--all</code>, or explicit targets. It generates guidance and artifacts only for findings labelled pushed. It does not execute provider or Git cleanup actions.</p>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">gate incident --all</span>
+<span class="prompt">$ </span><span class="cmd">gate incident report gate-inc-YYYYMMDD-001</span></div>
 
-    <h2 id="gate-incident">gate incident</h2>
-    <p>Run incident response for secrets that have already been pushed. Scans staged files by default (or <code>--all</code> / explicit paths) and walks through containment. <code>gate incident report &lt;incident-id&gt;</code> writes a Markdown incident report.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate incident [files...] [options]</span></div>
-    <p>See <a href="/gate/wiki/incident-response/">Incident Response</a> for the full workflow.</p>
+<h2 id="init"><code>gate init</code></h2>
+<p>Requires a <code>.git</code> entry in the current directory. It detects a small set of stack files, creates <code>.gateignore</code> if absent, appends environment patterns to <code>.gitignore</code>, and attempts both pre-commit and pre-push installation. It does not create <code>.gaterc</code>.</p>
 
-    <h2 id="gate-fix">gate fix</h2>
-    <p>Automatically fix all findings by extracting secrets to <code>.env</code> files and rewriting source code to reference environment variables.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate fix [options]</span></div>
+<h2 id="install"><code>gate install</code> / <code>gate uninstall</code></h2>
+<p><code>gate install</code> manages the pre-commit hook only. It preserves non-Gate hook content using sentinel comments. <code>gate uninstall</code> removes that Gate pre-commit section only; it does not remove the pre-push hook installed by <code>gate init</code>. There is no CLI flag to select pre-push today.</p>
 
-    <h3>Flags</h3>
-    <table class="cmd-table">
-      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>--all</td><td>Fix findings across all tracked files (default)</td></tr>
-        <tr><td>--staged</td><td>Fix findings in staged files only</td></tr>
-        <tr><td>--interactive</td><td>Guided remediation walkthrough</td></tr>
-        <tr><td>--dry-run</td><td>Preview all changes without writing to disk</td></tr>
-        <tr><td>--undo</td><td>Revert the last auto-fix operation using stored snapshots</td></tr>
-      </tbody>
-    </table>
+<div class="warning-box"><strong>Generated-hook environment mismatch:</strong> the hook exports <code>GATE_HOOK_TYPE=pre-commit</code>, while the CLI's verification suppression and automatic re-stage branches check <code>GATE_PRE_COMMIT</code>. As a result, <code>verify: true</code> in config can make a generated hook send credentials even though the hook command does not include <code>--verify</code>, and fixer changes may not take the intended pre-commit re-stage path. Keep verification false for hooks and inspect the index after any interactive fix.</div>
 
-    <p>See <a href="/gate/wiki/auto-fix/">Auto-Fix Engine</a> for details on how fixing works across languages.</p>
+<h2 id="vault"><code>gate vault</code></h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">gate vault keygen</span><span class="dim">          # use --force to replace the key</span>
+<span class="prompt">$ </span><span class="cmd">gate vault encrypt "value"</span>
+<span class="prompt">$ </span><span class="cmd">gate vault decrypt "base64-blob"</span>
+<span class="prompt">$ </span><span class="cmd">gate vault env .env</span><span class="dim">         # writes .env.encrypted</span></div>
+<p>The key lives at <code>~/.gate/vault.key</code> (or under <code>GATE_HOME</code>) and is auto-created when needed. Encryption is AES-256-GCM with a random IV. The key and ciphertext live on the same machine; this is local encryption, not a managed secret store.</p>
+<ul>
+  <li>Putting plaintext on the command line can expose it through shell history or process inspection.</li>
+  <li><code>decrypt</code> prints plaintext to stdout and expects the base64 blob, not a <code>VAULT:</code> prefix.</li>
+  <li><code>vault env</code> leaves the original file in place and writes <code>&lt;file&gt;.encrypted</code>; each non-empty value becomes <code>VAULT:&lt;full-base64-blob&gt;</code>.</li>
+  <li>The short <code>VAULT:&lt;id&gt;</code> created by interactive remediation has no public CLI retrieval command and no application runtime integration.</li>
+</ul>
 
-    <h2 id="gate-init">gate init</h2>
-    <p>Initialize Gate in the current project. Installs the pre-commit hook, creates a <code>.gateignore</code> file, and adds env-file patterns to <code>.gitignore</code>.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate init</span></div>
+<h2 id="audit"><code>gate audit</code></h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">gate audit</span>
+<span class="prompt">$ </span><span class="cmd">gate audit --since 7d --filter severity=high</span>
+<span class="prompt">$ </span><span class="cmd">gate audit --stats</span>
+<span class="prompt">$ </span><span class="cmd">gate audit --verify</span>
+<span class="prompt">$ </span><span class="cmd">gate audit --export json</span>
+<span class="prompt">$ </span><span class="cmd">gate audit --export csv</span>
+<span class="prompt">$ </span><span class="cmd">gate audit --clear</span></div>
+<p><code>--since</code> accepts dates or <code>Nd</code>/<code>Nw</code>/<code>Nm</code>; <code>--until</code> accepts a date. The generic filter parser accepts one simple <code>key=value</code> and the query layer recognizes decision, minimum findings, and severity fields. <code>--clear</code> asks for confirmation only in a TTY.</p>
+<p>The audit log can currently retain the raw <code>secret</code> field. Export may therefore disclose credentials. Inspect the file before using export.</p>
 
-    <h2 id="gate-status">gate status</h2>
-    <p>Show the current Gate configuration, hook installation status, and recent scan summary.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate status</span></div>
+<h2 id="report"><code>gate report</code></h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">gate report</span><span class="dim">                   # Markdown file</span>
+<span class="prompt">$ </span><span class="cmd">gate report --format html</span><span class="dim">     # HTML file</span>
+<span class="prompt">$ </span><span class="cmd">gate report --format json</span><span class="dim">     # stdout, experimental adapter</span>
+<span class="prompt">$ </span><span class="cmd">gate report --incident ID</span></div>
+<p>Compliance Markdown/HTML reads the current local audit log; it does not scan. See <a href="/gate/wiki/compliance/">Reports and Compliance Mappings</a>.</p>
 
-    <h2 id="gate-report">gate report</h2>
-    <p>Generate compliance reports mapped to security frameworks.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate report [options]</span></div>
+<h2 id="history"><code>gate purge</code></h2>
+<p>Scans added lines in the last 50 commits by default, or <code>--history N</code>, then writes a review-only <code>git-filter-repo</code> script and plaintext replacements outside the repository under <code>~/.gate/purge</code>. It does not execute or push the rewrite.</p>
 
-    <h3>Flags</h3>
-    <table class="cmd-table">
-      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>--format text</td><td>Terminal output (default)</td></tr>
-        <tr><td>--format html</td><td>Generate an HTML compliance report</td></tr>
-        <tr><td>--format json</td><td>Generate a JSON compliance report</td></tr>
-        <tr><td>--incident &lt;id&gt;</td><td>Generate a report for a specific incident</td></tr>
-      </tbody>
-    </table>
+<h2 id="status"><code>gate status</code>, <code>gate update</code>, <code>gate version</code></h2>
+<ul>
+  <li><code>status</code> prints local health information and initiates an update check.</li>
+  <li><code>update</code> checks npm and can install a newer global package.</li>
+  <li><code>version</code> prints the version and asynchronously checks for an update.</li>
+  <li><code>help</code> or <code>--help</code> prints built-in help; some help claims can lag implementation.</li>
+</ul>
 
-    <p>See <a href="/gate/wiki/compliance/">Compliance Reports</a> for details on framework mappings.</p>
-
-    <h2 id="gate-audit">gate audit</h2>
-    <p>View and manage the audit log. Gate maintains an integrity-chained log of all scan activity.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate audit [options]</span></div>
-
-    <h3>Flags</h3>
-    <table class="cmd-table">
-      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>--since &lt;period&gt;</td><td>Show entries from time period (e.g., 7d, 30d, 1h)</td></tr>
-        <tr><td>--stats</td><td>Show scan statistics summary</td></tr>
-        <tr><td>--export</td><td>Export the audit log as JSON</td></tr>
-        <tr><td>--verify</td><td>Verify audit log integrity chain (SHA-256 hash chain)</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="gate-vault">gate vault</h2>
-    <p>Manage encrypted secrets with the Gate vault. Uses AES-256-GCM encryption.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate vault &lt;subcommand&gt;</span></div>
-
-    <h3>Subcommands</h3>
-    <table class="cmd-table">
-      <thead><tr><th>Command</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>gate vault keygen</td><td>Generate a new AES-256-GCM encryption key</td></tr>
-        <tr><td>gate vault encrypt</td><td>Encrypt a .env file to .env.enc</td></tr>
-        <tr><td>gate vault decrypt</td><td>Decrypt a .env.enc file back to .env</td></tr>
-        <tr><td>gate vault env</td><td>Decrypt and load variables into the current shell environment</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="gate-purge">gate purge</h2>
-    <p>Generate scripts to purge secrets from git history. This creates a shell script that uses <code>git filter-repo</code> or <code>BFG Repo-Cleaner</code> to remove secrets from all historical commits.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate purge</span></div>
-
-    <div class="info-box">
-      <strong>Warning:</strong> Purging git history rewrites commits and changes SHAs. This is a destructive operation. Always coordinate with your team and back up your repository before running purge scripts.
-    </div>
-
-    <h2 id="gate-install">gate install</h2>
-    <p>Install Gate git hooks into the current repository. Installs a pre-commit hook (<code>gate scan --staged</code>) and a pre-push hook (<code>gate scan --changed</code>).</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate install</span></div>
-
-    <h2 id="gate-uninstall">gate uninstall</h2>
-    <p>Remove the Gate pre-commit hook from the current git repository.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate uninstall</span></div>
-
-    <h2 id="gate-update">gate update</h2>
-    <p>Update Gate to the latest version.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate update</span></div>
-
-    <h2 id="gate-version">gate version</h2>
-    <p>Print the current Gate version.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate version</span></div>
-
-    <h2 id="gate-help">gate help / --help</h2>
-    <p>Show help information for Gate or a specific command. Use <code>--help</code> or <code>-h</code> with any command.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate --help</span>
-<span class="prompt">$ </span><span class="cmd">gate scan --help</span>
-<span class="prompt">$ </span><span class="cmd">gate vault --help</span>
-<span class="prompt">$ </span><span class="cmd">gate fix -h</span></div>
-
-    <h2 id="global-flags">Global Flags</h2>
-    <p>These flags work with any command.</p>
-    <table class="cmd-table">
-      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>--no-color</td><td>Disable colored terminal output</td></tr>
-        <tr><td>--help, -h</td><td>Show help for any command</td></tr>
-        <tr><td>--version, -v</td><td>Print version</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="environment-variables">Environment Variables</h2>
-    <table class="cmd-table">
-      <thead><tr><th>Variable</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>GATE_OFFLINE</td><td>Set to 1 to disable all network calls (verification, updates)</td></tr>
-        <tr><td>NO_COLOR</td><td>Standard environment variable to disable colored output</td></tr>
-        <tr><td>GATE_SKIP</td><td>Set to 1 to bypass the pre-commit/pre-push hook</td></tr>
-        <tr><td>GATE_NODE_PATH</td><td>Explicit path to Node.js binary for hook execution</td></tr>
-        <tr><td>GATE_LOG_LEVEL</td><td>Set log verbosity: debug, info, warn, error</td></tr>
-      </tbody>
-    </table>
+<h2 id="environment">Environment variables Gate actually reads</h2>
+<table class="cmd-table">
+  <thead><tr><th>Variable</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>GATE_HOME</code></td><td>Overrides the local Gate state directory.</td></tr>
+    <tr><td><code>GATE_OFFLINE=1</code></td><td>Skips Gate's verification and update-check requests.</td></tr>
+    <tr><td><code>NO_COLOR</code></td><td>Disables ANSI color.</td></tr>
+    <tr><td><code>DEBUG=1</code></td><td>Prints stack traces for top-level unexpected errors; those traces can contain paths or data.</td></tr>
+    <tr><td><code>GATE_SKIP=1</code></td><td>Generated-hook bypass.</td></tr>
+    <tr><td><code>GATE_ALLOW_MISSING=1</code></td><td>Lets a generated hook continue when Gate cannot be found.</td></tr>
+    <tr><td><code>GATE_NODE_PATH</code></td><td>Explicit Node executable used by generated hooks.</td></tr>
+    <tr><td><code>NODE_TLS_REJECT_UNAUTHORIZED=0</code></td><td>Causes Gate verification to skip for safety; do not disable TLS validation globally.</td></tr>
+  </tbody>
+</table>
+<p><code>GATE_LOG_LEVEL</code> is not implemented. <code>GATE_HOOK_TYPE</code> is exported by generated hooks but is not consumed by the current CLI branches described above.</p>

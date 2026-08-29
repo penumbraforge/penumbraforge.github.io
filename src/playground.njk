@@ -13,7 +13,7 @@ permalink: /playground/
   <header class="pg-hero">
     <p class="section-label">Playground</p>
     <h1>Things built for the fun of it</h1>
-    <p class="pg-lede">Not products, not on a roadmap. These exist because a problem looked interesting at eleven at night. They run entirely in your browser, like everything else here.</p>
+    <p class="pg-lede">Not products, not on a roadmap. These exist because a problem looked interesting. Some are browser-only; features that make network requests say so.</p>
   </header>
 
   <section class="pg-feature" aria-labelledby="console-title">
@@ -21,7 +21,7 @@ permalink: /playground/
       <p class="section-label">Site console</p>
       <h2 id="console-title">Drive this whole site from a command line</h2>
       <p>Press <kbd>⌘</kbd><kbd>`</kbd> (or <kbd>Ctrl</kbd><kbd>`</kbd>) anywhere on this site and a real console opens. It searches all {{ stats.liveTools }} tools by name and keyword, navigates between products and docs, jumps straight to a recorded demo, and launches everything below.</p>
-      <p>It reads the same machine-readable tool index that AI agents consume at <a href="/tools/index.json">/tools/index.json</a>, so it can never list a tool the site doesn't have. Tab completes, <kbd>↑</kbd> walks history, <kbd>Esc</kbd> closes.</p>
+      <p>It reads the same machine-readable tool index that AI agents consume at <a href="/tools/index.json">/tools/index.json</a>, so its catalog is generated from the site's current tool data. Tab completes, <kbd>↑</kbd> walks history, <kbd>Esc</kbd> closes.</p>
       <button type="button" class="pg-btn" data-open-console>{{ icon("terminal", 16) }} <span>Open the console</span></button>
     </div>
     <div class="pg-feature-demo" aria-hidden="true">
@@ -48,7 +48,7 @@ permalink: /playground/
       <a class="pg-card" href="/terminal/">
         <span class="pg-card-ic">{{ icon("terminal") }}</span>
         <h3>Browser terminal</h3>
-        <p>A terminal emulator that runs in a tab, with real network requests behind a <code>curl</code>-style command. Started as a way to test the tools without leaving the page and grew considerably past that.</p>
+        <p>A terminal emulator that runs in a tab and generates <code>curl</code>, Fetch, and Axios request snippets; it does not execute those network requests. It started as a way to explore the tools without leaving the page.</p>
         <span class="pg-card-go">Open terminal <span aria-hidden="true">&rarr;</span></span>
       </a>
       <a class="pg-card" href="/game/">

@@ -1,198 +1,96 @@
 ---
 title: "Configuration"
-description: "Environment variables, directory structure, logging, rate limiting, and MCP client configuration for mcp-librarian."
+description: "mcp-librarian configuration precedence, actual config keys and environment overrides, flat disk layout, in-memory index, logging notifications, and rate limiting."
 permalink: /librarian/wiki/configuration/
 ---
 <h1>Configuration</h1>
-    <p class="subtitle">Environment variables, directory structure, logging, rate limiting, and client setup.</p>
+<p class="subtitle">Built-in defaults, one optional JSON file, then supported environment overrides.</p>
 
-    <h2 id="overview">Overview</h2>
+<h2 id="precedence">Resolution order</h2>
+<ol>
+  <li>The entrypoint selects the home directory from <code>MCP_LIBRARIAN_HOME</code>, defaulting to <code>~/.mcp-librarian</code>.</li>
+  <li><code>loadConfig</code> starts with built-in defaults.</li>
+  <li>It shallow-merges <code>&lt;home&gt;/config.json</code> when that file can be read and parsed.</li>
+  <li>Supported environment variables override selected fields.</li>
+</ol>
+<p>A missing, unreadable, or malformed <code>config.json</code> is silently ignored. The home directory itself is fixed before the file is read, so a <code>home</code> key in that file does not relocate the installation.</p>
 
-    <p>mcp-librarian uses environment variables for all configuration. There are no configuration files to manage. Set variables in your shell profile, in your MCP client's env block, or inline when starting the server.</p>
-
-    <h2 id="environment-variables">Environment Variables</h2>
-
-    <table class="cmd-table">
-      <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>MCP_LIBRARIAN_HOME</td><td><code>~/.mcp-librarian</code></td><td>Base directory for skills, keys, index, exports, and logs. All file operations are constrained to this directory by the path guard.</td></tr>
-        <tr><td>MCP_LIBRARIAN_LOG_LEVEL</td><td><code>info</code></td><td>Logging verbosity. One of <code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code>. Debug level logs every tool call with parameters and timing.</td></tr>
-        <tr><td>MCP_LIBRARIAN_RATE_LIMIT</td><td><code>200</code></td><td>Maximum tool requests per minute. When exceeded, the server returns a rate limit error. Applies to all tools equally.</td></tr>
-        <tr><td>MCP_LIBRARIAN_CACHE_SIZE</td><td><code>100</code></td><td>LRU content cache entries.</td></tr>
-        <tr><td>MCP_LIBRARIAN_CACHE_TTL</td><td><code>600000</code></td><td>Content cache TTL in milliseconds. Section loads read through to disk on a miss, so an idle server never loses track of installed skills.</td></tr>
-        <tr><td>MCP_LIBRARIAN_SKILLS_REPO</td><td><code>penumbraforge/mcp-librarian-skills</code></td><td>GitHub repository used as the community pack source for <code>browse_packs</code> and <code>install_pack</code>.</td></tr>
-        <tr><td>MCP_LIBRARIAN_AUTO_RESEARCH</td><td><code>false</code></td><td>Allow <code>find_and_load</code> to auto-fetch from the web when nothing matches locally. Off by default &mdash; see <a href="/librarian/wiki/auto-research/">Auto-Research</a>.</td></tr>
-        <tr><td>MCP_LIBRARIAN_QUALITY_WEIGHT</td><td><code>0.4</code></td><td>How much the heuristic quality score influences ranking versus raw BM25 relevance (0&ndash;1).</td></tr>
-        <tr><td>GITHUB_TOKEN</td><td>(unset)</td><td>Raises GitHub API rate limits for pack browsing and installs. Sent <strong style="color: var(--text-1);">only</strong> to <code>raw.githubusercontent.com</code> and <code>api.github.com</code> &mdash; never to arbitrary hosts, and never to a redirect target outside that allowlist.</td></tr>
-      </tbody>
-    </table>
-
-    <div class="info-box">
-      <strong>Credential scoping:</strong> every outbound fetch rejects private, loopback, link-local, and cloud-metadata addresses, pins the resolved IP against DNS rebinding, and re-vets each redirect hop. A pack URL that redirects off the allowlist loses the token rather than following it.
-    </div>
-
-    <h3>Setting Variables in Your Shell</h3>
-
-    <div class="code-block"><span class="cmt"># Add to ~/.zshrc or ~/.bashrc</span>
-<span class="kw">export</span> MCP_LIBRARIAN_HOME=<span class="str">"$HOME/.mcp-librarian"</span>
-<span class="kw">export</span> MCP_LIBRARIAN_LOG_LEVEL=<span class="str">"info"</span>
-<span class="kw">export</span> MCP_LIBRARIAN_RATE_LIMIT=<span class="str">"200"</span></div>
-
-    <h3>Setting Variables in MCP Client Config</h3>
-
-    <p>Most MCP clients support an <code>env</code> block in the server configuration. This is the recommended approach because it keeps the configuration scoped to mcp-librarian.</p>
-
-    <div class="code-block"><span class="cmt">// Claude Code: ~/.claude/mcp_servers.json</span>
-{
-  <span class="kw">"mcp-librarian"</span>: {
-    <span class="kw">"command"</span>: <span class="str">"node"</span>,
-    <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>],
-    <span class="kw">"env"</span>: {
-      <span class="kw">"MCP_LIBRARIAN_HOME"</span>: <span class="str">"/custom/path/.mcp-librarian"</span>,
-      <span class="kw">"MCP_LIBRARIAN_LOG_LEVEL"</span>: <span class="str">"debug"</span>
-    }
-  }
+<h2 id="defaults">Built-in defaults</h2>
+<div class="code-block">{
+  <span class="kw">"logLevel"</span>: <span class="str">"info"</span>,
+  <span class="kw">"rateLimit"</span>: <span class="val">200</span>,
+  <span class="kw">"cacheSize"</span>: <span class="val">100</span>,
+  <span class="kw">"cacheTtl"</span>: <span class="val">600000</span>,
+  <span class="kw">"skillsRepo"</span>: <span class="str">"penumbraforge/mcp-librarian-skills"</span>,
+  <span class="kw">"autoResearch"</span>: <span class="val">false</span>,
+  <span class="kw">"qualityWeighting"</span>: <span class="val">true</span>,
+  <span class="kw">"qualityWeight"</span>: <span class="val">0.4</span>,
+  <span class="kw">"allowArbitraryPackUrls"</span>: <span class="val">false</span>
 }</div>
 
-    <h2 id="directory-structure">Directory Structure</h2>
+<h2 id="config-file">config.json</h2>
+<p>Example:</p>
+<div class="code-block">{
+  <span class="kw">"logLevel"</span>: <span class="str">"warning"</span>,
+  <span class="kw">"rateLimit"</span>: <span class="val">100</span>,
+  <span class="kw">"cacheSize"</span>: <span class="val">50</span>,
+  <span class="kw">"cacheTtl"</span>: <span class="val">300000</span>,
+  <span class="kw">"skillsRepo"</span>: <span class="str">"example/team-skills"</span>,
+  <span class="kw">"autoResearch"</span>: <span class="val">false</span>,
+  <span class="kw">"qualityWeighting"</span>: <span class="val">true</span>,
+  <span class="kw">"qualityWeight"</span>: <span class="val">0.25</span>,
+  <span class="kw">"allowArbitraryPackUrls"</span>: <span class="val">false</span>
+}</div>
 
-    <p>The <code>MCP_LIBRARIAN_HOME</code> directory has the following layout. All of these are created automatically during installation and normal operation.</p>
+<p><code>qualityWeighting</code> and <code>allowArbitraryPackUrls</code> currently have no environment-variable equivalents. <code>allowArbitraryPackUrls</code> weakens the pack URL boundary; see <a href="/librarian/wiki/community-packs/">Community Packs</a>.</p>
 
-    <div class="code-block"><span class="dim">~/.mcp-librarian/</span>
+<h2 id="environment">Environment variables</h2>
+<table class="cmd-table"><thead><tr><th>Variable</th><th>Default</th><th>Behavior</th></tr></thead><tbody>
+<tr><td><code>MCP_LIBRARIAN_HOME</code></td><td><code>~/.mcp-librarian</code></td><td>Selects the base directory before config loading.</td></tr>
+<tr><td><code>MCP_LIBRARIAN_LOG_LEVEL</code></td><td><code>info</code></td><td><code>debug</code>, <code>info</code>, <code>warning</code>, or <code>error</code>. Invalid values fall back to <code>info</code>. The valid name is <code>warning</code>, not <code>warn</code>.</td></tr>
+<tr><td><code>MCP_LIBRARIAN_RATE_LIMIT</code></td><td><code>200</code></td><td>Positive finite number. An invalid or zero environment value falls back to 200.</td></tr>
+<tr><td><code>MCP_LIBRARIAN_CACHE_SIZE</code></td><td><code>100</code></td><td>Positive finite number of content-cache entries; invalid environment input falls back to 100.</td></tr>
+<tr><td><code>MCP_LIBRARIAN_CACHE_TTL</code></td><td><code>600000</code></td><td>Positive finite cache lifetime in milliseconds; invalid environment input falls back to the default.</td></tr>
+<tr><td><code>MCP_LIBRARIAN_SKILLS_REPO</code></td><td><code>penumbraforge/mcp-librarian-skills</code></td><td>Repository path used by pack browsing and named installs.</td></tr>
+<tr><td><code>MCP_LIBRARIAN_AUTO_RESEARCH</code></td><td><code>false</code></td><td>Only <code>1</code> or case-insensitive <code>true</code> enables the conditional <code>find_and_load</code> network path.</td></tr>
+<tr><td><code>MCP_LIBRARIAN_QUALITY_WEIGHT</code></td><td><code>0.4</code></td><td>Number from 0 through 1. Invalid environment input falls back to 0.4.</td></tr>
+<tr><td><code>GITHUB_TOKEN</code></td><td>unset</td><td>Read directly by the pack downloader and sent only to <code>raw.githubusercontent.com</code> or <code>api.github.com</code>.</td></tr>
+</tbody></table>
+
+<div class="warning-box"><strong>File values are not uniformly validated.</strong> <code>logLevel</code> from the file is validated, and the store clamps <code>qualityWeight</code>, but numeric file values such as <code>rateLimit</code>, <code>cacheSize</code>, and <code>cacheTtl</code> do not receive the same positive-number validation as environment overrides. For example, <code>rateLimit: 0</code> in the file can block all non-exempt requests; <code>MCP_LIBRARIAN_RATE_LIMIT=0</code> instead falls back to 200.</div>
+
+<h2 id="layout">Actual on-disk layout</h2>
+<div class="code-block"><span class="dim">~/.mcp-librarian/</span>
+<span class="dim">  config.json</span>              <span class="cmt"># optional, user-created</span>
+<span class="dim">  manifest.json</span>            <span class="cmt"># hashes, signatures, timestamps</span>
 <span class="dim">  keys/</span>
-<span class="dim">    signing.key</span>              <span class="cmt"># Ed25519 private key (0o600)</span>
-<span class="dim">    signing.pub</span>              <span class="cmt"># Ed25519 public key</span>
+<span class="dim">    private.pem</span>
+<span class="dim">    public.pem</span>
 <span class="dim">  skills/</span>
-<span class="dim">    security-hardening/</span>      <span class="cmt"># Pack: installed skills</span>
-<span class="dim">      sql-injection.md</span>
-<span class="dim">      xss-prevention.md</span>
-<span class="dim">      ...</span>
-<span class="dim">    api-design/</span>              <span class="cmt"># Pack: installed skills</span>
-<span class="dim">      error-handling.md</span>
-<span class="dim">      ...</span>
-<span class="dim">    graphql-federation.md</span>    <span class="cmt"># Standalone skill</span>
-<span class="dim">  index/</span>
-<span class="dim">    bm25.json</span>                <span class="cmt"># BM25 search index</span>
-<span class="dim">  signatures/</span>
-<span class="dim">    *.sig</span>                    <span class="cmt"># Ed25519 signatures for each skill</span>
-<span class="dim">  exports/</span>
-<span class="dim">    my-pack/</span>                 <span class="cmt"># Exported pack directory</span>
+<span class="dim">    getting-started.md</span>     <span class="cmt"># flat files only</span>
+<span class="dim">    api-design.md</span>
+<span class="dim">  exports/</span>                <span class="cmt"># created on first export</span>
+<span class="dim">    team-patterns/</span>
 <span class="dim">      pack.json</span>
-<span class="dim">      *.md</span>
-<span class="dim">  logs/</span>
-<span class="dim">    mcp-librarian.log</span>        <span class="cmt"># Server log file</span></div>
+<span class="dim">      api-design.md</span></div>
 
-    <h3>Directory Descriptions</h3>
+<p>There is no persistent <code>index/</code>, <code>signatures/</code>, or <code>logs/</code> tree in the current implementation. The BM25 index, term statistics, and LRU content cache live in memory and are rebuilt from flat skill files at process start or after supported mutations.</p>
+<p>The installer writes both PEM files with mode <code>0600</code>. <code>manifest.json</code> contains a top-level timestamp and per-skill hash, signature, and signing timestamp.</p>
 
-    <table class="cmd-table">
-      <thead><tr><th>Directory</th><th>Purpose</th></tr></thead>
-      <tbody>
-        <tr><td>keys/</td><td>Ed25519 keypair generated during installation. The private key signs skills on write. The public key verifies on load. See <a href="/librarian/wiki/signing/">Ed25519 Signing</a>.</td></tr>
-        <tr><td>skills/</td><td>All skill files (Markdown). Pack skills are in subdirectories named after the pack. Standalone skills are at the root level.</td></tr>
-        <tr><td>index/</td><td>The BM25 search index. Rebuilt automatically when skills are added, removed, or modified via tools.</td></tr>
-        <tr><td>signatures/</td><td>Ed25519 signature files. One <code>.sig</code> file per skill, containing the hash and signature.</td></tr>
-        <tr><td>exports/</td><td>Output directory for <code>export_pack</code>. Each exported pack gets its own subdirectory.</td></tr>
-        <tr><td>logs/</td><td>Server log files. Verbosity controlled by <code>MCP_LIBRARIAN_LOG_LEVEL</code>.</td></tr>
-      </tbody>
-    </table>
+<h2 id="logging">Logging</h2>
+<p>Logs are MCP <code>notifications/message</code> messages sent over stdio. They are not appended to a file. Severity order is <code>debug</code>, <code>info</code>, <code>warning</code>, <code>error</code>.</p>
+<p>The server emits a startup message and, after client initialization, a skill catalog at <code>info</code>. Clients decide whether and where those notifications appear. MCP's <code>logging/setLevel</code> changes the dispatcher's logger threshold at runtime; the entrypoint also owns a logger initialized from config, so not every emitter necessarily shares that later change.</p>
 
-    <h2 id="logging">Logging</h2>
+<h2 id="rate-limiting">Rate limiting</h2>
+<p>The dispatcher keeps request timestamps in memory and applies a sliding 60-second window. <code>initialize</code>, <code>initialized</code>, and <code>ping</code> are exempt. This is a request-loop guard; it is not a per-domain web crawler limit or a persistent quota.</p>
 
-    <p>mcp-librarian logs to <code>~/.mcp-librarian/logs/mcp-librarian.log</code>. The log level is controlled by <code>MCP_LIBRARIAN_LOG_LEVEL</code>.</p>
-
-    <table class="cmd-table">
-      <thead><tr><th>Level</th><th>What Gets Logged</th></tr></thead>
-      <tbody>
-        <tr><td>error</td><td>Only errors: failed operations, corrupted files, signature mismatches.</td></tr>
-        <tr><td>warn</td><td>Errors plus warnings: rate limit hits, skipped files, content guard rejections.</td></tr>
-        <tr><td>info</td><td>Warnings plus operational info: tool calls, skill creation, pack installs, index rebuilds.</td></tr>
-        <tr><td>debug</td><td>Everything: full tool parameters, BM25 scoring details, timing breakdowns, HTTP requests.</td></tr>
-      </tbody>
-    </table>
-
-    <div class="code-block"><span class="cmt"># Example log output at info level</span>
-<span class="dim">[2026-03-21T14:30:22Z]</span> <span class="ok">INFO</span>  <span class="dim">tool=find_and_load query="SQL injection" result=skill:sql-injection 12ms</span>
-<span class="dim">[2026-03-21T14:30:23Z]</span> <span class="ok">INFO</span>  <span class="dim">tool=load_section skill=sql-injection section=parameterized-queries 3ms</span>
-<span class="dim">[2026-03-21T14:31:05Z]</span> <span class="ok">INFO</span>  <span class="dim">tool=install_pack pack=api-design skills=6 index_rebuilt=true 1.4s</span></div>
-
-    <h2 id="rate-limiting">Rate Limiting</h2>
-
-    <p>The rate limiter tracks tool calls per minute using a sliding window. When the limit is exceeded, the server returns an error response instead of executing the tool. The agent typically waits and retries.</p>
-
-    <p>The default limit of 200 requests per minute is generous for normal use. You might need to increase it if you are bulk-installing many packs or running automated workflows that make rapid tool calls.</p>
-
-    <div class="code-block"><span class="cmt"># Increase rate limit for bulk operations</span>
-<span class="kw">export</span> MCP_LIBRARIAN_RATE_LIMIT=<span class="str">"500"</span></div>
-
-    <p>Setting the rate limit to <code>0</code> disables rate limiting entirely. This is not recommended for production use but can be useful during testing.</p>
-
-    <h2 id="custom-skills-repo">Custom Skills Repository</h2>
-
-    <p>By default, <code>browse_packs</code> and <code>install_pack</code> pull from <code>penumbraforge/mcp-librarian-skills</code> on GitHub. You can point these tools at a different repository -- useful for companies that maintain private skill packs.</p>
-
-    <div class="code-block"><span class="kw">export</span> MCP_LIBRARIAN_SKILLS_REPO=<span class="str">"yourcompany/internal-skills"</span></div>
-
-    <p>The repository must follow the same directory structure as the community repo: each pack is a directory with a <code>pack.json</code> manifest and skill files.</p>
-
-    <h2 id="mcp-client-configuration">MCP Client Configuration</h2>
-
-    <p>mcp-librarian needs to be registered as an MCP server in your client's configuration. The installer handles this automatically for supported clients, but here are the manual configurations for each.</p>
-
-    <h3>Claude Code</h3>
-
-    <p>Config file: <code>~/.claude/mcp_servers.json</code></p>
-
-    <div class="code-block">{
-  <span class="kw">"mcp-librarian"</span>: {
-    <span class="kw">"command"</span>: <span class="str">"node"</span>,
-    <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>],
-    <span class="kw">"env"</span>: {}
-  }
-}</div>
-
-    <h3>Cursor</h3>
-
-    <p>Config file: <code>~/.cursor/mcp.json</code></p>
-
-    <div class="code-block">{
+<h2 id="client">Server entrypoint</h2>
+<div class="code-block">{
   <span class="kw">"mcpServers"</span>: {
     <span class="kw">"mcp-librarian"</span>: {
       <span class="kw">"command"</span>: <span class="str">"node"</span>,
-      <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>]
+      <span class="kw">"args"</span>: [<span class="str">"/absolute/path/to/mcp-librarian/bin/mcp-librarian.js"</span>]
     }
   }
 }</div>
-
-    <h3>Windsurf</h3>
-
-    <p>Config file: <code>~/.windsurf/mcp.json</code></p>
-
-    <div class="code-block">{
-  <span class="kw">"mcpServers"</span>: {
-    <span class="kw">"mcp-librarian"</span>: {
-      <span class="kw">"command"</span>: <span class="str">"node"</span>,
-      <span class="kw">"args"</span>: [<span class="str">"/path/to/mcp-librarian/src/index.js"</span>]
-    }
-  }
-}</div>
-
-    <h3>Local Models (Ollama, LM Studio)</h3>
-
-    <p>For local model setups that support MCP, the configuration is client-dependent. The server side is identical -- <code>node src/index.js</code> over stdio. See <a href="/librarian/wiki/local-models/">Local Models</a> for detailed setup guides.</p>
-
-    <h2 id="path-guard">Path Guard</h2>
-
-    <p>All file operations in mcp-librarian are constrained to the <code>MCP_LIBRARIAN_HOME</code> directory. The path guard rejects any operation that attempts to:</p>
-
-    <ul>
-      <li>Access files outside the home directory</li>
-      <li>Use directory traversal (<code>../</code>) to escape</li>
-      <li>Use absolute paths that point elsewhere</li>
-      <li>Follow symlinks that resolve outside the home directory</li>
-    </ul>
-
-    <p>The path guard runs before any I/O operation. If a tool call contains a path that fails the guard, the call is rejected with an error and no file system access occurs.</p>
-
-    <div class="info-box">
-      <strong>Why this matters:</strong> AI agents can be manipulated through prompt injection to request file operations outside the expected directory. The path guard ensures that even a compromised agent cannot read or write files outside the mcp-librarian home directory.
-    </div>
+<p>The runtime is stdio-only. The repository does not expose an HTTP server, daemon socket, <code>server.js</code>, or direct model-provider configuration.</p>

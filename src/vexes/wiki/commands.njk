@@ -1,197 +1,55 @@
 ---
 title: "Commands Reference"
-description: "Every vexes command and flag — scan, analyze, fix, guard, and monitor."
+description: "The nine primary vexes commands and their present limits."
 permalink: /vexes/wiki/commands/
 ---
 <h1>Commands Reference</h1>
-    <p class="subtitle">Every command and flag. {{ versions.vexes.commands }} commands cover vulnerability scanning, behavioral analysis, fix recommendations, pre-install guarding, CI monitoring, and AI-assisted triage.</p>
+<p class="subtitle">Command behavior varies. Read the boundary as carefully as the feature.</p>
 
-    <h2 id="scan">vexes scan</h2>
+<table class="cmd-table">
+  <thead><tr><th>Command</th><th>Purpose</th><th>Main limitation</th></tr></thead>
+  <tbody>
+    <tr><td><code>scan</code></td><td>Match supported dependency coordinates to OSV advisories</td><td>Advisory data can lag and does not establish exploitability</td></tr>
+    <tr><td><code>analyze</code></td><td>Collect npm/PyPI heuristic registry and source-pattern evidence</td><td>Conditional and bounded; <code>--deep</code> remains incomplete</td></tr>
+    <tr><td><code>fix</code></td><td>Generate npm candidates cross-checked against OSV and registry data</td><td>Not compatibility or future-safety verification</td></tr>
+    <tr><td><code>guard</code></td><td>Assess an explicit public-npm install request before applying it</td><td>Narrow npm grammar; metadata-bound; scripts stay disabled</td></tr>
+    <tr><td><code>monitor</code></td><td>CI annotations/SARIF or early watch mode</td><td>Network and input gaps remain incomplete</td></tr>
+    <tr><td><code>explain</code></td><td>Ask a configured model to prioritize a valid completed scan</td><td>Opt-in model draft; not deterministic evidence</td></tr>
+    <tr><td><code>inspect</code></td><td>Collect evidence for one npm/PyPI coordinate</td><td>Does not determine whether a package is safe</td></tr>
+    <tr><td><code>doctor</code></td><td>Check runtime, parser fixtures, cache, and optional isolation support</td><td>A smoke test, not an audit</td></tr>
+    <tr><td><code>licenses</code></td><td>Inventory declared dependency licenses</td><td>Uses metadata, can be incomplete, and is not legal advice</td></tr>
+  </tbody>
+</table>
 
-    <p>Query the OSV.dev vulnerability database for known vulnerabilities in your dependencies. This is the fastest check -- it does not analyze code or behavior, only known CVEs and advisories.</p>
-
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Flag</th><th>Description</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>--ecosystem &lt;name&gt;</code></td><td>Scan only one ecosystem (npm, pypi, cargo, go, ruby, php, nuget, java)</td></tr>
-        <tr><td><code>--severity &lt;level&gt;</code></td><td>Minimum severity to report: low, moderate, high, critical (default: moderate)</td></tr>
-        <tr><td><code>--fix</code></td><td>Show fix commands for each vulnerability</td></tr>
-        <tr><td><code>--json</code></td><td>Output results as JSON</td></tr>
-        <tr><td><code>--format &lt;fmt&gt;</code></td><td>Output format: text (default), json, sarif</td></tr>
-        <tr><td><code>--sarif [file]</code></td><td>SARIF 2.1.0 output for GitHub Advanced Security — to stdout, or to <code>&lt;file&gt;</code> if given</td></tr>
-      </tbody>
-    </table>
-
-    <div class="code-block"><span class="cmt"># Scan only npm dependencies</span>
-<span class="prompt">$ </span><span class="cmd">vexes scan --ecosystem npm</span>
-
-<span class="cmt"># Only show critical and high severity</span>
-<span class="prompt">$ </span><span class="cmd">vexes scan --severity high</span>
-
-<span class="cmt"># JSON output for scripting</span>
+<h2>Common flags</h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes scan --path ./project --ecosystem npm --severity high</span>
 <span class="prompt">$ </span><span class="cmd">vexes scan --json</span>
+<span class="prompt">$ </span><span class="cmd">vexes scan --format sarif</span>
+<span class="prompt">$ </span><span class="cmd">vexes scan --no-user-config --no-project-config</span></div>
+<p><code>--no-project-config</code> prevents an inspected checkout from choosing ecosystems, ignores, severity, or signal suppression. Add <code>--no-user-config</code> for results independent of trusted runner-account policy.</p>
 
-<span class="cmt"># Write a SARIF report to a file</span>
-<span class="prompt">$ </span><span class="cmd">vexes scan --sarif vexes.sarif</span></div>
+<h2><code>scan</code></h2>
+<p>Use ecosystem values <code>npm</code>, <code>pypi</code>, <code>cargo</code>, <code>go</code>, <code>ruby</code>, <code>php</code>, <code>nuget</code>, <code>java</code>, <code>hex</code>, or <code>pub</code>. <code>--fix</code> on scan shows advisory-derived hints. Direct-import evidence never suppresses an advisory; the older <code>--min-reachability</code> option is accepted, warned, and ignored.</p>
 
-    <h2 id="analyze">vexes analyze</h2>
+<h2><code>analyze</code> and <code>inspect</code></h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes analyze --deep --json</span>
+<span class="prompt">$ </span><span class="cmd">vexes analyze --explain express</span>
+<span class="prompt">$ </span><span class="cmd">vexes inspect npm:express@4.21.2</span></div>
+<p><code>--strict</code> exits 1 for surviving, non-ignored results at the active severity policy. Analyze emits text or JSON, not SARIF. Experimental <code>--sandbox</code> telemetry is Linux <code>bwrap</code>-only, npm-only, partial, and remains incomplete even after a launch.</p>
 
-    <p>Run the 4-layer behavioral detection engine. This is the primary command for catching supply chain attacks that vulnerability databases miss.</p>
+<h2><code>fix</code></h2>
+<p>For npm, vexes selects a candidate that clears the advisory thresholds it saw, asks OSV about that exact candidate, confirms registry presence, and prints a quoted command. A no-match response is only a point-in-time lookup. Generate the lockfile, rescan it, and run your tests.</p>
 
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Flag</th><th>Description</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>--deep</code></td><td>Download and AST-inspect actual package tarballs. Enables Layer 1 code analysis.</td></tr>
-        <tr><td><code>--explain &lt;pkg&gt;</code></td><td>Detailed breakdown for a single package. Shows all signals with evidence.</td></tr>
-        <tr><td><code>--strict</code></td><td>Exit with non-zero code on any signal. Designed for CI enforcement.</td></tr>
-        <tr><td><code>--ecosystem &lt;name&gt;</code></td><td>Analyze only one ecosystem.</td></tr>
-        <tr><td><code>--json</code></td><td>Output results as JSON.</td></tr>
-        <tr><td><code>--sarif</code></td><td>Output results as SARIF.</td></tr>
-      </tbody>
-    </table>
+<h2><code>guard</code></h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes guard -- npm install package-name</span></div>
+<p><code>--setup</code> is intentionally disabled. <code>--force</code> can override HIGH heuristic evidence only; known advisories, CRITICAL evidence, and incomplete analysis remain blocking. JSON mode assesses without installing.</p>
 
-    <div class="code-block"><span class="cmt"># Standard behavioral analysis</span>
-<span class="prompt">$ </span><span class="cmd">vexes analyze</span>
+<h2><code>explain</code></h2>
+<p>Configure one of: <code>VEXES_AI_BASE</code> for an OpenAI-compatible endpoint; <code>ANTHROPIC_BASE_URL</code> plus authentication for an Anthropic-compatible endpoint; or <code>ANTHROPIC_API_KEY</code> for hosted Anthropic. The command refuses malformed or incomplete scan envelopes and sends a bounded, sanitized finding summary—not package source—to the selected provider.</p>
 
-<span class="cmt"># Deep analysis with AST code inspection</span>
-<span class="prompt">$ </span><span class="cmd">vexes analyze --deep</span>
-
-<span class="cmt"># Explain a specific package</span>
-<span class="prompt">$ </span><span class="cmd">vexes analyze --explain lodash</span>
-
-<span class="cmt"># Strict mode for CI — fail on any signal</span>
-<span class="prompt">$ </span><span class="cmd">vexes analyze --strict</span></div>
-
-    <h3>--deep flag</h3>
-    <p>Without <code>--deep</code>, vexes analyzes metadata and dependency graphs only (Layers 2-4). With <code>--deep</code>, it also downloads package tarballs and runs AST code analysis (Layer 1). Deep analysis is slower but catches code-level threats like <code>eval()</code> in postinstall scripts, credential harvesting, and obfuscated payloads.</p>
-
-    <h3>--explain flag</h3>
-    <p>Shows a complete signal breakdown for a single package, including evidence and context for each signal. Useful for investigating flagged dependencies.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes analyze --explain axios</span>
-
-<span class="dim">  axios 1.14.1 (npm)
-  ──────────────────────────────────────
-
-  Signal: MAINTAINER_CHANGE        severity: critical
-  detail: Publishing account changed 2 days ago.
-          Previous maintainer: matt-zabriskie
-          Current maintainer:  unknown-user-847
-
-  Signal: AST_DANGEROUS_PATTERN    severity: critical
-  detail: child_process.exec() found in scripts/postinstall.js
-          Line 14: exec('curl -s https://...')
-
-  Signal: CAPABILITY_ESCALATION    severity: high
-  detail: Version 1.14.0 had capabilities: [http]
-          Version 1.14.1 has capabilities: [http, exec, net]
-          New capabilities: exec, net
-
-  ──────────────────────────────────────
-  3 signals · 2 critical · 1 high</span></div>
-
-    <h2 id="fix">vexes fix</h2>
-
-    <p>Show verified upgrade recommendations for vulnerable dependencies. Every suggested version is cross-checked against OSV to ensure the fix itself is not vulnerable.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes fix</span>
-
-<span class="dim">  lodash 4.17.20 → 4.17.21</span>
-<span class="dim">    vuln:   GHSA-jf85-cpcp-j695 (Prototype Pollution)</span>
-<span class="ok">    target: 4.17.21 verified clean against OSV</span>
-
-<span class="dim">  ──────────────────────────────────────
-  1 fix available</span></div>
-
-    <p>If the suggested upgrade version has its own known vulnerabilities, vexes will report this and look for the next safe version.</p>
-
-    <h2 id="guard">vexes guard</h2>
-
-    <p>Intercept package manager installs and analyze new or changed dependencies before they execute. See <a href="/vexes/wiki/pre-install-guard/">Pre-Install Guard</a> for the full guide.</p>
-
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Flag</th><th>Description</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>-- &lt;command&gt;</code></td><td>The install command to guard (e.g., <code>npm install axios</code>)</td></tr>
-        <tr><td><code>--setup</code></td><td>Install shell wrappers for automatic guarding</td></tr>
-      </tbody>
-    </table>
-
-    <div class="code-block"><span class="cmt"># Guard a single install</span>
-<span class="prompt">$ </span><span class="cmd">vexes guard -- npm install axios</span>
-
-<span class="cmt"># Install shell wrappers for auto-guarding</span>
-<span class="prompt">$ </span><span class="cmd">vexes guard --setup</span></div>
-
-    <h2 id="monitor">vexes monitor</h2>
-
-    <p>Continuous monitoring mode for CI pipelines or local development. Supports one-shot CI mode with GitHub Actions annotations, SARIF output, and continuous watch mode.</p>
-
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Flag</th><th>Description</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>--ci</code></td><td>One-shot scan with GitHub Actions annotations on findings</td></tr>
-        <tr><td><code>--ci --sarif</code></td><td>SARIF output for GitHub Advanced Security code scanning</td></tr>
-        <tr><td><code>--watch</code></td><td>Continuous lockfile and OSV polling. Re-scans on file changes.</td></tr>
-        <tr><td><code>--severity &lt;level&gt;</code></td><td>Minimum severity to report</td></tr>
-      </tbody>
-    </table>
-
-    <div class="code-block"><span class="cmt"># CI mode with annotations</span>
-<span class="prompt">$ </span><span class="cmd">vexes monitor --ci</span>
-
-<span class="cmt"># SARIF output for GitHub code scanning</span>
-<span class="prompt">$ </span><span class="cmd">vexes monitor --ci --sarif</span>
-
-<span class="cmt"># Watch mode — re-scans on lockfile changes</span>
-<span class="prompt">$ </span><span class="cmd">vexes monitor --watch</span></div>
-
-    <h2 id="explain">vexes explain</h2>
-
-    <p>AI-assisted triage of scan results (alias: <code>vexes triage</code>). Turns a wall of CVEs into a prioritized, plain-English action plan: what to fix first, why it matters, and the upgrade sequence. Strictly opt-in — the command only runs when <code>ANTHROPIC_API_KEY</code> is set in your environment, and it uses your own API key. Only finding summaries (advisory IDs, package names, versions, severities) are sent; no source code ever leaves your machine. The default model is <code>claude-sonnet-5</code> (override with <code>VEXES_AI_MODEL</code>).</p>
-
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Flag</th><th>Description</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>--input &lt;file&gt;</code></td><td>Triage a saved scan JSON report (<code>vexes scan --format json &gt; f.json</code>)</td></tr>
-        <tr><td><code>--path &lt;dir&gt;</code></td><td>No input or piped JSON? Scan this directory first, then triage (default: cwd)</td></tr>
-      </tbody>
-    </table>
-
-    <div class="code-block"><span class="cmt"># Pipe a scan straight into triage</span>
-<span class="prompt">$ </span><span class="cmd">vexes scan --format json | vexes explain</span>
-
-<span class="cmt"># Triage a saved report</span>
-<span class="prompt">$ </span><span class="cmd">vexes explain --input scan.json</span>
-
-<span class="cmt"># Scan the current directory and triage in one step</span>
-<span class="prompt">$ </span><span class="cmd">vexes explain</span></div>
-
-    <p>The scanner itself stays deterministic and offline — <code>explain</code> is a separate layer that composes over scan output. See <a href="/vexes/wiki/security/">Security Model</a> for the full privacy model.</p>
-
-    <h2 id="exit-codes">Exit Codes</h2>
-
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Code</th><th>Meaning</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>0</code></td><td>No findings above the severity threshold</td></tr>
-        <tr><td><code>1</code></td><td>Findings detected above the severity threshold</td></tr>
-        <tr><td><code>2</code></td><td>Scan incomplete -- a query failed (network error, API timeout). vexes never silently reports clean on failure.</td></tr>
-      </tbody>
-    </table>
-
-    <div class="info-box">
-      <strong>Fail loud, not clean:</strong> Exit code 2 is critical. If OSV queries fail, vexes exits with code 2 and prints SCAN INCOMPLETE. A scanner that silently reports clean on failure is worse than useless.
-    </div>
+<h2>Exit codes</h2>
+<table class="cmd-table"><tbody>
+  <tr><td><code>0</code></td><td>Requested supported checks complete, no finding at threshold; not a safety verdict</td></tr>
+  <tr><td><code>1</code></td><td>Finding meets policy</td></tr>
+  <tr><td><code>2</code></td><td>Error or incomplete requested evidence</td></tr>
+</tbody></table>

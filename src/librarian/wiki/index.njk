@@ -1,70 +1,41 @@
 ---
 title: "Librarian Wiki"
-description: "mcp-librarian wiki — documentation for the local skill library for AI coding agents."
+description: "Implementation-aligned documentation for mcp-librarian 3.1.0, including its local, network, signing, and pack-install boundaries."
 permalink: /librarian/wiki/
 ---
 <h1>mcp-librarian Wiki</h1>
-    <p class="subtitle">Documentation for the local skill library for AI coding agents.</p>
+<p class="subtitle">What version 3.1.0 actually does, including the parts callers still have to enforce.</p>
 
-    <h2 id="what-is-mcp-librarian">What is mcp-librarian?</h2>
+<div class="warning-box"><strong>Experimental:</strong> the repository's package.json is 3.1.0, but the current MCP initialize response and <code>server_status</code> still report <code>3.0.0</code>. That is a known implementation bug, not a second release line.</div>
 
-    <p>mcp-librarian is an MCP (Model Context Protocol) server that gives AI coding agents a persistent, searchable knowledge library. It exposes {{ versions.librarian.tools }} tools over the MCP protocol &mdash; {{ versions.librarian.localTools }} local and {{ versions.librarian.networkTools }} explicitly labelled network tools &mdash; that let agents find existing skills, research new topics from the web, install community-curated packs, and create permanent knowledge, all without leaving the editor. Zero dependencies, {{ versions.librarian.license }}.</p>
+<h2 id="what-it-is">What it is</h2>
+<p>mcp-librarian is a zero-external-runtime-dependency Node.js MCP server. It stores flat Markdown skill files under <code>~/.mcp-librarian/skills/</code>, builds an in-memory BM25 index, and exposes {{ versions.librarian.tools }} tools over stdio.</p>
+<p>Search and loading are local. Four dedicated tools use the network: <code>browse_packs</code>, <code>install_pack</code>, <code>research_topic</code>, and <code>fetch_page</code>. In addition, <code>find_and_load</code> can call the research path when <code>autoResearch</code> is explicitly enabled; it is off by default.</p>
 
-    <p>The core design principle is zero friction. When your agent starts a session, it sees a catalog of available skills. When you ask about REST APIs, security patterns, or database optimization, the agent automatically searches the library for relevant knowledge. Ask about something the library does not cover and <code>research_topic</code> pulls it from authoritative web sources so it becomes a permanent skill; the next time anyone asks, the answer is instant.</p>
+<h2 id="retrieval">Retrieval semantics</h2>
+<ul>
+  <li><code>find_skill</code> returns ranked section-level matches with snippets and scores.</li>
+  <li><code>load_section</code> returns one exact section by slug.</li>
+  <li><code>load_skill</code> returns a full skill file plus its section slugs.</li>
+  <li><code>find_and_load</code> returns the <strong>full top skill</strong> when the raw BM25 score clears its threshold. It does not return only the matched section.</li>
+</ul>
 
-    <p>The second principle is that a knowledge library is a supply chain, so it gets treated like one. Skills are Ed25519-signed on write and integrity-checked on load, all content passes a prompt-injection guard, and every network path is SSRF-hardened and credential-scoped.</p>
+<h2 id="integrity">Integrity is a status, not an enforced load gate</h2>
+<p>If <code>keys/private.pem</code> exists, supported writes re-sign the flat skill library. At startup or rebuild, the store compares files with <code>manifest.json</code> and records <code>VERIFIED</code>, <code>TAMPERED</code>, or <code>UNSIGNED</code>. <code>list_skills</code> and <code>skill_status</code> expose that snapshot.</p>
+<p>Current <code>load_skill</code>, <code>load_section</code>, and <code>find_and_load</code> responses do not refuse tampered content or reliably include its integrity status. There is no file watcher. A caller that needs this boundary must check status and decide what to reject.</p>
 
-    <h2 id="key-concepts">Key Concepts</h2>
+<h2 id="packs">Current pack registry</h2>
+<p>The checked-in community registry currently has {{ versions.librarian.packs }} packs and {{ versions.librarian.packSkills }} skill files: one file per pack. A pack install can accept safe files while rejecting other files, and a same-name incoming skill can update an existing local skill. Read the <a href="/librarian/wiki/community-packs/">Community Packs</a> page before treating installs as atomic or non-destructive.</p>
 
-    <h3>Skills</h3>
-    <p>A skill is a Markdown file with YAML frontmatter that contains structured knowledge on a specific topic. Skills are indexed at the section level using BM25 full-text search, so agents retrieve the narrowest useful slice of knowledge rather than entire documents. Skills are cryptographically signed with Ed25519 to detect tampering.</p>
-
-    <h3>Packs</h3>
-    <p>A pack is a collection of related skills bundled together with a <code>pack.json</code> manifest. The community repository hosts 9 curated packs covering security, API design, Git, TypeScript, Docker, PostgreSQL, testing, writing, and prompt engineering. One tool call installs a pack.</p>
-
-    <h3>Auto-Research</h3>
-    <p>When no skill matches a query, mcp-librarian searches the web, scores sources by authority (official docs rank highest), fetches content from the top results, and returns research material for the agent to synthesize into a permanent skill. The library grows organically from real questions.</p>
-
-    <h3>MCP Protocol</h3>
-    <p>MCP (Model Context Protocol) is the communication layer between AI agents and tool servers. mcp-librarian speaks MCP over stdio, which means it works with any MCP-compatible client: Claude Code, Cursor, Windsurf, or local models via Ollama and LM Studio. The server is model-agnostic -- it does not care what model is on the other end.</p>
-
-    <h2 id="wiki-pages">Documentation</h2>
-
-    <div class="wiki-cards">
-      <a href="/librarian/wiki/getting-started/" class="wiki-card">
-        <h3>Getting Started</h3>
-        <p>Installation, first run, verifying the setup, and your first skill search.</p>
-      </a>
-      <a href="/librarian/wiki/tools-reference/" class="wiki-card">
-        <h3>Tools Reference</h3>
-        <p>All 14 MCP tools with parameters, return values, and usage examples.</p>
-      </a>
-      <a href="/librarian/wiki/skill-format/" class="wiki-card">
-        <h3>Skill Format</h3>
-        <p>Markdown with YAML frontmatter, section structure, BM25 indexing, and best practices.</p>
-      </a>
-      <a href="/librarian/wiki/auto-research/" class="wiki-card">
-        <h3>Auto-Research</h3>
-        <p>How auto-research triggers, source scoring, web search, and skill creation.</p>
-      </a>
-      <a href="/librarian/wiki/community-packs/" class="wiki-card">
-        <h3>Community Packs</h3>
-        <p>9 curated packs, browsing, installing, creating your own, and contributing.</p>
-      </a>
-      <a href="/librarian/wiki/configuration/" class="wiki-card">
-        <h3>Configuration</h3>
-        <p>Environment variables, directory structure, logging, rate limiting, and MCP clients.</p>
-      </a>
-      <a href="/librarian/wiki/content-guard/" class="wiki-card">
-        <h3>Content Guard</h3>
-        <p>Prompt injection defense, code block exceptions, validation, and threat model.</p>
-      </a>
-      <a href="/librarian/wiki/signing/" class="wiki-card">
-        <h3>Ed25519 Signing</h3>
-        <p>Key generation, cryptographic signing, verification on load, and tamper detection.</p>
-      </a>
-      <a href="/librarian/wiki/local-models/" class="wiki-card">
-        <h3>Local Models</h3>
-        <p>Ollama, LM Studio, llama.cpp, model-agnostic design, and quality considerations.</p>
-      </a>
-    </div>
+<h2 id="docs">Documentation</h2>
+<div class="wiki-cards">
+  <a href="/librarian/wiki/getting-started/" class="wiki-card"><h3>Getting Started</h3><p>Install, client entrypoint, first status call, and the starter skill.</p></a>
+  <a href="/librarian/wiki/tools-reference/" class="wiki-card"><h3>Tools Reference</h3><p>Actual argument names, return shapes, and network behavior for all 14 tools.</p></a>
+  <a href="/librarian/wiki/skill-format/" class="wiki-card"><h3>Skill Format</h3><p>The YAML-lite fields the parser reads, flat files, chunking, and ranking.</p></a>
+  <a href="/librarian/wiki/auto-research/" class="wiki-card"><h3>Auto-Research</h3><p>Opt-in behavior, coarse source tiers, extraction, and non-persistence.</p></a>
+  <a href="/librarian/wiki/community-packs/" class="wiki-card"><h3>Community Packs</h3><p>The nine one-skill packs, schema, partial acceptance, overwrite behavior, and URLs.</p></a>
+  <a href="/librarian/wiki/configuration/" class="wiki-card"><h3>Configuration</h3><p>Defaults, config-file merge, environment overrides, layout, and MCP logging.</p></a>
+  <a href="/librarian/wiki/content-guard/" class="wiki-card"><h3>Content Guard</h3><p>The exact pattern categories, code exemptions, write paths, and bypasses.</p></a>
+  <a href="/librarian/wiki/signing/" class="wiki-card"><h3>Ed25519 Signing</h3><p>Keys, manifest, rebuild-time status, stale state, and trust limits.</p></a>
+  <a href="/librarian/wiki/local-models/" class="wiki-card"><h3>Local Models</h3><p>What the server does and does not integrate with, and where data can travel.</p></a>
+</div>

@@ -12,4 +12,10 @@ eleventyExcludeFromCollections: true
   </url>
   {%- endif %}
   {%- endfor %}
+  {%- for staticPath in ['/privacy.html', '/terms.html', '/terminal/', '/game/', '/snake/'] %}
+  <url>
+    <loc>{{ site.url }}{{ staticPath }}</loc>
+    <lastmod>2026-08-29</lastmod>
+  </url>
+  {%- endfor %}
 </urlset>

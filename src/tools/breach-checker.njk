@@ -5,7 +5,7 @@ permalink: /tools/breach-checker/
 
 <div class="tool-group">
   <label for="bc-input">Enter a password or secret to check</label>
-  <p class="tool-hint">Uses <a href="https://haveibeenpwned.com/API/v3#PwnedPasswords" target="_blank" rel="noopener">k-anonymity</a> — only the first 5 characters of the SHA-1 hash are sent. Your secret never leaves your browser.</p>
+  <p class="tool-hint">Uses <a href="https://haveibeenpwned.com/API/v3#PwnedPasswords" target="_blank" rel="noopener">k-anonymity</a>: the secret text stays in this page, while the first 5 characters of its SHA-1 hash are sent to Have I Been Pwned.</p>
   <div class="bc-input-row">
     <input type="password" id="bc-input" placeholder="Paste a password, API key, or token..." autocomplete="off" spellcheck="false">
     <button class="btn btn--secondary bc-toggle-vis" id="btn-toggle" title="Show/hide">&#x1f441;</button>
@@ -252,17 +252,17 @@ permalink: /tools/breach-checker/
         cardEl.className = 'bc-result-card bc-breached';
         cardEl.innerHTML =
           '<div class="bc-result-icon">&#x26a0;</div>' +
-          '<div class="bc-result-title">This secret has been exposed</div>' +
-          '<div class="bc-result-detail">This value has appeared in known data breaches. If you are actively using it, rotate it immediately. Do not reuse it anywhere.</div>' +
-          '<div class="bc-result-count">Found in ' + formatNum(found) + ' breach' + (found !== 1 ? 'es' : '') + '</div>' +
+          '<div class="bc-result-title">Matching hash found in the HIBP corpus</div>' +
+          '<div class="bc-result-detail">Pwned Passwords returned a matching SHA-1 suffix for this value. If you are actively using it, replace it and do not reuse it.</div>' +
+          '<div class="bc-result-count">Observed ' + formatNum(found) + ' time' + (found !== 1 ? 's' : '') + ' in the queried corpus</div>' +
           '<div class="bc-hash-info">SHA-1 prefix sent: ' + esc(prefix) + '... (full hash never transmitted)</div>';
       } else {
         cardEl.className = 'bc-result-card bc-safe';
         cardEl.innerHTML =
           '<div class="bc-result-icon">&#x2705;</div>' +
-          '<div class="bc-result-title">Not found in known breaches</div>' +
-          '<div class="bc-result-detail">This value was not found in any known data breach in the Have I Been Pwned database. This does not guarantee it has never been exposed, but it has not appeared in any publicly known breach dataset.</div>' +
-          '<div class="bc-result-count">0 breaches found</div>' +
+          '<div class="bc-result-title">No match in the queried HIBP corpus</div>' +
+          '<div class="bc-result-detail">The queried Have I Been Pwned range returned no match for this hash. That corpus is not every exposure, and a no-match says nothing about password strength or reuse.</div>' +
+          '<div class="bc-result-count">0 matching occurrences in the queried corpus</div>' +
           '<div class="bc-hash-info">SHA-1 prefix sent: ' + esc(prefix) + '... (full hash never transmitted)</div>';
       }
     } catch (err) {

@@ -5,11 +5,11 @@ permalink: /librarian/
 <!-- HERO -->
 <section class="lib-hero" aria-labelledby="hero-title">
   <div class="lib-wrap">
-    <div class="lib-hero-product" id="hero-title">mcp-librarian</div>
+    <h1 class="lib-hero-product" id="hero-title">mcp-librarian</h1>
     <div class="lib-hero-badge">v{{ versions.librarian.version }}</div>
-    <p class="lib-hero-tagline">A local, signed skill library for your AI agent</p>
-    <p class="lib-hero-desc">An MCP server that keeps a folder of Markdown skills on disk, searches them with BM25, and serves the matching sections to your agent. Each skill is Ed25519-signed on write and checked on load &mdash; if a file changed since signing, the server reports <code>TAMPERED</code> rather than serving it. No config files, no dependencies beyond Node.js built-ins. Apache-2.0. Works with Claude Code, Cursor, Windsurf, local models via Ollama/LM Studio, and other MCP clients.</p>
-    <p class="lib-hero-desc">Experimental and pre-1.0. It works, but it is early and lightly tested outside my own use. Expect rough edges, and please report what breaks.</p>
+    <p class="lib-hero-tagline">A local Markdown skill library for MCP clients</p>
+    <p class="lib-hero-desc">An experimental MCP server that keeps skills on disk and builds an in-memory BM25 index. Search results identify matching sections; <code>load_section</code> returns one section, while <code>find_and_load</code> and <code>load_skill</code> return the full file. If a signing key is present, supported writes re-sign the library. Integrity status is calculated during startup or rebuild, but current load responses do not enforce it.</p>
+    <p class="lib-hero-desc">Version {{ versions.librarian.version }} has no external runtime npm dependencies and is Apache-2.0. Web research and community-pack operations make network requests; automatic research from <code>find_and_load</code> is off by default.</p>
     <div class="lib-hero-actions">
       <a href="https://github.com/penumbraforge/mcp-librarian" class="lib-btn lib-btn-outline" rel="noopener noreferrer" target="_blank">View on GitHub</a>
       <a href="/librarian/wiki/" class="lib-btn lib-btn-subtle">Wiki</a>
@@ -26,7 +26,7 @@ permalink: /librarian/
     <pre class="lib-pre"><code><span class="code-prompt">$</span> <span class="code-cmd">git clone</span> <span class="code-arg">https://github.com/penumbraforge/mcp-librarian.git</span>
 <span class="code-prompt">$</span> <span class="code-cmd">cd</span> <span class="code-arg">mcp-librarian</span>
 <span class="code-prompt">$</span> <span class="code-cmd">node</span> <span class="code-arg">bin/install.js</span></code></pre>
-    <p class="lib-install-note">The installer generates Ed25519 signing keys, looks for a supported MCP client (Claude Code, Cursor, Windsurf), and writes the config for it. No npm install required. If it does not find your client, you can add the server entry by hand.</p>
+    <p class="lib-install-note">The installer creates <code>~/.mcp-librarian</code>, generates <code>keys/private.pem</code> and <code>keys/public.pem</code>, copies the bundled <code>getting-started.md</code> skill, and offers to configure detected Claude Code, Cursor, or Windsurf installations. The starter skill remains <code>UNSIGNED</code> until you run the signing command or a supported write triggers re-signing.</p>
   </div>
 </section>
 
@@ -35,11 +35,11 @@ permalink: /librarian/
   <div class="lib-wrap">
     <div class="section-label">In Action</div>
     <h2 id="recorded-title">Editing a signed skill on disk</h2>
-    <p>Signing only helps if verification runs. This is the JSON-RPC interface: a signed skill reports <code>VERIFIED</code>, and appending one line to the file on disk changes it to <code>TAMPERED</code> on the next load.</p>
+    <p>Signing only helps if clients use the result. This recorded JSON-RPC example shows <code>skill_status</code> reporting <code>VERIFIED</code>, then <code>TAMPERED</code> after a file changes and the store refreshes.</p>
     {% set demo = "librarian" %}
     {% set width = 1200 %}{% set height = 560 %}
     {% set title = "skill_status → VERIFIED → tamper → TAMPERED" %}
-    {% set caption = "Recorded run: skills signed with Ed25519, queried over JSON-RPC, then modified on disk — the server reports TAMPERED instead of serving the altered content." %}
+    {% set caption = "Recorded run: a signed skill is queried, modified on disk, refreshed, and reported TAMPERED. Current load responses can still return content, so the caller must enforce refusal." %}
     {% include "demo.njk" %}
   </div>
 </section>
@@ -53,42 +53,42 @@ permalink: /librarian/
 
       <div class="lib-feature-card" role="listitem">
         <h3>Session-Start Catalog</h3>
-        <p>At session start the server hands the agent a catalog of installed skills, so it can search for a relevant one on its own. Whether it actually does depends on the model and client.</p>
+        <p>After MCP initialization, the server emits a logging notification containing the installed-skill catalog. Whether a client surfaces that message, and whether its model acts on it, depends on the client.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
         <h3>Web Research</h3>
-        <p>When no skill matches a topic, the server can search the web, rank sources (official docs, RFCs, style guides first), and return the text for the agent to write a new skill from. The result is only as good as the sources and the model, so read what it saves.</p>
+        <p><code>research_topic</code> searches DuckDuckGo and fetches up to five coarsely ranked results. <code>find_and_load</code> can call that path on a weak match only when <code>autoResearch</code> is enabled. Research is returned as untrusted reference text and is never saved automatically.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
         <h3>Quality-Weighted Search</h3>
-        <p>BM25 relevance blended with a heuristic quality score &mdash; specificity, examples, actionability, source authority. Indexing runs at sub-section level, so results point at a section rather than a whole file. The quality score is a heuristic and will sometimes rank badly.</p>
+        <p><code>find_skill</code> blends normalized BM25 relevance with a heuristic score based on token shapes, code examples, imperative steps, and optional source domains. Results point at indexed chunks; the score is not a correctness or safety rating.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
         <h3>{{ versions.librarian.packs }} Community Packs</h3>
-        <p>Browse and install packs without leaving your editor. Security, API design, Git, TypeScript, Docker, PostgreSQL, testing, and more. Contributions are screened for prompt-injection patterns in CI before merge, which catches known patterns rather than everything.</p>
+        <p>The current public index lists {{ versions.librarian.packs }} packs with {{ versions.librarian.packSkills }} skills total: one Markdown file in each pack. The registry CI checks manifest structure, basic frontmatter, headings, and bundled content-guard patterns.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
         <h3>Ed25519 Integrity</h3>
-        <p>Skills are signed on write &mdash; including ones the agent creates at runtime &mdash; and the signature is checked on load. A file that no longer matches its signature is reported as <code>TAMPERED</code> instead of being served. This detects changes to skill files; it is not a defense against someone who can also use your signing key.</p>
+        <p>With <code>keys/private.pem</code> present, <code>create_skill</code> and a changing <code>install_pack</code> re-sign every flat skill. The store records status while loading or rebuilding. <code>skill_status</code> returns that snapshot; it does not hash the file again on each call.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
-        <h3>Checked Network Paths</h3>
-        <p>Fetches reject private, loopback, and cloud-metadata addresses, pin resolved IPs against DNS rebinding, and re-check each redirect hop. <code>GITHUB_TOKEN</code> is sent only to GitHub hosts. Fetched web content is wrapped in untrusted-data delimiters before the agent sees it.</p>
+        <h3>Different Network Boundaries</h3>
+        <p>Web research, <code>fetch_page</code>, and <code>browse_packs</code> use the guarded fetcher. <code>install_pack</code> uses a separate downloader: direct URLs are restricted to HTTPS on <code>raw.githubusercontent.com</code> unless the operator enables arbitrary hosts. <code>GITHUB_TOKEN</code> is attached only for GitHub hosts.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
-        <h3>Transactional Installs</h3>
-        <p>Pack installs are transactional &mdash; a mid-install failure rolls back rather than leaving your existing skills half-overwritten. Progressive disclosure reads through to disk, so the server does not depend on an in-memory cache surviving.</p>
+        <h3>Pack Install Accounting</h3>
+        <p>All remote files are fetched before writes begin, but content-guard failures reject individual skills while accepted files can still install. Same-content files are skipped and same-name files are updated, which can overwrite a local skill. The result reports installed, updated, skipped, and rejected files.</p>
       </div>
 
       <div class="lib-feature-card" role="listitem">
         <h3>Zero Dependencies</h3>
-        <p>Built on Node.js built-ins only. Nothing from npm to install or audit. Web research uses the native HTTPS module. Cold start is quick and the install is small.</p>
+        <p>The published package declares no external runtime dependencies and requires Node.js 22 or newer. It uses Node built-ins for stdio MCP transport, search storage, cryptography, filesystem access, DNS, and HTTP(S).</p>
       </div>
 
     </div>
@@ -111,7 +111,7 @@ permalink: /librarian/
         <tbody>
           <tr>
             <td>find_and_load</td>
-            <td>Search and return the top matching skill in one call. If nothing matches, researches the topic from ranked web sources and returns content for skill creation. The usual entry point.</td>
+            <td>Search and, above a raw-BM25 threshold, return the top skill's <strong>full file</strong>. A weak match stays local by default; opt-in auto-research returns untrusted sources but does not create a skill.</td>
           </tr>
           <tr>
             <td>find_skill</td>
@@ -135,15 +135,15 @@ permalink: /librarian/
           </tr>
           <tr>
             <td>install_pack</td>
-            <td>Download, validate, and install a skill pack from the community repo or a direct URL. Deduplicates and re-indexes.</td>
+            <td>Fetch a named pack or separate <code>url</code>, screen each file with the content guard, skip exact duplicates, update same-name skills, then rebuild. Partial acceptance is possible.</td>
           </tr>
           <tr>
             <td>research_topic</td>
-            <td>Search the web, score sources by authority (official docs first), and fetch content from the top results. Source ranking is a heuristic, so check what comes back.</td>
+            <td>Search DuckDuckGo, assign a coarse domain tier, fetch up to five results, and return extracted text in untrusted-data markers.</td>
           </tr>
           <tr>
             <td>fetch_page</td>
-            <td>Fetch a single URL and extract readable text. Strips HTML, preserves code blocks and headings.</td>
+            <td>Fetch one public HTTP(S) URL and apply a simple HTML-to-text converter. It is regex-based extraction, not a full readability parser.</td>
           </tr>
           <tr>
             <td>create_skill</td>
@@ -159,11 +159,11 @@ permalink: /librarian/
           </tr>
           <tr>
             <td>skill_status</td>
-            <td>Check cryptographic integrity of a single skill. Reports VERIFIED, TAMPERED, or UNSIGNED.</td>
+            <td>Return the integrity snapshot recorded at the last store load or rebuild: <code>VERIFIED</code>, <code>TAMPERED</code>, or <code>UNSIGNED</code>.</td>
           </tr>
           <tr>
             <td>server_status</td>
-            <td>Returns version, skill count, uptime, index stats, and configuration summary.</td>
+            <td>Return a numeric uptime, skill count, chunk/term counts, and a limited config summary. A known bug currently reports version <code>3.0.0</code> although the package is {{ versions.librarian.version }}.</td>
           </tr>
         </tbody>
       </table>
@@ -176,12 +176,13 @@ permalink: /librarian/
   <div class="lib-wrap">
     <div class="section-label">Skill Format</div>
     <h2 id="format-title">Markdown with YAML frontmatter</h2>
-    <p>Skills are plain Markdown files with structured frontmatter. The BM25 index operates at section and sub-section level, so well-structured skills return more precise search results.</p>
+    <p>Skills are flat <code>.md</code> files. The runtime uses a small frontmatter parser rather than a general YAML implementation; it recognizes <code>name</code>, <code>version</code>, bracket-list <code>category</code>, <code>description</code>, and optional bracket-list <code>sources</code>.</p>
     <pre class="lib-pre"><code><span class="code-meta">---</span>
 <span class="code-key">name</span>: <span class="code-str">my-skill</span>
 <span class="code-key">version</span>: <span class="code-str">1.0.0</span>
 <span class="code-key">category</span>: <span class="code-str">[development, patterns]</span>
 <span class="code-key">description</span>: <span class="code-str">Brief description for search results</span>
+<span class="code-key">sources</span>: <span class="code-str">[https://example.com/docs]</span>
 <span class="code-meta">---</span>
 
 <span class="code-cmd">## Section Heading</span>
@@ -189,7 +190,7 @@ permalink: /librarian/
 
 <span class="code-cmd">### Sub-Section</span>
 <span class="code-comment">Finer-grained content loaded independently via load_section.</span></code></pre>
-    <p class="lib-install-note" style="margin-top: 16px;">Sections map directly to <code>load_section</code> calls. The BM25 index scores each chunk independently, so agents get the narrowest useful slice of knowledge rather than an entire document.</p>
+    <p class="lib-install-note" style="margin-top: 16px;"><code>##</code> and <code>###</code> headings define section slugs. <code>find_skill</code> returns matching chunks and <code>load_section</code> returns one chunk. <code>find_and_load</code> deliberately returns the full selected skill.</p>
   </div>
 </section>
 
@@ -197,22 +198,23 @@ permalink: /librarian/
 <section class="lib-section" aria-labelledby="examples-title">
   <div class="lib-wrap">
     <div class="section-label">Usage Examples</div>
-    <h2 id="examples-title">How it works in practice</h2>
+    <h2 id="examples-title">Illustrative client flows</h2>
+    <p>These sequences are examples, not guaranteed automation. Whether tools are selected, chained, or used proactively depends on the MCP client, model, and prompt.</p>
     <div class="lib-examples-list">
 
       <div class="lib-example-block">
         <div class="lib-example-header">Agent pulls a skill on its own</div>
         <div class="lib-example-prompt">Build me a REST API for user management</div>
         <div class="lib-example-response">
-          Agent sees <code>api-design</code> in its skill catalog &#8594; calls <code>find_and_load("REST API patterns")</code> &#8594; loads pagination, error handling, and auth sections &#8594; builds the API against those conventions. No prompt told it to check the library.
+          A client exposes the catalog notification &#8594; its model calls <code>find_skill</code> &#8594; receives ranked section matches &#8594; calls <code>load_section</code> with a returned slug. Tool selection is client/model behavior, not a server guarantee.
         </div>
       </div>
 
       <div class="lib-example-block">
-        <div class="lib-example-header">No skill yet, so one gets written from the web</div>
+        <div class="lib-example-header">No local match, with auto-research enabled</div>
         <div class="lib-example-prompt">Help me set up GraphQL federation</div>
         <div class="lib-example-response">
-          Agent calls <code>find_and_load("GraphQL federation")</code> &#8594; no matching skill &#8594; searches the web &#8594; fetches Apollo docs, graphql.org, and a few more sources &#8594; agent writes a skill with <code>create_skill</code> &#8594; it lands in the index. Worth reading the result before you rely on it.
+          <code>find_and_load</code> finds no strong raw-BM25 match &#8594; the server searches and fetches up to five results &#8594; returns marked untrusted text &#8594; the client may review it or make a separate <code>create_skill</code> call. With auto-research disabled, the first call only suggests <code>research_topic</code>.
         </div>
       </div>
 
@@ -228,7 +230,7 @@ permalink: /librarian/
         <div class="lib-example-header">Custom tribal knowledge</div>
         <div class="lib-example-prompt">Create a skill about our company's deployment process</div>
         <div class="lib-example-response">
-          Agent uses <code>fetch_page</code> to pull your internal docs &#8594; drafts a skill covering your CI/CD pipeline, environment configs, and rollback steps &#8594; saves with <code>create_skill</code> &#8594; the catalog updates. Later sessions can find it by search.
+          Supply Markdown directly to <code>validate_skill</code> &#8594; review any structural or content-guard issues &#8594; call <code>create_skill</code> with a flat <code>.md</code> filename. <code>fetch_page</code> is for public URLs; its SSRF guard rejects private and loopback addresses.
         </div>
       </div>
 
@@ -240,52 +242,52 @@ permalink: /librarian/
 <section class="lib-section" aria-labelledby="packs-title">
   <div class="lib-wrap">
     <div class="section-label">Community Packs</div>
-    <h2 id="packs-title">9 skill packs ready to install</h2>
-    <p>Call <code>install_pack({% raw %}{ pack: "name" }{% endraw %})</code>, or ask your agent to install one. Browse with <code>browse_packs</code>.</p>
+    <h2 id="packs-title">9 indexed packs, one skill each</h2>
+    <p>The checked-in registry currently lists nine packs and nine Markdown files. <code>browse_packs</code> fetches that live index, so the count may change after this page is published.</p>
     <div class="lib-table-wrap" role="region" aria-label="Available skill packs">
       <table class="lib-table">
         <thead>
           <tr>
             <th scope="col">Pack</th>
-            <th scope="col">What you get</th>
+            <th scope="col">Current manifest</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>security-hardening</td>
-            <td>OWASP defenses, input validation, SQL injection prevention, XSS, auth patterns, secrets management, HTTP headers</td>
+            <td><code>security-hardening.md</code> (1 skill)</td>
           </tr>
           <tr>
             <td>api-design</td>
-            <td>REST conventions, error responses (RFC 7807), pagination, versioning, rate limiting, authentication</td>
+            <td><code>api-design.md</code> (1 skill)</td>
           </tr>
           <tr>
             <td>git-patterns</td>
-            <td>Rebase vs merge, commit conventions, branch strategies, conflict resolution, reflog recovery</td>
+            <td><code>git-patterns.md</code> (1 skill)</td>
           </tr>
           <tr>
             <td>testing-patterns</td>
-            <td>TDD workflow, mocking strategies, integration testing, edge case thinking, anti-patterns</td>
+            <td><code>testing-patterns.md</code> (1 skill)</td>
           </tr>
           <tr>
             <td>typescript-advanced</td>
-            <td>Generics, discriminated unions, type guards, branded types, conditional types, utility types</td>
+            <td><code>typescript-advanced.md</code> (1 skill)</td>
           </tr>
           <tr>
             <td>docker-and-compose</td>
-            <td>Multi-stage builds, layer caching, Compose patterns, networking, production hardening</td>
+            <td><code>docker-and-compose.md</code> (1 skill)</td>
           </tr>
           <tr>
             <td>postgres-patterns</td>
-            <td>Indexing strategies, EXPLAIN ANALYZE, zero-downtime migrations, JSONB, connection pooling</td>
+            <td><code>postgres-patterns.md</code> (1 skill)</td>
           </tr>
           <tr>
             <td>writing-skills</td>
-            <td>How to write quality mcp-librarian skills -- format, structure, code examples, content guard rules</td>
+            <td><code>writing-skills.md</code> (1 skill)</td>
           </tr>
           <tr>
             <td>prompt-engineering</td>
-            <td>Context loading, task decomposition, specificity, debugging prompts, refactoring prompts</td>
+            <td><code>prompt-engineering.md</code> (1 skill)</td>
           </tr>
         </tbody>
       </table>
@@ -297,8 +299,8 @@ permalink: /librarian/
 <section class="lib-section" aria-labelledby="config-title">
   <div class="lib-wrap">
     <div class="section-label">Configuration</div>
-    <h2 id="config-title">Environment variables</h2>
-    <p>Configuration is through environment variables, so there are no config files to manage. Set these before starting the server, or in your shell profile.</p>
+    <h2 id="config-title">File plus environment overrides</h2>
+    <p>Resolution order is built-in defaults, then <code>~/.mcp-librarian/config.json</code> (or the selected home), then supported environment variables. The wiki lists every key and the fields that have no environment equivalent.</p>
     <div class="lib-table-wrap" role="region" aria-label="Configuration variables">
       <table class="lib-table">
         <thead>
@@ -312,17 +314,17 @@ permalink: /librarian/
           <tr>
             <td>MCP_LIBRARIAN_HOME</td>
             <td><code>~/.mcp-librarian</code></td>
-            <td>Base directory for skills, keys, index, and exports.</td>
+            <td>Base directory for <code>config.json</code>, <code>manifest.json</code>, flat skills, keys, and exports. The BM25 index is memory-only.</td>
           </tr>
           <tr>
             <td>MCP_LIBRARIAN_LOG_LEVEL</td>
             <td><code>info</code></td>
-            <td>Logging verbosity. One of <code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code>.</td>
+            <td>MCP notification threshold: <code>debug</code>, <code>info</code>, <code>warning</code>, or <code>error</code>. Logs are not written to a local log directory.</td>
           </tr>
           <tr>
             <td>MCP_LIBRARIAN_RATE_LIMIT</td>
             <td><code>200</code></td>
-            <td>Maximum tool requests per minute before rate limiting kicks in.</td>
+            <td>Maximum non-lifecycle MCP requests in a sliding 60-second window. An invalid or zero environment value falls back to 200.</td>
           </tr>
           <tr>
             <td>MCP_LIBRARIAN_SKILLS_REPO</td>
@@ -340,18 +342,18 @@ permalink: /librarian/
   <div class="lib-wrap">
     <div class="section-label">Local Models</div>
     <h2 id="local-title">Model-agnostic</h2>
-    <p>mcp-librarian speaks the MCP protocol over stdio, so the model on the other side does not matter to the server. Cloud or local, large or small.</p>
+    <p>mcp-librarian is a stdio MCP server, not a model host and not a direct Ollama, LM Studio, or llama.cpp integration. A separate MCP-capable client must connect the server to whichever model provider it uses.</p>
     <div class="lib-features-grid" role="list" style="margin-top: 24px;">
       <div class="lib-feature-card" role="listitem">
-        <h3>Cloud Clients</h3>
-        <p>Claude Code, Cursor, Windsurf, and other MCP-compatible coding agents. These are the clients I have tested against.</p>
+        <h3>MCP Clients</h3>
+        <p>The installer has configuration paths for Claude Code, Cursor, and Windsurf. That is an installer capability, not a claim that every version or configuration of those clients has been tested.</p>
       </div>
       <div class="lib-feature-card" role="listitem">
         <h3>Local Models</h3>
-        <p>Ollama, LM Studio, llama.cpp, or a local model behind an MCP-compatible client. Search, load, install, and browse behave the same way. Skill writing quality tracks the model doing the writing.</p>
+        <p>A fully local client can connect a local model to the server. Local search and loads stay on disk, while pack browsing/install and research still use the network. The model or client chooses tools and must handle their returned status fields correctly.</p>
       </div>
     </div>
-    <p style="margin-top: 16px; font-size: 12px; color: var(--text-3); line-height: 1.6;">All 14 tools are available regardless of the model. The quality-dependent part is skill creation from research -- larger models tend to produce better-structured skills from the same web sources. Searching, loading, installing packs, and browsing are handled by the server, so they do not depend on the model.</p>
+    <p style="margin-top: 16px; font-size: 12px; color: var(--text-3); line-height: 1.6;">The server advertises the same 14 tool schemas to every MCP client. Actual tool selection, argument construction, review of untrusted research, and enforcement of <code>TAMPERED</code> status depend on the client and model. No model-size or quantization quality benchmark is claimed.</p>
   </div>
 </section>
 
@@ -364,19 +366,19 @@ permalink: /librarian/
     <ul class="lib-security-list" role="list">
       <li>
         <span class="lib-security-icon" aria-hidden="true">&#10003;</span>
-        <span class="lib-security-text"><strong>Ed25519 signing</strong> -- skills are hashed and signed on write, and the signature is checked on every load. A file modified after signing fails the check and is flagged before its content reaches the agent.</span>
+        <span class="lib-security-text"><strong>Ed25519 status</strong> -- with a private key present, supported write paths re-sign the flat library, and indexing can label changed content <code>TAMPERED</code>. Load responses currently do not block or reliably attach that status, so clients must query and enforce it separately.</span>
       </li>
       <li>
         <span class="lib-security-icon" aria-hidden="true">&#10003;</span>
-        <span class="lib-security-text"><strong>Content guard</strong> -- looks for known prompt injection patterns in skill content and rejects matches at write time. Instruction-like text inside fenced code blocks is allowed, so security examples still work. Pattern matching means both misses and false positives.</span>
+        <span class="lib-security-text"><strong>Content guard</strong> -- checks a short, published set of regex patterns on <code>create_skill</code> and each pack file. Pack files that match are individually rejected; accepted siblings may still install. Fenced and indented code regions are exempt, and edits made directly on disk bypass this check.</span>
       </li>
       <li>
         <span class="lib-security-icon" aria-hidden="true">&#10003;</span>
-        <span class="lib-security-text"><strong>Path guard</strong> -- all file operations are constrained to <code>MCP_LIBRARIAN_HOME</code>. Directory traversal attempts (<code>../</code>, absolute paths, symlink escapes) are rejected before any I/O occurs.</span>
+        <span class="lib-security-text"><strong>Path guard</strong> -- supported skill writes and export directories validate containment and reject traversal or symlink escape. This is a filesystem boundary for those code paths, not a sandbox around the MCP client or model.</span>
       </li>
       <li>
         <span class="lib-security-icon" aria-hidden="true">&#10003;</span>
-        <span class="lib-security-text"><strong>Small network surface</strong> -- the server reaches the network only for tool calls that ask it to, such as <code>install_pack</code>, <code>research_topic</code>, and <code>fetch_page</code>. There is no telemetry, no version check, and no background connection.</span>
+        <span class="lib-security-text"><strong>Visible network surface</strong> -- <code>browse_packs</code>, <code>install_pack</code>, <code>research_topic</code>, and <code>fetch_page</code> are dedicated network tools; opt-in auto-research makes <code>find_and_load</code> conditionally networked. The current entrypoint has no telemetry or startup version-check request.</span>
       </li>
     </ul>
   </div>

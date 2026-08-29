@@ -1,109 +1,79 @@
 ---
 title: "Getting Started"
-description: "Install Gate, run your first scan, and understand what happens when secrets are found."
+description: "Install Gate, run an explicit first scan, and add its Git hooks without assuming more than the CLI does."
 permalink: /gate/wiki/getting-started/
 ---
 <h1>Getting Started</h1>
-    <p class="subtitle">Install Gate, run your first scan, and learn what happens when secrets are found.</p>
+<p class="subtitle">Run an explicit scan first, then decide whether the experimental hooks and rewrites fit your workflow.</p>
 
-    <h2 id="installation">Installation</h2>
+<h2 id="requirements">Requirements</h2>
+<ul>
+  <li>Node.js {{ versions.gate.node }} or newer.</li>
+  <li>Git for staged, tracked-file, history, hook, and exposure features.</li>
+  <li>A disposable fixture or clean working tree when evaluating auto-fix.</li>
+</ul>
+<p>Direct file targets such as <code>gate scan path/to/file.js</code> can run outside a Git repository.</p>
 
-    <h3>Zero-install (npx)</h3>
-    <p>The fastest way to try Gate. No installation required -- npx downloads and runs it in one step.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npx gate</span></div>
+<h2 id="install">Try or install</h2>
+<div class="code-block"><span class="cmt"># Run the published package without a global install</span>
+<span class="prompt">$ </span><span class="cmd">npx @penumbraforge/gate scan --all</span>
 
-    <h3>Global install (npm)</h3>
-    <p>For regular use, install globally so the <code>gate</code> command is always available.</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npm install -g @penumbraforge/gate</span>
+<span class="cmt"># Or install the CLI globally</span>
+<span class="prompt">$ </span><span class="cmd">npm install -g @penumbraforge/gate</span>
+<span class="prompt">$ </span><span class="cmd">gate version</span></div>
 
-<span class="cmt"># Verify the installation</span>
-<span class="prompt">$ </span><span class="cmd">gate version</span>
-<span class="dim">gate v{{ versions.gate.version }}</span></div>
+<div class="warning-box"><strong>A bare <code>gate</code> command is not a repository scan.</strong> On first use in a Git repository it attempts to install a pre-commit hook and prints a banner; on later use it shows status. Use <code>gate scan --all</code> for an explicit tracked-file scan.</div>
 
-    <p>Gate requires Node.js {{ versions.gate.node }} or later.</p>
+<h2 id="first-scan">Choose the scope deliberately</h2>
+<div class="code-block"><span class="cmt"># All files returned by git ls-files (tracked files only)</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --all</span>
 
-    <h2 id="first-run">First Run</h2>
+<span class="cmt"># Staged files; this is the default when no target flag is supplied</span>
+<span class="prompt">$ </span><span class="cmd">gate scan</span>
 
-    <p>Run <code>npx gate</code> (or just <code>gate</code> if installed globally) in any directory. Gate scans all files in the current directory and its subdirectories for hardcoded secrets.</p>
+<span class="cmt"># Explicit files or directories; directories can include untracked files</span>
+<span class="prompt">$ </span><span class="cmd">gate scan src config/example.yml</span></div>
 
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">npx @penumbraforge/gate</span>
+<p><code>--all</code> does not inspect untracked files because it uses <code>git ls-files</code>. Gate skips likely binary files, configured ignore patterns, and files above the configured size limit. A clean result means no enabled rule matched the inspected bytes; it is not proof that the repository contains no secrets.</p>
 
-<span class="ok">  ✓</span> <span class="dim">Scanned 847 files in 1.2s</span>
+<h2 id="results">Read the result</h2>
+<p>Gate combines bundled regular-expression patterns with entropy heuristics. It reports file, line, rule, severity, redacted context, and exposure information when available. Pattern detection can produce both false positives and false negatives.</p>
+<ul>
+  <li>Exit code <code>0</code>: the selected scan completed with no findings.</li>
+  <li>Exit code <code>1</code>: findings remain or the scan was incomplete.</li>
+  <li>Text scans currently append local audit state; JSON and SARIF scan paths do not.</li>
+</ul>
 
-<span class="dim">  Gate v{{ versions.gate.version }} · {{ versions.gate.rules }} rules · scanning 847 files</span>
+<h2 id="verification">Network verification is off by default</h2>
+<p>Ordinary scans do not verify credentials unless <code>--verify</code> is supplied or <code>verify: true</code> is set in configuration. Verification sends the matched credential to a provider endpoint and can change severity. Read <a href="/gate/wiki/verification/">the endpoint and cache boundaries</a> before enabling it.</p>
 
-<span class="dim">  [1/1]</span> <span class="err">CRITICAL</span>  <span class="file">src/api/payments.ts:23</span>
-<span class="dim">  rule:</span> stripe-secret-key
+<h2 id="setup">Optional project setup</h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">gate init</span></div>
+<p>The current initializer:</p>
+<ul>
+  <li>requires a <code>.git</code> entry in the current directory;</li>
+  <li>detects a small set of project stack files;</li>
+  <li>attempts to install both pre-commit and pre-push hooks;</li>
+  <li>creates <code>.gateignore</code> only when it does not already exist; and</li>
+  <li>adds <code>.env</code>, <code>.env.local</code>, <code>.env.*.local</code>, and <code>.gate/</code> to <code>.gitignore</code> when missing.</li>
+</ul>
+<p>It does not create <code>.gaterc</code>. It also reports hook installation as successful after calling the installer without checking each returned result, so inspect <code>.git/hooks</code> or your configured <code>core.hooksPath</code>.</p>
 
-<span class="dim">   21 |</span> const stripe = require('stripe');
-<span class="dim">   22 |</span>
-<span class="dim">   23 |</span> const key = "<span class="underline err">sk_live_51Hb3azLk...R4pM</span>";
-<span class="dim">   24 |</span> const client = stripe(key);
+<h2 id="hooks">What the hooks run</h2>
+<p>The pre-commit hook runs <code>gate scan --staged</code>. The pre-push hook runs <code>gate scan --changed</code>, which compares the current branch with its upstream and falls back to all tracked files when that comparison fails. Both block on a non-zero Gate exit.</p>
+<p>The hook can be bypassed with <code>GATE_SKIP=1</code>; if Gate cannot be found it blocks unless <code>GATE_ALLOW_MISSING=1</code> is set. Those are deliberate escape hatches, not policy enforcement.</p>
 
-<span class="dim">  ──────────────────────────────────────</span>
-<span class="dim">  1 finding in 1 file (1 critical) — 1.2s</span></div>
+<h2 id="remediation">Remediate with review</h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">gate fix --dry-run</span>
+<span class="prompt">$ </span><span class="cmd">gate scan --interactive</span></div>
+<p>Auto-fix supports a bounded collection of source forms and can produce invalid code or mismatched environment-variable references. The vault option stores local ciphertext but does not add runtime resolution to your application. Rotate any credential that was committed or pushed; moving it out of source does not revoke it.</p>
 
-    <p>Gate automatically skips binary files, node_modules, .git directories, and other common non-source paths. No configuration needed.</p>
+<div class="warning-box"><strong>Protect local Gate state.</strong> Current text scans may leave plaintext credential material in the local audit record through a separate <code>secret</code> field, despite display redaction. Do not export or share <code>~/.gate/audit.jsonl</code> until you have inspected it. See <a href="/gate/wiki/security/">Security Model</a>.</div>
 
-    <h2 id="project-setup">Project Setup</h2>
-
-    <p>For ongoing use in a project, run <code>gate init</code> to create a configuration file and install the pre-commit hook.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate init</span>
-
-<span class="ok">  Created .gaterc</span>
-<span class="ok">  Installed pre-commit hook</span>
-<span class="dim">  Gate will now scan staged files before every commit.</span></div>
-
-    <p>This creates two things:</p>
-    <ul>
-      <li><strong style="color: var(--text-1);">.gaterc</strong> -- a YAML configuration file with sensible defaults. See <a href="/gate/wiki/configuration/">Configuration</a> for all options.</li>
-      <li><strong style="color: var(--text-1);">Pre-commit hook</strong> -- automatically scans staged files before each commit. If a secret is found, the commit is blocked until you fix, vault, or ignore the finding.</li>
-    </ul>
-
-    <h2 id="how-scanning-works">How Scanning Works</h2>
-
-    <p>Gate uses {{ versions.gate.rules }} detection rules to find secrets in your code. Each rule targets a specific provider or pattern type (AWS keys, GitHub tokens, database URLs, private keys, etc.).</p>
-
-    <p>The scanning process:</p>
-    <ol>
-      <li>Gate collects all files in the target directory (or staged files in pre-commit mode).</li>
-      <li>Binary files, known non-source paths, and files matching <code>.gateignore</code> patterns are skipped.</li>
-      <li>Each file is scanned against all {{ versions.gate.rules }} rules. Rules use regular expressions with contextual validation to reduce false positives.</li>
-      <li>Matches are classified by severity: <span style="color: var(--error);">CRITICAL</span>, <span style="color: var(--warn);">HIGH</span>, <span style="color: var(--text-2);">MEDIUM</span>, <span style="color: var(--text-3);">LOW</span>.</li>
-      <li>If <code>--verify</code> is enabled, Gate checks whether each credential is still active by making read-only API calls to the provider.</li>
-    </ol>
-
-    <h2 id="when-a-secret-is-found">What Happens When a Secret Is Found</h2>
-
-    <p>When Gate detects a secret, you have several options depending on the mode you are running in.</p>
-
-    <h3>Default mode (non-interactive)</h3>
-    <p>Gate prints all findings and exits with a non-zero exit code if any secrets were found. This is the mode used in CI and pre-commit hooks.</p>
-
-    <h3>Interactive mode</h3>
-    <p>When you run <code>gate scan --interactive</code> (or <code>gate</code> bare), Gate presents each finding with single-keypress options:</p>
-
-    <div class="code-block"><span class="accent">  [f]</span><span class="dim"> fix</span>       Extract to .env and rewrite source code
-<span class="accent">  [v]</span><span class="dim"> vault</span>     Encrypt and store in Gate vault
-<span class="accent">  [i]</span><span class="dim"> ignore</span>    Mark as intentional (adds to .gateignore)
-<span class="accent">  [s]</span><span class="dim"> skip</span>      Skip for now
-<span class="accent">  [p]</span><span class="dim"> previous</span>  Go to previous finding
-<span class="accent">  [j]</span><span class="dim"> jump</span>      Jump to finding by number
-<span class="accent">  [?]</span><span class="dim"> explain</span>   Full remediation guide
-<span class="accent">  [q]</span><span class="dim"> quit</span>      Exit with batch action on skipped</div>
-
-    <h3>Pre-commit hook</h3>
-    <p>When running as a pre-commit hook, Gate scans only staged files (<code>--staged</code> mode). If secrets are found, the commit is blocked. You must fix the finding (using <code>gate fix</code>), add an ignore comment, or update your <code>.gateignore</code> before the commit will succeed.</p>
-
-    <div class="info-box">
-      <strong>Tip:</strong> If Gate's auto-fix modifies your files during a pre-commit scan, it automatically re-stages the fixed files so your commit includes the remediated code.
-    </div>
-
-    <h2 id="next-steps">Next Steps</h2>
-    <ul>
-      <li><a href="/gate/wiki/commands/">Commands Reference</a> -- learn every command and flag</li>
-      <li><a href="/gate/wiki/configuration/">Configuration</a> -- customize Gate for your project</li>
-      <li><a href="/gate/wiki/auto-fix/">Auto-Fix Engine</a> -- understand how automatic remediation works</li>
-      <li><a href="/gate/wiki/github-action/">GitHub Action</a> -- add Gate to your CI pipeline</li>
-    </ul>
+<h2 id="next">Next steps</h2>
+<ul>
+  <li><a href="/gate/wiki/configuration/">Configuration</a></li>
+  <li><a href="/gate/wiki/ignore-patterns/">Ignore Patterns</a></li>
+  <li><a href="/gate/wiki/auto-fix/">Auto-Fix Engine</a></li>
+  <li><a href="/gate/wiki/github-action/">GitHub Action</a></li>
+</ul>

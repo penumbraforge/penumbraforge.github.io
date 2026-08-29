@@ -1,187 +1,97 @@
 ---
 title: "GitHub Action"
-description: "Add Gate to your CI pipeline with the official GitHub Action."
+description: "Gate's report/enforce behavior, defaults, runtime installation, outputs, comments, SARIF upload, and network routes."
 permalink: /gate/wiki/github-action/
 ---
 <h1>GitHub Action</h1>
-    <p class="subtitle">Add Gate to your CI pipeline with the official GitHub Action. Scan pull requests, upload SARIF results, and get Slack notifications.</p>
+<p class="subtitle">The default reports findings without blocking. Pin and configure the scanner behavior you actually want.</p>
 
-    <h2 id="installation">Installation</h2>
-
-    <p>Add Gate to any GitHub Actions workflow. The action (a Node 24 action, <code>uses: penumbraforge/gate@v2</code>) installs Gate, runs a full scan of the checked-out repository, and reports results.</p>
-
-    <div class="gh-action">
-      <div class="gh-action-bar">.github/workflows/gate.yml</div>
-      <div class="gh-action-body"><span class="kw">name</span>: Gate
-<span class="kw">on</span>: [pull_request, push]
-
-<span class="kw">jobs</span>:
-  <span class="kw">scan</span>:
-    <span class="kw">runs-on</span>: ubuntu-latest
-    <span class="kw">steps</span>:
-      - <span class="kw">uses</span>: actions/checkout@v4
-      - <span class="kw">uses</span>: penumbraforge/gate@v2
-        <span class="kw">with</span>:
-          <span class="kw">mode</span>: enforce
-          <span class="kw">verify</span>: <span class="val">true</span>
-          <span class="kw">format</span>: sarif
-          <span class="kw">fail-on</span>: high</div>
-    </div>
-
-    <h2 id="inputs">All Inputs</h2>
-
-    <table class="cmd-table">
-      <thead><tr><th>Input</th><th>Default</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>mode</td><td>report</td><td><code>enforce</code> fails the workflow on findings. <code>report</code> (the default) just logs them.</td></tr>
-        <tr><td>verify</td><td>false</td><td>Check if detected credentials are active via provider APIs (opt-in).</td></tr>
-        <tr><td>format</td><td>text</td><td>Output format: <code>text</code>, <code>json</code>, or <code>sarif</code>.</td></tr>
-        <tr><td>fail-on</td><td>high</td><td>Minimum severity to fail the workflow: <code>low</code>, <code>medium</code>, <code>high</code>, <code>critical</code>.</td></tr>
-        <tr><td>failure-mode</td><td>(from mode)</td><td>How findings or scan errors are treated: <code>block</code> or <code>warn</code>. Defaults to <code>block</code> when <code>mode: enforce</code>, otherwise <code>warn</code>.</td></tr>
-        <tr><td>slack-webhook</td><td>(none)</td><td>Slack incoming webhook URL for notifications. Use a GitHub secret.</td></tr>
-        <tr><td>github-token</td><td>github.token</td><td>GitHub token for PR comments and SARIF upload. The default token works for most cases.</td></tr>
-        <tr><td>use-local</td><td>false</td><td>Run the checked-out repo's own CLI (<code>node bin/gate.js</code>) instead of installing <code>@penumbraforge/gate</code> from npm. For self-testing unreleased versions.</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="outputs">All Outputs</h2>
-
-    <table class="cmd-table">
-      <thead><tr><th>Output</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td>findings-count</td><td>Number of findings at or above the <code>fail-on</code> severity (integer).</td></tr>
-        <tr><td>blocked</td><td><code>true</code> if the action blocked the workflow (findings present and failure mode is <code>block</code>).</td></tr>
-        <tr><td>scan-report</td><td>The JSON scan report itself (findings are capped so the output stays under GitHub's 1&nbsp;MiB output limit). Secrets are never included — matches are redacted and each finding carries a <code>secretHash</code>.</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="sarif-upload">SARIF Upload for Code Scanning</h2>
-
-    <p>When <code>format</code> is set to <code>sarif</code>, the action runs a second scan in SARIF 2.1.0 format and uploads the result directly to GitHub Code Scanning — no separate upload step needed. Findings appear as code scanning alerts in the Security tab.</p>
-
-    <div class="gh-action">
-      <div class="gh-action-bar">.github/workflows/gate.yml</div>
-      <div class="gh-action-body"><span class="kw">name</span>: Gate
-<span class="kw">on</span>: [pull_request, push]
-
-<span class="kw">permissions</span>:
-  <span class="kw">security-events</span>: write   <span class="cmt"># required for SARIF upload</span>
-  <span class="kw">contents</span>: read
-
-<span class="kw">jobs</span>:
-  <span class="kw">scan</span>:
-    <span class="kw">runs-on</span>: ubuntu-latest
-    <span class="kw">steps</span>:
-      - <span class="kw">uses</span>: actions/checkout@v4
-
-      - <span class="kw">name</span>: Run Gate
-        <span class="kw">id</span>: gate
-        <span class="kw">uses</span>: penumbraforge/gate@v2
-        <span class="kw">with</span>:
-          <span class="kw">mode</span>: enforce
-          <span class="kw">format</span>: sarif
-          <span class="kw">fail-on</span>: high</div>
-    </div>
-
-    <div class="info-box">
-      <strong>Note:</strong> SARIF upload requires the <code>security-events: write</code> permission and a <code>github-token</code> (the default token works). If the upload fails, the action logs a warning rather than failing the workflow.
-    </div>
-
-    <h2 id="pr-comments">PR Comments</h2>
-
-    <p>When running on a <code>pull_request</code> event with findings at or above the threshold, the action automatically adds a comment to the PR summarizing the scan results. The comment includes:</p>
-
-    <ul>
-      <li>Total finding count, with critical and high counts broken out</li>
-      <li>A table of file locations, line numbers, rule names, and severities (first 25 findings)</li>
-      <li>Suggested next steps (<code>gate fix</code>, <code>gate scan --interactive</code>)</li>
-    </ul>
-
-    <p>PR comments require the default <code>github-token</code> (provided automatically) or a token with <code>pull-requests: write</code> permission.</p>
-
-    <h2 id="slack">Slack Notifications</h2>
-
-    <p>Send scan results to a Slack channel using an incoming webhook. Store the webhook URL as a GitHub secret.</p>
-
-    <div class="gh-action">
-      <div class="gh-action-bar">.github/workflows/gate.yml</div>
-      <div class="gh-action-body"><span class="kw">name</span>: Gate
-<span class="kw">on</span>: [push]
-
-<span class="kw">jobs</span>:
-  <span class="kw">scan</span>:
-    <span class="kw">runs-on</span>: ubuntu-latest
-    <span class="kw">steps</span>:
-      - <span class="kw">uses</span>: actions/checkout@v4
-      - <span class="kw">uses</span>: penumbraforge/gate@v2
-        <span class="kw">with</span>:
-          <span class="kw">mode</span>: audit
-          <span class="kw">verify</span>: <span class="val">true</span>
-          <span class="kw">slack-webhook</span>: {% raw %}${{ secrets.SLACK_WEBHOOK_URL }}{% endraw %}</div>
-    </div>
-
-    <p>The Slack message includes a summary of findings with severity counts and a link to the workflow run.</p>
-
-    <h2 id="examples">Example Workflows</h2>
-
-    <h3>Basic scan</h3>
-    <p>The simplest workflow. Scans on every push and pull request, fails on any finding.</p>
-
-    <div class="gh-action">
-      <div class="gh-action-bar">basic</div>
-      <div class="gh-action-body"><span class="kw">name</span>: Gate
-<span class="kw">on</span>: [pull_request, push]
-
-<span class="kw">jobs</span>:
-  <span class="kw">scan</span>:
-    <span class="kw">runs-on</span>: ubuntu-latest
-    <span class="kw">steps</span>:
-      - <span class="kw">uses</span>: actions/checkout@v4
-      - <span class="kw">uses</span>: penumbraforge/gate@v2</div>
-    </div>
-
-    <h3>Full workflow</h3>
-    <p>Verification, SARIF upload, PR comments, and Slack notifications.</p>
-
-    <div class="gh-action">
-      <div class="gh-action-bar">full</div>
-      <div class="gh-action-body"><span class="kw">name</span>: Gate Security Scan
+<h2 id="minimal">Conservative blocking example</h2>
+<div class="code-block"><span class="kw">name</span>: Gate
 <span class="kw">on</span>:
   <span class="kw">pull_request</span>:
-    <span class="kw">branches</span>: [main]
   <span class="kw">push</span>:
-    <span class="kw">branches</span>: [main]
 
 <span class="kw">permissions</span>:
-  <span class="kw">security-events</span>: write
   <span class="kw">contents</span>: read
   <span class="kw">pull-requests</span>: write
+  <span class="kw">security-events</span>: write
 
 <span class="kw">jobs</span>:
   <span class="kw">scan</span>:
     <span class="kw">runs-on</span>: ubuntu-latest
     <span class="kw">steps</span>:
       - <span class="kw">uses</span>: actions/checkout@v4
-        <span class="kw">with</span>:
-          <span class="kw">fetch-depth</span>: 0   <span class="cmt"># full history for git scanning</span>
-
-      - <span class="kw">name</span>: Run Gate
-        <span class="kw">id</span>: gate
-        <span class="kw">uses</span>: penumbraforge/gate@v2
+      - <span class="kw">name</span>: Pin the Gate CLI used at runtime
+        <span class="kw">run</span>: npm install -g @penumbraforge/gate@{{ versions.gate.version }}
+      - <span class="kw">uses</span>: penumbraforge/gate@v2
         <span class="kw">with</span>:
           <span class="kw">mode</span>: enforce
-          <span class="kw">verify</span>: <span class="val">true</span>
-          <span class="kw">format</span>: sarif
           <span class="kw">fail-on</span>: high
-          <span class="kw">slack-webhook</span>: {% raw %}${{ secrets.SLACK_WEBHOOK_URL }}{% endraw %}</div>
-    </div>
+          <span class="kw">verify</span>: <span class="val">false</span>
+          <span class="kw">format</span>: sarif</div>
 
-    <h2 id="using-outputs">Using Outputs in Subsequent Steps</h2>
+<p>The action scans <code>gate scan --all</code>, so scope is the checked-out files known to Git. Use a full checkout if other workflow logic depends on history. Treat a scan as one control, not repository proof.</p>
 
-    <p>Access Gate outputs in later workflow steps:</p>
+<h2 id="pinning">The action tag does not pin the npm CLI by itself</h2>
+<p>Unless <code>use-local: true</code> is set, the bundled action first uses any <code>gate</code> already on <code>PATH</code>. If none is found, it runs <code>npm install -g @penumbraforge/gate</code> without a version and uses the then-current npm release. The <code>penumbraforge/gate@v2</code> ref pins action code, not necessarily scanner code.</p>
+<p>For reproducibility, install an explicit npm version before the action as shown above and retain the workflow log. A moving major tag is also not immutable; pin a reviewed commit SHA when your threat model requires it.</p>
 
-    <div class="code-block"><span class="dim">- name: Check results</span>
-  <span class="kw">if</span>: steps.gate.outputs.blocked == 'true'
-  <span class="kw">run</span>: |
-    echo "Gate found {% raw %}${{ steps.gate.outputs.findings-count }}{% endraw %} findings"
-    echo '{% raw %}${{ steps.gate.outputs.scan-report }}{% endraw %}' > gate-report.json</div>
+<div class="warning-box"><strong><code>use-local: true</code> is for self-testing.</strong> It runs <code>node $GITHUB_WORKSPACE/bin/gate.js</code> from the repository being scanned. In an ordinary pull-request workflow that means executing checked-out repository code. Do not enable it on untrusted contributions.</div>
+
+<h2 id="inputs">Inputs and defaults</h2>
+<table class="cmd-table">
+  <thead><tr><th>Input</th><th>Default</th><th>Current behavior</th></tr></thead>
+  <tbody>
+    <tr><td><code>mode</code></td><td><code>report</code></td><td><code>report</code> warns on threshold findings; <code>enforce</code> fails the step.</td></tr>
+    <tr><td><code>failure-mode</code></td><td>derived from mode</td><td>Explicit <code>block</code> or <code>warn</code> overrides mode for findings and scan errors.</td></tr>
+    <tr><td><code>fail-on</code></td><td><code>high</code></td><td>Keeps critical/high by default. Valid intended values: critical, high, medium, low.</td></tr>
+    <tr><td><code>verify</code></td><td><code>false</code></td><td>Adds <code>--verify</code>; matched credentials may be sent to provider endpoints and severity can change.</td></tr>
+    <tr><td><code>format</code></td><td><code>text</code></td><td>The primary scan is always captured as JSON. Only <code>sarif</code> adds a second SARIF scan and upload attempt.</td></tr>
+    <tr><td><code>github-token</code></td><td><code>github.token</code></td><td>Used for PR comments and SARIF upload.</td></tr>
+    <tr><td><code>slack-webhook</code></td><td>empty</td><td>Sends an optional finding summary to that webhook.</td></tr>
+    <tr><td><code>use-local</code></td><td><code>false</code></td><td>Runs the checked-out repository's <code>bin/gate.js</code>.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="failure">Blocking semantics</h2>
+<table class="cmd-table">
+  <thead><tr><th>Condition</th><th>Report/warn</th><th>Enforce/block</th></tr></thead>
+  <tbody>
+    <tr><td>Finding at or above threshold</td><td>Warning; step can succeed.</td><td><code>core.setFailed</code>.</td></tr>
+    <tr><td>Scan reports unreadable files/errors</td><td>Warning and early return.</td><td><code>core.setFailed</code>.</td></tr>
+    <tr><td>Install, spawn, or JSON parse failure</td><td colspan="2">Action-level exception fails the step.</td></tr>
+    <tr><td>SARIF upload, PR comment, or Slack failure</td><td colspan="2">Warning; the scan result continues.</td></tr>
+  </tbody>
+</table>
+<p>The threshold is applied after Gate verification changes severity. Because an <code>inactive</code> verification currently downgrades a finding to low, enabling verification can remove it from the default high threshold.</p>
+
+<h2 id="outputs">Outputs</h2>
+<table class="cmd-table">
+  <thead><tr><th>Output</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>findings-count</code></td><td>Findings at or above <code>fail-on</code>, not the total detected count.</td></tr>
+    <tr><td><code>blocked</code></td><td>Whether threshold findings exist and the resolved failure mode is block. Scan-error blocking is not represented by this expression.</td></tr>
+    <tr><td><code>scan-report</code></td><td>JSON with threshold findings, errors, skipped entries, summary, and timestamp.</td></tr>
+  </tbody>
+</table>
+<p><code>scan-report</code> is capped below GitHub's 1 MiB step-output limit. When necessary Gate keeps the most severe prefix and adds <code>truncated: true</code> plus <code>totalFindings</code>.</p>
+
+<h2 id="comments">PR comments</h2>
+<p>On pull-request events with threshold findings, Gate attempts to delete earlier issue comments containing its marker and create a new table with up to 25 file paths, lines, rule names, and severities. It does not intentionally include the secret value. Fork permissions and token policy can prevent this; failure is only a warning.</p>
+
+<h2 id="sarif">SARIF</h2>
+<p>With <code>format: sarif</code>, the action runs the repository scan again, base64-encodes the SARIF, and calls GitHub's code-scanning upload API. This creates extra scan time and can produce a result that differs if files or external verification state change between runs. Upload requires suitable <code>security-events: write</code> permission and repository support.</p>
+
+<h2 id="slack">Slack and other network routes</h2>
+<p>If <code>slack-webhook</code> is configured and threshold findings exist, Gate sends repository/event metadata, actor, run URL, count, and up to five file/rule labels to Slack. <code>verify: true</code> separately sends credentials to provider endpoints. npm installation, GitHub API calls, checkout, and SARIF upload are additional network routes.</p>
+
+<h2 id="review">Practical CI policy</h2>
+<ol>
+  <li>Pin the action and the CLI separately.</li>
+  <li>Start with verification disabled and an explicit block threshold.</li>
+  <li>Protect workflow and ignore/config files with code review.</li>
+  <li>Fail independently on scanner execution errors.</li>
+  <li>Use a second secret scanner and provider-side controls.</li>
+  <li>Review the logs to confirm comments/SARIF actually uploaded.</li>
+</ol>

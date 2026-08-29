@@ -22,6 +22,8 @@ spec:
   <div id="csl-summary" style="margin-left:auto;font-size:0.875rem;color:var(--text-3,#888);align-self:center;"></div>
 </div>
 
+<p style="font-size:0.8125rem;color:var(--text-3,#888);line-height:1.55;">Static configured-rule review only. It does not build or run the image, resolve inherited settings, inspect the cluster, or establish that a workload is secure or exploitable. Generated rewrites are suggestions to review and test.</p>
+
 <div id="csl-score-area" style="display:none;">
   <div class="csl-score-card">
     <div class="csl-score-ring" id="csl-score-ring">
@@ -37,7 +39,7 @@ spec:
     </div>
     <div class="csl-score-breakdown">
       <div class="csl-score-meta" id="csl-score-meta"></div>
-      <button class="btn btn--primary" id="csl-fix-btn" style="display:none;">Generate Fixed Version</button>
+      <button class="btn btn--primary" id="csl-fix-btn" style="display:none;">Generate suggested rewrite</button>
     </div>
   </div>
 </div>
@@ -48,7 +50,7 @@ spec:
 
 <div id="csl-fixed-area" style="display:none;">
   <div class="csl-fixed-header">
-    <strong>Fixed Version</strong>
+    <strong>Suggested rewrite — review and test</strong>
     <button class="btn btn--copy" id="csl-fixed-copy">Copy</button>
   </div>
   <pre id="csl-fixed-output" class="csl-fixed-pre"></pre>
@@ -56,7 +58,7 @@ spec:
 
 <div id="csl-clean" style="display:none;" class="csl-clean-msg">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-  No security issues found. Your configuration looks solid.
+  No configured linter rules matched. This is not a security verdict; review the workload and runtime policy manually.
 </div>
 
 <div id="csl-empty" class="csl-empty-msg">Paste a Kubernetes manifest, Dockerfile, or docker-compose.yml above and click "Lint".</div>
@@ -350,7 +352,7 @@ spec:
         var r = [];
         lines.forEach(function (l, i) {
           if (/^\s*privileged\s*:\s*true/i.test(l))
-            r.push({ line: i + 1, text: l, explanation: 'A privileged container has full access to the host kernel. An attacker inside can escape to the host trivially.', fix: '            privileged: false' });
+            r.push({ line: i + 1, text: l, explanation: 'Privileged mode removes many normal container isolation limits and exposes powerful kernel interfaces. Exact host impact depends on the runtime and surrounding controls.', fix: '            privileged: false' });
         });
         return r;
       }
@@ -363,7 +365,7 @@ spec:
         var r = [];
         lines.forEach(function (l, i) {
           if (/^\s*hostPID\s*:\s*true/i.test(l))
-            r.push({ line: i + 1, text: l, explanation: 'Sharing the host PID namespace lets the container see and signal all host processes, enabling container escape.', fix: '      hostPID: false' });
+            r.push({ line: i + 1, text: l, explanation: 'Sharing the host PID namespace exposes host process metadata and may permit signaling processes where the container identity and kernel controls allow it.', fix: '      hostPID: false' });
         });
         return r;
       }
@@ -376,7 +378,7 @@ spec:
         var r = [];
         lines.forEach(function (l, i) {
           if (/^\s*hostNetwork\s*:\s*true/i.test(l))
-            r.push({ line: i + 1, text: l, explanation: 'Host networking bypasses network isolation. The container can sniff traffic and bind to any host port.', fix: '      hostNetwork: false' });
+            r.push({ line: i + 1, text: l, explanation: 'Host networking removes the pod network namespace boundary. Traffic visibility and bind permissions still depend on capabilities, host configuration, and other controls.', fix: '      hostNetwork: false' });
         });
         return r;
       }
@@ -394,7 +396,7 @@ spec:
           if (inAdd && /^\s*-\s/.test(l)) {
             var cap = l.replace(/^\s*-\s*["']?/, '').replace(/["']?\s*$/, '').trim();
             if (dangerous.indexOf(cap) !== -1)
-              r.push({ line: i + 1, text: l, explanation: cap + ' grants near-root capabilities and is frequently abused for container escape.', fix: '                # Remove ' + cap + ' — drop ALL instead' });
+              r.push({ line: i + 1, text: l, explanation: cap + ' is a powerful Linux capability that can expand host or network impact depending on the runtime and other isolation controls.', fix: '                # Remove ' + cap + ' — drop ALL instead' });
           } else if (inAdd && !/^\s*#/.test(l) && l.trim() !== '') {
             inAdd = false;
           }
@@ -416,7 +418,7 @@ spec:
           var containerLine = -1;
           lines.forEach(function (l, i) { if (/^\s*containers\s*:/.test(l) && containerLine === -1) containerLine = i; });
           if (containerLine !== -1)
-            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'No runAsNonRoot or runAsUser is set. Containers will default to running as root (UID 0), which vastly increases the impact of any exploit.', fix: '          securityContext:\n            runAsNonRoot: true\n            runAsUser: 1000' }];
+            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'No runAsNonRoot or explicit nonzero runAsUser appears in the pasted workload. The effective user may still come from the image or admission/runtime policy, so verify it explicitly.', fix: '          securityContext:\n            runAsNonRoot: true\n            runAsUser: 1000' }];
         }
         return [];
       }
@@ -431,7 +433,7 @@ spec:
           var containerLine = -1;
           lines.forEach(function (l, i) { if (/^\s*-\s*name\s*:/.test(l) && containerLine === -1) containerLine = i; });
           if (containerLine !== -1)
-            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'Without resource limits, a compromised container can consume all host CPU/memory, causing denial of service across the node.', fix: '          resources:\n            limits:\n              cpu: "500m"\n              memory: "256Mi"\n            requests:\n              cpu: "100m"\n              memory: "128Mi"' }];
+            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'No resource limits appear in the pasted workload. Effective bounds may come from namespace quotas, admission policy, or runtime configuration; otherwise excessive use can affect neighboring workloads.', fix: '          resources:\n            limits:\n              cpu: "500m"\n              memory: "256Mi"\n            requests:\n              cpu: "100m"\n              memory: "128Mi"' }];
         }
         return [];
       }
@@ -446,7 +448,7 @@ spec:
           var resourceLine = -1;
           lines.forEach(function (l, i) { if (/^\s*resources\s*:/.test(l) && resourceLine === -1) resourceLine = i; });
           if (resourceLine !== -1)
-            return [{ line: resourceLine + 1, text: lines[resourceLine], explanation: 'Resource requests ensure the scheduler places the pod appropriately. Without them, pods may be scheduled on over-committed nodes.', fix: '            requests:\n              cpu: "100m"\n              memory: "128Mi"' }];
+            return [{ line: resourceLine + 1, text: lines[resourceLine], explanation: 'Resource requests give the scheduler an estimate for placement and reservation decisions. Without representative requests, placement may contribute to node overcommit; quotas, admission policy, and runtime behavior also affect the outcome.', fix: '            requests:\n              cpu: "100m"\n              memory: "128Mi"  # Size these values from measured workload needs' }];
         }
         return [];
       }
@@ -492,7 +494,7 @@ spec:
           if (/^\s*image\s*:/.test(l)) {
             var img = l.replace(/^\s*image\s*:\s*["']?/, '').replace(/["']?\s*$/, '').trim();
             if (/:latest\s*$/.test(img) || (img.indexOf(':') === -1 && img.indexOf('@') === -1))
-              r.push({ line: i + 1, text: l, explanation: 'Using :latest or an untagged image means you cannot guarantee what code is running. Pin images to a specific digest or semver tag.', fix: '          image: ' + img.replace(/:latest$/, '') + ':1.25.4  # Pin to specific version' });
+              r.push({ line: i + 1, text: l, explanation: 'Using :latest or an untagged image allows the resolved image to change between pulls. A verified digest provides immutable identity; a version tag communicates intent but may still be moved by its publisher.', fix: '          image: ' + img.replace(/:latest$/, '') + '@sha256:<verified-digest>  # Replace with the digest you tested' });
           }
         });
         return r;
@@ -508,11 +510,11 @@ spec:
           var scLine = -1;
           lines.forEach(function (l, i) { if (/^\s*securityContext\s*:/.test(l)) scLine = i; });
           if (scLine !== -1)
-            return [{ line: scLine + 1, text: lines[scLine], explanation: 'Without a read-only root filesystem, an attacker can write malware, modify binaries, or plant backdoors inside the container.', fix: '            readOnlyRootFilesystem: true' }];
+            return [{ line: scLine + 1, text: lines[scLine], explanation: 'The pasted configuration does not set a read-only root filesystem. A writable root can increase persistence options after compromise; effective writes also depend on the image, mounts, user, and runtime.', fix: '            readOnlyRootFilesystem: true' }];
           var containerLine = -1;
           lines.forEach(function (l, i) { if (/^\s*containers\s*:/.test(l) && containerLine === -1) containerLine = i; });
           if (containerLine !== -1)
-            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'Without a read-only root filesystem, an attacker can write malware, modify binaries, or plant backdoors inside the container.', fix: '          securityContext:\n            readOnlyRootFilesystem: true' }];
+            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'The pasted configuration does not set a read-only root filesystem. A writable root can increase persistence options after compromise; effective writes also depend on the image, mounts, user, and runtime.', fix: '          securityContext:\n            readOnlyRootFilesystem: true' }];
         }
         return [];
       }
@@ -529,7 +531,7 @@ spec:
           var containerLine = -1;
           lines.forEach(function (l, i) { if (/^\s*containers\s*:/.test(l) && containerLine === -1) containerLine = i; });
           if (containerLine !== -1)
-            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'No securityContext is defined at all. This means all security defaults are inherited, which typically means root, full capabilities, and writable filesystem.', fix: '          securityContext:\n            runAsNonRoot: true\n            runAsUser: 1000\n            readOnlyRootFilesystem: true\n            allowPrivilegeEscalation: false\n            capabilities:\n              drop:\n                - ALL' }];
+            return [{ line: containerLine + 1, text: lines[containerLine], explanation: 'No securityContext appears in the pasted workload. Effective defaults may come from the image, admission policy, namespace, or runtime, so verify them rather than assuming a hardened state.', fix: '          securityContext:\n            runAsNonRoot: true\n            runAsUser: 1000\n            readOnlyRootFilesystem: true\n            allowPrivilegeEscalation: false\n            capabilities:\n              drop:\n                - ALL' }];
         }
         return [];
       }
@@ -629,7 +631,7 @@ spec:
       test: function (lines) {
         var text = lines.join('\n');
         if (!/kind\s*:\s*NetworkPolicy/i.test(text) && /kind\s*:\s*(Deployment|StatefulSet|DaemonSet|Pod)/i.test(text)) {
-          return [{ line: 1, text: '(document-level)', explanation: 'No NetworkPolicy is present. Without network policies, all pods can communicate freely, enabling lateral movement after compromise.', fix: '---\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: deny-all\nspec:\n  podSelector: {}\n  policyTypes:\n    - Ingress\n    - Egress' }];
+          return [{ line: 1, text: '(document-level)', explanation: 'No NetworkPolicy appears in the pasted text. Effective traffic policy may be defined elsewhere and depends on the cluster CNI, namespace, and other controls.', fix: '---\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: deny-all\nspec:\n  podSelector: {}\n  policyTypes:\n    - Ingress\n    - Egress' }];
         }
         return [];
       }
@@ -651,7 +653,7 @@ spec:
           var fromLine = -1;
           lines.forEach(function (l, i) { if (/^FROM\s/i.test(l.trim()) && fromLine === -1) fromLine = i; });
           if (fromLine !== -1)
-            return [{ line: fromLine + 1, text: lines[fromLine], explanation: 'No USER instruction is set. The container will run as root (UID 0), maximizing blast radius if compromised.', fix: 'RUN addgroup -S appgroup && adduser -S appuser -G appgroup\nUSER appuser' }];
+            return [{ line: fromLine + 1, text: lines[fromLine], explanation: 'No USER instruction appears in this Dockerfile. The effective user depends on the base image and runtime override; verify it and set an explicit non-root user where appropriate.', fix: 'RUN addgroup -S appgroup && adduser -S appuser -G appgroup\nUSER appuser' }];
         }
         return [];
       }
@@ -697,7 +699,7 @@ spec:
         var r = [];
         lines.forEach(function (l, i) {
           if (/^EXPOSE\s/i.test(l.trim()) && /\b22\b/.test(l))
-            r.push({ line: i + 1, text: l, explanation: 'Exposing port 22 (SSH) in a container is almost always wrong. Use kubectl exec or docker exec for debugging. SSH increases attack surface.', fix: '# Remove EXPOSE 22 — use kubectl exec / docker exec instead' });
+            r.push({ line: i + 1, text: l, explanation: 'Declaring port 22 suggests that the image may serve SSH; EXPOSE by itself does not publish the port. If SSH is not an intentional service requirement, remove the declaration and use kubectl exec or docker exec for debugging.', fix: '# If SSH is not intentional, remove EXPOSE 22 and use kubectl exec / docker exec instead' });
         });
         return r;
       }
@@ -813,7 +815,7 @@ spec:
         var r = [];
         lines.forEach(function (l, i) {
           if (/^\s*privileged\s*:\s*true/i.test(l))
-            r.push({ line: i + 1, text: l, explanation: 'Privileged mode gives the container full host access. An attacker can escape trivially.', fix: '    privileged: false  # Or remove entirely' });
+            r.push({ line: i + 1, text: l, explanation: 'Privileged mode removes many normal container isolation limits and can expose powerful host interfaces. Exact host impact depends on the runtime and surrounding controls.', fix: '    privileged: false  # Or remove entirely' });
         });
         return r;
       }
@@ -828,7 +830,7 @@ spec:
           if (/^\s*-\s*["']?(0\.0\.0\.0:|\d+:)/.test(l) && /^\s*-\s/.test(l)) {
             var p = l.trim().replace(/^\s*-\s*["']?/, '');
             if (/^0\.0\.0\.0:/.test(p) || /^\d+:\d+/.test(p))
-              r.push({ line: i + 1, text: l, explanation: 'Binding to 0.0.0.0 (or without an explicit bind address) exposes the port on all interfaces including public-facing ones. Bind to 127.0.0.1 for local-only access.', fix: '      - "127.0.0.1:' + p.replace(/^0\.0\.0\.0:/, '') + '"' });
+              r.push({ line: i + 1, text: l, explanation: 'Binding to 0.0.0.0 (or omitting a host address) listens on all host interfaces. Whether the port is externally reachable also depends on host networking, firewall, and platform policy; use 127.0.0.1 for host-local access.', fix: '      - "127.0.0.1:' + p.replace(/^0\.0\.0\.0:/, '') + '"' });
           }
         });
         return r;
@@ -859,7 +861,7 @@ spec:
         var r = [];
         lines.forEach(function (l, i) {
           if (/\/var\/run\/docker\.sock/i.test(l))
-            r.push({ line: i + 1, text: l, explanation: 'Mounting the Docker socket gives the container full control over the Docker daemon, equivalent to root on the host. This is the most common container escape vector.', fix: '      # Remove docker.sock mount — use Docker-in-Docker (dind) or rootless Docker instead' });
+            r.push({ line: i + 1, text: l, explanation: 'Mounting the Docker socket can expose powerful daemon operations. Host impact depends on daemon mode, socket proxying, authorization, and runtime configuration; treat direct access as a high-trust boundary.', fix: '      # Remove docker.sock mount, or mediate narrowly through an authenticated socket proxy' });
         });
         return r;
       }
@@ -936,7 +938,7 @@ spec:
       test: function (lines) {
         var text = lines.join('\n');
         if (!/read_only\s*:\s*true/i.test(text) && /services\s*:/i.test(text)) {
-          return [{ line: 1, text: '(document-level)', explanation: 'No read_only: true is set on any service. A read-only root filesystem prevents attackers from writing malware or modifying binaries inside the container.', fix: '    read_only: true' }];
+          return [{ line: 1, text: '(document-level)', explanation: 'No read_only: true setting appears in the pasted compose file. A read-only root reduces writable locations but does not prevent writes to mounted volumes, tmpfs, or other permitted paths.', fix: '    read_only: true' }];
         }
         return [];
       }
@@ -966,11 +968,7 @@ spec:
   }
 
   function scoreGradeLabel(score) {
-    if (score >= 90) return 'A';
-    if (score >= 80) return 'B';
-    if (score >= 70) return 'C';
-    if (score >= 60) return 'D';
-    return 'F';
+    return 'rule score';
   }
 
   function scoreColor(score) {
@@ -1231,13 +1229,13 @@ spec:
     var med  = findings.filter(function (f) { return f.severity === 'medium'; }).length;
     var low  = findings.filter(function (f) { return f.severity === 'low'; }).length;
     var parts = [];
-    if (crit) parts.push('<strong>' + crit + '</strong> critical');
-    if (high) parts.push('<strong>' + high + '</strong> high');
-    if (med)  parts.push('<strong>' + med  + '</strong> medium');
-    if (low)  parts.push('<strong>' + low  + '</strong> low');
+    if (crit) parts.push('<strong>' + crit + '</strong> critical-priority rule');
+    if (high) parts.push('<strong>' + high + '</strong> high-priority rule');
+    if (med)  parts.push('<strong>' + med  + '</strong> medium-priority rule');
+    if (low)  parts.push('<strong>' + low  + '</strong> low-priority rule');
     scoreMeta.innerHTML = parts.join(' &middot; ') + '<br>' + rules.length + ' rules checked against ' + type;
 
-    summaryEl.textContent = findings.length + ' finding' + (findings.length !== 1 ? 's' : '') + ' — score: ' + score + '/100';
+    summaryEl.textContent = findings.length + ' configured-rule match' + (findings.length !== 1 ? 'es' : '') + ' — rule score: ' + score + '/100';
 
     fixBtn.style.display = '';
 

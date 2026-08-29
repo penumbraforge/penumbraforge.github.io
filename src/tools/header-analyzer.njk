@@ -274,14 +274,14 @@ server: cloudflare" spellcheck="false" autocomplete="off" autocorrect="off" auto
   var HEADERS = {
     'strict-transport-security': {
       name: 'Strict-Transport-Security',
-      what: 'Forces browsers to only connect via HTTPS for the specified duration. Prevents SSL-stripping attacks and accidental HTTP connections.',
+      what: 'Tells supporting browsers to use HTTPS for the specified duration after they learn the policy (or through preload), reducing some downgrade exposure.',
       check: function (v) {
         if (!v) return { status: 'bad', verdict: 'Missing', fix: 'Add: <code>Strict-Transport-Security: max-age=31536000; includeSubDomains; preload</code>' };
         var maxAge = parseInt((v.match(/max-age=(\d+)/i) || [])[1] || '0', 10);
         if (maxAge < 31536000) return { status: 'warn', verdict: 'max-age too low (' + maxAge + 's)', explain: 'The max-age should be at least 31536000 (1 year). A shorter duration leaves a window for downgrade attacks.', fix: 'Increase to: <code>max-age=31536000; includeSubDomains; preload</code>' };
         var hasSub = /includeSubDomains/i.test(v);
         var hasPreload = /preload/i.test(v);
-        if (hasSub && hasPreload) return { status: 'good', verdict: 'Excellent', explain: 'HSTS is configured with a strong max-age, includeSubDomains, and preload. Browsers will refuse HTTP connections to your domain.' };
+        if (hasSub && hasPreload) return { status: 'good', verdict: 'Excellent checklist result', explain: 'The pasted value contains a one-year max-age, includeSubDomains, and the preload token. Actual preload-list inclusion and browser behavior are not checked.' };
         if (!hasSub) return { status: 'warn', verdict: 'Missing includeSubDomains', explain: 'Without includeSubDomains, subdomains can still be accessed over HTTP.', fix: 'Add: <code>includeSubDomains; preload</code>' };
         return { status: 'good', verdict: 'Good', explain: 'HSTS is properly configured. Consider adding preload to get on the browser preload list.' };
       }
@@ -296,12 +296,12 @@ server: cloudflare" spellcheck="false" autocomplete="off" autocorrect="off" auto
         if (/unsafe-inline/i.test(v) && /script-src/i.test(v)) issues.push('unsafe-inline in script-src defeats XSS protection — use nonces or hashes instead');
         if (/\*\./i.test(v) || /default-src\s+\*/i.test(v)) issues.push('Wildcard sources weaken the policy significantly');
         if (issues.length > 0) return { status: 'warn', verdict: issues.length + ' issue' + (issues.length > 1 ? 's' : ''), explain: issues.join('. ') + '.', fix: 'Tighten the policy by removing unsafe directives and wildcards. Use nonces (<code>\'nonce-abc123\'</code>) instead of <code>\'unsafe-inline\'</code> for scripts.' };
-        return { status: 'good', verdict: 'Configured', explain: 'CSP is present. Review the directives to ensure they match your application\'s needs. A restrictive policy is your strongest defense against XSS.' };
+        return { status: 'good', verdict: 'Configured', explain: 'CSP is present. Review and test the directives against your application; CSP can reduce some injection impact but is not a substitute for safe output handling.' };
       }
     },
     'x-frame-options': {
       name: 'X-Frame-Options',
-      what: 'Prevents your page from being embedded in iframes on other sites. Blocks clickjacking attacks where an attacker overlays your page with invisible UI.',
+      what: 'Restricts framing in supporting browsers and can mitigate some clickjacking scenarios. CSP frame-ancestors is the modern, more flexible control.',
       check: function (v) {
         if (!v) return { status: 'bad', verdict: 'Missing', fix: 'Add: <code>X-Frame-Options: DENY</code> (or SAMEORIGIN if you need to iframe yourself)' };
         if (/DENY/i.test(v)) return { status: 'good', verdict: 'DENY — strong', explain: 'No site can embed your pages in an iframe. Maximum clickjacking protection.' };
@@ -312,10 +312,10 @@ server: cloudflare" spellcheck="false" autocomplete="off" autocorrect="off" auto
     },
     'x-content-type-options': {
       name: 'X-Content-Type-Options',
-      what: 'Prevents browsers from MIME-sniffing the content type. Without this, a browser might execute a file as JavaScript even if served as text/plain.',
+      what: 'Asks supporting browsers not to reinterpret a response away from its declared content type, reducing some content-confusion risks.',
       check: function (v) {
         if (!v) return { status: 'bad', verdict: 'Missing', fix: 'Add: <code>X-Content-Type-Options: nosniff</code>' };
-        if (/nosniff/i.test(v)) return { status: 'good', verdict: 'nosniff — correct', explain: 'Browsers will respect the declared Content-Type and won\'t try to sniff it. Prevents MIME confusion attacks.' };
+        if (/nosniff/i.test(v)) return { status: 'good', verdict: 'nosniff — recognized', explain: 'Supporting browsers apply MIME-sniffing restrictions for eligible responses. The effect depends on the request destination and the accuracy of the declared Content-Type.' };
         return { status: 'warn', verdict: 'Unexpected value', explain: 'The only valid value is "nosniff".' };
       }
     },
@@ -340,7 +340,7 @@ server: cloudflare" spellcheck="false" autocomplete="off" autocorrect="off" auto
       check: function (v) {
         if (!v) return { status: 'warn', verdict: 'Missing', fix: 'Add: <code>Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()</code>' };
         var disabled = (v.match(/\(\)/g) || []).length;
-        if (disabled >= 3) return { status: 'good', verdict: disabled + ' features restricted', explain: 'Good — you\'re explicitly disabling browser features you don\'t need. This prevents embedded content from accessing sensitive APIs.' };
+        if (disabled >= 3) return { status: 'good', verdict: disabled + ' features restricted', explain: 'The policy denies the listed features to this document and, subject to policy inheritance and iframe allow attributes, embedded content. Verify that the restrictions match how the site is composed.' };
         return { status: 'warn', verdict: 'Partial restrictions', explain: 'Consider disabling more features you don\'t use: camera, microphone, geolocation, payment, usb, magnetometer, gyroscope.', fix: 'Example: <code>Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()</code>' };
       }
     },
@@ -355,20 +355,20 @@ server: cloudflare" spellcheck="false" autocomplete="off" autocorrect="off" auto
     },
     'cross-origin-opener-policy': {
       name: 'Cross-Origin-Opener-Policy',
-      what: 'Isolates your browsing context from cross-origin popups. Prevents Spectre-class side-channel attacks and cross-origin information leaks.',
+      what: 'Controls whether the top-level browsing context shares an opener group with cross-origin pages.',
       check: function (v) {
         if (!v) return { status: 'warn', verdict: 'Missing', fix: 'Add: <code>Cross-Origin-Opener-Policy: same-origin</code>' };
-        if (/same-origin/i.test(v)) return { status: 'good', verdict: 'same-origin — strong', explain: 'Your page is fully isolated from cross-origin windows. This enables SharedArrayBuffer and prevents Spectre-style attacks.' };
+        if (/same-origin/i.test(v)) return { status: 'good', verdict: 'same-origin', explain: 'Separates the top-level browsing context from cross-origin opener relationships. SharedArrayBuffer availability normally also requires a compatible COEP policy and a cross-origin-isolated context.' };
         return { status: 'info', verdict: v.trim() };
       }
     },
     'cross-origin-resource-policy': {
       name: 'Cross-Origin-Resource-Policy',
-      what: 'Controls which origins can load your resources. Prevents your images, scripts, or data from being embedded on malicious sites.',
+      what: 'Asks supporting browsers to block eligible cross-origin no-cors subresource loads unless the requester satisfies the selected same-origin or same-site policy.',
       check: function (v) {
-        if (!v) return { status: 'info', verdict: 'Not set', explain: 'Consider adding this header if you want to prevent other sites from hotlinking your resources.' };
-        if (/same-origin/i.test(v)) return { status: 'good', verdict: 'same-origin', explain: 'Only your own origin can load your resources. Strong protection against hotlinking and data theft.' };
-        if (/same-site/i.test(v)) return { status: 'good', verdict: 'same-site', explain: 'Only your own site (including subdomains) can load your resources.' };
+        if (!v) return { status: 'info', verdict: 'Not set', explain: 'Consider CORP for responses intended only for same-origin or same-site use. Test first: a restrictive value can break legitimate embeds, CDN use, and other cross-origin subresource loads.' };
+        if (/same-origin/i.test(v)) return { status: 'good', verdict: 'same-origin', explain: 'Supporting browsers block eligible no-cors loads from other origins. CORS-enabled requests and other browser contexts are governed separately.' };
+        if (/same-site/i.test(v)) return { status: 'good', verdict: 'same-site', explain: 'Supporting browsers allow eligible no-cors loads from the same site, including qualifying subdomains, and block other sites. CORS and other contexts are evaluated separately.' };
         return { status: 'info', verdict: v.trim() };
       }
     }
@@ -471,13 +471,13 @@ server: cloudflare" spellcheck="false" autocomplete="off" autocorrect="off" auto
     var grade = letterGrade(score);
     var gradeClass = grade === 'A' ? 'a' : grade === 'B' ? 'b' : grade === 'C' ? 'c' : grade === 'D' ? 'd' : 'f';
     var gradeColor = grade === 'A' ? 'var(--sage)' : grade === 'B' ? '#a8d86b' : grade === 'C' ? '#e8b84d' : grade === 'D' ? '#e8a87c' : '#eb5757';
-    var labels = { A: 'Excellent security posture', B: 'Good — minor improvements possible', C: 'Fair — some important headers missing', D: 'Weak — significant gaps', F: 'Poor — most protections missing' };
+    var labels = { A: 'Excellent result on this header checklist', B: 'Good result on this header checklist', C: 'Some checklist headers are missing', D: 'Many checklist headers are missing', F: 'Most checklist headers are missing' };
 
     gradeRowEl.innerHTML =
       '<div class="ha-grade ha-grade-' + gradeClass + '">' + grade + '</div>' +
       '<div class="ha-grade-summary">' +
         '<div class="ha-grade-label">' + labels[grade] + '</div>' +
-        '<div class="ha-grade-detail">' + score + '/100 — ' + data.results.length + ' headers present, ' + data.missing.length + ' missing</div>' +
+        '<div class="ha-grade-detail">' + score + '/100 limited header score — ' + data.results.length + ' present, ' + data.missing.length + ' missing</div>' +
         '<div class="ha-score-bar"><div class="ha-score-fill" style="width:' + score + '%;background:' + gradeColor + ';"></div></div>' +
       '</div>';
 
@@ -486,7 +486,7 @@ server: cloudflare" spellcheck="false" autocomplete="off" autocorrect="off" auto
     data.results.forEach(function (r, i) {
       var s = r.result;
       html += '<div class="ha-header-card" id="ha-card-' + i + '">' +
-        '<div class="ha-header-row" onclick="document.getElementById(\'ha-card-' + i + '\').classList.toggle(\'open\')">' +
+        '<div class="ha-header-row" data-ha-toggle role="button" tabindex="0" aria-expanded="false">' +
           '<span class="ha-status-dot ha-status-dot--' + s.status + '"></span>' +
           '<span class="ha-header-name">' + esc(r.name) + '</span>' +
           '<span class="ha-header-verdict ha-verdict--' + s.status + '">' + esc(s.verdict) + '</span>' +
@@ -519,6 +519,26 @@ server: cloudflare" spellcheck="false" autocomplete="off" autocorrect="off" auto
       missingEl.innerHTML = '';
     }
   }
+
+  function toggleHeaderCard(row) {
+    var card = row.closest('.ha-header-card');
+    if (!card) return;
+    var open = card.classList.toggle('open');
+    row.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  findingsEl.addEventListener('click', function (event) {
+    var row = event.target.closest('[data-ha-toggle]');
+    if (row && findingsEl.contains(row)) toggleHeaderCard(row);
+  });
+
+  findingsEl.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var row = event.target.closest('[data-ha-toggle]');
+    if (!row || !findingsEl.contains(row)) return;
+    event.preventDefault();
+    toggleHeaderCard(row);
+  });
 
   function esc(str) {
     var d = document.createElement('div');

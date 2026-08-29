@@ -397,7 +397,6 @@ permalink: /tools/nginx-config/
       i + "# Security headers",
       i + "add_header X-Frame-Options \"SAMEORIGIN\" always;",
       i + "add_header X-Content-Type-Options \"nosniff\" always;",
-      i + "add_header X-XSS-Protection \"1; mode=block\" always;",
       i + "add_header Referrer-Policy \"strict-origin-when-cross-origin\" always;",
       i + "add_header Permissions-Policy \"camera=(), microphone=(), geolocation=()\" always;"
     ].join("\n");
@@ -580,7 +579,6 @@ permalink: /tools/nginx-config/
         "    # Security headers",
         "    add_header X-Frame-Options \"SAMEORIGIN\" always;",
         "    add_header X-Content-Type-Options \"nosniff\" always;",
-        "    add_header X-XSS-Protection \"1; mode=block\" always;",
         "    add_header Referrer-Policy \"strict-origin-when-cross-origin\" always;",
         "    add_header Strict-Transport-Security \"max-age=" + hstsAge + "; includeSubDomains\" always;",
         ""

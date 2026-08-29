@@ -1,257 +1,88 @@
 ---
 title: "Auto-Fix Engine"
-description: "Automatically extract hardcoded secrets to environment variables and rewrite source code in place."
+description: "The source forms Gate can rewrite, every side effect, undo behavior, and known correctness gaps."
 permalink: /gate/wiki/auto-fix/
 ---
 <h1>Auto-Fix Engine</h1>
-    <p class="subtitle">Automatically extract hardcoded secrets to environment variables and rewrite source code in place.</p>
+<p class="subtitle">A pattern-based migration helper, not a semantic refactorer. Preview it, inspect every file, and run your application tests.</p>
 
-    <h2 id="how-it-works">How Auto-Fix Works</h2>
+<h2 id="commands">Commands</h2>
+<div class="code-block"><span class="cmt"># Preview source-line rewrites</span>
+<span class="prompt">$ </span><span class="cmd">gate fix --dry-run</span>
 
-    <p>Gate's auto-fix engine rewrites source files using pattern-based text substitution, not an AST parser. This makes it fast and language-agnostic, but means rewrites follow predictable textual rules rather than semantic analysis. For each finding, Gate:</p>
+<span class="cmt"># Default: all tracked files</span>
+<span class="prompt">$ </span><span class="cmd">gate fix</span>
 
-    <ol>
-      <li>Derives an environment variable name from the rule, surrounding code context, or a SCREAMING_SNAKE_CASE fallback.</li>
-      <li>Replaces the hardcoded value in the source file with the language-appropriate env var lookup expression.</li>
-      <li>Appends the variable and its value to <code>.env</code> (creating the file if it does not exist).</li>
-      <li>Adds the variable name and a placeholder to <code>.env.example</code> so teammates know what to set.</li>
-      <li>Injects a dotenv loader at the top of the entry file if one is not already present (JavaScript/TypeScript only).</li>
-    </ol>
+<span class="cmt"># Narrower scopes</span>
+<span class="prompt">$ </span><span class="cmd">gate fix --staged</span>
+<span class="prompt">$ </span><span class="cmd">gate fix src/app.js config/</span>
+<span class="prompt">$ </span><span class="cmd">gate fix --file src/app.js</span>
 
-    <div class="info-box">
-      <strong>Pattern-based, not AST-based.</strong> Auto-fix is designed for the common case: a string literal assigned to a variable. If your code has unusual string construction (concatenation, template literals, etc.), Gate will flag the finding but may not be able to rewrite it automatically. In that case, fix it manually.
-    </div>
+<span class="cmt"># Restore the latest batch-fix snapshot when safe</span>
+<span class="prompt">$ </span><span class="cmd">gate fix --undo</span></div>
 
-    <h2 id="commands">Commands</h2>
+<p><code>gate fix</code> with no explicit target uses <code>git ls-files</code>, so it does not include untracked files. The command rescans its selected targets and exits non-zero if findings remain or a file could not be scanned.</p>
 
-    <table class="cmd-table">
-      <thead>
-        <tr>
-          <th>Command</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>gate fix</td>
-          <td>Run auto-fix on all findings in the current directory. Modifies files in place.</td>
-        </tr>
-        <tr>
-          <td>gate fix --dry-run</td>
-          <td>Show what would change without modifying any files.</td>
-        </tr>
-        <tr>
-          <td>gate fix --undo</td>
-          <td>Roll back the last auto-fix run for this repository using a stored snapshot.</td>
-        </tr>
-        <tr>
-          <td>gate fix [path]</td>
-          <td>Fix only the specified file or directory.</td>
-        </tr>
-        <tr>
-          <td>gate fix --interactive</td>
-          <td>Guided remediation walkthrough, one finding at a time.</td>
-        </tr>
-      </tbody>
-    </table>
+<h2 id="batch">What a batch fix changes</h2>
+<ol>
+  <li>Creates a local snapshot under <code>~/.gate/snapshots/&lt;repository-hash&gt;/</code>.</li>
+  <li>Attempts a line-based rewrite for each finding.</li>
+  <li>Writes extracted values to a repository-root <code>.env</code>.</li>
+  <li>Adds an exact <code>.env</code> line to <code>.gitignore</code> when missing.</li>
+  <li>Adds placeholder names to <code>.env.example</code>.</li>
+  <li>Checks whether extracted values remain in changed non-JSON source files, then the CLI runs a full pattern rescan of the targets.</li>
+</ol>
+<p>Core source rewrites generally use a same-directory temporary file and rename. The <code>.env</code>, <code>.gitignore</code>, <code>.env.example</code>, manifest, and some specialized paths do not all share that atomic boundary.</p>
 
-    <h2 id="language-support">Language Support</h2>
+<h2 id="languages">Current rewrite forms</h2>
+<table class="cmd-table">
+  <thead><tr><th>Files</th><th>Generated reference</th><th>Limit</th></tr></thead>
+  <tbody>
+    <tr><td>JS/JSX/MJS/CJS/TS/TSX</td><td><code>process.env.NAME</code></td><td>Adds dotenv setup only when <code>dotenv</code> is already declared; browser and bundled code may not have <code>process.env</code>.</td></tr>
+    <tr><td>Python</td><td><code>os.environ["NAME"]</code></td><td>May insert <code>import os</code>; does not provide environment loading.</td></tr>
+    <tr><td>Go</td><td><code>os.Getenv("NAME")</code></td><td>Attempts to edit imports with text patterns, not a Go parser.</td></tr>
+    <tr><td>Ruby</td><td><code>ENV["NAME"]</code></td><td>No framework-specific loading or validation.</td></tr>
+    <tr><td>Java</td><td><code>System.getenv("NAME")</code></td><td>No configuration binding or null handling.</td></tr>
+    <tr><td>YAML</td><td><code>${NAME}</code></td><td>Many YAML consumers do not interpolate this syntax.</td></tr>
+    <tr><td>Terraform</td><td><code>var.name</code></td><td>Does not create a variable declaration or secure Terraform input; the extracted value still goes to <code>.env</code>.</td></tr>
+    <tr><td>Dockerfile</td><td><code>ENV KEY=…</code> becomes <code>ARG KEY</code></td><td>Build arguments are not a secret store and may remain observable in build systems or image history.</td></tr>
+    <tr><td>JSON</td><td>No source rewrite</td><td>Extracts to <code>.env</code> and marks the item fixed internally, but leaves JSON unchanged; the command's final rescan should still fail.</td></tr>
+    <tr><td>Unknown extension</td><td>Defaults to <code>process.env.NAME</code></td><td>Can write JavaScript syntax into a non-JavaScript file. Do not auto-fix unknown types.</td></tr>
+  </tbody>
+</table>
 
-    <p>The table below shows how Gate rewrites each language and what expression replaces the hardcoded value.</p>
+<h2 id="text">Textual matching limits</h2>
+<p>The fixer operates on the reported physical line. It replaces a quoted secret, a larger quoted value containing the match, or a bare matching substring. It does not parse an AST, understand scopes, update tests, validate types, or know how configuration reaches production.</p>
+<ul>
+  <li>Multiple findings on one line can interact.</li>
+  <li>Inserted imports can shift later line numbers; Gate has limited adjustment logic.</li>
+  <li>Concatenation, templates, generated files, framework loaders, and unusual quoting can be wrong or unfixable.</li>
+  <li>YAML/Terraform/Docker substitutions may be syntactically valid but operationally unsafe.</li>
+</ul>
 
-    <table class="cmd-table">
-      <thead>
-        <tr>
-          <th>Language / Format</th>
-          <th>Rewritten expression</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>JavaScript / TypeScript</td>
-          <td>process.env.VAR_NAME</td>
-          <td>Dotenv loader injected if not present</td>
-        </tr>
-        <tr>
-          <td>Python</td>
-          <td>os.environ["VAR_NAME"]</td>
-          <td>import os injected at top of file if absent</td>
-        </tr>
-        <tr>
-          <td>Go</td>
-          <td>os.Getenv("VAR_NAME")</td>
-          <td>"os" added to import block if absent</td>
-        </tr>
-        <tr>
-          <td>Ruby</td>
-          <td>ENV["VAR_NAME"]</td>
-          <td>No import needed</td>
-        </tr>
-        <tr>
-          <td>Java</td>
-          <td>System.getenv("VAR_NAME")</td>
-          <td>No import needed</td>
-        </tr>
-        <tr>
-          <td>YAML</td>
-          <td>${VAR_NAME}</td>
-          <td>Standard YAML env interpolation syntax</td>
-        </tr>
-        <tr>
-          <td>Terraform</td>
-          <td>var.var_name</td>
-          <td>variable block appended to variables.tf</td>
-        </tr>
-        <tr>
-          <td>Dockerfile</td>
-          <td>ARG VAR_NAME</td>
-          <td>ENV instruction converted to ARG; value moved to build args</td>
-        </tr>
-        <tr>
-          <td>JSON</td>
-          <td>(value extracted only)</td>
-          <td>JSON has no env syntax; Gate extracts to .env, manual migration required</td>
-        </tr>
-      </tbody>
-    </table>
+<h2 id="env">Environment-file behavior</h2>
+<p>Known rule IDs map to names such as <code>STRIPE_SECRET_KEY</code> or <code>DATABASE_URL</code>; otherwise Gate derives a variable name from a simple JavaScript declaration or the rule ID. Values containing certain special characters are double-quoted and escaped.</p>
+<div class="warning-box"><strong>Existing-name conflict bug:</strong> Gate rewrites source to the canonical name before updating <code>.env</code>. If that name already exists with a different value, Gate writes <code>NAME_NEW</code> but does not update the source reference from <code>NAME</code>. Multiple different secrets mapped to the same name have the same risk. Resolve these conflicts manually before running the application.</div>
+<p>Requesting mode <code>0600</code> when writing does not necessarily tighten an already-existing file's permissions. Confirm the resulting mode, ownership, backups, sync destinations, and deployment process. <code>.gitignore</code> only affects future Git selection; it does not remove a file already tracked or a secret already committed.</p>
 
-    <h3>JavaScript / TypeScript detail</h3>
-    <div class="code-block"><span class="cmt">// Before</span>
-const stripe = <span class="kw">new</span> Stripe(<span class="str">"sk_live_51Hb3azLk...R4pM"</span>);
+<h2 id="dry-run">Dry run is a partial preview</h2>
+<p><code>--dry-run</code> shows proposed per-line changes and extracted variable names. It does not preview every import insertion, <code>.env</code> conflict rename, <code>.gitignore</code> edit, <code>.env.example</code> edit, snapshot, or runtime consequence. It is useful, but not a transaction plan.</p>
 
-<span class="cmt">// After</span>
-const stripe = <span class="kw">new</span> Stripe(process.env.<span class="val">STRIPE_SECRET_KEY</span>);</div>
+<h2 id="snapshots">Snapshots and undo</h2>
+<p>Batch fix snapshots can contain the original source and <code>.env</code> in plaintext. Gate keeps up to ten snapshot directories per repository hash and requests restrictive directory/manifest modes. Protect <code>~/.gate/snapshots</code> like any other secret-bearing store.</p>
+<p><code>gate fix --undo</code> restores or removes files from the newest snapshot only when their current hashes still match the post-fix manifest. Files changed since the fix are skipped to avoid overwriting later work. The used snapshot is removed after the attempt, including when some files conflict.</p>
+<p>Per-finding fixes chosen inside the interactive walkthrough call the lower-level fixer directly and do not create the same batch snapshot or <code>.env.example</code> workflow.</p>
 
-    <h3>Python detail</h3>
-    <div class="code-block"><span class="cmt"># Before</span>
-client = openai.OpenAI(api_key=<span class="str">"sk-proj-abc123..."</span>)
+<h2 id="vault">The interactive vault option</h2>
+<p>The <code>v</code> action encrypts a value into <code>~/.gate/vault.json</code> and replaces matching source text with <code>VAULT:&lt;12-hex-id&gt;</code>. Gate has an internal retrieval function but no CLI/runtime integration that teaches your application to resolve that marker. The replacement can therefore break the application until you build the integration yourself.</p>
 
-<span class="cmt"># After (import os injected at top of file)</span>
-<span class="kw">import</span> os
-client = openai.OpenAI(api_key=os.environ[<span class="str">"OPENAI_API_KEY"</span>])</div>
-
-    <h3>Go detail</h3>
-    <div class="code-block"><span class="cmt">// Before</span>
-cfg := aws.Config{Region: <span class="str">"us-east-1"</span>, Token: <span class="str">"AKIAIOSFODNN7EXAMPLE"</span>}
-
-<span class="cmt">// After ("os" added to imports)</span>
-<span class="kw">import</span> <span class="str">"os"</span>
-cfg := aws.Config{Region: <span class="str">"us-east-1"</span>, Token: os.Getenv(<span class="str">"AWS_ACCESS_KEY_ID"</span>)}</div>
-
-    <h3>Terraform detail</h3>
-    <div class="code-block"><span class="cmt"># Before</span>
-provider <span class="str">"aws"</span> {
-  access_key = <span class="str">"AKIAIOSFODNN7EXAMPLE"</span>
-}
-
-<span class="cmt"># After</span>
-provider <span class="str">"aws"</span> {
-  access_key = var.aws_access_key
-}
-
-<span class="cmt"># Appended to variables.tf</span>
-variable <span class="str">"aws_access_key"</span> {
-  description = <span class="str">"AWS access key"</span>
-  type        = string
-  sensitive   = true
-}</div>
-
-    <h2 id="env-file-handling">.env File Handling</h2>
-
-    <p>Gate writes extracted values to a <code>.env</code> file in the project root. The file is created if it does not exist. If it already exists, Gate appends new variables. Conflict resolution rules:</p>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">Variable not present</strong> -- appended as <code>VAR_NAME=value</code>.</li>
-      <li><strong style="color: var(--text-1);">Variable present with the same value</strong> -- no-op, nothing written.</li>
-      <li><strong style="color: var(--text-1);">Variable present with a different value</strong> -- new variable written as <code>VAR_NAME_NEW=value</code> with a comment noting the conflict. You resolve it manually.</li>
-    </ul>
-
-    <div class="code-block"><span class="cmt"># .env after gate fix</span>
-<span class="val">STRIPE_SECRET_KEY</span>=sk_live_51Hb3azLk...R4pM
-<span class="val">OPENAI_API_KEY</span>=sk-proj-abc123...
-
-<span class="cmt"># Conflict: STRIPE_SECRET_KEY already existed with a different value</span>
-<span class="cmt"># gate-conflict: resolve manually</span>
-<span class="val">STRIPE_SECRET_KEY_NEW</span>=sk_live_different...</div>
-
-    <h3>.env.example generation</h3>
-    <p>Gate also writes or updates <code>.env.example</code> with placeholder values so teammates know which variables to set. The actual values are never written to <code>.env.example</code>.</p>
-    <div class="code-block"><span class="cmt"># .env.example after gate fix</span>
-<span class="val">STRIPE_SECRET_KEY</span>=your_stripe_secret_key_here
-<span class="val">OPENAI_API_KEY</span>=your_openai_api_key_here</div>
-
-    <h2 id="dotenv-injection">Dotenv Loader Injection (JavaScript / TypeScript)</h2>
-
-    <p>For JavaScript and TypeScript projects, Gate automatically adds a dotenv import at the top of the detected entry file if one is not already present. Gate detects the module format from <code>package.json</code>:</p>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">CommonJS</strong> (<code>"type"</code> absent or <code>"commonjs"</code>) -- injects <code>require('dotenv').config()</code>.</li>
-      <li><strong style="color: var(--text-1);">ESM</strong> (<code>"type": "module"</code>) -- injects <code>import 'dotenv/config'</code>.</li>
-    </ul>
-
-    <div class="code-block"><span class="cmt">// CJS injection (index.js / server.js)</span>
-require(<span class="str">'dotenv'</span>).config();
-
-<span class="cmt">// ESM injection (index.js with "type": "module")</span>
-<span class="kw">import</span> <span class="str">'dotenv/config'</span>;</div>
-
-    <p>Gate also ensures <code>dotenv</code> is in <code>package.json</code> dependencies (adding it if absent) and runs <code>npm install</code> silently in the background.</p>
-
-    <h2 id="dry-run">Dry-Run Mode</h2>
-
-    <p>Use <code>gate fix --dry-run</code> to preview all changes without writing any files. The output shows a unified diff of what would change in each affected file, plus the new <code>.env</code> entries that would be written.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate fix --dry-run</span>
-
-<span class="dim">  --- src/api/payments.ts</span>
-<span class="dim">  +++ src/api/payments.ts (fixed)</span>
-<span class="err">  - const stripe = new Stripe("sk_live_51Hb3azLk...R4pM");</span>
-<span class="ok">  + const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);</span>
-
-<span class="dim">  .env (would append):</span>
-<span class="ok">  + STRIPE_SECRET_KEY=sk_live_51Hb3azLk...R4pM</span>
-
-<span class="dim">  1 file would be modified. 1 variable would be extracted.</span>
-<span class="dim">  Run without --dry-run to apply.</span></div>
-
-    <h2 id="undo">Undo</h2>
-
-    <p>Before making any changes, Gate saves a snapshot of every file it will modify. Snapshots are stored in <code>~/.gate/snapshots/</code>, keyed by the sha256 of the repository root path. Gate retains up to 10 snapshots per repository; older ones are automatically pruned.</p>
-
-    <p>To roll back the last fix run:</p>
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">gate fix --undo</span>
-
-<span class="dim">  Restoring 2 files from snapshot taken 3 minutes ago...</span>
-<span class="ok">  Restored src/api/payments.ts</span>
-<span class="ok">  Restored .env</span>
-<span class="dim">  Undo complete.</span></div>
-
-    <div class="info-box">
-      <strong>Undo only rolls back source files.</strong> It does not undo changes to your Git staging area or any commits you made after running gate fix. If you committed the changes, use <code>git revert</code> instead.
-    </div>
-
-    <h2 id="pre-commit-hooks">Pre-Commit Hook Behavior</h2>
-
-    <p>When Gate runs as a pre-commit hook and auto-fix is applied, Gate re-scans the fixed files. If the re-scan is clean, the fixed files are automatically re-staged so your commit includes the remediated code rather than the original.</p>
-
-    <p>If the re-scan still finds issues (for example, a second secret in the same file that auto-fix cannot handle), the commit is blocked and you are shown the remaining findings.</p>
-
-    <h2 id="env-var-naming">Env Var Name Derivation</h2>
-
-    <p>Gate derives the environment variable name for each finding in this order:</p>
-
-    <ol>
-      <li><strong style="color: var(--text-1);">Known mappings</strong> -- if the rule ID has a well-known canonical name (e.g., <code>stripe-secret-key</code> → <code>STRIPE_SECRET_KEY</code>), that name is used.</li>
-      <li><strong style="color: var(--text-1);">Code context</strong> -- Gate looks at the variable or key name in the surrounding code (e.g., <code>const apiKey = "..."</code> → <code>API_KEY</code>, <code>{"openai_key": "..."}</code> → <code>OPENAI_KEY</code>).</li>
-      <li><strong style="color: var(--text-1);">SCREAMING_SNAKE_CASE fallback</strong> -- if neither of the above yields a clean name, the rule ID is uppercased and dashes replaced with underscores (e.g., <code>generic-api-key</code> → <code>GENERIC_API_KEY</code>).</li>
-    </ol>
-
-    <p>In all cases, Gate deduplicates variable names within a single fix run. If two findings map to the same name but different values, the second gets a numeric suffix (<code>API_KEY_2</code>).</p>
-
-    <h2 id="see-also">See Also</h2>
-    <ul>
-      <li><a href="/gate/wiki/commands/">Commands Reference</a> -- full gate fix flag reference</li>
-      <li><a href="/gate/wiki/ignore-patterns/">Ignore Patterns</a> -- suppress findings that auto-fix cannot handle</li>
-      <li><a href="/gate/wiki/getting-started/">Getting Started</a> -- pre-commit hook setup</li>
-    </ul>
+<h2 id="safe-use">Safer workflow</h2>
+<ol>
+  <li>Rotate anything exposed outside the working tree.</li>
+  <li>Start from a clean, backed-up branch.</li>
+  <li>Use explicit targets and <code>--dry-run</code>.</li>
+  <li>Apply the change, then inspect source, imports, <code>.env</code>, <code>.gitignore</code>, and <code>.env.example</code>.</li>
+  <li>Run formatter, compiler/type checker, tests, and a manual application start.</li>
+  <li>Run Gate and an independent scanner again.</li>
+  <li>Commit only the reviewed source and placeholder files—never the extracted secret.</li>
+</ol>

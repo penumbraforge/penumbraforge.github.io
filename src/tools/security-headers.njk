@@ -30,7 +30,7 @@ permalink: /tools/security-headers/
   <div id="sh-checks"></div>
 </div>
 
-<div id="sh-empty" class="sh-empty-msg">Paste your HTTP response headers above to analyze their security posture.</div>
+<div id="sh-empty" class="sh-empty-msg">Paste HTTP response headers above to run the configured header checklist. This does not test the application or establish whether it is secure.</div>
 
 <style>
   .sh-score-wrap {
@@ -133,7 +133,7 @@ permalink: /tools/security-headers/
         if (!maxAge || parseInt(maxAge[1], 10) < 15768000) return { status: 'weak', points: 10, msg: 'max-age is below the recommended 6 months (15768000).' };
         return { status: 'present', points: 20, msg: null };
       },
-      description: 'Forces browsers to use HTTPS for your domain for the specified duration. Prevents SSL stripping attacks.',
+      description: 'Tells supporting browsers to use HTTPS for the specified duration after they learn the policy (or through preload). This reduces some downgrade exposure but does not validate the application or certificate deployment.',
       recommendation: 'Strict-Transport-Security: max-age=31536000; includeSubDomains; preload'
     },
     {
@@ -144,7 +144,7 @@ permalink: /tools/security-headers/
         if (/unsafe-inline|unsafe-eval|\*/i.test(val)) return { status: 'weak', points: 10, msg: "CSP contains 'unsafe-inline', 'unsafe-eval', or wildcard (*) — these significantly weaken XSS protection." };
         return { status: 'present', points: 25, msg: null };
       },
-      description: 'Controls which resources the browser is allowed to load. A well-crafted CSP is the strongest defense against XSS attacks.',
+      description: 'Controls which resources the browser may load. A carefully tested policy can reduce the impact of some injection flaws, but it is not a substitute for safe output handling and application review.',
       recommendation: "Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'"
     },
     {
@@ -155,7 +155,7 @@ permalink: /tools/security-headers/
         if (val.trim().toLowerCase() !== 'nosniff') return { status: 'weak', points: 5, msg: "Value should be exactly 'nosniff'." };
         return { status: 'present', points: 10, msg: null };
       },
-      description: "Prevents browsers from MIME-sniffing a response away from the declared content type. Mitigates drive-by download attacks.",
+      description: "Asks supporting browsers not to reinterpret a response away from its declared content type, reducing some content-confusion risks.",
       recommendation: 'X-Content-Type-Options: nosniff'
     },
     {
@@ -167,7 +167,7 @@ permalink: /tools/security-headers/
         if (v !== 'DENY' && v !== 'SAMEORIGIN' && !v.startsWith('ALLOW-FROM')) return { status: 'weak', points: 5, msg: "Use DENY or SAMEORIGIN." };
         return { status: 'present', points: 10, msg: null };
       },
-      description: 'Prevents your page from being embedded in iframes on other origins. Defends against clickjacking attacks. Note: CSP frame-ancestors supersedes this header.',
+      description: 'Restricts framing in supporting browsers and can mitigate some clickjacking scenarios. CSP frame-ancestors is the modern, more flexible control.',
       recommendation: 'X-Frame-Options: DENY'
     },
     {
@@ -180,7 +180,7 @@ permalink: /tools/security-headers/
         if (!good.includes(v)) return { status: 'weak', points: 2, msg: 'Consider a stricter policy such as strict-origin-when-cross-origin.' };
         return { status: 'present', points: 5, msg: null };
       },
-      description: 'Controls how much referrer information is sent with requests. Prevents leaking sensitive URL paths to third parties.',
+      description: 'Controls how much referrer information is sent with requests and can reduce disclosure of URL details to other origins.',
       recommendation: 'Referrer-Policy: strict-origin-when-cross-origin'
     },
     {
@@ -267,12 +267,12 @@ permalink: /tools/security-headers/
 
     var pct = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
     var grade, gradeClass, desc;
-    if (pct >= 90) { grade = 'A+'; gradeClass = 'A'; desc = 'Excellent security header configuration. Keep headers up to date as new threats emerge.'; }
-    else if (pct >= 80) { grade = 'A'; gradeClass = 'A'; desc = 'Strong security headers. Consider adding any missing optional headers.'; }
-    else if (pct >= 65) { grade = 'B'; gradeClass = 'B'; desc = 'Good baseline. A few improvements would significantly strengthen your security posture.'; }
-    else if (pct >= 50) { grade = 'C'; gradeClass = 'C'; desc = 'Several important security headers are missing or misconfigured. Review the findings below.'; }
-    else if (pct >= 30) { grade = 'D'; gradeClass = 'D'; desc = 'Multiple critical security headers are absent. Your site is vulnerable to common web attacks.'; }
-    else { grade = 'F'; gradeClass = 'F'; desc = 'Critical security headers are missing. Implement CSP and HSTS at minimum before going to production.'; }
+    if (pct >= 90) { grade = 'A+'; gradeClass = 'A'; desc = 'Excellent result on this header checklist.'; }
+    else if (pct >= 80) { grade = 'A'; gradeClass = 'A'; desc = 'Strong result on this header checklist; review any missing optional headers.'; }
+    else if (pct >= 65) { grade = 'B'; gradeClass = 'B'; desc = 'Good result on this header checklist; review the findings below.'; }
+    else if (pct >= 50) { grade = 'C'; gradeClass = 'C'; desc = 'Several configured headers are missing or differ from this checklist.'; }
+    else if (pct >= 30) { grade = 'D'; gradeClass = 'D'; desc = 'Many configured headers are absent. Missing headers can leave some browser mitigations unavailable.'; }
+    else { grade = 'F'; gradeClass = 'F'; desc = 'Most configured headers are absent. This checklist does not establish whether the application is vulnerable.'; }
 
     emptyEl.style.display = 'none';
     resultsEl.style.display = '';

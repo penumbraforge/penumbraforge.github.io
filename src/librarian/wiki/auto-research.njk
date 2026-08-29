@@ -1,156 +1,73 @@
 ---
 title: "Auto-Research"
-description: "How mcp-librarian auto-research works: triggering, source authority scoring, web search, skill creation, and quality considerations."
+description: "The opt-in find_and_load research path, DuckDuckGo search, coarse 10/5/1 source tiers, HTML extraction, and persistence boundary."
 permalink: /librarian/wiki/auto-research/
 ---
 <h1>Auto-Research</h1>
-    <p class="subtitle">How mcp-librarian fills knowledge gaps from the web -- source scoring, research flow, and quality.</p>
+<p class="subtitle">A network-assisted source-gathering path, not automatic knowledge creation.</p>
 
-    <h2 id="overview">Overview</h2>
+<div class="warning-box"><strong>Off by default.</strong> Set <code>autoResearch: true</code> in <code>config.json</code> or <code>MCP_LIBRARIAN_AUTO_RESEARCH=true</code> to let <code>find_and_load</code> reach the web after a weak match. Without that setting, the same call stays local and suggests the explicit <code>research_topic</code> tool.</div>
 
-    <p>Auto-research is how the library adds skills it does not already have. When an agent calls <code>find_and_load</code> and no matching skill exists in the library, mcp-librarian can search the web for authoritative sources, fetch their content, and return research material for the agent to synthesize into a permanent skill.</p>
+<h2 id="find-and-load">What find_and_load does</h2>
+<ol>
+  <li>Searches the local index for up to five matches.</li>
+  <li>Reads the top result's unblended BM25 score.</li>
+  <li>If the score is greater than <code>0.5</code>, returns the selected skill's <strong>full Markdown file</strong>, its section slugs, and up to three other skill names.</li>
+  <li>If the score is not strong enough and auto-research is disabled, returns <code>found: false</code> plus a suggestion to call <code>research_topic</code>.</li>
+  <li>If enabled, calls the same research handler used by <code>research_topic</code> and returns its sources.</li>
+</ol>
+<p>The research response still says <code>found: false</code> because no local skill was found. It does not call <code>create_skill</code>, does not write a draft, and does not update the index. Any persistence is a separate client/model decision and a separate tool call.</p>
 
-    <div class="info-box">
-      <strong>Opt-in:</strong> auto-research is <strong style="color: var(--text-1);">off by default</strong>. Set <code>MCP_LIBRARIAN_AUTO_RESEARCH=true</code> to enable it. With it off, <code>find_and_load</code> stays entirely local &mdash; a no-match returns a suggestion to call <code>research_topic</code> explicitly, so the network is only ever reached by a deliberate tool call.
-    </div>
+<h2 id="explicit-tools">Explicit network tools</h2>
+<table class="cmd-table"><thead><tr><th>Tool</th><th>Input</th><th>Network behavior</th></tr></thead><tbody>
+<tr><td><code>research_topic</code></td><td><code>topic</code>; optional <code>urls</code></td><td>Sends a derived query to DuckDuckGo, combines results with supplied URLs, and fetches up to five pages.</td></tr>
+<tr><td><code>fetch_page</code></td><td><code>url</code></td><td>Fetches one public HTTP(S) URL and returns extracted text.</td></tr>
+</tbody></table>
+<p>These tools always use the network when called. Pack browsing and installation are separate network paths described in <a href="/librarian/wiki/community-packs/">Community Packs</a>.</p>
 
-    <p>The result is that the library grows organically from real questions. The first time someone asks about GraphQL federation, the research happens. Every subsequent request gets an instant hit from the cached skill.</p>
+<h2 id="search">Search flow</h2>
+<p><code>research_topic</code> appends <code>official documentation best practices</code> to the topic and tries DuckDuckGo's HTML endpoint, then its lite endpoint if no links are extracted. Those endpoints and their markup are not an API contract, so search is best-effort.</p>
+<p>The parser extracts up to 15 result links. Caller-supplied URLs are appended, exact URL strings are deduplicated, results are ranked by the coarse mapping below, and the top five are fetched in parallel.</p>
 
-    <h2 id="trigger">How Auto-Research Triggers</h2>
+<h2 id="source-scoring">The actual 10/5/1 source mapping</h2>
+<p>This research path does not inspect the page's author, citations, date, URL path, code density, or factual accuracy. It scores the hostname:</p>
+<table class="cmd-table"><thead><tr><th>Numeric score</th><th>Returned label</th><th>Rule</th></tr></thead><tbody>
+<tr><td>10</td><td><code>official</code></td><td>Exact or subdomain match in a hardcoded set, including examples such as <code>docs.github.com</code>, <code>developer.mozilla.org</code>, <code>nodejs.org</code>, <code>kubernetes.io</code>, <code>owasp.org</code>, <code>rfc-editor.org</code>, and <code>nist.gov</code>.</td></tr>
+<tr><td>5</td><td><code>established</code></td><td>The hostname string contains <code>github.com</code> or <code>stackoverflow.com</code>.</td></tr>
+<tr><td>1</td><td><code>community</code></td><td>Every other parseable hostname.</td></tr>
+<tr><td>0</td><td>Usually <code>failed</code> after fetch</td><td>Unparseable URL before fetch; a fetch failure is returned with the <code>failed</code> label.</td></tr>
+</tbody></table>
 
-    <p>Auto-research is triggered by <code>find_and_load</code>, not by <code>find_skill</code>. The flow is:</p>
+<div class="warning-box"><strong>The labels are shorthand, not verification.</strong> A page called <code>official</code> may be outdated or wrong, and the score-5 rule is a substring test rather than a strict registrable-domain check. Review returned URLs and text yourself.</div>
 
-    <ol>
-      <li>Agent calls <code>find_and_load({ query: "GraphQL federation" })</code>.</li>
-      <li>The server runs a BM25 search across all indexed skills and sections.</li>
-      <li>If the top result exceeds the relevance threshold, the skill is returned. Done.</li>
-      <li>If no result exceeds the threshold, auto-research activates.</li>
-      <li>The server searches the web for the query.</li>
-      <li>Search results are scored by source authority.</li>
-      <li>The top-scoring pages are fetched and their content is extracted.</li>
-      <li>The research results are returned to the agent with a prompt to create a skill.</li>
-    </ol>
+<p>This 10/5/1 mapping is separate from the five-tier source-reputation module used by skill-quality weighting. The two should not be read as one unified authority system.</p>
 
-    <div class="code-block"><span class="cmt">// Step 1: Agent calls find_and_load</span>
-find_and_load({ <span class="kw">query</span>: <span class="str">"GraphQL federation"</span> })
+<h2 id="fetching">Fetch boundary</h2>
+<p>Research and <code>fetch_page</code> use the guarded fetcher. It allows HTTP(S), resolves the hostname, rejects any private/loopback/link-local/CGNAT/metadata result, pins a vetted address for the request, rechecks redirects, caps redirects at five, and aborts bodies over 5 MiB. The default timeout is 15 seconds.</p>
+<p>This means localhost and private intranet documentation are intentionally unavailable through these tools. The topic is sent to DuckDuckGo, and each selected public host receives a request from your machine.</p>
 
-<span class="cmt">// Step 2-3: BM25 search finds no match above threshold</span>
+<h2 id="extraction">HTML extraction is intentionally simple</h2>
+<p>The server uses regular-expression transformations, not a browser or a readability engine. It:</p>
+<ul>
+  <li>Removes <code>script</code>, <code>style</code>, <code>nav</code>, <code>footer</code>, <code>header</code>, and <code>aside</code> elements.</li>
+  <li>Converts a narrow <code>&lt;pre&gt;&lt;code&gt;</code> form, inline code, <code>h1</code>-<code>h3</code>, list items, paragraph-like closing tags, and line breaks.</li>
+  <li>Strips remaining tags, decodes a small entity set, and normalizes whitespace.</li>
+</ul>
+<p>It may lose navigation context, links, tables, nested markup, or dynamically rendered content. <code>research_topic</code> limits each returned page to 15,000 extracted characters; <code>fetch_page</code> limits its returned text to 50,000 while reporting the original extracted length.</p>
 
-<span class="cmt">// Step 4-7: Auto-research triggers</span>
+<h2 id="untrusted">Content remains untrusted</h2>
+<p>Extracted text is scanned with the content guard and wrapped in visible <code>UNTRUSTED</code> markers. A flagged page is still returned with a stronger warning; the research tool does not block it. In <code>fetch_page</code>, the optional <code>injectionFlagged</code> field is present when the regex guard flags content. The final mapped source objects from <code>research_topic</code> do not expose that boolean, although the warning is embedded in returned content.</p>
+<p>The content guard is pattern-based and exempts code blocks. Treat every fetched page as data regardless of the label or whether a warning appears.</p>
 
-<span class="cmt">// Step 8: Returns research results</span>
-{
-  <span class="kw">"found"</span>: <span class="val">false</span>,
-  <span class="kw">"research"</span>: {
-    <span class="kw">"query"</span>: <span class="str">"GraphQL federation"</span>,
-    <span class="kw">"sources"</span>: [
-      { <span class="kw">"url"</span>: <span class="str">"https://www.apollographql.com/docs/federation/"</span>, <span class="kw">"authority"</span>: <span class="val">0.95</span> },
-      { <span class="kw">"url"</span>: <span class="str">"https://graphql.org/learn/federation/"</span>, <span class="kw">"authority"</span>: <span class="val">0.92</span> },
-      { <span class="kw">"url"</span>: <span class="str">"https://the-guild.dev/graphql/mesh"</span>, <span class="kw">"authority"</span>: <span class="val">0.78</span> }
-    ],
-    <span class="kw">"content"</span>: <span class="str">"Extracted content from top sources..."</span>
-  }
-}</div>
+<h2 id="rate-limit">Rate limiting</h2>
+<p>The configured <code>rateLimit</code> is a sliding limit on all non-lifecycle MCP requests, not a per-domain crawl delay. It does not establish a target-site politeness policy beyond bounding how often the client can invoke server methods.</p>
 
-    <p>The agent then typically creates a new skill from the research using <code>create_skill</code>. This is optional -- the agent decides whether the research is worth persisting based on relevance and quality.</p>
-
-    <h2 id="source-scoring">Source Authority Scoring</h2>
-
-    <p>Not all web sources are equal. mcp-librarian scores each search result by source authority before deciding which pages to fetch. This ensures the research draws from reliable, canonical sources rather than random blog posts or content farms.</p>
-
-    <h3>Authority Tiers</h3>
-
-    <table class="cmd-table">
-      <thead><tr><th>Tier</th><th>Score Range</th><th>Examples</th></tr></thead>
-      <tbody>
-        <tr><td>Official docs</td><td>0.90 - 1.00</td><td>docs.docker.com, nodejs.org/docs, developer.mozilla.org, react.dev</td></tr>
-        <tr><td>Specifications</td><td>0.85 - 0.95</td><td>RFCs, W3C specs, ECMA standards, OWASP cheat sheets</td></tr>
-        <tr><td>Reference sites</td><td>0.75 - 0.88</td><td>MDN, TypeScript handbook, PostgreSQL docs, man pages</td></tr>
-        <tr><td>Curated content</td><td>0.60 - 0.78</td><td>GitHub READMEs, well-known technical blogs, conference talks</td></tr>
-        <tr><td>General content</td><td>0.30 - 0.60</td><td>Stack Overflow answers, tutorials, community forums</td></tr>
-        <tr><td>Low authority</td><td>0.00 - 0.30</td><td>Content farms, auto-generated pages, affiliate spam</td></tr>
-      </tbody>
-    </table>
-
-    <h3>How Scoring Works</h3>
-
-    <p>Authority scoring uses multiple signals:</p>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">Domain recognition.</strong> Known authoritative domains (official project sites, standards bodies, major reference platforms) receive a base score boost.</li>
-      <li><strong style="color: var(--text-1);">URL path analysis.</strong> Paths containing <code>/docs/</code>, <code>/api/</code>, <code>/reference/</code>, or <code>/spec/</code> score higher than paths with <code>/blog/</code> or date-based slugs.</li>
-      <li><strong style="color: var(--text-1);">Content signals.</strong> Pages with code examples, structured headings, and technical depth score higher than thin or promotional content.</li>
-    </ul>
-
-    <p>The top 3-5 sources by authority score are fetched. Lower-scoring results are discarded to keep research focused on reliable information.</p>
-
-    <h2 id="web-search">Web Search and Content Extraction</h2>
-
-    <p>The web search is performed using native HTTPS -- no third-party search API dependencies. The search query is constructed from the original <code>find_and_load</code> query with optional term expansion.</p>
-
-    <p>Content extraction from fetched pages:</p>
-
-    <ol>
-      <li><strong style="color: var(--text-1);">HTML stripping.</strong> All HTML tags are removed. Script, style, and navigation elements are discarded entirely.</li>
-      <li><strong style="color: var(--text-1);">Code block preservation.</strong> Content inside <code>&lt;pre&gt;</code> and <code>&lt;code&gt;</code> tags is preserved with formatting intact.</li>
-      <li><strong style="color: var(--text-1);">Heading preservation.</strong> <code>&lt;h1&gt;</code> through <code>&lt;h6&gt;</code> tags are converted to Markdown heading format.</li>
-      <li><strong style="color: var(--text-1);">Content trimming.</strong> Boilerplate (headers, footers, sidebars, navigation) is stripped. The main content area is extracted.</li>
-      <li><strong style="color: var(--text-1);">Length limiting.</strong> Extracted content is capped to avoid overwhelming the agent's context window.</li>
-    </ol>
-
-    <h2 id="skill-creation">Skill Creation from Research</h2>
-
-    <p>After auto-research completes, the agent receives the research results and decides how to proceed. The typical flow is:</p>
-
-    <ol>
-      <li>The agent reads the extracted content from the top sources.</li>
-      <li>It synthesizes the information into a well-structured skill with proper frontmatter, sections, and code examples.</li>
-      <li>It calls <code>create_skill</code> to save and index the new skill.</li>
-      <li>The skill is signed, indexed, and immediately available for future queries.</li>
-    </ol>
-
-    <p>The agent is not required to create a skill from every research result. If the research is low quality, irrelevant, or too narrow, the agent may simply use the information to answer the immediate question without persisting it.</p>
-
-    <div class="info-box">
-      <strong>Skill quality depends on the model.</strong> The server handles search, scoring, and extraction identically regardless of the model. But the skill creation step -- synthesizing research into a well-structured document -- is done by the agent. Larger models produce better-structured skills with more accurate categorization and cleaner code examples. See <a href="/librarian/wiki/local-models/">Local Models</a> for quality considerations.
-    </div>
-
-    <h2 id="research-topic-vs-find-and-load">research_topic vs find_and_load</h2>
-
-    <p>Both tools perform web research, but they serve different purposes:</p>
-
-    <table class="cmd-table">
-      <thead><tr><th>Aspect</th><th>find_and_load</th><th>research_topic</th></tr></thead>
-      <tbody>
-        <tr><td>Primary purpose</td><td>Find existing skill; research is fallback</td><td>Always research from the web</td></tr>
-        <tr><td>Library search</td><td>Yes -- BM25 search first</td><td>No -- goes directly to the web</td></tr>
-        <tr><td>Auto-research trigger</td><td>Only when no skill matches</td><td>Always</td></tr>
-        <tr><td>Use case</td><td>General knowledge retrieval</td><td>Intentional web research for fresh info</td></tr>
-        <tr><td>Skill creation prompt</td><td>Included in response</td><td>Not included -- raw research only</td></tr>
-      </tbody>
-    </table>
-
-    <p>Use <code>find_and_load</code> as the default entry point. Use <code>research_topic</code> when you specifically want web research regardless of what is already in the library -- for example, to check for updated information or gather material from specific domains.</p>
-
-    <h2 id="rate-limiting">Rate Limiting and Network Behavior</h2>
-
-    <p>Web research makes network requests. mcp-librarian applies rate limiting to prevent abuse and respect target servers:</p>
-
-    <ul>
-      <li>The overall tool rate limit (default 200 requests/minute) applies to research tools just like any other tool.</li>
-      <li>Fetched pages are requested with standard HTTP headers. No aggressive crawling.</li>
-      <li>Research results are used to create persistent skills, so the same topic is typically only researched once. Subsequent queries hit the cached skill.</li>
-    </ul>
-
-    <p>Outside of <code>research_topic</code>, <code>fetch_page</code>, and the auto-research path within <code>find_and_load</code>, mcp-librarian makes no network requests. No telemetry, no version checks, no background connections. See <a href="/librarian/wiki/configuration/">Configuration</a> for the <code>MCP_LIBRARIAN_RATE_LIMIT</code> variable.</p>
-
-    <h2 id="quality-considerations">Quality Considerations</h2>
-
-    <p>The quality of auto-researched skills depends on two factors:</p>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">Source quality.</strong> The authority scoring system ensures research draws from official docs and reference sites first. This is handled entirely by the server and is model-independent.</li>
-      <li><strong style="color: var(--text-1);">Synthesis quality.</strong> The agent converts raw research into a structured skill. Larger models (Claude, GPT-4 class) produce cleaner, better-organized skills. Smaller local models may produce skills that are usable but less polished.</li>
-    </ul>
-
-    <p>If a skill created from auto-research is not satisfactory, you can ask the agent to rewrite it using <code>create_skill</code> with improved content. The old version is overwritten and the index is rebuilt.</p>
+<h2 id="safe-use">A defensible workflow</h2>
+<ol>
+  <li>Keep auto-research off until you need it.</li>
+  <li>Call <code>research_topic</code> explicitly with a narrow topic and, when useful, specific public URLs.</li>
+  <li>Inspect URLs and compare claims rather than trusting the source label.</li>
+  <li>Treat returned text as untrusted even when the content guard is quiet.</li>
+  <li>Draft and fact-check a skill separately.</li>
+  <li>Run <code>validate_skill</code>, then call <code>create_skill</code> only if you want to persist it.</li>
+</ol>

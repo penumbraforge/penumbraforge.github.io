@@ -12,7 +12,7 @@
 </div>
 
 <script id="cpData" type="application/json">
-[{% for t in tools %}{% if t.status == "live" %}{"s":"{{ t.slug }}","n":"{{ t.name | replace('"','') }}","c":"{{ t.category }}","d":"{{ t.description | replace('"','') | replace('\n',' ') }}","k":"{{ (t.keywords or []) | join(' ') }}"{% if t.isNew %},"new":1{% endif %}}{% if not loop.last %},{% endif %}{% endif %}{% endfor %}]
+[{% for t in tools %}{% if t.status == "live" %}{"s":{{ t.slug | dump | safe }},"n":{{ t.name | dump | safe }},"c":{{ t.category | dump | safe }},"d":{{ (t.description | replace('\n',' ')) | dump | safe }},"k":{{ ((t.keywords or []) | join(' ')) | dump | safe }}{% if t.isNew %},"new":1{% endif %}}{% if not loop.last %},{% endif %}{% endif %}{% endfor %}]
 </script>
 
 <style>
@@ -165,7 +165,7 @@ import { TOOLS } from '/js/tools-lib.js';
       var head = document.createElement('div'); head.className = 'cp-run-head';
       var badge = document.createElement('span'); badge.className = 'cp-run-badge'; badge.textContent = '⚡ ' + intent.label;
       head.appendChild(badge);
-      if (slug) { var a = document.createElement('a'); a.className = 'cp-run-open'; a.href = '/tools/' + slug + '/' + (payload ? '?in=' + encodeURIComponent(payload) : ''); a.textContent = 'open tool →'; head.appendChild(a); }
+      if (slug) { var a = document.createElement('a'); a.className = 'cp-run-open'; a.href = '/tools/' + slug + '/' + (payload ? '#in=' + encodeURIComponent(payload) : ''); a.textContent = 'open tool →'; head.appendChild(a); }
       var pre = document.createElement('pre'); pre.className = 'cp-run-out'; pre.textContent = out;
       var copy = document.createElement('button'); copy.className = 'cp-run-copy'; copy.textContent = 'copy';
       copy.addEventListener('click', function (e) { e.stopPropagation(); if (navigator.clipboard) navigator.clipboard.writeText(out); copy.textContent = 'copied'; setTimeout(function () { copy.textContent = 'copy'; }, 1200); });

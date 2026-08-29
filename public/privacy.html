@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Privacy Policy — Penumbra Forge</title>
+    <meta name="description" content="How Penumbra Forge browser, worker, direct-network, and selectable-AI routes handle data.">
+    <link rel="canonical" href="https://penumbraforge.com/privacy.html">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; background: #050509; color: #999; max-width: 700px; margin: 0 auto; padding: 48px 24px; line-height: 1.8; font-size: 14px; }
@@ -24,39 +26,50 @@
 <body>
     <a href="/" class="back">&larr; Back to Penumbra Forge</a>
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: August 12, 2026</p>
+    <p class="updated">Last updated: August 29, 2026</p>
 
     <h2>Overview</h2>
-    <p>Penumbra Forge LLC ("Penumbra Forge") is an independent software company building privacy-first AI and security tools. We build tools and open source software designed to respect your privacy by default. This policy covers penumbraforge.com and all services we operate.</p>
+    <p>Penumbra Forge LLC ("Penumbra Forge") is an independent software company building developer, AI, and security tools. Some routes are browser-local and others use workers, third-party services, or endpoints you configure; this policy describes those differences. It covers penumbraforge.com and the services we operate.</p>
 
-    <h2>What We Don't Collect</h2>
-    <p>The vast majority of our tools run entirely in your browser. Your data never leaves your device. We do not collect, store, or transmit:</p>
+    <h2>How Data Moves</h2>
+    <p>Many tools run entirely in the browser, but not every feature is offline. Each tool page labels its route as browser, edge, network, or selectable AI and includes a short disclosure. Do not assume that every Penumbra Forge tool keeps input on your device.</p>
     <ul>
-        <li>Input you provide to browser-based tools (JSON, hashes, passwords, etc.)</li>
-        <li>Prompts, files, or embeddings used with the local AI tools</li>
-        <li>Personal information, accounts, or login credentials (we have no accounts)</li>
-        <li>Cookies for tracking or advertising</li>
+        <li><strong>Browser tools:</strong> processing stays in the page unless the tool's disclosure says it makes a network request.</li>
+        <li><strong>Edge tools:</strong> the URL, domain, or secret you submit is sent to a Cloudflare Worker operated by Penumbra Forge.</li>
+        <li><strong>Direct network tools:</strong> your browser contacts the destination or third-party API named on the tool page; that service receives the request.</li>
+        <li><strong>AI tools:</strong> WebGPU mode runs inference in the page after downloading model files. Local-server mode sends prompts, files, passages, or embeddings to the endpoint you configure. API-key mode sends the material needed for the request to the provider URL you configure.</li>
+        <li><strong>Snake multiplayer:</strong> room and session-description data pass through Penumbra Forge's signaling worker, the browser contacts Google STUN for NAT discovery, and play then uses a direct WebRTC peer connection. The signaling service, Google, network intermediaries, and the other player may observe network metadata including IP addresses. Solo mode stays in the page.</li>
+        <li><strong>Passkey Inspector live-create:</strong> the page asks your authenticator or password manager to create a real credential scoped to penumbraforge.com. Returned registration data is not submitted to an application server, but the authenticator may retain or sync the credential.</li>
     </ul>
+    <p>The site has no user accounts and does not use advertising cookies. Favorites, recent tools, AI settings, and any API key you choose to save are stored in your browser's local storage. Anyone with access to that browser profile may be able to read them. Tool-invocation fragments such as <code>#in=</code> are not sent in the HTTP request; legacy query-string inputs are sent to the hosting/CDN layer before the tool page runs.</p>
 
     <h2>Analytics</h2>
-    <p>We use Cloudflare Web Analytics, a privacy-focused analytics service that does not use cookies, does not track individual visitors, and does not collect personal data. It provides aggregate page view counts only. No data is shared with third parties for advertising.</p>
+    <p>We use Cloudflare Web Analytics for aggregate traffic measurements. Penumbra Forge does not use it for advertising or set its own analytics cookies. Cloudflare still processes request and device metadata under its own privacy policy.</p>
 
-    <h2>Edge Workers</h2>
-    <p>A small number of tools (such as Site Score) use Cloudflare Workers to make requests on your behalf — for example, fetching HTTP headers from a URL you provide. These requests are processed in real time and not logged or stored.</p>
+    <h2>Edge Workers and the Remote MCP Endpoint</h2>
+    <p>Site Score, Privacy Scan, and CT Monitor send the submitted URL or domain to a Cloudflare Worker, which makes the requested lookup. The remote MCP endpoint likewise receives the arguments needed for the tool call. Hosting and security infrastructure may create ordinary request metadata or logs; do not send sensitive material merely because a worker normally processes a payload in memory.</p>
+    <p>One-Time Secret is different: it is not end-to-end encrypted. The secret is sent to a worker and stored in eventually consistent Cloudflare KV. The worker requests deletion after retrieval, but read and delete are not atomic, so concurrent or geographically separated requests may retrieve it more than once before deletion propagates. The worker operator could read the value. Use browser-local Secret Lock first if that is unacceptable.</p>
 
     <h2>Open Source Products</h2>
-    <p>Our open source tools (Gate, vexes, mcp-librarian) run locally on your machine. They do not phone home, collect telemetry, or transmit data to Penumbra Forge or any third party. Their source code is publicly auditable on GitHub.</p>
+    <p>Gate, vexes, and mcp-librarian run on your machine and do not require a Penumbra Forge account, but some requested features contact other services:</p>
+    <ul>
+        <li><strong>Gate</strong> can send a bounded credential value to the relevant provider API when you explicitly enable credential verification.</li>
+        <li><strong>vexes</strong> sends package coordinates to OSV, deps.dev, and package registries, can download package archives for deep analysis, and can send sanitized finding data to a model endpoint when AI explanation is explicitly configured.</li>
+        <li><strong>mcp-librarian</strong> makes outbound requests when a network or research tool is invoked. The destination receives the requested URL or query.</li>
+    </ul>
+    <p>These projects do not intentionally send telemetry to Penumbra Forge. Consult each project's documentation and configuration before using it with sensitive data.</p>
 
     <h2>Third-Party Services</h2>
     <p>The site uses:</p>
     <ul>
         <li><strong>GitHub Pages</strong> — hosting (subject to <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub's privacy statement</a>)</li>
-        <li><strong>Cloudflare</strong> — CDN, DNS, and privacy-focused analytics</li>
+        <li><strong>Cloudflare</strong> — CDN, DNS, analytics, and edge-worker hosting (subject to <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare's privacy policy</a>)</li>
         <li><strong>Google Fonts</strong> — font delivery (subject to <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's privacy policy</a>)</li>
+        <li><strong>User-selected services</strong> — AI providers, package registries, OSV, deps.dev, Have I Been Pwned, api.ipify.org, target websites, and other destinations contacted only by the features that name them.</li>
     </ul>
 
     <h2>Data Retention</h2>
-    <p>We do not retain user data because we do not collect it. Any data you enter into our tools exists only in your browser's memory and is discarded when you close the page.</p>
+    <p>Browser-local state remains until you clear site data. One-Time Secret retains its submitted value until TTL expiry or until a post-retrieval KV deletion propagates. User-selected providers and destinations apply their own retention policies. Penumbra Forge does not promise that CDN, hosting, abuse-prevention, or worker infrastructure creates no operational logs.</p>
 
     <h2>Children's Privacy</h2>
     <p>Our services are not directed at children under 13. We do not knowingly collect information from children.</p>

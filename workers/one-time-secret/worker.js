@@ -1,16 +1,17 @@
 /**
  * One-Time Secret — Cloudflare Worker + KV
  *
- * POST /api/secrets  — Create a burn-after-reading secret
+ * POST /api/secrets  — Create a best-effort burn-after-read secret
  *   Body: { "secret": "...", "ttl": 86400 }
  *   Returns: { "id": "...", "expires": "..." }
  *
- * GET /api/secrets/:id  — Retrieve and permanently delete
+ * GET /api/secrets/:id  — Retrieve, then request deletion
  *   Returns: { "secret": "..." }
- *   Subsequent requests: 404
  *
  * All secrets are stored in KV with a TTL (default 24h, max 7d).
- * Retrieval is atomic: read + delete in one request.
+ * Cloudflare KV is eventually consistent; get + delete is not atomic.
+ * Concurrent or geographically separated reads may retrieve the same value
+ * before deletion propagates. TTL is the final expiry boundary.
  */
 
 const CORS_HEADERS = {
@@ -95,7 +96,8 @@ export default {
       return jsonResponse({ id, expires: expiresAt }, 201, origin, env);
     }
 
-    // GET /api/secrets/:id — retrieve and burn
+    // GET /api/secrets/:id — retrieve, then request deletion. KV does not
+    // provide an atomic read-and-delete transaction.
     if (request.method === 'GET' && url.pathname.startsWith('/api/secrets/')) {
       if (env.RL_READ) {
         const { success } = await env.RL_READ.limit({ key: ip });
@@ -116,7 +118,7 @@ export default {
         return jsonResponse({ error: 'Secret not found — it may have already been viewed or expired' }, 404, origin, env);
       }
 
-      // Burn after reading — delete immediately
+      // Best-effort burn after reading; propagation is eventually consistent.
       await env.OTS_KV.delete(id);
 
       return jsonResponse({ secret }, 200, origin, env);

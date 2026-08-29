@@ -1,11 +1,11 @@
 /* ============================================================
-   Penumbra Forge — Local AI Engine
-   One abstraction, three engines, all private:
-     • webgpu — runs a real LLM in your browser (WebLLM). Nothing uploaded.
-     • local  — talks to YOUR local server (Ollama / LM Studio / any
-                OpenAI-compatible endpoint). Model runs on your hardware.
-     • cloud  — bring-your-own key; sent only to the endpoint you choose.
-   Config persists in localStorage ('pf:ai'). Output is always TEXT —
+   Penumbra Forge — AI Engine
+   One abstraction, three data routes:
+     • webgpu — runs a model in the browser after downloading model files.
+     • local  — sends requests to a user-configured OpenAI-compatible URL.
+                The URL may point to the same machine or to another host.
+     • cloud  — sends requests and a user-supplied key to the configured URL.
+   Config, including a saved API key, persists in localStorage ('pf:ai'). Output is always TEXT —
    callers must never eval/inject it. Streaming + cancel via AbortSignal.
    API (window.PenumbraAI):
      cfg() -> config object          save(cfg)

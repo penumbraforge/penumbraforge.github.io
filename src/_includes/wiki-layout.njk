@@ -1,11 +1,11 @@
 {% extends "base.njk" %}
 
 {% block title %}{{ title }} — {{ productName | capitalize }} Wiki | Penumbra Forge{% endblock %}
-{% block description %}{{ description or (productName | capitalize) + " wiki — comprehensive documentation." }}{% endblock %}
+{% block description %}{{ description or (productName | capitalize) + " project documentation." }}{% endblock %}
 
 {% block head %}
 <meta property="og:title" content="{{ title }} — {{ productName | capitalize }} Wiki | Penumbra Forge">
-<meta property="og:description" content="{{ description or (productName | capitalize) + ' wiki — comprehensive documentation.' }}">
+<meta property="og:description" content="{{ description or (productName | capitalize) + ' project documentation.' }}">
 <meta property="og:image" content="{{ site.url }}/og-image.png">
 <meta property="og:url" content="{{ site.url }}{{ page.url }}">
 <meta property="og:type" content="website">
@@ -49,6 +49,7 @@
         <li><a href="/vexes/wiki/getting-started/"{% if page.url == "/vexes/wiki/getting-started/" %} class="active"{% endif %}>Getting Started</a></li>
         <li><a href="/vexes/wiki/commands/"{% if page.url == "/vexes/wiki/commands/" %} class="active"{% endif %}>Commands Reference</a></li>
         <li><a href="/vexes/wiki/detection-engine/"{% if page.url == "/vexes/wiki/detection-engine/" %} class="active"{% endif %}>Detection Engine</a></li>
+        <li><a href="/vexes/wiki/benchmark/"{% if page.url == "/vexes/wiki/benchmark/" %} class="active"{% endif %}>Benchmark</a></li>
         <li><a href="/vexes/wiki/pre-install-guard/"{% if page.url == "/vexes/wiki/pre-install-guard/" %} class="active"{% endif %}>Pre-Install Guard</a></li>
         <li><a href="/vexes/wiki/ecosystems/"{% if page.url == "/vexes/wiki/ecosystems/" %} class="active"{% endif %}>Ecosystems</a></li>
         <li><a href="/vexes/wiki/ci-cd/"{% if page.url == "/vexes/wiki/ci-cd/" %} class="active"{% endif %}>CI/CD Integration</a></li>
@@ -67,5 +68,18 @@
 
 </div>
 
-<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open'); this.textContent = document.getElementById('sidebar').classList.contains('open') ? 'Close' : 'Menu'">Menu</button>
+<button class="sidebar-toggle" id="wiki-sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="false">Menu</button>
+<script>
+(function () {
+  var sidebar = document.getElementById('sidebar');
+  var toggle = document.getElementById('wiki-sidebar-toggle');
+  if (!sidebar || !toggle) return;
+
+  toggle.addEventListener('click', function () {
+    var open = sidebar.classList.toggle('open');
+    toggle.textContent = open ? 'Close' : 'Menu';
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+})();
+</script>
 {% endblock %}

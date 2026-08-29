@@ -1,6 +1,6 @@
 ### Hey, I'm Shadoe
 
-Information security engineer on a CIRT, and the person behind **Penumbra Forge LLC** — a one-person company building developer and security tools that run locally.
+Information security engineer on a CIRT, and the person behind **Penumbra Forge LLC** — a one-person company building developer and security tools with local-first designs and explicit network boundaries.
 
 Most of what's here is early. I'd rather say that up front than oversell it. If you try something and it breaks, an issue is genuinely useful to me.
 
@@ -8,13 +8,13 @@ Most of what's here is early. I'd rather say that up front than oversell it. If 
 
 #### Projects
 
-**[Gate](https://github.com/penumbraforge/gate)** — *experimental* — A pre-commit hook that scans staged changes for credentials and can redact what it finds. Pattern-based detection across several languages, with optional verification for a few provider types. Expect false positives and misses; it's a safety net, not a guarantee. Runs locally.
+**[Gate](https://github.com/penumbraforge/gate)** — *experimental* — A pre-commit hook that scans staged changes for credentials and can attempt bounded rewrites for supported source forms. Pattern-based detection across several languages, with optional verification for a few provider types. Expect false positives and misses; it's a safety net, not a guarantee. Runs locally by default; requested verification and update paths use the network.
 
-**[vexes](https://github.com/penumbraforge/vexes)** — *experimental* — A dependency scanner covering several ecosystems. It flags things worth a second look: install scripts, unexpected network or filesystem access, names close to popular packages. These are heuristics, not verdicts, and it hasn't been proven against real-world attacks yet. No runtime dependencies.
+**[vexes](https://github.com/penumbraforge/vexes)** — *experimental* — A local CLI that matches dependency coordinates to OSV across ten ecosystems and, for npm/PyPI, surfaces bounded source and registry heuristics. Findings may be incomplete and are not safety verdicts. Zero external runtime npm dependencies; scans still contact documented upstream services.
 
-**[mcp-librarian](https://github.com/penumbraforge/mcp-librarian)** — *experimental* — An MCP server that gives coding agents a local skill library. BM25 search over skills, Ed25519 signing on write and integrity checks on load, progressive disclosure to keep context small. Works with Claude Code and other MCP clients. No runtime dependencies.
+**[mcp-librarian](https://github.com/penumbraforge/mcp-librarian)** — *experimental* — An MCP server that gives coding agents a local skill library. BM25 search, Ed25519 signing on supported writes, and integrity status recorded during indexing. Current load responses do not enforce refusal of tampered content, so clients must check status. No external runtime dependencies.
 
-**[penumbraforge.com](https://penumbraforge.com)** — Developer and security tools that run in the browser. There's also a machine-readable index and an MCP server, so coding agents can use the deterministic ones directly. No accounts, and the tools don't send your input anywhere unless the tool's job requires it (those are labelled).
+**[penumbraforge.com](https://penumbraforge.com)** — Developer and security tools with browser, edge, direct-network, and selectable AI routes labelled on each page. There's also a machine-readable index and an MCP server for non-model utility functions. No accounts; check a tool's disclosure before entering sensitive data.
 
 ---
 

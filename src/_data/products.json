@@ -8,21 +8,21 @@
   },
   {
     "name": "gate",
-    "description": "Pre-commit hook that scans staged changes for credentials and can redact what it finds. Pattern-based, so expect false positives and misses.",
+    "description": "Pre-commit hook that scans staged changes for credentials and can attempt bounded rewrites for supported source forms. Pattern-based, so expect false positives and misses.",
     "url": "/gate",
     "repo": "https://github.com/penumbraforge/gate",
     "status": "experimental"
   },
   {
     "name": "vexes",
-    "description": "Dependency scanner for several ecosystems. Flags install scripts, unexpected network or filesystem access, and names close to popular packages. Heuristics, not verdicts.",
+    "description": "Experimental local CLI for OSV advisory matches plus heuristic npm/PyPI supply-chain evidence. Findings are review signals, not safety verdicts, and incomplete checks fail visibly.",
     "url": "/vexes",
     "repo": "https://github.com/penumbraforge/vexes",
     "status": "experimental"
   },
   {
     "name": "mcp-librarian",
-    "description": "MCP server giving coding agents a local skill library — BM25 search, Ed25519 signing, integrity checks on load.",
+    "description": "Experimental MCP server for a local Markdown skill library. BM25 search is local; web research and pack operations are explicit network paths. Ed25519 status is recorded during indexing, but load responses do not enforce it.",
     "url": "/librarian",
     "repo": "https://github.com/penumbraforge/mcp-librarian",
     "status": "experimental"

@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 title: "Tools for AI agents — MCP, llms.txt & URL-invoke | Penumbra Forge"
-description: "Three ways for an agent to use the Penumbra Forge tools: an MCP server (remote or local), a machine index at /llms.txt, or invoking a tool by URL and reading a structured result. Most tools run in your browser. No accounts."
+description: "Three ways for an agent to use Penumbra Forge tools: MCP, a machine index, or URL invocation. Processing routes vary by tool and are labelled. No accounts."
 permalink: /tools/agents/
 hideAtmosphere: true
 ---
@@ -16,7 +16,7 @@ hideAtmosphere: true
     <div class="wb-head">
       <div class="wb-head-main">
         <h1>Tools for AI agents <span class="wb-chip">MCP · llms.txt · URL</span></h1>
-        <p class="wb-about">{{ (tools | length) }} dev and security tools your agent can call. Three ways in — an <strong>MCP server</strong>, a machine index at <strong>/llms.txt</strong>, or invoke a tool <strong>by URL</strong> and read a structured result. Most tools run in your browser or on your machine; the few that need the network are marked. This integration is experimental — it works, but it's early, so expect rough edges and please report what breaks.</p>
+        <p class="wb-about">The catalog currently has <strong>{{ stats.liveTools }} live tool pages</strong>, the MCP registry exposes <strong>{{ stats.mcpTools }} callable tools</strong>, and <strong>{{ stats.urlInvocableTools }} pages</strong> declare the documented URL-input/result contract. Routes are labelled browser, edge worker, direct network, or selectable AI. These integrations are experimental, so inspect the descriptor and route before relying on one.</p>
       </div>
     </div>
 
@@ -24,10 +24,10 @@ hideAtmosphere: true
       <article class="wb-agent-card">
         <div class="wb-agent-n">01</div>
         <h2>Connect via MCP</h2>
-        <p>Add Penumbra Forge as a Model Context Protocol server and your agent (Claude Code, Cursor, Claude Desktop, or another MCP client) gets the deterministic tools as callable functions — hash, HMAC, base64/hex/url, JWT decode, UUID, entropy, CIDR, and others. The list below is what's exposed today.</p>
+        <p>Add Penumbra Forge as a Model Context Protocol server and your agent (Claude Code, Cursor, Claude Desktop, or another MCP client) gets non-model utility functions — hash, HMAC, base64/hex/url, JWT decode, UUID, entropy, CIDR, and others. The list below is what's exposed today.</p>
         <div class="wb-panel">
-          <div class="wb-panel-bar">local — runs on your machine <span class="wb-badge wb-badge--local">private</span></div>
-          <pre data-copy><span class="hl-dim"># nothing leaves your machine</span>
+          <div class="wb-panel-bar">local — runs on your machine <span class="wb-badge wb-badge--local">local process</span></div>
+          <pre data-copy><span class="hl-dim"># server process is local; net-labelled tools still contact their documented destinations</span>
 claude mcp add penumbra -- node ./workers/mcp/local.mjs</pre>
         </div>
         <div class="wb-panel">
@@ -39,7 +39,7 @@ claude mcp add penumbra -- node ./workers/mcp/local.mjs</pre>
       <article class="wb-agent-card">
         <div class="wb-agent-n">02</div>
         <h2>Discover via llms.txt</h2>
-        <p>Tell your agent to read <a href="/llms.txt"><code>penumbraforge.com/llms.txt</code></a> — a machine-readable catalog listing each tool, what it does, and how to invoke it. The full JSON index is at <a href="/tools/index.json"><code>/tools/index.json</code></a>.</p>
+        <p>Tell your agent to read <a href="/llms.txt"><code>penumbraforge.com/llms.txt</code></a> — a machine-readable catalog listing every live page and an invocation example only where that page opts in. The full JSON index is at <a href="/tools/index.json"><code>/tools/index.json</code></a>.</p>
         <div class="wb-panel">
           <div class="wb-panel-bar">agent prompt</div>
           <pre data-copy>Read https://penumbraforge.com/llms.txt and use the tools there.</pre>
@@ -49,10 +49,10 @@ claude mcp add penumbra -- node ./workers/mcp/local.mjs</pre>
       <article class="wb-agent-card">
         <div class="wb-agent-n">03</div>
         <h2>Invoke a tool by URL</h2>
-        <p>Tool pages take input from the URL, run in the browser, and publish a machine-readable result. A browser-using agent navigates to the URL and reads it. The same links work for people.</p>
+        <p>Only catalog entries with an <code>invoke</code> descriptor promise automatic input and a machine-readable result. Put inputs in the URL fragment so they are processed by the page without being sent in the HTTP request. A browser-using agent navigates to the URL, waits for the ready marker, and reads the result.</p>
         <div class="wb-panel">
-          <div class="wb-panel-bar">GET a tool</div>
-          <pre data-copy>GET https://penumbraforge.com/tools/hash-generator/?in=hello&amp;algo=SHA-256</pre>
+          <div class="wb-panel-bar">navigate to an opted-in tool</div>
+          <pre data-copy>https://penumbraforge.com/tools/hash-generator/#in=hello&amp;algo=SHA-256</pre>
         </div>
         <div class="wb-panel">
           <div class="wb-panel-bar">read the result (after html[data-pf-ready="1"])</div>
@@ -62,6 +62,11 @@ window.PF_RESULT   <span class="hl-dim">// { tool, ok, output, data }</span></pr
       </article>
     </section>
 
+    <div class="wb-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/><path d="M9 12l2 2 4-4"/></svg>
+      <p><strong>Fragments are the privacy-preserving default.</strong> Legacy <code>?in=</code> query links still work for compatibility, but queries reach the site/CDN and may appear in ordinary request logs before browser JavaScript runs. A <code>#in=</code> fragment is not included in the HTTP request.</p>
+    </div>
+
     <section class="wb-related">
       <div class="wb-related-label">Tools currently exposed over MCP</div>
       <div class="wb-mcp-grid" id="mcpGrid"></div>
@@ -69,12 +74,12 @@ window.PF_RESULT   <span class="hl-dim">// { tool, ok, output, data }</span></pr
 
     <div class="wb-note">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/><path d="M9 12l2 2 4-4"/></svg>
-      <p><strong>Where your input goes.</strong> The local MCP server and the URL-invoke tools run on your machine or in your browser — functions over your input, with nothing stored or sent to us. Tools marked <code>net</code> make outbound requests, so treat those differently. The hosted worker keeps no state, and the source is public if you want to check.</p>
+      <p><strong>Where your input goes.</strong> The local MCP process handles non-model utility functions on your machine; tools marked <code>net</code> contact their documented destinations. The hosted MCP worker receives tool arguments and may be covered by ordinary hosting/security logs. Do not send sensitive input without checking the selected tool's route.</p>
     </div>
   </div>
 
   <footer class="wb-foot">
-    <span>&copy; 2026 Penumbra Forge · client-side by default · 0 tracking</span>
+    <span>&copy; 2026 Penumbra Forge · routes labelled · cookie-free aggregate analytics</span>
     <div class="links"><a href="/tools/">All tools</a><a href="/llms.txt">llms.txt</a><a href="/tools/index.json">index.json</a><a href="https://github.com/penumbraforge">GitHub</a></div>
   </footer>
   <div class="wb-toast" id="wbToast" role="status" aria-live="polite"></div>

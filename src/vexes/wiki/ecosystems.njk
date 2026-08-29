@@ -1,76 +1,38 @@
 ---
-title: "Ecosystems"
-description: "8 supported ecosystems, 18 lockfile formats, auto-detection, and ecosystem filtering."
+title: "Ecosystems & Inputs"
+description: "Ten OSV ecosystems, recognized dependency inputs, and completeness limits."
 permalink: /vexes/wiki/ecosystems/
 ---
-<h1>Ecosystems</h1>
-    <p class="subtitle">{{ versions.vexes.ecosystems }} supported ecosystems, {{ versions.vexes.lockfiles }} lockfile formats, auto-detection, and ecosystem-specific behavior.</p>
+<h1>Ecosystems &amp; Inputs</h1>
+<p class="subtitle">OSV matching covers ten ecosystems. Heuristic registry/source analysis is narrower.</p>
 
-    <h2 id="supported-ecosystems">Supported Ecosystems</h2>
+<table class="cmd-table">
+  <thead><tr><th>Ecosystem</th><th>Preferred input</th><th>Fallback or partial input</th></tr></thead>
+  <tbody>
+    <tr><td>npm</td><td><code>package-lock.json</code>, <code>pnpm-lock.yaml</code>, <code>yarn.lock</code></td><td><code>package.json</code> has lower confidence</td></tr>
+    <tr><td>PyPI</td><td><code>Pipfile.lock</code>, <code>poetry.lock</code></td><td><code>requirements.txt</code>, <code>pyproject.toml</code></td></tr>
+    <tr><td>Cargo</td><td><code>Cargo.lock</code></td><td>—</td></tr>
+    <tr><td>Go</td><td><code>go.mod</code></td><td><code>go.sum</code> is checksum history</td></tr>
+    <tr><td>RubyGems</td><td><code>Gemfile.lock</code></td><td><code>Gemfile</code></td></tr>
+    <tr><td>Composer</td><td><code>composer.lock</code></td><td><code>composer.json</code></td></tr>
+    <tr><td>NuGet</td><td><code>packages.lock.json</code></td><td><code>*.csproj</code></td></tr>
+    <tr><td>Java</td><td><code>gradle.lockfile</code></td><td><code>pom.xml</code></td></tr>
+    <tr><td>Hex</td><td><code>mix.lock</code></td><td>—</td></tr>
+    <tr><td>Dart/pub</td><td><code>pubspec.lock</code></td><td>—</td></tr>
+  </tbody>
+</table>
 
-    <p>vexes auto-detects lockfiles in the current directory and its subdirectories. No configuration needed -- it finds and parses whatever lockfiles exist in your project.</p>
+<h2>Discovery</h2>
+<p>vexes looks for recognized files at the selected target directory. It is not an arbitrary recursive monorepo crawler. Point <code>--path</code> at the project you intend to scan.</p>
 
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Ecosystem</th><th>Lockfiles</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>npm</td><td><code>package-lock.json</code></td></tr>
-        <tr><td>pnpm</td><td><code>pnpm-lock.yaml</code></td></tr>
-        <tr><td>Yarn</td><td><code>yarn.lock</code></td></tr>
-        <tr><td>PyPI</td><td><code>poetry.lock</code>, <code>Pipfile.lock</code>, <code>requirements.txt</code>, <code>pyproject.toml</code></td></tr>
-        <tr><td>Cargo</td><td><code>Cargo.lock</code></td></tr>
-        <tr><td>Go</td><td><code>go.sum</code>, <code>go.mod</code></td></tr>
-        <tr><td>RubyGems</td><td><code>Gemfile.lock</code>, <code>Gemfile</code></td></tr>
-        <tr><td>Composer</td><td><code>composer.lock</code>, <code>composer.json</code></td></tr>
-        <tr><td>NuGet</td><td><code>packages.lock.json</code>, <code>*.csproj</code></td></tr>
-        <tr><td>Maven / Gradle</td><td><code>gradle.lockfile</code>, <code>pom.xml</code></td></tr>
-      </tbody>
-    </table>
+<h2>Completeness and identity</h2>
+<ul>
+  <li>Resolved lockfiles are preferred. Ruby/PHP/NuGet/Java manifest fallbacks can provide exact pins but are not resolved dependency graphs, so they are marked incomplete.</li>
+  <li><code>go.mod</code> is preferred. Replaced modules are excluded and make coverage incomplete; <code>go.sum</code> alone can contain modules no longer active.</li>
+  <li>pnpm lockfile major versions 6 and 9 are recognized. Other major shapes fail visibly.</li>
+  <li>Ruby lock entries require the canonical RubyGems remote and Bundler SHA-256 checksums; older unchecked locks remain incomplete.</li>
+  <li>Malformed or unrecognized shapes are errors, not empty dependency sets.</li>
+</ul>
 
-    <h2 id="auto-detection">Auto-Detection</h2>
-
-    <p>When you run <code>vexes scan</code> or <code>vexes analyze</code> without specifying an ecosystem, vexes walks the directory tree looking for any recognized lockfile. If your project has both <code>package-lock.json</code> and <code>Cargo.lock</code>, both ecosystems are scanned in a single run.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes scan</span>
-
-<span class="dim">  Found 3 lockfile(s):
-    package-lock.json    (npm)    — 312 packages
-    Cargo.lock           (cargo)  — 147 packages
-    poetry.lock          (pypi)   — 89 packages
-
-  Scanning 548 packages across 3 ecosystems...</span></div>
-
-    <h2 id="filtering">Ecosystem Filtering</h2>
-
-    <p>Use <code>--ecosystem</code> to scan only one ecosystem. This is useful in monorepos where you want to run separate CI jobs per ecosystem.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes scan --ecosystem npm</span>
-<span class="prompt">$ </span><span class="cmd">vexes analyze --ecosystem cargo</span></div>
-
-    <p>The ecosystem name is case-insensitive. All of the following are equivalent: <code>npm</code>, <code>NPM</code>, <code>Npm</code>.</p>
-
-    <h2 id="ecosystem-details">Ecosystem-Specific Behavior</h2>
-
-    <h3>npm / pnpm / Yarn</h3>
-    <p>Full support for all four detection layers. The npm registry provides the richest metadata (publish history, maintainer accounts, download counts), making Layer 4 analysis most effective here. Deep analysis (Layer 1) downloads tarballs from the npm registry.</p>
-
-    <h3>PyPI</h3>
-    <p>Full vulnerability scanning via OSV. Behavioral analysis covers dependency graph profiling and registry metadata. Deep analysis downloads wheels/sdists and runs Python AST inspection.</p>
-
-    <h3>Cargo</h3>
-    <p>Full vulnerability scanning via OSV (RustSec advisory database). Behavioral analysis covers dependency graphs and crates.io metadata.</p>
-
-    <h3>Go</h3>
-    <p>Vulnerability scanning via OSV (Go vulnerability database). Dependency graph analysis from <code>go.sum</code> and <code>go.mod</code>.</p>
-
-    <h3>RubyGems, Composer, NuGet, Maven/Gradle</h3>
-    <p>Vulnerability scanning via OSV. Dependency graph profiling (Layers 2-3). Registry metadata analysis varies by ecosystem -- some registries expose more publish history than others.</p>
-
-    <h2 id="lockfile-priority">Lockfile Priority</h2>
-
-    <p>When multiple lockfiles exist for the same ecosystem (e.g., both <code>package-lock.json</code> and <code>yarn.lock</code>), vexes uses the most recently modified lockfile. This avoids double-counting packages in projects that have switched package managers but not cleaned up old lockfiles.</p>
-
-    <h2 id="adding-ecosystems">Adding Ecosystem Support</h2>
-
-    <p>vexes is designed with a parser interface that makes adding new ecosystems straightforward. Each ecosystem parser implements lockfile detection, package extraction, and registry API integration. Contributions for new ecosystems are welcome via pull request.</p>
+<h2>Analysis support is not the same as scan support</h2>
+<p><code>scan</code> uses OSV across the ecosystems above. Registry heuristics and bounded source inspection currently operate on npm/PyPI evidence only. JavaScript samples use an AST; Python samples use lightweight pattern matching. Other ecosystems should not be described as receiving the same four analysis groups.</p>

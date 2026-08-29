@@ -7,13 +7,14 @@
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'none'; img-src 'self'; frame-ancestors 'none';">
     <title>penumbraforge</title>
-    <meta name="description" content="security tools. ai applications. software that works.">
+    <meta name="description" content="A terminal-style index of Penumbra Forge tools with documented processing routes.">
+    <link rel="canonical" href="https://penumbraforge.com/terminal/">
     <meta name="author" content="Penumbra Forge">
     <meta name="copyright" content="Copyright 2026 Penumbra Forge. All rights reserved.">
     <meta property="og:title" content="penumbraforge">
-    <meta property="og:description" content="security tools. ai applications. software that works.">
+    <meta property="og:description" content="A terminal-style index of Penumbra Forge tools with documented processing routes.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://penumbraforge.com">
+    <meta property="og:url" content="https://penumbraforge.com/terminal/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
@@ -388,7 +389,7 @@
         <div class="terminal-body" id="output"></div>
         <div class="input-line">
             <span class="input-prompt" id="mainPrompt">visitor@forge:~$</span>
-            <input type="text" class="input-field" id="cmdInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" placeholder="">
+            <input type="text" class="input-field" id="cmdInput" aria-label="Terminal command" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" placeholder="">
         </div>
     </div>
 
@@ -404,7 +405,7 @@
         <div class="terminal-body" id="toolOutput"></div>
         <div class="input-line">
             <span class="input-prompt" id="toolPrompt">forge[tool]$</span>
-            <input type="text" class="input-field" id="toolInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="">
+            <input type="text" class="input-field" id="toolInput" aria-label="Tool input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="">
         </div>
     </div>
 
@@ -552,8 +553,8 @@
                     `    ${toolSpan('uuid-kit')}               <span class="dots">..</span> v4, v7, parse, validate, batch`,
                     null,
                     '  <span class="dim">products</span>',
-                    `    ${toolSpan('gate')}                   <span class="dots">..</span> pre-commit secret defense`,
-                    `    ${toolSpan('librarian')}              <span class="dots">..</span> intelligent MCP skills server`,
+                    `    ${toolSpan('gate')}                   <span class="dots">..</span> experimental credential-pattern scanner`,
+                    `    ${toolSpan('librarian')}              <span class="dots">..</span> experimental local MCP skill library`,
                     null,
                     '  <span class="dim">games</span>',
                     `    ${toolSpan('dungeon')}                <span class="dots">..</span> ascii roguelike`,
@@ -577,9 +578,9 @@
                     '  and automation systems.',
                     null,
                     '  <span class="dim">focus</span>        <span class="bright">security · ai · automation</span>',
-                    '  <span class="dim">philosophy</span>   <span class="bright">privacy by default. open by design.</span>',
+                    '  <span class="dim">philosophy</span>   <span class="bright">local when practical. routes labelled.</span>',
                     '  <span class="dim">stack</span>        <span class="bright">python · swift · cloudflare workers</span>',
-                    '  <span class="dim">tools</span>        <span class="bright">all client-side. zero telemetry.</span>',
+                    '  <span class="dim">tools</span>        <span class="bright">browser, edge, and network routes are labelled.</span>',
                     null,
                     '  <span class="dim">\u00a9 2026 penumbra forge. all rights reserved.</span>',
                     '  <span class="dim"><a href="/terms.html" class="link" style="color:var(--text-dim)">terms</a> · <a href="/privacy.html" class="link" style="color:var(--text-dim)">privacy</a></span>',
@@ -1612,7 +1613,7 @@
                             found++;
                         }
                     });
-                    if (found === 0) this.addLine('  <span class="line-success">no API keys detected</span>');
+                    if (found === 0) this.addLine('  <span class="line-success">no configured key patterns matched (6 formats checked)</span>');
                     this.addLine('');
                 } else if (action === 'curl' || action === 'fetch' || action === 'request') {
                     const validMethods = ['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS'];
@@ -3247,15 +3248,15 @@
                 { text: '', delay: 300 },
                 { text: '                <span class="bright">P E N U M B R A</span>', delay: 380 },
                 { text: '', delay: 440 },
-                { text: 'initializing security modules...', delay: 520 },
-                { text: '  <span class="green">[ok]</span> encryption.engine', delay: 620 },
-                { text: '  <span class="green">[ok]</span> network.analysis', delay: 710 },
-                { text: '  <span class="green">[ok]</span> threat.detection', delay: 800 },
-                { text: '  <span class="green">[ok]</span> <a href="/gate/" class="link-output" style="color:var(--success)">gate</a> — pre-commit secret defense', delay: 890 },
-                { text: '  <span class="green">[ok]</span> <a href="/librarian/" class="link-output" style="color:var(--success)">librarian</a> — intelligent MCP skills server', delay: 970 },
+                { text: 'loading documented tool catalog...', delay: 520 },
+                { text: '  <span class="dim">[info]</span> browser utilities are listed as local routes', delay: 620 },
+                { text: '  <span class="dim">[info]</span> network-backed tools identify their destinations', delay: 710 },
+                { text: '  <span class="dim">[info]</span> security outputs are review aids, not verdicts', delay: 800 },
+                { text: '  <span class="dim">[info]</span> <a href="/gate/" class="link-output" style="color:var(--success)">gate</a> — experimental credential-pattern scanner', delay: 890 },
+                { text: '  <span class="dim">[info]</span> <a href="/librarian/" class="link-output" style="color:var(--success)">librarian</a> — experimental local MCP skill library', delay: 970 },
                 { text: '', delay: 1050 },
-                { text: 'security tools. open source. client-side.', delay: 1120 },
-                { text: 'your data never leaves your browser.', delay: 1200 },
+                { text: 'security tools. source visible. processing routes labelled.', delay: 1120 },
+                { text: 'check the route before entering sensitive data.', delay: 1200 },
                 { text: '', delay: 1280 },
                 { text: '<span class="dim">type \'help\' for commands, or \'tools\' to browse.</span>', delay: 1340 },
                 { text: '', delay: 1410 },

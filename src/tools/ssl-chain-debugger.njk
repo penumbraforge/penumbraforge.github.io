@@ -23,6 +23,8 @@ permalink: /tools/ssl-chain-debugger/
     <div id="scd-summary" style="margin-left:auto;font-size:0.875rem;color:var(--text-3,#888);align-self:center;"></div>
   </div>
 
+  <p class="tool-hint">Browser analysis parses certificate fields and infers order from subject/issuer name strings and dates. It does not cryptographically verify certificate signatures, build a system trust path, or prove that a subject=issuer certificate is self-signed. Use the OpenSSL verification command below for trust validation.</p>
+
   <div id="scd-empty" class="scd-empty-msg">Paste PEM certificates above and click "Analyze Chain".</div>
 
   <div id="scd-results" style="display:none;">
@@ -33,12 +35,12 @@ permalink: /tools/ssl-chain-debugger/
     </div>
 
     <!-- Chain diagram -->
-    <div class="scd-section-label" style="margin-top:1.25rem;">Certificate Chain</div>
+    <div class="scd-section-label" style="margin-top:1.25rem;">Certificate order inferred from issuer names</div>
     <div id="scd-chain-diagram"></div>
 
     <!-- Fixed PEM output -->
     <div id="scd-fixed-output" style="display:none;">
-      <div class="scd-section-label" style="margin-top:1.25rem;">Reordered Chain (Leaf &rarr; Root)</div>
+      <div class="scd-section-label" style="margin-top:1.25rem;">Issuer-name reorder (inferred leaf &rarr; root)</div>
       <textarea id="scd-fixed-pem" class="scd-pem-out" rows="10" readonly></textarea>
       <div class="tool-row" style="margin-top:0.5rem;">
         <button class="btn" id="scd-copy-fixed-btn">Copy PEM</button>
@@ -962,7 +964,7 @@ openssl rsa  -noout -modulus -in key.pem  | openssl md5</code>
       }
 
       if (c.isSelfSigned && idx !== certs.length - 1) {
-        issues.push({ sev: 'warning', title: 'Self-signed certificate in chain', detail: label + ' is self-signed but is not the last certificate. Verify this is the intended root CA position.' });
+        issues.push({ sev: 'warning', title: 'Subject and issuer names match before the last position', detail: label + ' has equal parsed subject and issuer names. This does not verify a self-signature or trust; inspect it with a cryptographic certificate tool.' });
       }
     });
 
@@ -987,7 +989,7 @@ openssl rsa  -noout -modulus -in key.pem  | openssl md5</code>
     return issues;
   }
 
-  // ── Cert role determination ───────────────────────────────────
+  // ── Inferred cert role (name/order heuristic only) ───────────
   function certRole(cert, idx, total) {
     if (total === 1) return 'unknown';
     if (idx === 0) return 'leaf';
@@ -1100,13 +1102,14 @@ openssl rsa  -noout -modulus -in key.pem  | openssl md5</code>
 
       if (idx > 0) {
         var arrow = makeEl('div', 'scd-arrow');
-        arrow.appendChild(makeEl('span', 'scd-arrow-icon', '\u2191')); // upward arrow = signed by
+        arrow.appendChild(makeEl('span', 'scd-arrow-icon', '\u2191'));
+        arrow.title = 'Issuer-name match; signature not verified';
         wrap.appendChild(arrow);
       }
 
       var card    = makeEl('div', 'scd-cert-card scd-cert-card--' + role);
       var header  = makeEl('div', 'scd-cert-header');
-      var roleSpan = makeEl('span', 'scd-cert-role scd-role--' + role, role);
+      var roleSpan = makeEl('span', 'scd-cert-role scd-role--' + role, 'inferred ' + role);
       var cnSpan  = makeEl('span', 'scd-cert-cn', cert.subject.CN || cert.subjectDN || 'Unknown CN');
       var expirySpan = makeEl('span', 'scd-cert-expiry ' + expiryClass,
         cert.notAfter
@@ -1142,7 +1145,7 @@ openssl rsa  -noout -modulus -in key.pem  | openssl md5</code>
 
       grid.appendChild(field('Serial', cert.serial || '\u2014'));
       grid.appendChild(field('CA Cert',     cert.isCA ? 'Yes' : 'No'));
-      grid.appendChild(field('Self-Signed', cert.isSelfSigned ? 'Yes' : 'No'));
+      grid.appendChild(field('Subject = issuer', cert.isSelfSigned ? 'Yes (signature not verified)' : 'No'));
 
       body.appendChild(grid);
 

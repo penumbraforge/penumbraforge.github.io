@@ -24,8 +24,8 @@ hideAtmosphere: true
     <div class="fx-hero-eclipse" aria-hidden="true"></div>
     <div class="fx-hero-inner">
       <p class="fx-kicker reveal">Independent software company</p>
-      <h1 class="reveal"><span class="fx-line">Security tooling that</span><span class="fx-line"><span class="fx-accent">runs on your machine.</span></span></h1>
-      <p class="fx-hero-sub reveal">A small independent company building developer and security tools that work locally. The browser tools are client-side, the AI tools can point at a model you host, and the projects are open source so you can check what they do. Some are early — each one says where it stands.</p>
+      <h1 class="reveal"><span class="fx-line">Developer and security tools</span><span class="fx-line"><span class="fx-accent">with visible boundaries.</span></span></h1>
+      <p class="fx-hero-sub reveal">A small independent company building source-visible tools and separately licensed open-source products. Many work locally; each page labels whether its active route stays in the browser, uses an edge worker, contacts a third party, or sends input to a selected AI endpoint. Most projects are early.</p>
       <div class="fx-hero-actions reveal">
         <a href="/tools/" class="fx-btn fx-btn--solid"><span>Browse {{ liveTools.length }} tools</span></a>
         <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-btn"><span>Source on GitHub</span></a>
@@ -53,16 +53,15 @@ hideAtmosphere: true
     <div class="fx-cell fx-cell--gate reveal">
       <div class="fx-cell-meta"><span>Pre-commit secret scanning</span><span class="fx-status fx-status--dev">experimental</span></div>
       <h3>Gate</h3>
-      <p>A pre-commit hook that scans staged changes for credentials and can redact what it finds. Pattern-based, so expect false positives and misses — it's a safety net, not a guarantee. Early days; feedback welcome.</p>
+      <p>A pre-commit hook that scans staged changes for credentials and can attempt bounded rewrites for supported source forms. Pattern-based, so expect false positives and misses — it's a safety net, not a guarantee. Early days; feedback welcome.</p>
       <div class="fx-term">
-        <div class="fx-term-bar">gate scan --fix</div>
-        <pre><span class="hl-dim">$</span> <span class="hl-key">gate scan --fix</span>
+        <div class="fx-term-bar">illustrative — gate scan --staged</div>
+        <pre><span class="hl-dim">$</span> <span class="hl-key">gate scan --staged</span>
 
-<span class="hl-warn">&#x2718;</span> <span class="hl-str">config/db.yml</span><span class="hl-dim">:12</span>  AWS Secret Key
-  <span class="hl-dim">before:</span> <span class="hl-warn">AKIAIOSFODNN7EXAMPLE</span>
-  <span class="hl-dim"> after:</span> <span class="hl-str">REDACTED_AWS_SECRET_KEY</span>
+<span class="hl-warn">&#x2718;</span> <span class="hl-str">config/db.yml</span><span class="hl-dim">:12</span>  credential-shaped value
+  <span class="hl-dim">matched value redacted from terminal output</span>
 
-<span class="hl-str">&#x2714; 2 secrets found and fixed</span> <span class="hl-dim">— commit safe</span></pre>
+<span class="hl-str">1 pattern finding</span> <span class="hl-dim">— inspect the staged diff</span></pre>
       </div>
       <a href="/gate/" class="fx-cell-link">Explore Gate <span>&rarr;</span></a>
     </div>
@@ -70,16 +69,16 @@ hideAtmosphere: true
     <div class="fx-cell fx-cell--librarian reveal">
       <div class="fx-cell-meta"><span>MCP skills server</span><span class="fx-status fx-status--dev">experimental</span></div>
       <h3>mcp-librarian</h3>
-      <p>A local skill library for MCP-speaking coding agents. Skills are signed with Ed25519 when written and integrity-checked when loaded, so edits on disk are caught. Works with Claude Code and other MCP clients.</p>
-      <div class="fx-featlist"><span>auto-research</span><span>Ed25519 signing</span><span>zero deps</span><span>persistent skills</span></div>
+      <p>A local Markdown skill library for MCP-speaking clients. BM25 search stays local; web research and pack operations are network tools. Ed25519 status is recorded during indexing, but load responses do not enforce it.</p>
+      <div class="fx-featlist"><span>opt-in auto-research</span><span>indexed integrity status</span><span>zero runtime deps</span><span>persistent skills</span></div>
       <a href="/librarian/" class="fx-cell-link">Explore Librarian <span>&rarr;</span></a>
     </div>
 
     <div class="fx-cell fx-cell--vexes reveal">
       <div class="fx-cell-meta"><span>Dependency scanning</span><span class="fx-status fx-status--dev">experimental</span></div>
       <h3>vexes</h3>
-      <p>Scans dependencies across several ecosystems and flags things worth a second look — install scripts, unexpected network or filesystem access, package names close to popular ones. Heuristics, not verdicts. Still experimental and unproven against real-world attacks.</p>
-      <div class="fx-featlist"><span>AST analysis</span><span>pre-install guard</span><span>{{ versions.vexes.ecosystems }} ecosystems</span><span>zero deps</span></div>
+      <p>Matches dependencies against OSV across {{ versions.vexes.ecosystems }} ecosystems and, for npm/PyPI, flags selected code and registry evidence worth reviewing. Heuristics are not verdicts. Still experimental and unproven against real-world attacks.</p>
+      <div class="fx-featlist"><span>bounded analysis</span><span>explicit npm guard</span><span>{{ versions.vexes.ecosystems }} ecosystems</span><span>zero external runtime npm deps</span></div>
       <a href="/vexes/" class="fx-cell-link">Explore vexes <span>&rarr;</span></a>
     </div>
 
@@ -88,7 +87,7 @@ hideAtmosphere: true
       <div class="fx-cell-meta"><span>Local AI studio</span><span class="fx-status fx-status--dev">in development</span></div>
       <h3>Umbra</h3>
       <p>A local-first AI studio (GUI and TUI) for running and inspecting language models on your own hardware, being built against an NVIDIA DGX Spark. Early development — not usable yet.</p>
-      <div class="fx-featlist"><span>NVIDIA DGX Spark</span><span>CUDA</span><span>GUI + TUI</span><span>fully offline</span></div>
+      <div class="fx-featlist"><span>NVIDIA DGX Spark</span><span>CUDA target</span><span>GUI + TUI plan</span><span>offline design target</span></div>
       <a href="/umbra/" class="fx-cell-link">Explore Umbra <span>&rarr;</span></a>
     </div>
   </div>
@@ -104,12 +103,12 @@ hideAtmosphere: true
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("crescent") }}</span>
       <h3>In your browser</h3>
-      <p>The AI tools can run a small quantized model in the browser over WebGPU. The model downloads once and runs on your GPU, so your input stays in the tab. Small models, so expect modest quality.</p>
+      <p>The five model-backed site tools can use a small quantized model in the browser over WebGPU. Model files download from their host; prompts stay in the tab in this mode. Small models, so expect modest quality.</p>
     </div>
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("home") }}</span>
       <h3>On your machine</h3>
-      <p>Each AI tool can point at a model you already run — Ollama, LM Studio, or anything OpenAI-compatible on localhost. Your choice of model, on your hardware.</p>
+      <p>Those model-backed tools can point at Ollama, LM Studio, or another OpenAI-compatible endpoint on localhost. If you enter a remote endpoint instead, that operator receives the model input.</p>
     </div>
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("chip") }}</span>
@@ -157,8 +156,8 @@ hideAtmosphere: true
     </div>
     <div class="fx-principle reveal">
       <span class="fx-glyph">{{ icon("search") }}</span>
-      <h3>Open and auditable</h3>
-      <p>The projects are open source, so you can read what they actually do rather than take my word for it. No analytics beyond basic traffic counts, no accounts.</p>
+      <h3>Visible source, explicit licenses</h3>
+      <p>The website source is public to inspect but uses a source-visible, all-rights-reserved license. Gate, vexes, and mcp-librarian publish their own open-source licenses. No accounts; analytics are limited to aggregate traffic measurement.</p>
     </div>
   </div>
 

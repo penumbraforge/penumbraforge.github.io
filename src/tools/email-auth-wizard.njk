@@ -81,6 +81,7 @@ permalink: /tools/email-auth-wizard/
   <div class="ew-section-label">Custom IPs <span class="ew-section-hint">(optional)</span></div>
   <div class="ew-custom-ips">
     <div class="tool-group" style="margin-bottom:0;">
+      <label for="ew-spf-ips">Authorized IP addresses and ranges</label>
       <input type="text" id="ew-spf-ips" placeholder="203.0.113.10, 198.51.100.0/24" spellcheck="false" autocomplete="off">
       <span class="ew-field-hint">Comma-separated IPv4/IPv6 addresses or CIDR ranges. Each ip4:/ip6: does not count toward the 10-lookup limit.</span>
     </div>
@@ -90,7 +91,7 @@ permalink: /tools/email-auth-wizard/
     <div class="tool-group" style="margin-bottom:0;">
       <label for="ew-spf-custom-includes">Custom includes <span class="ew-section-hint">(optional)</span></label>
       <input type="text" id="ew-spf-custom-includes" placeholder="_spf.example.net, mail.otherdomain.com" spellcheck="false" autocomplete="off">
-      <span class="ew-field-hint">Comma-separated domains for additional include: mechanisms. Each counts as 1 lookup.</span>
+      <span class="ew-field-hint">Comma-separated domains for additional include: mechanisms. Each adds one direct lookup-triggering term, while recursively evaluated records can add more.</span>
     </div>
   </div>
 
@@ -139,7 +140,7 @@ permalink: /tools/email-auth-wizard/
         <li><strong>Minimum 2048-bit RSA keys</strong> -- 1024-bit is considered weak and some receivers reject it.</li>
         <li>Rotate keys at least annually.</li>
         <li>Use a unique selector per service (e.g., <code>google</code>, <code>sendgrid</code>).</li>
-        <li>Consider Ed25519 keys for modern deployments (smaller, faster, quantum-resistant-adjacent).</li>
+        <li>Consider Ed25519 where both your sender and receivers support it; keys and signatures are smaller than RSA, but provider support varies.</li>
       </ul>
     </div>
   </div>
@@ -333,7 +334,7 @@ permalink: /tools/email-auth-wizard/
         <div class="ew-rollout-step-badge ew-rollout-step-badge--final">Step 4</div>
         <div class="ew-rollout-step-body">
           <strong>p=reject, pct=100</strong>
-          <span>Full enforcement. Failing messages are rejected by receiving servers. This is the goal — it prevents spoofing and phishing from your domain. Keep monitoring rua= reports indefinitely.</span>
+          <span>Requests reject handling for messages that fail aligned DMARC checks; receivers retain final policy. This can reduce direct-domain spoofing but does not stop look-alike domains, display-name abuse, or every phishing path. Keep monitoring rua= reports.</span>
         </div>
       </div>
     </div>
@@ -758,7 +759,7 @@ permalink: /tools/email-auth-wizard/
     spfRecordNameEl.textContent = domain;
 
     var parts = ['v=spf1'];
-    var totalLookups = 0;
+    var directLookupTerms = 0;
     var explanations = [];
 
     // Provider checkboxes
@@ -766,14 +767,13 @@ permalink: /tools/email-auth-wizard/
       if (!cb.checked) return;
       var include = cb.getAttribute('data-include');
       var mech = cb.getAttribute('data-mech');
-      var lookups = parseInt(cb.getAttribute('data-lookups') || '0', 10);
       if (include) {
         parts.push('include:' + include);
-        totalLookups += lookups;
-        explanations.push({ tag: 'include:' + include, desc: 'Authorizes ' + cb.parentElement.querySelector('.ew-provider-name').textContent + ' to send email from your domain. Uses ' + lookups + ' DNS lookup(s).' });
+        directLookupTerms += 1;
+        explanations.push({ tag: 'include:' + include, desc: 'Adds ' + cb.parentElement.querySelector('.ew-provider-name').textContent + ' through one direct include. Recursive evaluation of that provider\'s current SPF records may require additional DNS lookups.' });
       } else if (mech) {
         parts.push(mech);
-        totalLookups += lookups;
+        directLookupTerms += 1;
         explanations.push({ tag: mech, desc: mech === 'mx' ? 'Authorizes the IP addresses of your MX (mail exchange) records.' : 'Authorizes the IP address of your domain\'s A record.' });
       }
     });
@@ -785,8 +785,8 @@ permalink: /tools/email-auth-wizard/
         inc = inc.trim();
         if (inc) {
           parts.push('include:' + inc);
-          totalLookups += 1;
-          explanations.push({ tag: 'include:' + inc, desc: 'Custom include mechanism. Uses 1 DNS lookup.' });
+          directLookupTerms += 1;
+          explanations.push({ tag: 'include:' + inc, desc: 'Adds one direct include. Recursive evaluation of that domain\'s current SPF record may require additional DNS lookups.' });
         }
       });
     }
@@ -811,26 +811,26 @@ permalink: /tools/email-auth-wizard/
     var allMech = spfAllEl.value;
     parts.push(allMech);
     var allDesc = {
-      '-all': 'Hard fail: reject any sender not explicitly authorized above.',
-      '~all': 'Soft fail: accept but mark as suspicious. Good for testing.',
-      '?all': 'Neutral: no policy assertion. Not recommended for production.'
+      '-all': 'Returns SPF Fail for sources not authorized above; the receiving system decides how to handle that result.',
+      '~all': 'Returns SPF SoftFail for other sources; the receiving system decides how to handle that result.',
+      '?all': 'Returns SPF Neutral for other sources; this expresses no pass/fail policy.'
     };
     explanations.push({ tag: allMech, desc: allDesc[allMech] || '' });
 
     spfOutputEl.textContent = parts.join(' ');
 
     // Lookup warning
-    if (totalLookups > 10) {
+    if (directLookupTerms > 10) {
       spfLookupWarnEl.className = 'ew-lookup-warning ew-lookup-warning--danger';
-      spfLookupWarnEl.innerHTML = '<strong>Over limit:</strong> ' + totalLookups + ' DNS lookups used. SPF has a hard limit of 10. Receiving servers will return PermError and your emails may be rejected. Reduce include: mechanisms or consolidate with an SPF flattening service.';
+      spfLookupWarnEl.innerHTML = '<strong>Direct terms already exceed 10:</strong> the generated record contains ' + directLookupTerms + ' direct lookup-triggering mechanisms before recursively evaluating include chains. Resolve the live DNS graph with an SPF evaluator before publishing.';
       spfLookupWarnEl.style.display = '';
-    } else if (totalLookups >= 8) {
+    } else if (directLookupTerms >= 8) {
       spfLookupWarnEl.className = 'ew-lookup-warning ew-lookup-warning--warn';
-      spfLookupWarnEl.innerHTML = '<strong>Approaching limit:</strong> ' + totalLookups + '/10 DNS lookups used. Leave headroom for future services. Consider consolidating or using ip4:/ip6: where possible.';
+      spfLookupWarnEl.innerHTML = '<strong>High direct count:</strong> ' + directLookupTerms + ' lookup-triggering mechanisms appear in this generated record. Included records can add more; this page does not resolve DNS recursively or calculate the RFC evaluation total.';
       spfLookupWarnEl.style.display = '';
-    } else if (totalLookups > 0) {
+    } else if (directLookupTerms > 0) {
       spfLookupWarnEl.className = 'ew-lookup-warning ew-lookup-warning--ok';
-      spfLookupWarnEl.innerHTML = totalLookups + '/10 DNS lookups used. You have room for ' + (10 - totalLookups) + ' more include: mechanisms.';
+      spfLookupWarnEl.innerHTML = directLookupTerms + ' direct lookup-triggering mechanism' + (directLookupTerms !== 1 ? 's' : '') + ' in the generated record. Actual SPF evaluation can be higher because include and redirect chains are recursive and DNS data changes.';
       spfLookupWarnEl.style.display = '';
     } else {
       spfLookupWarnEl.style.display = 'none';

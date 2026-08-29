@@ -5,7 +5,7 @@ permalink: /tools/ct-monitor/
 
 <div class="tool-group">
   <label for="ct-domain">Enter a domain to check</label>
-  <p class="tool-hint">Searches Certificate Transparency logs via <a href="https://crt.sh" target="_blank" rel="noopener">crt.sh</a> for all certificates issued for your domain and subdomains.</p>
+  <p class="tool-hint">Queries <a href="https://crt.sh" target="_blank" rel="noopener">crt.sh</a> for records matching the entered domain and subdomains. Returns at most 100 unique rows and does not search typo or look-alike sibling domains.</p>
   <div class="ss-input-row">
     <input type="text" id="ct-domain" placeholder="penumbraforge.com" autocomplete="off" spellcheck="false">
     <button class="btn" id="btn-search">Search CT Logs</button>
@@ -218,7 +218,7 @@ permalink: /tools/ct-monitor/
       '<div class="ct-summary-count">' + data.totalFound + '</div>' +
       '<div class="ct-summary-text">' +
         '<div class="ct-summary-label">Certificates found for *.' + esc(data.domain) + '</div>' +
-        '<div class="ct-summary-sub">Showing ' + certs.length + ' most recent entries from Certificate Transparency logs</div>' +
+        '<div class="ct-summary-sub">Showing up to ' + certs.length + ' recent unique rows returned from Certificate Transparency logs</div>' +
       '</div>';
 
     if (certs.length === 0) {
@@ -239,7 +239,7 @@ permalink: /tools/ct-monitor/
       var issuerShort = (cert.issuer || '').replace(/^.*?CN=/, '').replace(/,.*/, '').substring(0, 40);
 
       html += '<div class="ct-cert" id="ct-cert-' + i + '">' +
-        '<div class="ct-cert-row" onclick="document.getElementById(\'ct-cert-' + i + '\').classList.toggle(\'open\')">' +
+        '<div class="ct-cert-row" data-ct-toggle role="button" tabindex="0" aria-expanded="false">' +
           '<span class="ct-cert-cn">' + esc(cert.commonName || names[0] || '') + '</span>' +
           '<span class="ct-cert-issuer">' + esc(issuerShort) + '</span>' +
           '<span class="ct-cert-age ' + ageClass + '">' + ageText + '</span>' +
@@ -263,6 +263,26 @@ permalink: /tools/ct-monitor/
 
     certsEl.innerHTML = html;
   }
+
+  function toggleCertificate(row) {
+    var card = row.closest('.ct-cert');
+    if (!card) return;
+    var open = card.classList.toggle('open');
+    row.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  certsEl.addEventListener('click', function (event) {
+    var row = event.target.closest('[data-ct-toggle]');
+    if (row && certsEl.contains(row)) toggleCertificate(row);
+  });
+
+  certsEl.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var row = event.target.closest('[data-ct-toggle]');
+    if (!row || !certsEl.contains(row)) return;
+    event.preventDefault();
+    toggleCertificate(row);
+  });
 
   btnSearch.addEventListener('click', function () {
     var domain = domainInput.value.trim().replace(/^https?:\/\//, '').replace(/\/.*/, '').replace(/^www\./, '');

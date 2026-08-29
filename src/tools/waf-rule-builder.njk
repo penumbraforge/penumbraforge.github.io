@@ -69,13 +69,13 @@ permalink: /tools/waf-rule-builder/
   </div>
 </div>
 
-<div id="waf-empty" class="waf-empty-msg">Enter a regex pattern above and click "Test Pattern" to see results against 110+ attack payloads.</div>
+<div id="waf-empty" class="waf-empty-msg">Enter a regex pattern above and click "Test Pattern" to see results against the bundled test strings.</div>
 
 <hr style="margin:2rem 0;border:none;border-top:1px solid var(--border,#2a2a3a);">
 
 <div class="waf-info-note">
   <strong>How it works</strong>
-  Your regex is tested entirely in-browser against a curated library of real-world attack payloads across 6 categories. Nothing is sent to any server. Export the rule in your WAF's native format and deploy directly.
+  Your regex is tested in-browser against bundled strings across six categories. They are synthetic/curated cases, not a representative attack corpus. Review generated syntax and test it in a non-production WAF before deployment.
 </div>
 
 <style>
@@ -513,7 +513,7 @@ permalink: /tools/waf-rule-builder/
     }).join(' · ');
 
     var fpColor = r.fpCount === 0 ? '#4ade80' : r.fpCount <= 2 ? '#fbbf24' : '#f87171';
-    var fpText = r.fpCount === 0 ? 'No false positives' : r.fpCount + ' false positive' + (r.fpCount !== 1 ? 's' : '');
+    var fpText = r.fpCount + ' of ' + BENIGN.length + ' bundled benign samples matched';
 
     scoreEl.innerHTML = '<div class="waf-score-main" style="color:' + color + '">' + r.totalMatch + ' of ' + r.totalPayloads + ' payloads caught (' + pct + '%)</div>' +
       '<div class="waf-score-meter"><div class="waf-score-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +

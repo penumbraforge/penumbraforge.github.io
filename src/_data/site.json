@@ -2,8 +2,8 @@
   "name": "Penumbra Forge",
   "legalName": "Penumbra Forge LLC",
   "url": "https://penumbraforge.com",
-  "title": "Penumbra Forge — Local security & developer tools",
-  "description": "A one-person software company building developer and security tools that run locally — in your browser, or against a model you host yourself. Open source, no accounts. Several projects are still experimental.",
+  "title": "Penumbra Forge — Developer & security tools",
+  "description": "A one-person software company building developer and security tools. Many run locally in your browser; network-using tools and optional hosted AI endpoints are labelled. No accounts. Several projects are still experimental.",
   "foundingYear": "2026",
   "author": {
     "name": "Shadoe Myers",

@@ -613,12 +613,12 @@ Subject: Meeting Tomorrow
     if (auth.spf) {
       if (auth.spf.result === 'fail') {
         score += 25;
-        reasons.push({ type: 'bad', text: 'SPF authentication failed \u2014 sending server is not authorized for the sender domain' });
+        reasons.push({ type: 'bad', text: 'Recorded result: the receiving server reported SPF fail' });
       } else if (auth.spf.result === 'softfail') {
         score += 15;
-        reasons.push({ type: 'warn', text: 'SPF soft fail \u2014 sending server is not explicitly authorized' });
+        reasons.push({ type: 'warn', text: 'Recorded result: the receiving server reported SPF softfail' });
       } else if (auth.spf.result === 'pass') {
-        reasons.push({ type: 'ok', text: 'SPF passed \u2014 sending server is authorized' });
+        reasons.push({ type: 'ok', text: 'Recorded result: the receiving server reported SPF pass' });
       }
     } else {
       score += 10;
@@ -629,12 +629,12 @@ Subject: Meeting Tomorrow
     if (auth.dkim) {
       if (auth.dkim.result === 'fail') {
         score += 25;
-        reasons.push({ type: 'bad', text: 'DKIM signature verification failed \u2014 message may have been tampered with' });
+        reasons.push({ type: 'bad', text: 'Recorded result: the receiving server reported DKIM fail' });
       } else if (auth.dkim.result === 'none') {
         score += 10;
         reasons.push({ type: 'warn', text: 'No DKIM signature present' });
       } else if (auth.dkim.result === 'pass') {
-        reasons.push({ type: 'ok', text: 'DKIM signature verified successfully' });
+        reasons.push({ type: 'ok', text: 'Recorded result: the receiving server reported DKIM pass' });
       }
     } else {
       score += 5;
@@ -645,12 +645,12 @@ Subject: Meeting Tomorrow
     if (auth.dmarc) {
       if (auth.dmarc.result === 'fail') {
         score += 20;
-        reasons.push({ type: 'bad', text: 'DMARC authentication failed \u2014 message does not align with sender\u2019s domain policy' });
+        reasons.push({ type: 'bad', text: 'Recorded result: the receiving server reported DMARC fail' });
       } else if (auth.dmarc.result === 'none') {
         score += 5;
         reasons.push({ type: 'warn', text: 'No DMARC policy found for sender domain' });
       } else if (auth.dmarc.result === 'pass') {
-        reasons.push({ type: 'ok', text: 'DMARC passed \u2014 message aligns with domain policy' });
+        reasons.push({ type: 'ok', text: 'Recorded result: the receiving server reported DMARC pass' });
       }
     }
 
@@ -822,11 +822,11 @@ Subject: Meeting Tomorrow
 
   /* ── Render functions ── */
   function renderAssessment(assessment) {
-    var verdictLabel = { safe: 'LIKELY SAFE', suspicious: 'SUSPICIOUS', phishing: 'LIKELY PHISHING' };
-    var html = '<div class="ehf-section-title">Phishing Assessment</div>';
+    var verdictLabel = { safe: 'LOW HEURISTIC SCORE', suspicious: 'MEDIUM HEURISTIC SCORE', phishing: 'HIGH HEURISTIC SCORE' };
+    var html = '<div class="ehf-section-title">Header triage score</div>';
     html += '<div class="ehf-verdict ehf-verdict--' + assessment.verdict + '">';
     html += '<div class="ehf-verdict-label">' + verdictLabel[assessment.verdict] + '</div>';
-    html += '<div class="ehf-verdict-score">Risk score: ' + assessment.score + ' / 100</div>';
+    html += '<div class="ehf-verdict-score">Rule score: ' + assessment.score + ' / 100. This parses supplied headers; it does not verify DNS, signatures, or message safety.</div>';
     html += '<ul class="ehf-verdict-reasons">';
     for (var i = 0; i < assessment.reasons.length; i++) {
       var r = assessment.reasons[i];
@@ -837,13 +837,13 @@ Subject: Meeting Tomorrow
   }
 
   function renderAuth(auth) {
-    var html = '<div class="ehf-section-title">Authentication Results</div>';
+    var html = '<div class="ehf-section-title">Authentication-Results claims (not independently verified)</div>';
     html += '<div class="ehf-auth-grid">';
 
     var protocols = [
-      { key: 'spf', label: 'SPF', explain: { pass: 'Sending server is authorized by the domain\'s SPF record', fail: 'Sending server is NOT authorized \u2014 likely spoofed sender', softfail: 'Server is not explicitly authorized but not strictly rejected', none: 'No SPF record found for the sender domain', neutral: 'SPF record found but makes no assertion', temperror: 'Temporary DNS error during SPF lookup', permerror: 'Permanent error in SPF record (misconfigured)' } },
-      { key: 'dkim', label: 'DKIM', explain: { pass: 'Email signature verified \u2014 message has not been altered in transit', fail: 'Signature verification FAILED \u2014 message may have been tampered with or forged', none: 'No DKIM signature present on this message', neutral: 'DKIM present but could not be verified', temperror: 'Temporary error during DKIM verification', permerror: 'Permanent error in DKIM configuration' } },
-      { key: 'dmarc', label: 'DMARC', explain: { pass: 'Message aligns with the domain\'s DMARC policy (SPF or DKIM aligned)', fail: 'Message FAILS DMARC \u2014 neither SPF nor DKIM aligned with the From domain', none: 'No DMARC policy published for this domain', bestguesspass: 'No DMARC record but would pass based on SPF/DKIM alignment' } }
+      { key: 'spf', label: 'SPF', explain: { pass: 'Receiving server recorded SPF pass', fail: 'Receiving server recorded SPF fail', softfail: 'Receiving server recorded SPF softfail', none: 'Receiving server recorded no SPF result', neutral: 'Receiving server recorded SPF neutral', temperror: 'Receiving server recorded a temporary SPF error', permerror: 'Receiving server recorded a permanent SPF error' } },
+      { key: 'dkim', label: 'DKIM', explain: { pass: 'Receiving server recorded DKIM pass', fail: 'Receiving server recorded DKIM fail', none: 'Receiving server recorded no DKIM signature', neutral: 'Receiving server recorded DKIM neutral', temperror: 'Receiving server recorded a temporary DKIM error', permerror: 'Receiving server recorded a permanent DKIM error' } },
+      { key: 'dmarc', label: 'DMARC', explain: { pass: 'Receiving server recorded DMARC pass', fail: 'Receiving server recorded DMARC fail', none: 'Receiving server recorded no DMARC result', bestguesspass: 'Receiving server recorded DMARC bestguesspass' } }
     ];
 
     for (var p = 0; p < protocols.length; p++) {

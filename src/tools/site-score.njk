@@ -149,7 +149,7 @@ permalink: /tools/site-score/
   var HEADERS = {
     'strict-transport-security': {
       name: 'Strict-Transport-Security', weight: 20,
-      what: 'Forces HTTPS connections, prevents SSL-stripping attacks.',
+      what: 'Tells supporting browsers to prefer HTTPS after the policy is learned, reducing some downgrade exposure.',
       check: function (v) {
         if (!v) return { status: 'bad', verdict: 'Missing', fix: 'Strict-Transport-Security: max-age=31536000; includeSubDomains; preload' };
         var ma = parseInt((v.match(/max-age=(\d+)/i) || [])[1] || '0', 10);
@@ -160,7 +160,7 @@ permalink: /tools/site-score/
     },
     'content-security-policy': {
       name: 'Content-Security-Policy', weight: 25,
-      what: 'Controls allowed resources, primary XSS defense.',
+      what: 'Controls allowed resources and can reduce some injection impact when carefully configured and tested.',
       check: function (v) {
         if (!v) return { status: 'bad', verdict: 'Missing', fix: "Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'" };
         var issues = [];
@@ -172,7 +172,7 @@ permalink: /tools/site-score/
     },
     'x-frame-options': {
       name: 'X-Frame-Options', weight: 15,
-      what: 'Prevents clickjacking via iframe embedding.',
+      what: 'Restricts iframe embedding in supporting browsers and can mitigate some clickjacking scenarios.',
       check: function (v) {
         if (!v) return { status: 'bad', verdict: 'Missing', fix: 'X-Frame-Options: DENY' };
         if (/DENY/i.test(v)) return { status: 'good', verdict: 'DENY' };
@@ -182,7 +182,7 @@ permalink: /tools/site-score/
     },
     'x-content-type-options': {
       name: 'X-Content-Type-Options', weight: 10,
-      what: 'Prevents MIME-type sniffing attacks.',
+      what: 'Asks supporting browsers not to reinterpret the declared response type.',
       check: function (v) {
         if (!v) return { status: 'bad', verdict: 'Missing', fix: 'X-Content-Type-Options: nosniff' };
         return { status: 'good', verdict: 'nosniff' };
@@ -219,7 +219,7 @@ permalink: /tools/site-score/
     },
     'cross-origin-resource-policy': {
       name: 'Cross-Origin-Resource-Policy', weight: 5,
-      what: 'Prevents cross-origin resource loading (hotlinking).',
+      what: 'Controls which origins may load a response in supporting browsers; behavior depends on the selected policy and resource context.',
       check: function (v) {
         if (!v) return { status: 'info', verdict: 'Not set' };
         return { status: 'good', verdict: v.trim() };
@@ -293,7 +293,7 @@ permalink: /tools/site-score/
     var grade = letterGrade(score);
     var cls = { A: 'a', B: 'b', C: 'c', D: 'd', F: 'f' }[grade];
     var color = { A: 'var(--sage)', B: '#a8d86b', C: '#e8b84d', D: '#e8a87c', F: '#eb5757' }[grade];
-    var labels = { A: 'Excellent security posture', B: 'Good — minor improvements possible', C: 'Fair — some important headers missing', D: 'Weak — significant gaps', F: 'Poor — most protections missing' };
+    var labels = { A: 'Excellent result on this header checklist', B: 'Good result on this header checklist', C: 'Some checklist headers are missing', D: 'Many checklist headers are missing', F: 'Most checklist headers are missing' };
 
     var scannedUrl = hdrs._url || urlInput.value;
 
@@ -301,7 +301,7 @@ permalink: /tools/site-score/
       '<div class="ha-grade ha-grade-' + cls + '">' + grade + '</div>' +
       '<div class="ha-grade-summary">' +
         '<div class="ha-grade-label">' + labels[grade] + '</div>' +
-        '<div class="ha-grade-detail">' + score + '/100 — ' + esc(scannedUrl) + '</div>' +
+        '<div class="ha-grade-detail">' + score + '/100 limited header score — ' + esc(scannedUrl) + '</div>' +
         '<div class="ha-score-bar"><div class="ha-score-fill" style="width:' + score + '%;background:' + color + '"></div></div>' +
       '</div>';
 
@@ -310,7 +310,7 @@ permalink: /tools/site-score/
     data.results.forEach(function (r, i) {
       var s = r.result;
       html += '<div class="ha-header-card" id="ss-card-' + i + '">' +
-        '<div class="ha-header-row" onclick="document.getElementById(\'ss-card-' + i + '\').classList.toggle(\'open\')">' +
+        '<div class="ha-header-row" data-ss-toggle role="button" tabindex="0" aria-expanded="false">' +
           '<span class="ha-status-dot ha-status-dot--' + s.status + '"></span>' +
           '<span class="ha-header-name">' + esc(r.name) + '</span>' +
           '<span class="ha-header-verdict ha-verdict--' + s.status + '">' + esc(s.verdict) + '</span>' +
@@ -353,6 +353,26 @@ permalink: /tools/site-score/
     statusEl.style.display = 'none';
     resultsEl.style.display = '';
   }
+
+  function toggleHeaderCard(row) {
+    var card = row.closest('.ha-header-card');
+    if (!card) return;
+    var open = card.classList.toggle('open');
+    row.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  findingsEl.addEventListener('click', function (event) {
+    var row = event.target.closest('[data-ss-toggle]');
+    if (row && findingsEl.contains(row)) toggleHeaderCard(row);
+  });
+
+  findingsEl.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var row = event.target.closest('[data-ss-toggle]');
+    if (!row || !findingsEl.contains(row)) return;
+    event.preventDefault();
+    toggleHeaderCard(row);
+  });
 
   btnScan.addEventListener('click', function () {
     var url = urlInput.value.trim();

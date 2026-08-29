@@ -2,6 +2,6 @@
   "layout": "product-layout.njk",
   "productName": "librarian",
   "productTitle": "mcp-librarian — MCP Skills Server",
-  "productDescription": "A local skill library for MCP-speaking coding agents, with BM25 search, Ed25519 signing, and integrity checks on load. Experimental.",
+  "productDescription": "An experimental local skill library for MCP-speaking clients, with BM25 search and indexed Ed25519 integrity status. Current load tools do not enforce that status.",
   "productRepo": "https://github.com/penumbraforge/mcp-librarian"
 }

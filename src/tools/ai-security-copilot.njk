@@ -55,9 +55,10 @@ permalink: /tools/ai-security-copilot/
     aria-describedby="secHint"
     placeholder="Paste HTTP response headers, a JWT, a TLS certificate (PEM), a config/.env file, or a Content-Security-Policy…"></textarea>
   <p id="secHint" class="sec-hint">
-    A security analyst that runs on your machine. Deterministic facts are computed locally in your browser
-    first (JWT decode, header inventory, certificate parse, CSP audit, secret scan); the AI on your chosen
-    engine then reasons on top. Nothing is uploaded. <kbd>&#8984;</kbd>/<kbd>Ctrl</kbd>+<kbd>Enter</kbd> to run.
+    Deterministic facts are computed locally in your browser first (JWT decode, header inventory,
+    certificate parse, CSP audit, secret scan). The selected AI engine then receives those facts and the
+    relevant input; WebGPU stays in-page, while endpoint modes send them to the configured URL.
+    <kbd>&#8984;</kbd>/<kbd>Ctrl</kbd>+<kbd>Enter</kbd> to run.
   </p>
 
   <div class="sec-run">
@@ -408,9 +409,9 @@ permalink: /tools/ai-security-copilot/
     if (/md5|sha1/i.test(sigName)) findings.push({ sev: 'high', msg: 'Weak signature algorithm (' + sigName + '). SHA-1/MD5 are broken for signatures — reissue with SHA-256+.' });
     if (keyType === 'RSA' && keyBits && keyBits < 2048) findings.push({ sev: 'high', msg: 'Weak RSA key (' + keyBits + '-bit). Use 2048-bit or larger (or an EC key).' });
     if (days > 398) findings.push({ sev: 'low', msg: 'Validity period is ' + days + ' days (> 398). Public CAs cap leaf certs at 398 days; long-lived certs increase exposure.' });
-    if (dnStr(issuer) === dnStr(subject)) findings.push({ sev: 'info', msg: 'Self-signed (issuer == subject). Fine for internal/testing use; browsers will not trust it publicly.' });
+    if (dnStr(issuer) === dnStr(subject)) findings.push({ sev: 'info', msg: 'Parsed subject and issuer names match. This page does not verify the certificate signature or build a browser/system trust path.' });
     if (!sans.length) findings.push({ sev: 'medium', msg: 'No Subject Alternative Names — modern browsers ignore the CN and require a SAN entry.' });
-    if (!findings.length) findings.push({ sev: 'info', msg: 'No obvious certificate issues in the deterministic pass.' });
+    if (!findings.length) findings.push({ sev: 'info', msg: 'No configured certificate checks matched. Signature and trust-path verification are outside this parser.' });
 
     var kv = [
       ['subject', dnStr(subject)],
@@ -452,12 +453,12 @@ permalink: /tools/ai-security-copilot/
     headers: 'You are reviewing HTTP response headers. Focus on missing or weak security headers (HSTS, CSP, X-Content-Type-Options, clickjacking protection, Referrer-Policy, Permissions-Policy, COOP/COEP/CORP), insecure cookie flags, overly permissive CORS, and information disclosure via Server/X-Powered-By.',
     csp: 'You are reviewing a Content-Security-Policy. Focus on bypasses: unsafe-inline / unsafe-eval, wildcard or overly broad sources, http:/data: sources, missing default-src/object-src/frame-ancestors/base-uri, and whether the policy is enforced or report-only. Recommend nonce/hash-based hardening.',
     config: 'You are reviewing a configuration or environment file. Focus on hardcoded secrets and credentials, disabled TLS verification, debug mode in production, permissive host/CORS wildcards, dangerous network bindings, and least-privilege issues. Never echo full secret values back — refer to them by location.',
-    cert: 'You are reviewing an X.509 TLS certificate. Focus on expiry and validity window, signature algorithm strength (reject SHA-1/MD5), key type and size, self-signed vs CA-issued trust, SAN coverage, and excessive validity periods.'
+    cert: 'You are reviewing parsed fields from an X.509 TLS certificate. Focus on expiry and validity window, stated signature algorithm, key type and size, SAN coverage, and excessive validity periods. Do not claim signature or trust-path verification from parsed subject/issuer names.'
   };
   function buildSystem(type) {
-    return 'You are a senior application-security analyst running locally on the user\'s own machine. ' +
+    return 'You are reviewing a security artifact supplied through this tool. ' +
       'You review security artifacts and give precise, actionable assessments. Be concise and concrete; do not pad. ' +
-      'Never invent fields or values that are not present in the input. Trust the deterministic pre-analysis as ground truth. ' +
+      'Never invent fields or values that are not present in the input. Treat the parser output as unverified and potentially incomplete; reconcile it with the raw input and state uncertainty. ' +
       'Structure your answer in three parts: (1) "Risk summary" — one or two sentences plus an overall risk level of Critical, High, Medium, Low, or Info. ' +
       '(2) "Findings" — a ranked list, most severe first, each line prefixed with its severity and naming the exact issue. ' +
       '(3) "Remediation" — a short, prioritized list of concrete fixes. ' +
@@ -466,7 +467,7 @@ permalink: /tools/ai-security-copilot/
   function buildUser(type, raw, factsText) {
     var capped = raw.length > 8000 ? raw.slice(0, 8000) + '\n…[truncated]' : raw;
     return 'Analyze this ' + (TYPE_LABEL[type] || 'artifact') + '.\n\n' +
-      '=== Deterministic pre-analysis (computed locally in the browser — treat as ground truth) ===\n' +
+      '=== Unverified parser/heuristic output (reconcile with raw input) ===\n' +
       factsText + '\n\n' +
       '=== Raw input ===\n' + capped + '\n\n' +
       'Give the risk summary, ranked findings, and remediation as instructed.';

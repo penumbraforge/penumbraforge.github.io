@@ -1,7 +1,7 @@
 {
   "layout": "product-layout.njk",
   "productName": "vexes",
-  "productTitle": "vexes — Dependency Scanner",
-  "productDescription": "Scans dependencies across several ecosystems and flags install scripts, unexpected network or filesystem access, and typosquat-style names for review. Heuristic detection. Experimental.",
+  "productTitle": "vexes — Experimental Dependency Evidence CLI",
+  "productDescription": "Experimental local CLI for OSV advisory matches across 10 ecosystems, with bounded npm/PyPI source sampling and heuristic registry evidence. Results may be incomplete and are not safety verdicts.",
   "productRepo": "https://github.com/penumbraforge/vexes"
 }

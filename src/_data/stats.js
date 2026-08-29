@@ -9,6 +9,7 @@ const tools = require('./tools.json');
 
 export default {
   liveTools: tools.filter(t => t.status === 'live').length,
-  localTools: tools.filter(t => t.badge === 'local').length,
-  mcpTools: listTools().length
+  browserOnlyTools: tools.filter(t => t.badge === 'local' && !t.usesAiEngine).length,
+  mcpTools: listTools().length,
+  urlInvocableTools: tools.filter(t => t.status === 'live' && t.invoke).length
 };

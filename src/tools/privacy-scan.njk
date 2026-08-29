@@ -234,24 +234,25 @@ permalink: /tools/privacy-scan/
     var tpCount = data.thirdPartyCount;
 
     /* Privacy nutrition label */
-    var score = 'Good';
+    var score = 'Few signals';
     var scoreColor = 'green';
-    if (data.hasSessionRecording) { score = 'Poor'; scoreColor = 'red'; }
-    else if (data.hasAdvertising || trackerCount > 5) { score = 'Poor'; scoreColor = 'red'; }
-    else if (trackerCount > 2 || fpCount > 0) { score = 'Fair'; scoreColor = 'yellow'; }
-    else if (trackerCount > 0) { score = 'Moderate'; scoreColor = 'orange'; }
+    if (data.hasSessionRecording) { score = 'Many signals'; scoreColor = 'red'; }
+    else if (data.hasAdvertising || trackerCount > 5) { score = 'Many signals'; scoreColor = 'red'; }
+    else if (trackerCount > 2 || fpCount > 0) { score = 'Several signals'; scoreColor = 'yellow'; }
+    else if (trackerCount > 0) { score = 'Some signals'; scoreColor = 'orange'; }
 
     var verdicts = [];
-    if (data.hasSessionRecording) verdicts.push('This site records your browsing session (mouse movements, clicks, scrolls).');
-    if (data.hasAdvertising) verdicts.push('This site loads advertising trackers that follow you across the web.');
-    if (data.hasAnalytics) verdicts.push('This site uses analytics that track your behavior.');
-    if (fpCount > 0) verdicts.push('This site uses browser fingerprinting techniques to identify you without cookies.');
-    if (trackerCount === 0 && fpCount === 0) verdicts.push('No known trackers or fingerprinting detected. This site appears to respect your privacy.');
+    if (data.hasSessionRecording) verdicts.push('Fetched HTML references a known session-recording provider.');
+    if (data.hasAdvertising) verdicts.push('Fetched HTML references a known advertising provider.');
+    if (data.hasAnalytics) verdicts.push('Fetched HTML references a known analytics provider.');
+    if (fpCount > 0) verdicts.push('Fetched HTML contains API-name patterns sometimes used for fingerprinting; ordinary uses can match.');
+    if (trackerCount === 0 && fpCount === 0) verdicts.push('No bundled tracker or fingerprinting signatures were observed in this fetch. This does not cover later, authenticated, consent-gated, or interactive behavior.');
+    verdicts.push('This is a heuristic static-HTML scan: it does not execute scripts or prove runtime data collection.');
 
     labelEl.innerHTML =
       '<div class="ps-label-title">Privacy Nutrition Label — ' + esc(data.url) + '</div>' +
       '<div class="ps-label-grid">' +
-        '<div class="ps-label-stat ps-stat-' + scoreColor + '"><div class="ps-label-stat-num">' + score + '</div><div class="ps-label-stat-label">Rating</div></div>' +
+        '<div class="ps-label-stat ps-stat-' + scoreColor + '"><div class="ps-label-stat-num">' + score + '</div><div class="ps-label-stat-label">Static scan</div></div>' +
         '<div class="ps-label-stat ' + (trackerCount > 2 ? 'ps-stat-red' : trackerCount > 0 ? 'ps-stat-yellow' : 'ps-stat-green') + '"><div class="ps-label-stat-num">' + trackerCount + '</div><div class="ps-label-stat-label">Trackers</div></div>' +
         '<div class="ps-label-stat ' + (fpCount > 0 ? 'ps-stat-red' : 'ps-stat-green') + '"><div class="ps-label-stat-num">' + fpCount + '</div><div class="ps-label-stat-label">Fingerprinting</div></div>' +
         '<div class="ps-label-stat ' + (cookieCount > 5 ? 'ps-stat-orange' : 'ps-stat-green') + '"><div class="ps-label-stat-num">' + cookieCount + '</div><div class="ps-label-stat-label">Cookies</div></div>' +
@@ -261,7 +262,7 @@ permalink: /tools/privacy-scan/
 
     /* Trackers */
     if (trackerCount > 0) {
-      var thtml = '<div class="ps-section"><div class="ha-section-label">Trackers Detected</div>';
+      var thtml = '<div class="ps-section"><div class="ha-section-label">Referenced tracker services</div>';
       data.trackers.forEach(function (t) {
         thtml += '<div class="ps-tracker-card">' +
           '<span class="ps-tracker-sev ps-sev-' + t.severity + '">' + t.severity + '</span>' +
@@ -273,12 +274,12 @@ permalink: /tools/privacy-scan/
       thtml += '</div>';
       trackersEl.innerHTML = thtml;
     } else {
-      trackersEl.innerHTML = '<div class="ps-section"><div class="ha-section-label">Trackers</div><p style="color:var(--sage);font-size:13px;">No known trackers detected.</p></div>';
+      trackersEl.innerHTML = '<div class="ps-section"><div class="ha-section-label">Trackers</div><p style="color:var(--sage);font-size:13px;">No bundled tracker signatures observed in this fetch; later or interactive behavior was not tested.</p></div>';
     }
 
     /* Fingerprinting */
     if (fpCount > 0) {
-      var fhtml = '<div class="ps-section"><div class="ha-section-label">Fingerprinting Techniques</div>';
+      var fhtml = '<div class="ps-section"><div class="ha-section-label">Fingerprinting-related API patterns</div>';
       data.fingerprinting.forEach(function (f) {
         fhtml += '<div class="ps-tracker-card">' +
           '<span class="ps-tracker-sev ps-sev-' + f.severity + '">' + f.severity + '</span>' +
@@ -332,7 +333,7 @@ permalink: /tools/privacy-scan/
     errorEl.style.display = 'none';
     resultsEl.style.display = 'none';
     statusEl.style.display = '';
-    statusEl.innerHTML = '<div class="ss-spinner"></div> Scanning ' + esc(url) + ' for trackers, cookies, and fingerprinting...';
+    statusEl.innerHTML = '<div class="ss-spinner"></div> Fetching ' + esc(url) + ' for a static pattern scan...';
 
     fetch(WORKER_URL, {
       method: 'POST',

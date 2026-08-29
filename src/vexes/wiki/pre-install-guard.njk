@@ -1,107 +1,44 @@
 ---
 title: "Pre-Install Guard"
-description: "Intercept package manager installs and analyze dependencies before they execute."
+description: "The explicit, experimental public-npm install assessment and its metadata boundary."
 permalink: /vexes/wiki/pre-install-guard/
 ---
 <h1>Pre-Install Guard</h1>
-    <p class="subtitle">Intercept installs, analyze new dependencies before execution, and set up automatic guarding.</p>
+<p class="subtitle">An explicit review point for a narrow class of public npm installs—not a transparent package-manager wrapper.</p>
 
-    <h2 id="how-it-works">How It Works</h2>
+<div class="warning-box"><strong>Experimental and npm-only.</strong> Guard requires a target project with <code>package.json</code> and <code>package-lock.json</code>. It refuses pnpm, Yarn, npx, workspaces, bare installs, local/git/URL/tarball specs, arbitrary npm flags, and commands outside its grammar.</div>
 
-    <p>The guard command wraps a package manager install command. Before the real install runs, vexes:</p>
+<h2>Usage</h2>
+<div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes guard -- npm install package-name</span></div>
+<p>Accepted verbs are narrow explicit forms of <code>npm install</code>, <code>npm i</code>, and <code>npm add</code> with public-registry package coordinates and a small allowlist of supported flags.</p>
 
-    <ol>
-      <li>Snapshots the current lockfile.</li>
-      <li>Runs the install in a dry-run mode to compute what would change.</li>
-      <li>Diffs the lockfile to identify new or upgraded packages.</li>
-      <li>Runs the detection engine on the changed packages only.</li>
-      <li>If any critical signals are found, blocks the install. If high signals are found, prompts for confirmation. Otherwise, runs the real install.</li>
-    </ol>
+<h2>Assessment flow</h2>
+<ol>
+  <li>Copy the target manifest and lockfile into a disposable resolver project.</li>
+  <li>Resolve the proposed lockfile with lifecycle scripts disabled and without mutating the target.</li>
+  <li>Preserve and diff individual lockfile occurrences.</li>
+  <li>Require each new/changed artifact to use a public npm HTTPS URL and carry an integrity value.</li>
+  <li>Cross-check exact-version registry metadata and collect heuristic/advisory evidence for changed occurrences.</li>
+  <li>In human mode, apply an approved graph with <code>npm install --ignore-scripts --no-audit --no-fund</code>.</li>
+  <li>Require the final manifest and lockfile occurrence/version/resolved/integrity fields to match the approval.</li>
+</ol>
 
-    <p>No postinstall scripts execute until vexes has analyzed the packages. This is the key security property: the code is inspected before it runs.</p>
+<h2>Decision behavior</h2>
+<table class="cmd-table">
+  <thead><tr><th>Evidence</th><th>Default</th><th><code>--force</code></th></tr></thead>
+  <tbody>
+    <tr><td>Known OSV advisory</td><td>Block</td><td>Still block</td></tr>
+    <tr><td>CRITICAL heuristic evidence</td><td>Block</td><td>Still block</td></tr>
+    <tr><td>HIGH heuristic evidence</td><td>Prompt in a TTY; block non-interactively</td><td>May allow</td></tr>
+    <tr><td>Incomplete requested evidence</td><td>Block with exit 2</td><td>Still block</td></tr>
+    <tr><td>No blocking evidence in completed checks</td><td>Allow</td><td>Allow</td></tr>
+  </tbody>
+</table>
 
-    <h2 id="one-off-guard">One-Off Guard</h2>
+<h2>JSON and setup modes</h2>
+<p>JSON mode is assessment-only and does not install. <code>--setup</code> is disabled and fails closed because a general shell wrapper would intercept npm commands outside guard's supported grammar. <code>--uninstall</code> exists only to remove wrapper blocks written by older releases, with backup and malformed-marker refusal checks.</p>
 
-    <p>Guard a single install command by passing it after <code>--</code>:</p>
+<h2>What the approval binds—and what it does not</h2>
+<p>Guard binds its decision to manifest and lockfile metadata. It does not independently hash the bytes ultimately written to <code>node_modules</code>. It is not transactional: reviewed manifest/lockfile files are replaced atomically per file and restored on detected failure or drift, but npm can leave <code>node_modules</code> partially changed. An actively racing process under the same user account remains outside this boundary. Lifecycle scripts remain disabled during the guarded install.</p>
 
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes guard -- npm install axios</span>
-
-<span class="dim">  Analyzing new dependency: axios@1.7.2</span>
-
-<span class="ok">  No signals detected. Proceeding with install.</span>
-
-<span class="dim">  added 6 packages in 2.1s</span></div>
-
-    <p>If a signal is detected:</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes guard -- npm install some-util</span>
-
-<span class="dim">  Analyzing new dependency: some-util@1.0.3</span>
-
-<span class="warn">  HIGH</span>  some-util 1.0.3
-<span class="dim">  signal:</span> <span class="warn">PHANTOM_DEPENDENCY</span>
-<span class="dim">  detail:</span> first published 2 days ago
-
-<span class="dim">  Install blocked. Use --force to override.</span></div>
-
-    <h2 id="supported-managers">Supported Package Managers</h2>
-
-    <p>Guard works with any package manager that uses lockfiles. The command after <code>--</code> is executed via <code>execFileSync</code> with no shell -- package manager names are validated against an allowlist to prevent command injection.</p>
-
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Package Manager</th><th>Example</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>npm</td><td><code>vexes guard -- npm install axios</code></td></tr>
-        <tr><td>pnpm</td><td><code>vexes guard -- pnpm add axios</code></td></tr>
-        <tr><td>yarn</td><td><code>vexes guard -- yarn add axios</code></td></tr>
-        <tr><td>pip</td><td><code>vexes guard -- pip install requests</code></td></tr>
-        <tr><td>cargo</td><td><code>vexes guard -- cargo add serde</code></td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="auto-guard">Automatic Guarding</h2>
-
-    <p>Run <code>vexes guard --setup</code> to install shell wrappers that automatically guard every install command. This adds shell functions to your profile that intercept <code>npm install</code>, <code>pnpm add</code>, etc.</p>
-
-    <div class="code-block"><span class="prompt">$ </span><span class="cmd">vexes guard --setup</span>
-
-<span class="ok">  Shell wrappers installed.</span>
-<span class="dim">  Added to: ~/.zshrc</span>
-<span class="dim">  Wrapped commands: npm install, pnpm add, yarn add</span>
-<span class="dim">  Restart your shell or run: source ~/.zshrc</span></div>
-
-    <p>After setup, every install command is automatically guarded:</p>
-
-    <div class="code-block"><span class="cmt"># This now runs through vexes guard automatically</span>
-<span class="prompt">$ </span><span class="cmd">npm install axios</span>
-
-<span class="dim">  [vexes guard] Analyzing new dependency: axios@1.7.2</span>
-<span class="ok">  [vexes guard] Clean. Proceeding.</span>
-
-<span class="dim">  added 6 packages in 2.1s</span></div>
-
-    <h2 id="blocking-behavior">Blocking Behavior</h2>
-
-    <p>Guard uses signal severity to decide whether to block, warn, or allow:</p>
-
-    <table class="cmd-table">
-      <thead>
-        <tr><th>Severity</th><th>Behavior</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Critical</td><td>Install blocked. Must use <code>--force</code> to override.</td></tr>
-        <tr><td>High</td><td>Warning printed. Prompts for confirmation (Y/n).</td></tr>
-        <tr><td>Medium</td><td>Warning printed. Install proceeds.</td></tr>
-        <tr><td>Low</td><td>Not shown in guard mode. Visible in <code>analyze</code> output.</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="security">Security Properties</h2>
-
-    <ul>
-      <li><strong style="color: var(--text-1);">No shell execution.</strong> Guard uses <code>execFileSync</code> with explicit argument arrays. The package manager name is validated against an allowlist. No shell metacharacters can escape.</li>
-      <li><strong style="color: var(--text-1);">No postinstall before analysis.</strong> The lockfile diff is computed before any packages are installed, so no postinstall scripts run until vexes has cleared the changes.</li>
-      <li><strong style="color: var(--text-1);">Atomic operation.</strong> If analysis fails or vexes crashes, the install does not proceed. Guard fails closed, not open.</li>
-    </ul>
+<div class="info-box"><strong>Practical consequence:</strong> guard can add evidence and constrain one install path. It cannot certify a package, replace review/testing, or protect unguarded package-manager commands.</div>

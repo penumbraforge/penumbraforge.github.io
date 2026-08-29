@@ -79,18 +79,18 @@ window.PenumbraAIUI = (function () {
       if (cur === 'webgpu') {
         fields.innerHTML =
           '<label>Model</label><select class="f-webgpuModel">' + MODELS.map(function (m) { return '<option value="' + m.id + '"' + (m.id === c.webgpuModel ? ' selected' : '') + '>' + m.label + '</option>'; }).join('') + '</select>' +
-          '<p class="ai-hint">Runs a real LLM <b>inside your browser</b> on your GPU. The model downloads once (from Hugging Face) and is cached; after that it works offline. Nothing you type is ever uploaded. Requires a WebGPU browser (Chrome/Edge/Safari 2024+).' + (AI.hasWebGPU() ? '' : ' <b style="color:#e8a87c">WebGPU not detected in this browser.</b>') + '</p>';
+          '<p class="ai-hint">Runs a model <b>inside your browser</b> on your GPU. Model files download from their host on first use and may be cached. Prompts stay in this page in this mode. Requires a browser with WebGPU support.' + (AI.hasWebGPU() ? '' : ' <b style="color:#e8a87c">WebGPU not detected in this browser.</b>') + '</p>';
       } else if (cur === 'local') {
         fields.innerHTML =
           '<label>Server URL</label><input class="f-localUrl" value="' + c.localUrl + '" spellcheck="false">' +
           '<label>Model name</label><input class="f-localModel" value="' + c.localModel + '" spellcheck="false">' +
-          '<p class="ai-hint">Talks to <b>your own</b> Ollama / LM Studio / llama.cpp server. The model runs on <b>your</b> hardware; this page only sends requests to your machine. For Ollama, allow this site once: <code>OLLAMA_ORIGINS=https://penumbraforge.com ollama serve</code>.</p>';
+          '<p class="ai-hint">Sends prompts and other model inputs to the URL above. Use localhost for an Ollama / LM Studio / llama.cpp server on this machine. If you enter a remote URL, that operator receives the data. For Ollama, allow this site once: <code>OLLAMA_ORIGINS=https://penumbraforge.com ollama serve</code>.</p>';
       } else {
         fields.innerHTML =
           '<label>API base URL</label><input class="f-cloudBase" value="' + c.cloudBase + '" spellcheck="false">' +
           '<label>API key</label><input type="password" class="f-cloudKey" value="' + c.cloudKey + '" placeholder="sk-…" spellcheck="false">' +
           '<label>Model</label><input class="f-cloudModel" value="' + c.cloudModel + '" spellcheck="false">' +
-          '<p class="ai-hint">Any OpenAI-compatible endpoint. Your key is stored <b>only in this browser</b> (localStorage) and sent only to the URL above — never to us.</p>';
+          '<p class="ai-hint">Any OpenAI-compatible endpoint. Your key is stored in this browser\'s localStorage and sent to the URL above with prompts and other model inputs. The endpoint operator\'s privacy and retention terms apply.</p>';
       }
     }
     paintSeg(); renderFields();
@@ -118,11 +118,19 @@ window.PenumbraAIUI = (function () {
     var bar = el('div', 'ai-bar');
     bar.innerHTML =
       '<span class="ai-shield">✦</span>' +
-      '<span class="ai-bar-txt"><b>Local AI.</b> Runs on your machine — 0 servers, 0 signup, nothing uploaded.</span>' +
+      '<span class="ai-bar-txt"></span>' +
       '<span class="ai-bar-engine"></span>' +
       '<button class="ai-bar-cog">Engine ▾</button>';
     host.appendChild(bar);
-    function paint() { bar.querySelector('.ai-bar-engine').textContent = engineLabel(AI.cfg()); }
+    function paint() {
+      var active = AI.cfg();
+      bar.querySelector('.ai-bar-engine').textContent = engineLabel(active);
+      bar.querySelector('.ai-bar-txt').textContent = active.engine === 'webgpu'
+        ? 'In-browser route. Prompts stay in this page; model files download on first use.'
+        : active.engine === 'local'
+          ? 'Configured endpoint. Model input is sent to ' + active.localUrl + '.'
+          : 'API provider route. Model input and your key are sent to ' + active.cloudBase + '.';
+    }
     paint();
     bar.querySelector('.ai-bar-cog').addEventListener('click', function () { openSettings(paint); });
     return { refresh: paint };

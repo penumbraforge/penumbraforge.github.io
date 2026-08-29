@@ -6,11 +6,11 @@ eleventyExcludeFromCollections: true
 {%- for t in tools -%}{%- if t.status == "live" -%}{%- set list = (list.push(t), list) -%}{%- endif -%}{%- endfor -%}
 {
   "site": "Penumbra Forge",
-  "description": "Privacy-first, client-side developer & security tools, usable by humans and AI agents.",
+  "description": "Developer and security tools for humans and AI agents. Many are browser-only; edge, network, and configurable AI routes are labelled on tool pages.",
   "agentContract": {
     "descriptor": "script#pf-tool (application/json) on each /tools/<slug>/ page",
     "result": "script#pf-result (application/json) and window.PF_RESULT after run; html[data-pf-ready=1]",
-    "invoke": "URL-invocable tools accept ?in=<text> or ?inb64=<base64url> plus tool params, auto-running on load"
+    "invoke": "Only tools with an invoke descriptor promise auto-run/results. Use #in=<text> or #inb64=<base64url> plus tool params. Legacy query input is accepted but reaches the hosting/CDN layer."
   },
   "count": {{ list.length }},
   "tools": [
@@ -19,6 +19,7 @@ eleventyExcludeFromCollections: true
       "slug": {{ t.slug | dump | safe }},
       "name": {{ t.name | dump | safe }},
       "category": {{ t.category | dump | safe }},
+      "route": {% if t.usesAiEngine %}"selectable-ai"{% elif t.badge == "worker" %}"edge-worker"{% elif t.badge == "cloud" %}"direct-network"{% else %}"browser"{% endif %},
       "url": "https://penumbraforge.com/tools/{{ t.slug }}/",
       "description": {{ t.description | dump | safe }},
       "keywords": {{ (t.keywords or []) | dump | safe }}{% if t.invoke %},

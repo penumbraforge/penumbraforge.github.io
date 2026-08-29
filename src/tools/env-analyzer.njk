@@ -14,9 +14,11 @@ OPENAI_API_KEY=sk-example-replace-with-your-key-here-now" spellcheck="false" aut
 </div>
 
 <div class="tool-row">
-  <button class="btn" id="btn-analyze">Analyze Exposure</button>
+  <button class="btn" id="btn-analyze">Scan configured patterns</button>
   <button class="btn btn--secondary" id="btn-clear">Clear</button>
 </div>
+
+<p style="font-size:0.8125rem;color:var(--text-3);line-height:1.55;">This is pattern matching, not credential validation. Triage labels are fixed by pattern; the page cannot determine whether a match is real, active, reachable, or what permissions it has.</p>
 
 <div id="env-results" style="display:none;">
   <div class="env-summary" id="env-summary"></div>
@@ -220,89 +222,89 @@ OPENAI_API_KEY=sk-example-replace-with-your-key-here-now" spellcheck="false" aut
   /* ── Secret patterns ── */
   var patterns = [
     // AWS
-    { regex: /(?:^|=\s*)AKIA[0-9A-Z]{16}/m, type: 'AWS Access Key', service: 'Amazon Web Services', severity: 'critical',
-      blast: 'Full access to AWS services under this IAM user. An attacker can provision infrastructure, access S3 buckets, read databases, and incur unlimited charges on your account.',
+    { regex: /(?:^|=\s*)AKIA[0-9A-Z]{16}/m, type: 'AWS Access Key ID', service: 'Amazon Web Services', severity: 'low',
+      blast: 'An access-key ID is an identifier and is not usable alone. If a matching active secret is also exposed, actual access is limited by the associated IAM policies.',
       rotate: 'https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_RotateAccessKey' },
-    { regex: /(?:aws.?secret.?access.?key|aws.?secret)\s*[=:]\s*[A-Za-z0-9/+=]{40}/i, type: 'AWS Secret Key', service: 'Amazon Web Services', severity: 'critical',
-      blast: 'Combined with an access key, this grants full programmatic access to your AWS account. Treat as a root compromise of all AWS resources.',
+    { regex: /(?:aws.?secret.?access.?key|aws.?secret)\s*[=:]\s*[A-Za-z0-9/+=]{40}/i, type: 'Possible AWS Secret Access Key', service: 'Amazon Web Services', severity: 'high',
+      blast: 'A secret access key requires a matching access-key ID. If the pair is real and active, actual access is limited by the associated IAM policies.',
       rotate: 'https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_RotateAccessKey' },
 
     // GitHub
     { regex: /(?:^|=\s*)ghp_[a-zA-Z0-9]{36}/m, type: 'GitHub Personal Access Token', service: 'GitHub', severity: 'critical',
-      blast: 'Access to all repositories and organizations the token owner can reach. Can push code, read private repos, manage settings, and access GitHub API on behalf of the user.',
+      blast: 'If this is a valid token, access depends on its scopes, repository or organization restrictions, owner permissions, and expiry. Inspect the token settings before assessing impact.',
       rotate: 'https://github.com/settings/tokens' },
     { regex: /(?:^|=\s*)gho_[a-zA-Z0-9]{36}/m, type: 'GitHub OAuth Token', service: 'GitHub', severity: 'critical',
-      blast: 'OAuth-scoped access to GitHub resources. Scope depends on the app that issued it, but may include repo access, org membership, and user data.',
+      blast: 'If valid, access is limited by the issuing app, granted scopes, owner permissions, and expiry; it may include repository, organization, or user data.',
       rotate: 'https://github.com/settings/applications' },
     { regex: /(?:^|=\s*)ghs_[a-zA-Z0-9]{36}/m, type: 'GitHub App Installation Token', service: 'GitHub', severity: 'high',
-      blast: 'Temporary token for a GitHub App installation. Grants the permissions configured for that app across its installed repos.',
+      blast: 'If valid, this temporary token is limited by the app installation, configured permissions, selected repositories, and expiry.',
       rotate: 'https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app' },
     { regex: /(?:^|=\s*)github_pat_[a-zA-Z0-9_]{82}/m, type: 'GitHub Fine-Grained PAT', service: 'GitHub', severity: 'critical',
-      blast: 'Fine-grained access to specific repositories with specific permissions. Check the token settings to understand the exact scope of exposure.',
+      blast: 'If valid, access is limited to the repositories, organizations, permissions, approvals, and expiry configured for the token.',
       rotate: 'https://github.com/settings/tokens?type=beta' },
 
     // Stripe
     { regex: /(?:^|=\s*)sk_live_[a-zA-Z0-9]{24,}/m, type: 'Stripe Live Secret Key', service: 'Stripe', severity: 'critical',
-      blast: 'Full access to your live Stripe account. An attacker can create charges, issue refunds, access customer payment data, modify subscriptions, and transfer funds.',
+      blast: 'If valid, capabilities depend on whether the key is standard or restricted and on the account configuration. Check the key record rather than assuming full account access.',
       rotate: 'https://dashboard.stripe.com/apikeys' },
     { regex: /(?:^|=\s*)sk_test_[a-zA-Z0-9]{24,}/m, type: 'Stripe Test Secret Key', service: 'Stripe', severity: 'low',
-      blast: 'Access to Stripe test mode only. No real money or customer data at risk, but reveals your account structure.',
+      blast: 'If valid, this is a Stripe test-mode key. It does not by itself establish whether copied test data or other sensitive fixtures are present.',
       rotate: 'https://dashboard.stripe.com/apikeys' },
     { regex: /(?:^|=\s*)pk_live_[a-zA-Z0-9]{24,}/m, type: 'Stripe Live Publishable Key', service: 'Stripe', severity: 'low',
-      blast: 'This key is designed to be public (used in frontend code). Limited risk, but confirms you use Stripe.',
+      blast: 'Stripe publishable keys are designed for client-side use and are not secret credentials. Restrictions and associated account configuration still merit review.',
       rotate: 'https://dashboard.stripe.com/apikeys' },
 
     // OpenAI / Anthropic
     { regex: /(?:^|=\s*)sk-[a-zA-Z0-9]{32,}/m, type: 'OpenAI API Key', service: 'OpenAI', severity: 'high',
-      blast: 'Full access to your OpenAI account. An attacker can make API calls, consume your credits, access fine-tuned models, and view usage data.',
+      blast: 'If valid, the key may permit API use and charges within its project or organization. Exact model, project, budget, and administration permissions are not inferable from the key shape.',
       rotate: 'https://platform.openai.com/api-keys' },
     { regex: /(?:^|=\s*)sk-ant-[a-zA-Z0-9-]{80,}/m, type: 'Anthropic API Key', service: 'Anthropic', severity: 'high',
-      blast: 'Full access to your Anthropic account. An attacker can make Claude API calls and consume your credits.',
+      blast: 'If valid, the key may permit API use and charges within its workspace. Exact permissions, budgets, and restrictions are not inferable from the key shape.',
       rotate: 'https://console.anthropic.com/settings/keys' },
 
     // Slack
     { regex: /(?:^|=\s*)xoxb-[0-9]{10,}-[a-zA-Z0-9-]+/m, type: 'Slack Bot Token', service: 'Slack', severity: 'high',
-      blast: 'Access to your Slack workspace as a bot. Can read channels, send messages, upload files, and access user info depending on scopes.',
+      blast: 'If valid, bot access depends on OAuth scopes, channel membership, workspace policy, and token status.',
       rotate: 'https://api.slack.com/apps' },
     { regex: /(?:^|=\s*)xoxp-[0-9]{10,}-[a-zA-Z0-9-]+/m, type: 'Slack User Token', service: 'Slack', severity: 'critical',
-      blast: 'Access to Slack as a specific user. Can read all channels the user has access to, send messages as them, and access private conversations.',
+      blast: 'If valid, access depends on the token scopes, user permissions, channel membership, workspace policy, and token status.',
       rotate: 'https://api.slack.com/apps' },
     { regex: /(?:^|=\s*)xoxs-[0-9]{10,}-[a-zA-Z0-9-]+/m, type: 'Slack Session Token', service: 'Slack', severity: 'critical',
-      blast: 'Full session access to a Slack workspace. Equivalent to being logged in as the user.',
+      blast: 'If this is a valid session token, impact depends on session state, user permissions, workspace controls, and any additional authentication checks.',
       rotate: 'https://api.slack.com/apps' },
 
     // Database URLs
     { regex: /(?:^|=\s*)postgres(?:ql)?:\/\/[^\s'"]+/mi, type: 'PostgreSQL Connection String', service: 'PostgreSQL', severity: 'critical',
-      blast: 'Direct database access. An attacker can read, modify, or delete all data. If the connection includes admin credentials, they can drop tables or exfiltrate the entire database.',
+      blast: 'If the URL contains valid credentials and the server is reachable, access is limited by the database user, database selection, and network controls.',
       rotate: 'Rotate the database user password and update all connection strings.' },
     { regex: /(?:^|=\s*)mysql:\/\/[^\s'"]+/mi, type: 'MySQL Connection String', service: 'MySQL', severity: 'critical',
-      blast: 'Direct database access with the privileges of the connection user. Full read/write/delete capability on accessible databases.',
+      blast: 'If the URL contains valid credentials and the server is reachable, access is limited by the connection user and database permissions.',
       rotate: 'Rotate the database user password and update all connection strings.' },
     { regex: /(?:^|=\s*)mongodb(\+srv)?:\/\/[^\s'"]+/mi, type: 'MongoDB Connection String', service: 'MongoDB', severity: 'critical',
-      blast: 'Direct access to your MongoDB instance. An attacker can read, modify, or delete all documents in accessible collections.',
+      blast: 'If the URL contains valid credentials and the server is reachable, access is limited by the MongoDB user, selected database, roles, and network controls.',
       rotate: 'Rotate the database user password in MongoDB Atlas or your self-hosted instance.' },
     { regex: /(?:^|=\s*)redis:\/\/[^\s'"]+/mi, type: 'Redis Connection String', service: 'Redis', severity: 'high',
-      blast: 'Access to your Redis instance. Can read cached data, session tokens, and queue contents. May allow command execution if not sandboxed.',
+      blast: 'If the URL contains valid credentials and the server is reachable, impact depends on Redis ACLs, command restrictions, data stored there, and network controls.',
       rotate: 'Rotate the Redis password and update all connection strings.' },
 
     // Private Keys
     { regex: /-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/m, type: 'Private Key', service: 'SSH / TLS', severity: 'critical',
-      blast: 'A private key can be used to authenticate as the key owner. If this is an SSH key, an attacker can access any server it is authorized on. If TLS, they can impersonate your service.',
+      blast: 'If the full private key is valid, it may authenticate or sign wherever its public key is trusted. The format alone does not reveal those systems, permissions, or revocation state.',
       rotate: 'Generate a new key pair, replace the public key everywhere the old one was authorized, and revoke the old key.' },
 
     // SendGrid
     { regex: /(?:^|=\s*)SG\.[a-zA-Z0-9_-]{22}\.[a-zA-Z0-9_-]{43}/m, type: 'SendGrid API Key', service: 'SendGrid', severity: 'high',
-      blast: 'Can send emails from your domain. An attacker can send phishing emails that appear to come from your organization, damaging reputation and trust.',
+      blast: 'If valid, capabilities depend on the key permissions and SendGrid account configuration, and may include sending mail from configured identities.',
       rotate: 'https://app.sendgrid.com/settings/api_keys' },
 
     // Twilio
     { regex: /(?:^|=\s*)AC[a-f0-9]{32}/m, type: 'Twilio Account SID', service: 'Twilio', severity: 'medium',
-      blast: 'Account identifier — not secret alone, but combined with an auth token grants full Twilio access including sending SMS and making calls.',
+      blast: 'An Account SID is an identifier, not a secret by itself. A separate valid credential and its permissions determine access.',
       rotate: 'https://www.twilio.com/console' },
 
     // Mailgun
     { regex: /(?:^|=\s*)key-[a-zA-Z0-9]{32}/m, type: 'Mailgun API Key', service: 'Mailgun', severity: 'high',
-      blast: 'Can send emails from your Mailgun domains. Enables phishing attacks using your legitimate email infrastructure.',
+      blast: 'If valid, capabilities depend on the key type, permissions, domains, and Mailgun account configuration, and may include sending mail.',
       rotate: 'https://app.mailgun.com/settings/api_security' },
 
     // Firebase
@@ -317,7 +319,7 @@ OPENAI_API_KEY=sk-example-replace-with-your-key-here-now" spellcheck="false" aut
 
     // Heroku
     { regex: /(?:^|=\s*)[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/m, type: 'Possible Heroku API Key / UUID', service: 'Heroku / Generic', severity: 'low',
-      blast: 'If this is a Heroku API key, it grants full access to your Heroku account. If it is a generic UUID, it may not be sensitive.',
+      blast: 'This broad UUID shape is ambiguous. If it is a valid Heroku credential, inspect its current permissions and account context; otherwise it may be a non-secret identifier.',
       rotate: 'https://dashboard.heroku.com/account' },
 
     // Generic password/secret patterns
@@ -384,7 +386,7 @@ OPENAI_API_KEY=sk-example-replace-with-your-key-here-now" spellcheck="false" aut
 
     if (findings.length === 0) {
       summaryEl.innerHTML = '';
-      findingsEl.innerHTML = '<div class="env-no-issues">No secrets detected. Your .env looks clean.</div>';
+      findingsEl.innerHTML = '<div class="env-no-issues">No configured secret patterns matched. This is not proof that the file contains no secrets; review it manually.</div>';
       return;
     }
 
@@ -393,17 +395,17 @@ OPENAI_API_KEY=sk-example-replace-with-your-key-here-now" spellcheck="false" aut
     findings.forEach(function (f) { counts[f.severity] = (counts[f.severity] || 0) + 1; });
 
     summaryEl.innerHTML =
-      '<div class="env-stat env-stat--critical"><div class="env-stat-num">' + counts.critical + '</div><div class="env-stat-label">Critical</div></div>' +
-      '<div class="env-stat env-stat--high"><div class="env-stat-num">' + counts.high + '</div><div class="env-stat-label">High</div></div>' +
-      '<div class="env-stat env-stat--medium"><div class="env-stat-num">' + counts.medium + '</div><div class="env-stat-label">Medium</div></div>' +
-      '<div class="env-stat env-stat--ok"><div class="env-stat-num">' + counts.low + '</div><div class="env-stat-label">Low</div></div>';
+      '<div class="env-stat env-stat--critical"><div class="env-stat-num">' + counts.critical + '</div><div class="env-stat-label">Critical-priority patterns</div></div>' +
+      '<div class="env-stat env-stat--high"><div class="env-stat-num">' + counts.high + '</div><div class="env-stat-label">High-priority patterns</div></div>' +
+      '<div class="env-stat env-stat--medium"><div class="env-stat-num">' + counts.medium + '</div><div class="env-stat-label">Medium-priority patterns</div></div>' +
+      '<div class="env-stat env-stat--ok"><div class="env-stat-num">' + counts.low + '</div><div class="env-stat-label">Low-priority patterns</div></div>';
 
     /* Findings list */
     var html = '';
     findings.forEach(function (f, i) {
       html += '<div class="env-finding" id="finding-' + i + '">' +
-        '<div class="env-finding-header" onclick="document.getElementById(\'finding-' + i + '\').classList.toggle(\'open\')">' +
-          '<span class="env-severity env-severity--' + f.severity + '">' + f.severity + '</span>' +
+        '<div class="env-finding-header" data-env-toggle role="button" tabindex="0" aria-expanded="false">' +
+          '<span class="env-severity env-severity--' + f.severity + '">' + f.severity + ' pattern</span>' +
           '<span class="env-finding-key">' + escHtml(f.key) + '</span>' +
           '<span class="env-finding-type">' + escHtml(f.type) + '</span>' +
           '<span class="env-finding-chevron">&#x203a;</span>' +
@@ -413,9 +415,9 @@ OPENAI_API_KEY=sk-example-replace-with-your-key-here-now" spellcheck="false" aut
           '<div class="env-detail-row"><span class="env-detail-label">Service</span><span class="env-detail-value">' + escHtml(f.service) + '</span></div>' +
           '<div class="env-detail-row"><span class="env-detail-label">Detected as</span><span class="env-detail-value">' + escHtml(f.type) + '</span></div>' +
           '<div class="env-detail-row"><span class="env-detail-label">Value preview</span><span class="env-detail-value" style="font-family:var(--font-mono);font-size:12px;">' + escHtml(f.value) + '</span></div>' +
-          '<div class="env-blast"><strong>Blast radius:</strong> ' + escHtml(f.blast) + '</div>' +
+          '<div class="env-blast"><strong>Possible impact if valid (verify scope):</strong> ' + escHtml(f.blast) + '</div>' +
           (f.rotate.indexOf('http') === 0
-            ? '<a class="env-rotate-link" href="' + escHtml(f.rotate) + '" target="_blank" rel="noopener">Rotate this credential &#x2197;</a>'
+            ? '<a class="env-rotate-link" href="' + escHtml(f.rotate) + '" target="_blank" rel="noopener">Open provider credential guidance &#x2197;</a>'
             : '<div style="margin-top:8px;font-size:12px;color:var(--text-3);">' + escHtml(f.rotate) + '</div>') +
         '</div>' +
       '</div>';
@@ -423,6 +425,26 @@ OPENAI_API_KEY=sk-example-replace-with-your-key-here-now" spellcheck="false" aut
 
     findingsEl.innerHTML = html;
   }
+
+  function toggleFinding(header) {
+    var card = header.closest('.env-finding');
+    if (!card) return;
+    var open = card.classList.toggle('open');
+    header.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  findingsEl.addEventListener('click', function (event) {
+    var header = event.target.closest('[data-env-toggle]');
+    if (header && findingsEl.contains(header)) toggleFinding(header);
+  });
+
+  findingsEl.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var header = event.target.closest('[data-env-toggle]');
+    if (!header || !findingsEl.contains(header)) return;
+    event.preventDefault();
+    toggleFinding(header);
+  });
 
   function escHtml(str) {
     var d = document.createElement('div');

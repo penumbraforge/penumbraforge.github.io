@@ -11,10 +11,10 @@ permalink: /gate/
     <p class="gate-hero-tagline">A command-line scanner that looks for hardcoded secrets and helps you move them out.</p>
   </div>
   <div class="reveal" style="transition-delay: 0.2s;">
-    <p class="gate-hero-sub">Free. Runs on your machine. No account, no telemetry.</p>
+    <p class="gate-hero-sub">Free. Runs on your machine. No account or intentional product telemetry. Opt-in credential verification and update checks use documented network endpoints.</p>
   </div>
   <div class="reveal" style="transition-delay: 0.25s;">
-    <p class="gate-hero-sub">Experimental, pre-1.0. Detection is pattern-based, so it will produce false positives and miss things. Read any fix before you commit it, and please report what breaks.</p>
+    <p class="gate-hero-sub">Experimental 2.x software with no published external security or efficacy audit. Detection is pattern-based, so it will produce false positives and miss things. Read any fix before you commit it.</p>
   </div>
   <div class="reveal" style="transition-delay: 0.3s;">
     <p class="gate-hero-sub"><a href="/gate/wiki/">Documentation</a>&ensp;&middot;&ensp;<a href="https://github.com/penumbraforge/gate" target="_blank" rel="noopener">GitHub</a></p>
@@ -28,8 +28,8 @@ permalink: /gate/
     <div class="gate-install-blocks reveal" style="transition-delay: 0.05s;">
       <div class="gate-install-block">
         <span class="gate-install-label">zero-install</span>
-        <code><span class="prompt">$ </span>npx @penumbraforge/gate</code>
-        <button class="gate-copy-btn" data-copy="npx @penumbraforge/gate">copy</button>
+        <code><span class="prompt">$ </span>npx @penumbraforge/gate scan --all</code>
+        <button class="gate-copy-btn" data-copy="npx @penumbraforge/gate scan --all">copy</button>
       </div>
       <div class="gate-install-block">
         <span class="gate-install-label">global</span>
@@ -37,110 +37,16 @@ permalink: /gate/
         <button class="gate-copy-btn" data-copy="npm install -g @penumbraforge/gate">copy</button>
       </div>
     </div>
-    <p class="gate-install-note reveal" style="transition-delay: 0.1s;">One command, no config file needed to start. Requires Node.js {{ versions.gate.node }}+.</p>
+    <p class="gate-install-note reveal" style="transition-delay: 0.1s;">The explicit scan inspects tracked files. A bare <code>gate</code> command installs/shows hook status instead of scanning. Requires Node.js {{ versions.gate.node }}+.</p>
   </div>
 </section>
 
-<!-- WHAT MAKES GATE DIFFERENT -->
 <section class="gate-section" id="comparison">
   <div class="gate-container-wide">
-    <p class="section-label reveal">How Gate compares</p>
-    <div class="gate-comparison-wrap reveal" style="transition-delay: 0.05s;">
-      <table class="gate-comparison">
-        <thead>
-          <tr>
-            <th>Capability</th>
-            <th class="highlight">Gate</th>
-            <th>Gitleaks</th>
-            <th>TruffleHog</th>
-            <th>GitHub</th>
-            <th>GitGuardian</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Free / open source</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="paid">Paid</td>
-            <td class="paid">Freemium</td>
-          </tr>
-          <tr>
-            <td>Runs locally</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-          </tr>
-          <tr>
-            <td>Auto-fix engine</td>
-            <td class="yes">Yes</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-          </tr>
-          <tr>
-            <td>Credential verification</td>
-            <td class="yes">Yes</td>
-            <td class="no">No</td>
-            <td class="yes">Yes</td>
-            <td class="paid">Partial</td>
-            <td class="paid">Paid</td>
-          </tr>
-          <tr>
-            <td>Interactive remediation</td>
-            <td class="yes">Yes</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-          </tr>
-          <tr>
-            <td>Incident response</td>
-            <td class="yes">Yes</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-            <td class="paid">Paid</td>
-          </tr>
-          <tr>
-            <td>Compliance reports</td>
-            <td class="yes">Yes</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-            <td class="paid">Paid</td>
-          </tr>
-          <tr>
-            <td>SARIF output</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-          </tr>
-          <tr>
-            <td>Git history scanning</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="paid">Paid</td>
-          </tr>
-          <tr>
-            <td>No account required</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="yes">Yes</td>
-            <td class="no">No</td>
-            <td class="no">No</td>
-          </tr>
-        </tbody>
-      </table>
-      <p style="margin-top: 12px; font-size: 12px; color: var(--text-3); line-height: 1.6;">A feature checklist, not a quality ranking. The other tools here are mature and widely used; Gate is not. Rows reflect publicly documented free-tier capabilities as of August 2026. Spot an error? Email <a href="mailto:shadoe@penumbraforge.com">shadoe@penumbraforge.com</a> and I'll correct it.</p>
+    <p class="section-label reveal">Current scope</p>
+    <div class="gate-docs-section reveal">
+      <h2 class="gate-docs-heading">Where Gate fits</h2>
+      <p class="gate-docs-text">Gate is an experimental local secret-pattern scanner with interactive remediation, optional provider verification, history tooling, and SARIF. It is a safety net alongside established secret-scanning and repository controls, not a demonstrated replacement for them. No comparative efficacy or performance benchmark is currently published.</p>
     </div>
   </div>
 </section>
@@ -162,7 +68,8 @@ permalink: /gate/
 <!-- ANNOTATED OUTPUT -->
 <section class="gate-section" id="demo-detail">
   <div class="gate-container-wide">
-    <p class="section-label reveal">What the output tells you</p>
+    <p class="section-label reveal">Illustrative output anatomy</p>
+    <p class="gate-docs-text reveal">This synthetic example mirrors the current text-output shape. The value, path, timing, exposure label, and verification result are invented for explanation; this is not a benchmark or credential check.</p>
     <div class="gate-terminal reveal" style="transition-delay: 0.05s;">
       <div class="gate-terminal-bar">
         <span class="gate-terminal-dot"></span>
@@ -171,34 +78,25 @@ permalink: /gate/
         <span class="gate-terminal-title">gate scan --verify</span>
       </div>
       <div class="gate-terminal-body">
-<div class="line"><span class="ok">  ✓</span> <span class="dim">Scanned 847 files in 1.2s</span></div>
+<div class="line"><span class="ok">  ✓</span> <span class="dim">Scanned 1 files in 0.1s</span></div>
 <div class="line"></div>
-<div class="line"><span class="dim">  Gate v{{ versions.gate.version }} · {{ versions.gate.rules }} rules · scanning 847 files</span></div>
+<div class="line"><span class="dim">  Gate v{{ versions.gate.version }} · {{ versions.gate.rules }} rules · scanning 1 files</span></div>
 <div class="line"></div>
-<div class="line"><span class="dim">  [1/2]</span> <span class="err">CRITICAL</span>  <span class="file">src/api/payments.ts:23</span></div>
-<div class="line"><span class="dim">  rule:</span> <span class="text">stripe-secret-key</span></div>
+<div class="line"><span class="text">  gate ── 1 secret found</span></div>
 <div class="line"></div>
-<div class="line"><span class="dim">   21 |</span> <span class="text">const stripe = require('stripe');</span></div>
-<div class="line"><span class="dim">   22 |</span></div>
-<div class="line"><span class="dim">   23 |</span> <span class="text">const key = "</span><span class="underline err">sk_live_51Hb3azLk...R4pM</span><span class="text">";</span></div>
-<div class="line"><span class="dim">   24 |</span> <span class="text">const client = stripe(key);</span></div>
+<div class="line"><span class="dim">  [1/1]</span> <span class="err">CRITICAL</span>  <span class="text">stripe-live-secret</span></div>
+<div class="line"><span class="file">  src/api/payments.ts:23</span></div>
+<div class="line"><span class="dim">  21   const stripe = require('stripe');</span></div>
+<div class="line"><span class="dim">  22</span></div>
+<div class="line"><span class="text">  23   const key = "sk_l****R4pM";</span></div>
+<div class="line"><span class="dim">  24   const client = stripe(key);</span></div>
+<div class="line"><span class="text">  Stripe Live Secret Key ── CRITICAL VERIFIED LIVE [COMPROMISED]</span></div>
+<div class="line"><span class="dim">  Rotate the key and move it out of source.</span></div>
 <div class="line"></div>
-<div class="line"><span class="dim">  status:</span> <span class="err">LIVE</span> <span class="dim">  verified against Stripe API</span></div>
-<div class="line"><span class="dim">  match:</span>  <span class="text">sk_live_51H&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</span>  <span class="dim">(redacted &#183; sha256:aa3f&#8230;)</span></div>
-<div class="line"></div>
-<div class="line"><span class="dim">  [2/2]</span> <span class="warn">HIGH</span>    <span class="file">config/database.yml:8</span></div>
-<div class="line"><span class="dim">  rule:</span> <span class="text">database-connection-string</span></div>
-<div class="line"></div>
-<div class="line"><span class="dim">    7 |</span> <span class="text">production:</span></div>
-<div class="line"><span class="dim">    8 |</span> <span class="text">  url: "</span><span class="underline warn">postgres://admin:s3cr3t@db.prod...5432/app</span><span class="text">"</span></div>
-<div class="line"><span class="dim">    9 |</span> <span class="text">  pool: 10</span></div>
-<div class="line"></div>
-<div class="line"><span class="dim">  status:</span> <span class="ok">INACTIVE</span> <span class="dim">  connection refused</span></div>
-<div class="line"></div>
-<div class="line"><span class="dim">  ──────────────────────────────────────</span></div>
-<div class="line"><span class="dim">  2 findings in 2 files (1 critical, 1 high) — 1.2s</span></div>
-<div class="line"></div>
-<div class="line"><span class="accent">[f]</span><span class="dim"> fix</span>  <span class="accent">[v]</span><span class="dim"> vault</span>  <span class="accent">[i]</span><span class="dim"> ignore</span>  <span class="accent">[r]</span><span class="dim"> report</span>  <span class="accent">[q]</span><span class="dim"> quit</span></div>
+<div class="line"><span class="dim">  ──────────────────────────────────────────────────</span></div>
+<div class="line"><span class="text">  commit blocked · 1 critical — in 1 files · 0.1s</span></div>
+<div class="line"><span class="dim">  run gate fix to auto-remediate</span></div>
+<div class="line"><span class="dim">  run gate scan --interactive for guided walkthrough</span></div>
       </div>
     </div>
   </div>
@@ -211,31 +109,31 @@ permalink: /gate/
     <div class="gate-features-grid reveal" style="transition-delay: 0.05s;">
       <div class="gate-feature-card">
         <h3>{{ versions.gate.rules }} Detection Rules</h3>
-        <p>Patterns for AWS, GCP, Azure, GitHub, Stripe, AI keys, databases, and private keys, across 25+ providers.</p>
+        <p>Bundled patterns for cloud, source-control, payment, AI, database, and private-key credential shapes. The rule count is generated from the current catalog; coverage is not a guarantee.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Credential Verification</h3>
-        <p>Opt-in <code>--verify</code> asks provider APIs whether a matched secret is still live. No network calls unless you pass the flag.</p>
+        <p>Opt-in <code>--verify</code> sends the credential to a provider adapter. “Inactive” currently lowers severity, so read the adapter and threshold caveats before enabling it.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Auto-Fix Engine</h3>
-        <p>Can move a hardcoded secret into a .env file and rewrite the reference, across 9 languages. Check the diff before committing.</p>
+        <p>Can move selected hardcoded-string patterns into an environment file and rewrite bounded source forms. It is textual, not semantic, and has documented conflict and language gaps.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Interactive Remediation</h3>
-        <p>One keypress per finding to fix, vault, or ignore it, so you can work through a scan in a single pass.</p>
+        <p>Walk through findings to fix, vault, ignore, skip, or open guidance. Vault references have no application runtime resolver, and ignores are policy bypasses.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Incident Response</h3>
-        <p>5-step guided workflow: rotate credentials, audit access, clean code, scrub history, document.</p>
+        <p>Prints rotation/audit guidance and creates purge and incident-record artifacts. It does not rotate, investigate, fix, execute a purge, or update completion state.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Compliance Reports</h3>
-        <p>Maps findings to OWASP, NIST 800-63B, CIS Benchmark v8, and SOC2 controls. A starting point for an audit, not a substitute for one.</p>
+        <p>Summarizes the current local audit log and attaches static OWASP 2021, NIST SP 800-53, CIS Controls, and SOC 2 labels. It is not an attestation.</p>
       </div>
       <div class="gate-feature-card">
         <h3>SARIF Output</h3>
-        <p>SARIF output for GitHub Advanced Security code scanning alerts.</p>
+        <p>Emits SARIF 2.1.0. The GitHub Action can attempt an upload when token permissions and repository support allow it.</p>
       </div>
       <div class="gate-feature-card">
         <h3>Git History Scanning</h3>
@@ -255,22 +153,28 @@ permalink: /gate/
     <p class="section-label reveal">CI/CD</p>
     <div class="gate-docs-section reveal">
       <h2 class="gate-docs-heading">GitHub Action</h2>
-      <p class="gate-docs-text">Run Gate in CI with the GitHub Action. It scans pull requests and pushes, and uploads SARIF results to GitHub code scanning.</p>
+      <p class="gate-docs-text">The action defaults to report/warn, installs the unversioned npm CLI when Gate is absent, and only attempts SARIF upload when requested. Pin the CLI separately and choose blocking behavior explicitly.</p>
 
       <div class="gate-gh-action">
         <div class="gate-gh-action-bar">.github/workflows/gate.yml</div>
         <div class="gate-gh-action-body"><span class="kw">name</span>: Gate
 <span class="kw">on</span>: [pull_request, push]
 
+<span class="kw">permissions</span>:
+  <span class="kw">contents</span>: read
+  <span class="kw">pull-requests</span>: write
+  <span class="kw">security-events</span>: write
+
 <span class="kw">jobs</span>:
   <span class="kw">scan</span>:
     <span class="kw">runs-on</span>: ubuntu-latest
     <span class="kw">steps</span>:
       - <span class="kw">uses</span>: actions/checkout@v4
+      - <span class="kw">run</span>: npm install -g @penumbraforge/gate@{{ versions.gate.version }}
       - <span class="kw">uses</span>: penumbraforge/gate@v2
         <span class="kw">with</span>:
           <span class="kw">mode</span>: enforce
-          <span class="kw">verify</span>: <span class="val">true</span>
+          <span class="kw">verify</span>: <span class="val">false</span>
           <span class="kw">format</span>: sarif
           <span class="kw">fail-on</span>: high</div>
       </div>
@@ -283,16 +187,16 @@ permalink: /gate/
   <div class="gate-container-wide">
     <p class="section-label reveal">Documentation</p>
     <div class="gate-docs-section reveal">
-      <p class="gate-docs-text">Everything else lives in the wiki &mdash; one canonical home for the docs, kept current with each release.</p>
+      <p class="gate-docs-text">The wiki records current behavior and known gaps. Source remains authoritative when a release and these pages drift.</p>
       <ul class="gate-docs-list">
         <li id="docs-install"><a href="/gate/wiki/getting-started/">Getting started</a> &mdash; install, first run, project setup</li>
         <li id="docs-config"><a href="/gate/wiki/configuration/">Configuration</a> &mdash; <code>.gaterc</code> options and custom rules</li>
         <li id="docs-gateignore"><a href="/gate/wiki/ignore-patterns/">Ignore patterns</a> &mdash; <code>.gateignore</code> and inline ignores</li>
         <li id="docs-commands"><a href="/gate/wiki/commands/">Commands reference</a> &mdash; scan, fix, verify, vault, report, audit</li>
-        <li id="docs-languages"><a href="/gate/wiki/auto-fix/">Auto-fix engine</a> &mdash; how rewriting works across 9 languages</li>
+        <li id="docs-languages"><a href="/gate/wiki/auto-fix/">Auto-fix engine</a> &mdash; supported rewrite forms, dry runs, snapshots, and limitations</li>
         <li id="docs-verification"><a href="/gate/wiki/verification/">Credential verification</a> &mdash; opt-in liveness checks, privacy model</li>
-        <li><a href="/gate/wiki/incident-response/">Incident response</a> &mdash; the 5-step guided workflow</li>
-        <li><a href="/gate/wiki/compliance/">Compliance reports</a> &mdash; OWASP, NIST 800-63B, CIS v8, SOC2</li>
+        <li><a href="/gate/wiki/incident-response/">Incident response</a> &mdash; generated guidance/artifacts and manual actions</li>
+        <li><a href="/gate/wiki/compliance/">Reports and mappings</a> &mdash; local evidence and static control labels</li>
         <li><a href="/gate/wiki/security/">Security design</a> &mdash; how Gate handles the secrets it finds</li>
       </ul>
     </div>
@@ -305,12 +209,13 @@ permalink: /gate/
   <div class="gate-container">
     <p class="section-label reveal">How Gate handles your data</p>
     <div class="gate-security-list reveal" style="transition-delay: 0.05s;">
-      <div class="gate-security-item"><strong>Runs locally.</strong> No telemetry and no cloud service. The only outbound requests are the opt-in <code>--verify</code> checks.</div>
-      <div class="gate-security-item"><strong>Restrictive file permissions.</strong> Config and vault files are created with 0o600/0o700 permissions.</div>
-      <div class="gate-security-item"><strong>Atomic file writes.</strong> Writes go to a temp file, then rename, so an interrupted write leaves the original intact.</div>
-      <div class="gate-security-item"><strong>Secrets redacted in output.</strong> Terminal output masks matched credential values.</div>
+      <div class="gate-security-item"><strong>Local default scan.</strong> Gate has no intentional product telemetry. Opt-in <code>--verify</code> sends a credential to its provider, and update operations can also use the network.</div>
+      <div class="gate-security-item"><strong>Secret-bearing local state.</strong> Gate requests restrictive modes for sensitive files, but snapshots can contain plaintext and the current audit writer can retain a raw <code>secret</code> field.</div>
+      <div class="gate-security-item"><strong>Scoped atomic rewrites.</strong> Core source-file fixes use a temporary file and rename. Not every config, state, vault, or report write shares that boundary.</div>
+      <div class="gate-security-item"><strong>Redacted supported outputs.</strong> Review machine formats, debug output, and generated artifacts before sharing them.</div>
       <div class="gate-security-item"><strong>TLS for verification.</strong> Provider API calls during <code>--verify</code> go over TLS.</div>
-      <div class="gate-security-item"><strong>No shell interpolation.</strong> Subprocesses use execFileSync with explicit argument arrays.</div>
+      <div class="gate-security-item"><strong>Hook mismatch.</strong> Generated hooks and the CLI currently use different environment-variable names for pre-commit behavior; keep config verification off and inspect staging after fixes.</div>
+      <div class="gate-security-item"><strong>Mixed subprocess paths.</strong> Some paths use explicit argument arrays; other current paths invoke shell-backed commands. Treat repository paths and generated commands as untrusted until reviewed.</div>
     </div>
   </div>
 </section>

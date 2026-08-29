@@ -8,9 +8,9 @@ permalink: /tools/local-chat/
 (function () {
   if (!window.PenumbraAIUI) return;
   PenumbraAIUI.chat(document.getElementById('chatMount'), {
-    system: "You are a concise, helpful assistant running locally on the user's own machine. Be direct and practical.",
-    placeholder: "Ask anything — this runs on your machine…",
-    starter: "Hi. I'm a language model running entirely on your device — nothing you type here leaves your machine. Pick an engine with “Engine ▾” above (in-browser WebGPU, your own Ollama/LM Studio, or an API key), then ask me anything."
+    system: "You are a concise, helpful assistant. Be direct and practical.",
+    placeholder: "Ask anything…",
+    starter: "Pick an engine with “Engine ▾” above before chatting. WebGPU keeps prompts in this page; configured-endpoint and API-key modes send them to the URL you choose."
   });
 })();
 </script>

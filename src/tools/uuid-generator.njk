@@ -461,7 +461,7 @@ copyBtn.addEventListener('click', () => {
 
   generate(); // always populate + demo (publishes a generate result)
 
-  // if an inspection was requested (?in= / ?uuid=), it runs last and becomes the primary result
+  // If an inspection was requested (#in= / #uuid=, or a legacy query), it runs last and becomes the primary result.
   const target = (p.in != null && String(p.in).trim() !== '') ? String(p.in).trim()
     : (p.uuid != null && String(p.uuid).trim() !== '') ? String(p.uuid).trim() : '';
   if (target) {

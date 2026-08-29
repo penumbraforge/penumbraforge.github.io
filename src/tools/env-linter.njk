@@ -378,7 +378,7 @@ permalink: /tools/env-linter/
     if (errors)   summaryEl.appendChild(makeBadge(errors + " error" + (errors !== 1 ? "s" : ""), "error"));
     if (warnings) summaryEl.appendChild(makeBadge(warnings + " warning" + (warnings !== 1 ? "s" : ""), "warning"));
     if (infos)    summaryEl.appendChild(makeBadge(infos + " notice" + (infos !== 1 ? "s" : ""), "info"));
-    if (!errors && !warnings && !infos) summaryEl.appendChild(makeBadge("No issues found", "ok"));
+    if (!errors && !warnings && !infos) summaryEl.appendChild(makeBadge("No configured lint rules matched", "ok"));
     summaryEl.style.display = "";
 
     // Issues list
@@ -426,7 +426,7 @@ permalink: /tools/env-linter/
       var okEl = document.createElement("div");
       okEl.className = "env-badge env-badge--ok";
       okEl.style.cssText = "display:inline-flex; margin-bottom:16px;";
-      okEl.textContent = "No issues found — your .env file looks clean!";
+      okEl.textContent = "No configured lint rules matched. This is not a safety verdict; review the file manually.";
       issuesEl.appendChild(okEl);
     }
 
