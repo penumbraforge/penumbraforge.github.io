@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync, existsSync } from 'node:fs';
-import { parseDocument } from 'htmlparser2'; // Already installed by Eleventy's toolchain.
+import { parseDocument } from 'htmlparser2';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const catalog = JSON.parse(read('src/_data/tools.json')).filter(tool => tool.status === 'live');

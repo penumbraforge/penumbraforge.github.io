@@ -298,33 +298,7 @@ layout: tool-layout.njk
     return { severity: severity, issues: issues };
   }
 
-  /* Isolated timing: keep this worker body self-contained. */
-  function timingWorker() {
-    var re;
-    self.onmessage = function (event) {
-      var data = event.data;
-      if (data.type === 'init') {
-        try {
-          re = new RegExp(data.pattern, data.flags);
-          self.postMessage({ type: 'ready' });
-        } catch (error) {
-          self.postMessage({ type: 'syntax-error', message: error.message });
-        }
-        return;
-      }
-      if (data.type === 'sample') {
-        try {
-          re.lastIndex = 0;
-          var start = performance.now();
-          var matched = re.test(data.input);
-          self.postMessage({ type: 'sample', duration: performance.now() - start, matched: matched });
-        } catch (error) {
-          self.postMessage({ type: 'error', message: error.message });
-        }
-      }
-    };
-  }
-
+  /* Isolated timing helpers */
   function buildSamples(repeated, suffix) {
     var samples = [{ label: 'Baseline', input: 'test' }];
     [8, 12, 16, 20, 24, 28, 32, 48, 64, 96, 128].forEach(function (count) {
@@ -335,7 +309,6 @@ layout: tool-layout.njk
 
   function runSamples(pattern, flags, samples, onProgress) {
     var worker = null;
-    var url = null;
     var timer = null;
     var settled = false;
     var finish;
@@ -347,7 +320,6 @@ layout: tool-layout.njk
         settled = true;
         clearTimeout(timer);
         if (worker) worker.terminate();
-        if (url) URL.revokeObjectURL(url);
         resolve({ status: status, message: message || '', results: results });
       };
       if (typeof Worker === 'undefined') {
@@ -364,8 +336,7 @@ layout: tool-layout.njk
         worker.postMessage({ type: 'sample', input: sample.input });
       }
       try {
-        url = URL.createObjectURL(new Blob(['(' + timingWorker.toString() + ')();'], { type: 'text/javascript' }));
-        worker = new Worker(url);
+        worker = new Worker('/js/redos-timing-worker.js?v={{ assetv }}');
         worker.onmessage = function (event) {
           if (settled) return;
           clearTimeout(timer);

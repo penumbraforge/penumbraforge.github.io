@@ -2,12 +2,12 @@
 // Exercises the actual inline functions, with real isolated worker threads for timing.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { resolveObjectURL } from 'node:buffer';
 import { Worker as NodeWorker } from 'node:worker_threads';
 import vm from 'node:vm';
 import test from 'node:test';
 import yaml from 'js-yaml';
 
+const redosWorkerSource = readFileSync(new URL('../src/js/redos-timing-worker.js', import.meta.url), 'utf8');
 const redos = readFileSync(new URL('../src/tools/redos-tester.njk', import.meta.url), 'utf8');
 const email = readFileSync(new URL('../src/tools/email-header-forensics.njk', import.meta.url), 'utf8');
 const sigma = readFileSync(new URL('../src/tools/sigma-rule-builder.njk', import.meta.url), 'utf8');
@@ -28,36 +28,30 @@ test('all three complete inline scripts parse', () => {
 // Adapt the Web Worker transport; the tool's worker body and deadline logic are unchanged.
 class BrowserWorker {
   constructor(url) {
-    this.stopped = false;
-    this.queue = [];
-    this.ready = resolveObjectURL(url).text().then(source => {
-      if (this.stopped) return;
-      this.worker = new NodeWorker(`
-        const { parentPort } = require('node:worker_threads');
-        global.self = { postMessage: data => parentPort.postMessage(data) };
-        parentPort.on('message', data => self.onmessage({ data }));
-        ${source}
-      `, { eval: true });
-      this.worker.on('message', data => this.onmessage?.({ data }));
-      this.worker.on('error', error => this.onerror?.({ message: error.message, preventDefault() {} }));
-      for (const data of this.queue) this.worker.postMessage(data);
-      this.queue.length = 0;
-    });
+    assert.equal(new URL(url, 'https://penumbraforge.com').pathname, '/js/redos-timing-worker.js');
+    this.worker = new NodeWorker(`
+      const { parentPort } = require('node:worker_threads');
+      global.self = { postMessage: data => parentPort.postMessage(data) };
+      parentPort.on('message', data => self.onmessage({ data }));
+      ${redosWorkerSource}
+    `, { eval: true });
+    this.worker.on('message', data => this.onmessage?.({ data }));
+    this.worker.on('error', error => this.onerror?.({ message: error.message, preventDefault() {} }));
   }
-  postMessage(data) {
-    if (this.worker) this.worker.postMessage(data);
-    else this.queue.push(data);
-  }
-  terminate() {
-    this.stopped = true;
-    this.worker?.terminate();
-  }
+  postMessage(data) { this.worker.postMessage(data); }
+  terminate() { this.worker.terminate(); }
 }
 function redosApi(worker = BrowserWorker) {
-  const context = vm.createContext({ Worker: worker, URL, Blob, setTimeout, clearTimeout });
-  vm.runInContext(section(redos, '  function timingWorker()', '  function esc(s)'), context);
+  const context = vm.createContext({ Worker: worker, setTimeout, clearTimeout });
+  vm.runInContext(section(redos, '  /* Isolated timing helpers */', '  function esc(s)'), context);
   return context;
 }
+
+test('ReDoS uses the same-origin static worker without Blob or inline-source transport', () => {
+  assert.doesNotThrow(() => new vm.Script(redosWorkerSource));
+  assert.match(redos, /new Worker\('\/js\/redos-timing-worker\.js\?v=\{\{ assetv \}\}'\)/);
+  assert.doesNotMatch(redos, /createObjectURL|new Blob|timingWorker\.toString/);
+});
 
 test('every increasing stress sample retains the chosen failure suffix', () => {
   const samples = redosApi().buildSamples('1', '!');
