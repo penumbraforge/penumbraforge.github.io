@@ -6,19 +6,25 @@ layout: tool-layout.njk
 
 <div class="tool-group">
   <label for="redos-pattern">Regular Expression</label>
-  <input type="text" id="redos-pattern" placeholder="(a+)+$" autocomplete="off" spellcheck="false" class="tool-input-mono">
+  <input type="text" id="redos-pattern" placeholder="(a+)+$" autocomplete="off" spellcheck="false" class="tool-input-mono" maxlength="2048">
 </div>
 
+<div class="tool-row redos-options">
+  <div class="tool-group"><label for="redos-flags">Flags</label><input id="redos-flags" class="tool-input-mono" placeholder="i" maxlength="16" autocomplete="off" spellcheck="false"></div>
+  <div class="tool-group"><label for="redos-repeat">Repeat text</label><input id="redos-repeat" class="tool-input-mono" value="a" maxlength="8" autocomplete="off" spellcheck="false"></div>
+  <div class="tool-group"><label for="redos-suffix">Failure suffix</label><input id="redos-suffix" class="tool-input-mono" value="!" maxlength="16" autocomplete="off" spellcheck="false"></div>
+</div>
+<p class="redos-explain">Choose text your pattern can repeat, then a suffix intended to make it fail. Each sample retains that suffix. Tests run in a separate worker with a 250 ms time budget per sample; a timeout stops the worker. These inputs may not trigger your pattern’s worst case.</p>
 <div class="tool-row">
   <button class="btn" id="btn-test">Test for ReDoS</button>
   <button class="btn btn--secondary" id="btn-examples">Load Examples</button>
   <button class="btn btn--secondary" id="btn-clear">Clear</button>
 </div>
 
-<div id="redos-result" style="display:none;"></div>
+<div id="redos-result" style="display:none;" role="status" aria-live="polite"></div>
 
 <div class="redos-examples" id="redos-examples" style="display:none;">
-  <div class="ha-section-label">Known Vulnerable Patterns</div>
+  <div class="ha-section-label">Stress-test examples</div>
   <div class="redos-example-grid">
     <button class="redos-ex" data-pattern="(a+)+$">
       <code>(a+)+$</code>
@@ -135,6 +141,13 @@ layout: tool-layout.njk
   word-break: break-all;
 }
 
+.redos-options > .tool-group { flex: 1; min-width: 100px; }
+.redos-table-wrap { overflow-x: auto; }
+.redos-table { width: 100%; border-collapse: collapse; font: 12px var(--font-mono); }
+.redos-table th, .redos-table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+.redos-table th { font-weight: 500; }
+.redos-attack-value { display: block; margin-bottom: 12px; }
+
 .redos-timing {
   display: flex;
   gap: 16px;
@@ -227,6 +240,11 @@ layout: tool-layout.njk
   var btnTest = document.getElementById('btn-test');
   var btnExamples = document.getElementById('btn-examples');
   var btnClear = document.getElementById('btn-clear');
+  var flagsEl = document.getElementById('redos-flags');
+  var repeatEl = document.getElementById('redos-repeat');
+  var suffixEl = document.getElementById('redos-suffix');
+  var activeRun = null;
+  var runId = 0;
 
   /* ── ReDoS detection heuristics ── */
   function analyzePattern(pattern) {
@@ -235,7 +253,7 @@ layout: tool-layout.njk
 
     /* Nested quantifiers: (a+)+ or (a*)*  */
     if (/\([^)]*[+*]\)[+*{]/.test(pattern) || /\([^)]*[+*]\)\{/.test(pattern)) {
-      issues.push({ type: 'Nested quantifiers', detail: 'A quantified group containing a quantified element causes exponential backtracking. The regex engine tries every possible way to split the input between the inner and outer repetitions.', severity: 'critical' });
+      issues.push({ type: 'Nested quantifiers', detail: 'A quantified group containing a quantified element can cause excessive backtracking. The regex engine tries every possible way to split the input between the inner and outer repetitions.', severity: 'critical' });
       severity = 'vulnerable';
     }
 
@@ -267,7 +285,7 @@ layout: tool-layout.njk
       }
     }
     if (starHeight > 2 && maxStarDepth > 1) {
-      issues.push({ type: 'High star height', detail: 'Multiple quantifiers at different nesting depths compound backtracking. Star height > 1 is a strong indicator of super-linear behavior.', severity: 'high' });
+      issues.push({ type: 'Nested repetition syntax', detail: 'The source text contains several nested quantifier-like constructions. Review ambiguous repetitions; this text check does not parse the full regex syntax.', severity: 'high' });
       if (severity !== 'vulnerable') severity = 'warning';
     }
 
@@ -280,41 +298,100 @@ layout: tool-layout.njk
     return { severity: severity, issues: issues };
   }
 
-  /* Generate attack string for common patterns */
-  function generateAttack(pattern) {
-    /* Nested quantifiers with character class */
-    if (/\([^)]*[+*]\)[+*]/.test(pattern)) {
-      var charMatch = pattern.match(/\([\[\]]*([a-zA-Z0-9\\])/);
-      var ch = 'a';
-      if (charMatch) {
-        var c = charMatch[1];
-        if (c === '\\d') ch = '1';
-        else if (c === '\\w') ch = 'a';
-        else if (c === '\\s') ch = ' ';
-        else if (/[a-zA-Z0-9]/.test(c)) ch = c;
+  /* Isolated timing: keep this worker body self-contained. */
+  function timingWorker() {
+    var re;
+    self.onmessage = function (event) {
+      var data = event.data;
+      if (data.type === 'init') {
+        try {
+          re = new RegExp(data.pattern, data.flags);
+          self.postMessage({ type: 'ready' });
+        } catch (error) {
+          self.postMessage({ type: 'syntax-error', message: error.message });
+        }
+        return;
       }
-      return ch.repeat(25) + '!';
-    }
-
-    /* Greedy dot-star */
-    if (/\.\*/.test(pattern) || /\.+/.test(pattern)) {
-      return 'a'.repeat(25) + '!';
-    }
-
-    return 'a'.repeat(30) + '!';
+      if (data.type === 'sample') {
+        try {
+          re.lastIndex = 0;
+          var start = performance.now();
+          var matched = re.test(data.input);
+          self.postMessage({ type: 'sample', duration: performance.now() - start, matched: matched });
+        } catch (error) {
+          self.postMessage({ type: 'error', message: error.message });
+        }
+      }
+    };
   }
 
-  /* Time the regex execution */
-  function timeRegex(pattern, input) {
-    try {
-      var re = new RegExp(pattern);
-      var start = performance.now();
-      re.test(input);
-      var end = performance.now();
-      return end - start;
-    } catch (e) {
-      return -1;
-    }
+  function buildSamples(repeated, suffix) {
+    var samples = [{ label: 'Baseline', input: 'test' }];
+    [8, 12, 16, 20, 24, 28, 32, 48, 64, 96, 128].forEach(function (count) {
+      samples.push({ label: count + ' repeats + suffix', input: repeated.repeat(count) + suffix });
+    });
+    return samples;
+  }
+
+  function runSamples(pattern, flags, samples, onProgress) {
+    var worker = null;
+    var url = null;
+    var timer = null;
+    var settled = false;
+    var finish;
+    var promise = new Promise(function (resolve) {
+      var index = 0;
+      var results = [];
+      finish = function (status, message) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (worker) worker.terminate();
+        if (url) URL.revokeObjectURL(url);
+        resolve({ status: status, message: message || '', results: results });
+      };
+      if (typeof Worker === 'undefined') {
+        finish('unavailable', 'This browser does not provide Web Workers. No regex was executed.');
+        return;
+      }
+      function nextSample() {
+        if (index === samples.length) { finish('complete'); return; }
+        var sample = samples[index];
+        timer = setTimeout(function () {
+          results.push({ label: sample.label, input: sample.input, timeout: true });
+          finish('timeout', 'The worker exceeded its 250 ms time budget and was terminated.');
+        }, 250);
+        worker.postMessage({ type: 'sample', input: sample.input });
+      }
+      try {
+        url = URL.createObjectURL(new Blob(['(' + timingWorker.toString() + ')();'], { type: 'text/javascript' }));
+        worker = new Worker(url);
+        worker.onmessage = function (event) {
+          if (settled) return;
+          clearTimeout(timer);
+          var data = event.data;
+          if (data.type === 'ready') { nextSample(); return; }
+          if (data.type === 'syntax-error') { finish('syntax-error', data.message); return; }
+          if (data.type === 'error') { finish('error', data.message); return; }
+          if (data.type !== 'sample') { finish('error', 'Unexpected worker response.'); return; }
+          var sample = samples[index++];
+          results.push({ label: sample.label, input: sample.input, duration: data.duration, matched: data.matched });
+          if (onProgress) onProgress(results.length, samples.length);
+          nextSample();
+        };
+        worker.onerror = function (event) {
+          if (event.preventDefault) event.preventDefault();
+          finish('unavailable', 'The worker could not run. This browser or its security policy may block isolated execution. No main-thread fallback was used.');
+        };
+        timer = setTimeout(function () {
+          finish('unavailable', 'The worker did not initialize within 2 seconds. No main-thread fallback was used.');
+        }, 2000);
+        worker.postMessage({ type: 'init', pattern: pattern, flags: flags });
+      } catch (error) {
+        finish('unavailable', 'Isolated execution is unavailable. No regex was executed on the page.');
+      }
+    });
+    return { promise: promise, cancel: function () { finish('cancelled'); } };
   }
 
   function esc(s) {
@@ -323,76 +400,68 @@ layout: tool-layout.njk
     return d.innerHTML;
   }
 
-  function runTest() {
-    var pattern = patternEl.value.trim();
-    if (!pattern) { patternEl.focus(); return; }
+  function cancelRun() {
+    runId++;
+    if (activeRun) activeRun.cancel();
+    activeRun = null;
+    btnTest.disabled = false;
+    btnTest.textContent = 'Test for ReDoS';
+  }
 
-    /* Validate regex */
-    try { new RegExp(pattern); } catch (e) {
-      resultEl.style.display = '';
-      resultEl.innerHTML = '<div class="redos-result-card redos-warn"><div class="redos-result-icon">&#x26a0;</div><div class="redos-result-title">Invalid regex</div><div class="redos-result-detail">' + esc(e.message) + '</div></div>';
+  function renderResult(analysis, outcome) {
+    var title;
+    if (outcome.status === 'syntax-error') title = 'Invalid regular expression or flags';
+    else if (outcome.status === 'unavailable') title = 'Timing unavailable';
+    else if (outcome.status === 'error') title = 'Timing could not finish';
+    else if (outcome.status === 'timeout') title = 'Time budget exceeded';
+    else title = 'Bounded samples completed';
+    var html = '<div class="redos-result-card redos-warn"><div class="redos-result-title">' + title + '</div>';
+    if (outcome.message) html += '<p class="redos-result-detail">' + esc(outcome.message) + '</p>';
+    if (outcome.status !== 'syntax-error') {
+      html += '<p class="redos-result-detail">These measurements cover only the inputs below in this browser’s JavaScript engine. A short successful run does not prove safety; a timeout includes worker scheduling time and does not prove exponential growth.</p>';
+      if (analysis.issues.length) {
+        html += '<div class="ha-section-label">Structural review hints</div><p class="redos-result-detail">Simple source-text checks can flag harmless or escaped constructions. They do not classify safety.</p><ul class="redos-explain">';
+        analysis.issues.forEach(function (issue) { html += '<li><strong>' + esc(issue.type) + '.</strong> ' + esc(issue.detail) + '</li>'; });
+        html += '</ul>';
+      }
+    }
+    if (outcome.results.length) {
+      html += '<div class="redos-table-wrap"><table class="redos-table"><thead><tr><th>Sample</th><th>Length</th><th>Time</th><th>Matched</th></tr></thead><tbody>';
+      outcome.results.forEach(function (sample) {
+        html += '<tr><th>' + esc(sample.label) + '</th><td>' + sample.input.length + '</td><td>' + (sample.timeout ? '250 ms budget exceeded' : sample.duration.toFixed(3) + ' ms') + '</td><td>' + (sample.timeout ? 'Unknown' : sample.matched ? 'Yes' : 'No') + '</td></tr>';
+      });
+      html += '</tbody></table></div><details class="redos-attack-string"><summary>Exact sample inputs (JSON strings)</summary>';
+      outcome.results.forEach(function (sample) { html += '<div class="redos-attack-label">' + esc(sample.label) + '</div><code class="redos-attack-value">' + esc(JSON.stringify(sample.input)) + '</code>'; });
+      html += '</details>';
+    }
+    resultEl.innerHTML = html + '</div>';
+  }
+
+  function runTest() {
+    cancelRun();
+    var pattern = patternEl.value;
+    if (!pattern) { patternEl.focus(); return; }
+    resultEl.style.display = '';
+    if (pattern.length > 2048 || !repeatEl.value || repeatEl.value.length > 8 || suffixEl.value.length > 16 || flagsEl.value.length > 16) {
+      resultEl.textContent = 'Use a pattern up to 2,048 characters, repeat text of 1–8 characters, and flags and suffix up to 16 characters each.';
       return;
     }
-
+    var thisRun = runId;
     var analysis = analyzePattern(pattern);
-    var attack = generateAttack(pattern);
-
-    /* Time with safe input */
-    var safeTime = timeRegex(pattern, 'test');
-
-    /* Time with short attack */
-    var shortAttack = attack.substring(0, 15);
-    var shortTime = timeRegex(pattern, shortAttack);
-
-    /* Time with medium attack (be careful — cap at 100ms) */
-    var medAttack = attack.substring(0, 20);
-    var medTime = timeRegex(pattern, medAttack);
-
-    /* Detect exponential growth */
-    var isExponential = medTime > 0 && shortTime > 0 && medTime > shortTime * 5;
-    if (isExponential && analysis.severity === 'safe') {
-      analysis.severity = 'warning';
-      analysis.issues.push({ type: 'Empirical slowdown detected', detail: 'The regex showed exponential time growth when tested with increasing input lengths. Even though no obvious structural issue was found, the pattern may be vulnerable to ReDoS.', severity: 'high' });
-    }
-    if (isExponential) analysis.severity = 'vulnerable';
-
-    resultEl.style.display = '';
-
-    if (analysis.severity === 'safe') {
-      resultEl.innerHTML = '<div class="redos-result-card redos-safe">' +
-        '<div class="redos-result-icon">&#x2705;</div>' +
-        '<div class="redos-result-title">No issue observed in bounded checks</div>' +
-        '<div class="redos-result-detail">The bundled structural checks and short timing samples did not observe their target patterns. Longer inputs, a different engine, or an untested construction may still behave badly.</div>' +
-        '<div class="redos-timing">' +
-          '<div class="redos-timing-item"><div class="redos-timing-num">' + safeTime.toFixed(2) + 'ms</div><div class="redos-timing-label">Normal input</div></div>' +
-          '<div class="redos-timing-item"><div class="redos-timing-num">' + medTime.toFixed(2) + 'ms</div><div class="redos-timing-label">Adversarial input</div></div>' +
-        '</div>' +
-      '</div>';
-    } else {
-      var issueHtml = '';
-      analysis.issues.forEach(function (issue) {
-        issueHtml += '<div style="margin-bottom:10px;padding:10px 14px;background:rgba(235,87,87,0.04);border:1px solid rgba(235,87,87,0.08);border-radius:8px;">' +
-          '<div style="font-family:var(--font-mono);font-size:11px;color:#eb5757;margin-bottom:4px;">' + esc(issue.type) + ' — ' + esc(issue.severity) + '</div>' +
-          '<div style="font-size:12px;color:var(--text-2);line-height:1.5;">' + esc(issue.detail) + '</div>' +
-        '</div>';
-      });
-
-      resultEl.innerHTML = '<div class="redos-result-card redos-vuln">' +
-        '<div class="redos-result-icon">&#x1f6a8;</div>' +
-        '<div class="redos-result-title">Potential ReDoS pattern ' + (analysis.severity === 'vulnerable' ? 'observed' : 'flagged') + '</div>' +
-        '<div class="redos-result-detail">A bundled structural rule or bounded timing sample found risky growth. Confirm with the same regex engine, flags, and realistic input limits used in production.</div>' +
-        issueHtml +
-        '<div class="redos-attack-string">' +
-          '<div class="redos-attack-label">Generated stress string (bounded test candidate)</div>' +
-          '<div class="redos-attack-value">' + esc(attack) + '</div>' +
-        '</div>' +
-        '<div class="redos-timing">' +
-          '<div class="redos-timing-item"><div class="redos-timing-num">' + safeTime.toFixed(2) + 'ms</div><div class="redos-timing-label">Normal input</div></div>' +
-          '<div class="redos-timing-item"><div class="redos-timing-num">' + shortTime.toFixed(2) + 'ms</div><div class="redos-timing-label">15-char attack</div></div>' +
-          '<div class="redos-timing-item"><div class="redos-timing-num">' + medTime.toFixed(2) + 'ms</div><div class="redos-timing-label">20-char attack</div></div>' +
-        '</div>' +
-      '</div>';
-    }
+    var samples = buildSamples(repeatEl.value, suffixEl.value);
+    btnTest.disabled = true;
+    btnTest.textContent = 'Testing…';
+    resultEl.textContent = 'Starting isolated timing. Clear cancels the test.';
+    activeRun = runSamples(pattern, flagsEl.value.trim(), samples, function (done, total) {
+      if (thisRun === runId) resultEl.textContent = 'Testing in worker: ' + done + ' of ' + total + ' samples completed. Clear cancels the test.';
+    });
+    activeRun.promise.then(function (outcome) {
+      if (thisRun !== runId || outcome.status === 'cancelled') return;
+      activeRun = null;
+      btnTest.disabled = false;
+      btnTest.textContent = 'Test for ReDoS';
+      renderResult(analysis, outcome);
+    });
   }
 
   btnTest.addEventListener('click', runTest);
@@ -403,13 +472,21 @@ layout: tool-layout.njk
   });
 
   btnClear.addEventListener('click', function () {
+    cancelRun();
     patternEl.value = '';
     resultEl.style.display = 'none';
+  });
+
+  [patternEl, flagsEl, repeatEl, suffixEl].forEach(function (input) {
+    input.addEventListener('input', function () { cancelRun(); resultEl.style.display = 'none'; });
   });
 
   document.querySelectorAll('.redos-ex').forEach(function (btn) {
     btn.addEventListener('click', function () {
       patternEl.value = this.getAttribute('data-pattern');
+      flagsEl.value = '';
+      repeatEl.value = patternEl.value.indexOf('\\d') !== -1 ? '1' : 'a';
+      suffixEl.value = '!';
       examplesEl.style.display = 'none';
       runTest();
     });

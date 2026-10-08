@@ -1,0 +1,119 @@
+---
+layout: base.njk
+title: "All Tools — Penumbra Forge"
+description: "A collection of developer and security utilities. Search by task, browse a category, and see where your input goes before using a tool. No account required."
+permalink: /tools/all/
+hideAtmosphere: true
+---
+<link rel="stylesheet" href="/css/tools.css?v={{ assetv }}">
+<link rel="stylesheet" href="/css/tools-hub.css?v={{ assetv }}">
+
+{% set cats = [
+  { key: "security", label: "Security", note: "Inspect credentials, keys, and application security." },
+  { key: "intelligence", label: "Investigation", note: "Make sense of indicators, logs, and incident evidence." },
+  { key: "devops", label: "DevOps", note: "Work through configuration, containers, and automation." },
+  { key: "web", label: "Web & API", note: "Inspect requests and the details behind a website." },
+  { key: "encoding", label: "Encoding & data", note: "Convert, format, and inspect structured data." },
+  { key: "text", label: "Text", note: "Compare, count, and find patterns." },
+  { key: "media", label: "Media & creative", note: "Prepare images and visual assets." },
+  { key: "ai", label: "AI", note: "Local and selectable AI workflows, with routes labelled." }
+] %}
+{% set liveTools = [] %}
+{% for tool in tools %}{% if tool.status == "live" %}{% set liveTools = (liveTools.push(tool), liveTools) %}{% endif %}{% endfor %}
+
+{% macro card(tool) %}
+<article class="hub-card" data-cat="{{ tool.category }}" data-slug="{{ tool.slug }}" data-name="{{ tool.name }}" data-keywords="{{ (tool.keywords or []) | join(' ') }}"{% if tool.featured %} data-featured="1"{% endif %}{% if tool.isNew %} data-new="1"{% endif %}>
+  <a class="hub-card-link" href="/tools/{{ tool.slug }}/">
+    <div class="hub-card-top"><h3>{{ tool.name }}</h3><span class="hub-card-arrow" aria-hidden="true">↗</span></div>
+    <p>{{ tool.description }}</p>
+    <div class="hub-card-foot">
+      {% if tool.usesAiEngine %}<span class="hub-tag">AI · check route</span>{% elif tool.badge == "worker" %}<span class="hub-tag">Edge worker</span>{% elif tool.badge == "cloud" %}<span class="hub-tag">Network</span>{% else %}<span class="hub-tag hub-tag--local">Browser</span>{% endif %}
+      {% if tool.isNew %}<span class="hub-tag hub-tag--new">New</span>{% endif %}
+    </div>
+  </a>
+  <button type="button" class="hub-star" data-slug="{{ tool.slug }}" aria-label="Pin {{ tool.name }}" aria-pressed="false" title="Pin {{ tool.name }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/></svg></button>
+</article>
+{% endmacro %}
+
+<div class="wb-page">
+  {% include "header.njk" %}
+  <main class="hub" id="main-content">
+    <header class="hub-hero">
+      <div><p class="hub-kick">The utility collection / {{ liveTools.length }}</p><h1>All tools.</h1></div>
+      <div class="hub-intro"><p class="hub-lede">The full index, including focused utilities and experimental tools. Search by task, filter by discipline, or return to the selected collection.</p><p class="hub-intro-meta"><a href="/tools/">← Selected tools</a> <span aria-hidden="true">/</span> <a href="/tools/agents/">Available to agents ↗</a></p></div>
+      <div class="hub-searchwrap">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="search" class="hub-search" id="hubSearch" placeholder="Find a tool — try JSON, JWT, or logs" autocomplete="off" spellcheck="false" aria-label="Search tools" aria-controls="hubMain">
+        <button type="button" class="hub-run-hint" data-open-palette aria-label="Open command palette">Command bar <kbd>⌘K</kbd></button>
+      </div>
+    </header>
+
+    <div class="hub-mobile-filter">
+      <label for="hubFilter">Browse the collection</label>
+      <select id="hubFilter" aria-label="Filter tools" aria-controls="hubMain">
+        <optgroup label="Browse">
+          <option value="all">All {{ liveTools.length }} tools</option>
+          <option value="new">New</option>
+          <option value="featured">Featured</option>
+          <option value="pinned">Pinned</option>
+        </optgroup>
+        <optgroup label="By discipline">
+          {% for c in cats %}<option value="cat:{{ c.key }}">{{ c.label }}</option>{% endfor %}
+        </optgroup>
+        <optgroup label="By task">
+          <option value="col:ir">Incident response</option>
+          <option value="col:keys">Keys &amp; auth</option>
+          <option value="col:web">Web &amp; API</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="hub-body">
+      <aside class="hub-rail" id="hubRail" aria-label="Filter tools">
+        <div class="hub-rail-group">
+          <h2 class="hub-rail-label">Browse</h2>
+          <div class="hub-filter-list">
+            <button type="button" class="hub-rail-item active" data-filter="all" aria-pressed="true">All tools <span class="n">{{ liveTools.length }}</span></button>
+            <button type="button" class="hub-rail-item" data-filter="new" aria-pressed="false">New <span class="n" id="cntNew"></span></button>
+            <button type="button" class="hub-rail-item" data-filter="featured" aria-pressed="false">Featured <span class="n" id="cntFeat"></span></button>
+            <button type="button" class="hub-rail-item" data-filter="pinned" aria-pressed="false">Pinned <span class="n" id="cntPinned">0</span></button>
+          </div>
+        </div>
+        <div class="hub-rail-group">
+          <h2 class="hub-rail-label">By discipline</h2>
+          <div class="hub-filter-list">
+          {% for c in cats %}{% set n = [] %}{% for t in liveTools %}{% if t.category == c.key %}{% set n = (n.push(t), n) %}{% endif %}{% endfor %}{% if n.length %}
+            <button type="button" class="hub-rail-item" data-filter="cat:{{ c.key }}" aria-pressed="false">{{ c.label }} <span class="n">{{ n.length }}</span></button>
+          {% endif %}{% endfor %}
+          </div>
+        </div>
+        <div class="hub-rail-group">
+          <h2 class="hub-rail-label">By task</h2>
+          <div class="hub-filter-list">
+            <button type="button" class="hub-rail-item" data-filter="col:ir" aria-pressed="false">Incident response</button>
+            <button type="button" class="hub-rail-item" data-filter="col:keys" aria-pressed="false">Keys & auth</button>
+            <button type="button" class="hub-rail-item" data-filter="col:web" aria-pressed="false">Web & API</button>
+          </div>
+        </div>
+        <p class="hub-rail-note">Pins stay in this browser.<br><a href="/tools/agents/">Tools for agents ↗</a></p>
+      </aside>
+
+      <div class="hub-main" id="hubMain">
+        <div class="hub-results-bar"><p id="hubResults" role="status" aria-live="polite">{{ liveTools.length }} tools</p><button type="button" id="hubReset" hidden>Clear filters ↗</button></div>
+        {% for c in cats %}
+          {% set ct = [] %}{% for t in liveTools %}{% if t.category == c.key %}{% set ct = (ct.push(t), ct) %}{% endif %}{% endfor %}
+          {% if ct.length %}
+          <section class="hub-section" data-section="{{ c.key }}" aria-labelledby="sec-{{ c.key }}">
+            <div class="hub-section-h"><div><h2 id="sec-{{ c.key }}">{{ c.label }}</h2><p>{{ c.note }}</p></div><span class="cnt" aria-label="{{ ct.length }} tools">{{ ct.length }}</span></div>
+            <div class="hub-grid">{% for t in ct %}{{ card(t) }}{% endfor %}</div>
+          </section>
+          {% endif %}
+        {% endfor %}
+        <div class="hub-empty" id="hubEmpty" hidden><h2>No tools match yet.</h2><p>Try a broader search or choose another category.</p><button type="button" id="hubEmptyReset">Show all tools ↗</button></div>
+        <div class="hub-footnote"><span>{{ stats.browserOnlyTools }} labelled browser-only</span><span>{{ stats.mcpTools }} operations over MCP</span><a href="https://github.com/penumbraforge/penumbraforge.github.io/issues">Report a tool issue ↗</a></div>
+      </div>
+    </div>
+  </main>
+  {% include "command-palette.njk" %}
+</div>
+<script defer src="/js/tools-directory.js?v={{ assetv }}"></script>

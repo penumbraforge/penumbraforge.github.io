@@ -5,10 +5,12 @@
   "description": "Penumbra Forge — One-person software studio",
   "scripts": {
     "build": "eleventy",
+    "test": "node --test scripts/verify-tool-*.mjs",
     "dev": "eleventy --serve --watch"
   },
   "type": "module",
   "devDependencies": {
-    "@11ty/eleventy": "^3.0.0"
+    "@11ty/eleventy": "^3.0.0",
+    "js-yaml": "^4.1.1"
   }
 }

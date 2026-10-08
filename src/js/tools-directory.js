@@ -19,12 +19,14 @@
     web: ['cors-debugger', 'curl-converter', 'api-request-builder', 'header-analyzer', 'security-headers', 'site-score', 'jwt-decoder', 'url-encoder']
   };
   var pins = [];
-  try {
+  var temporaryPins = false;
+  function readPins() { if (temporaryPins) return; try {
     var stored = JSON.parse(localStorage.getItem('pf:favs') || '[]');
     if (Array.isArray(stored)) pins = stored.filter(function (slug) {
       return cards.some(function (card) { return card.dataset.slug === slug; });
     });
-  } catch (_) {}
+  } catch (_) {} }
+  readPins();
 
   document.getElementById('cntNew').textContent = cards.filter(function (card) { return card.dataset.new; }).length;
   document.getElementById('cntFeat').textContent = cards.filter(function (card) { return card.dataset.featured; }).length;
@@ -115,10 +117,11 @@
 
   cards.forEach(function (card) {
     card.querySelector('.hub-star').addEventListener('click', function () {
+      readPins();
       var slug = card.dataset.slug;
       if (pins.includes(slug)) pins = pins.filter(function (item) { return item !== slug; });
       else pins.push(slug);
-      try { localStorage.setItem('pf:favs', JSON.stringify(pins)); } catch (_) {}
+      try { localStorage.setItem('pf:favs', JSON.stringify(pins)); } catch (_) { temporaryPins = true; }
       renderPins();
       apply();
     });
@@ -137,6 +140,9 @@
   reset.addEventListener('click', clear);
   document.getElementById('hubEmptyReset').addEventListener('click', clear);
   window.addEventListener('popstate', readUrl);
+  window.addEventListener('storage', function (event) {
+    if (event.key === 'pf:favs' || event.key === null) { readPins(); renderPins(); apply(); }
+  });
   renderPins();
   readUrl();
 })();

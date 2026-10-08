@@ -1222,8 +1222,8 @@
   {
     "name": "ReDoS Tester",
     "slug": "redos-tester",
-    "description": "Check regexes for catastrophic backtracking.",
-    "longDescription": "Looks for nested quantifiers and overlapping alternations that let a regex blow up on crafted input, then times the pattern against generated attack strings to show the effect. Analysis of this kind flags likely problems; it cannot prove a pattern is safe.",
+    "description": "Time growing regex samples in an isolated worker with a per-sample limit.",
+    "longDescription": "Choose flags, repeated text and a failure suffix. Inspect exact tested inputs and timings; a 250 ms budget stops slow workers. Structural hints and bounded timing do not establish safety or worst-case complexity.",
     "category": "intelligence",
     "keywords": [
       "redos",
@@ -1360,8 +1360,8 @@
   {
     "name": "Email Header Forensics",
     "slug": "email-header-forensics",
-    "description": "Read email headers for routing, auth results, and phishing signs.",
-    "longDescription": "Parses raw email headers into a hop-by-hop timeline with delivery delays, surfaces the SPF, DKIM, and DMARC verdicts the receiving server recorded, and scores common phishing indicators. Upstream headers can be forged, so weight the ones your own mail server added most heavily.",
+    "description": "Inspect email routing and each server’s recorded authentication claims.",
+    "longDescription": "Trace delivery hops and inspect SPF, DKIM, and DMARC claims separately for each reporting server. Read original records and extract indicators for follow-up. Parsing stays in your browser; DNS, signatures and claimed server identities are not independently verified.",
     "category": "security",
     "keywords": [
       "email header",
@@ -1658,8 +1658,8 @@
   {
     "name": "Sigma Rule Builder",
     "slug": "sigma-rule-builder",
-    "description": "Build Sigma detection rules with live YAML and SIEM export.",
-    "longDescription": "A guided form for Sigma rules — logsource, detection logic with field modifiers, MITRE ATT&CK tags, and metadata — with live YAML preview and export to Splunk SPL, KQL, or ES|QL. Backend conversion is approximate; run the query in your SIEM before trusting it.",
+    "description": "Draft Sigma YAML from structured selections and conditions.",
+    "longDescription": "Build groups with explicit AND/OR field logic and value modifiers, then copy or download YAML. Conditions are preserved as entered; review against Sigma syntax and your target backend. SIEM query translation is not provided.",
     "category": "security",
     "keywords": [
       "sigma",
@@ -1667,9 +1667,6 @@
       "detection engineering",
       "siem",
       "yaml",
-      "splunk",
-      "kql",
-      "elastic",
       "threat detection",
       "sigma builder",
       "sigma generator"
@@ -1677,9 +1674,9 @@
     "badge": "local",
     "isNew": true,
     "relatedTools": [
-      "siem-query-translator",
-      "yara-playground",
-      "ioc-workbench"
+      "ioc-workbench",
+      "redos-tester",
+      "json-formatter"
     ],
     "status": "live"
   },

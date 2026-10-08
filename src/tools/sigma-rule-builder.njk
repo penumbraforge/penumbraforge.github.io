@@ -50,7 +50,7 @@ permalink: /tools/sigma-rule-builder/
         </div>
         <div class="srb-field">
           <label for="srb-date">Date</label>
-          <input type="text" id="srb-date" class="srb-input" placeholder="2026/03/27" spellcheck="false" autocomplete="off">
+          <input type="text" id="srb-date" class="srb-input" placeholder="2026-03-27" spellcheck="false" autocomplete="off">
         </div>
       </div>
       <div class="srb-field-row">
@@ -117,6 +117,7 @@ permalink: /tools/sigma-rule-builder/
         <button class="btn srb-btn-sm" id="srb-add-group-btn">+ Add Group</button>
       </div>
       <div id="srb-detection-groups"></div>
+      <p class="srb-hint">Add rows for multiple values. Values for one field are alternatives; <code>contains|all</code> requires every value. Enter modifiers with the dropdown, not in the field name.</p>
       <div class="srb-condition-row">
         <label for="srb-condition-expr">Condition</label>
         <input type="text" id="srb-condition-expr" class="srb-input" placeholder="selection" spellcheck="false" autocomplete="off">
@@ -143,24 +144,12 @@ permalink: /tools/sigma-rule-builder/
     <div class="srb-panel-header">
       <span class="srb-panel-title">YAML Preview</span>
       <div class="srb-preview-actions">
-        <select id="srb-export-select" class="srb-select srb-select--sm">
-          <option value="">Export to SIEM…</option>
-          <option value="splunk">Splunk SPL</option>
-          <option value="kql">KQL (Sentinel)</option>
-          <option value="esql">ES|QL (Elastic)</option>
-        </select>
         <button class="btn srb-btn-sm" id="srb-copy-yaml-btn">Copy YAML</button>
         <button class="btn srb-btn-sm" id="srb-download-btn">Download .yml</button>
       </div>
     </div>
     <pre id="srb-yaml-preview" class="srb-yaml-pre">— fill in the form and click "Generate YAML" —</pre>
-    <div id="srb-export-output" style="display:none;">
-      <div class="srb-export-header">
-        <span id="srb-export-label" class="srb-export-label"></span>
-        <button class="btn srb-btn-sm" id="srb-copy-export-btn">Copy</button>
-      </div>
-      <pre id="srb-export-pre" class="srb-yaml-pre srb-yaml-pre--export"></pre>
-    </div>
+    <p class="srb-section srb-hint">This tool drafts Sigma YAML. The condition is preserved as entered; review its syntax and detection logic before use. SIEM query export is unavailable: use a Sigma converter configured for your backend and field mappings.</p>
   </div>
 </div>
 
@@ -606,16 +595,12 @@ permalink: /tools/sigma-rule-builder/
   var clearBtn    = document.getElementById('srb-clear-btn');
   var errorEl     = document.getElementById('srb-error');
   var yamlPre     = document.getElementById('srb-yaml-preview');
-  var exportSel   = document.getElementById('srb-export-select');
   var copyYamlBtn = document.getElementById('srb-copy-yaml-btn');
   var downloadBtn = document.getElementById('srb-download-btn');
-  var exportOutput= document.getElementById('srb-export-output');
-  var exportLabel = document.getElementById('srb-export-label');
-  var exportPre   = document.getElementById('srb-export-pre');
-  var copyExportBtn = document.getElementById('srb-copy-export-btn');
 
   var groupCounter = 0;
   var lastYaml = '';
+  var updateTimer = null;
 
   // ─── Group management ─────────────────────────────────────────────────────
   function addGroup(opts) {
@@ -623,7 +608,7 @@ permalink: /tools/sigma-rule-builder/
     groupCounter++;
     var gId = 'grp' + groupCounter;
     var name = opts.name || ('selection' + (groupCounter > 1 ? groupCounter : ''));
-    var logic = opts.logic || 'OR';
+    var logic = opts.logic || 'AND';
 
     var div = document.createElement('div');
     div.className = 'srb-group';
@@ -643,10 +628,10 @@ permalink: /tools/sigma-rule-builder/
     var logicSel = document.createElement('select');
     logicSel.className = 'srb-group-logic';
     logicSel.title = 'Field matching logic within this group';
-    ['OR', 'AND', 'ALL'].forEach(function (v) {
+    ['AND', 'OR'].forEach(function (v) {
       var o = document.createElement('option');
       o.value = v;
-      o.textContent = v;
+      o.textContent = v === 'AND' ? 'All fields (AND)' : 'Any field (OR)';
       if (v === logic) o.selected = true;
       logicSel.appendChild(o);
     });
@@ -659,8 +644,10 @@ permalink: /tools/sigma-rule-builder/
     removeGrp.className = 'srb-group-remove';
     removeGrp.textContent = '✕';
     removeGrp.title = 'Remove group';
+    removeGrp.setAttribute('aria-label', 'Remove detection group');
     removeGrp.addEventListener('click', function () {
       div.parentNode.removeChild(div);
+      scheduleUpdate();
     });
 
     header.appendChild(nameInput);
@@ -688,6 +675,7 @@ permalink: /tools/sigma-rule-builder/
     // Pre-populate rows
     var rows = opts.rows || [{ key: '', mod: 'contains', val: '' }];
     rows.forEach(function (r) { addKvRow(kvList, r); });
+    scheduleUpdate();
   }
 
   function addKvRow(list, opts) {
@@ -728,8 +716,10 @@ permalink: /tools/sigma-rule-builder/
     removeRow.className = 'srb-kv-remove';
     removeRow.textContent = '✕';
     removeRow.title = 'Remove row';
+    removeRow.setAttribute('aria-label', 'Remove field row');
     removeRow.addEventListener('click', function () {
       row.parentNode.removeChild(row);
+      scheduleUpdate();
     });
 
     row.appendChild(keyInput);
@@ -737,12 +727,13 @@ permalink: /tools/sigma-rule-builder/
     row.appendChild(valInput);
     row.appendChild(removeRow);
     list.appendChild(row);
+    scheduleUpdate();
   }
 
   addGroupBtn.addEventListener('click', function () { addGroup(); });
 
   // Initialize with one empty group
-  addGroup({ name: 'selection', logic: 'OR', rows: [{ key: '', mod: 'contains', val: '' }] });
+  addGroup({ name: 'selection', logic: 'AND', rows: [{ key: '', mod: 'contains', val: '' }] });
   condEl.value = 'selection';
 
   // ─── Tag chips ────────────────────────────────────────────────────────────
@@ -768,80 +759,59 @@ permalink: /tools/sigma-rule-builder/
   }
 
   function yamlStr(s) {
-    if (!s) return "''";
-    // Quote if contains special YAML chars
-    if (/[:#\[\]{},|>&*!'"?@`]/.test(s) || s.trim() !== s) {
-      return "'" + s.replace(/'/g, "''") + "'";
-    }
-    return s;
+    // Detection inputs are strings, even when YAML would infer null, bool or number.
+    return "'" + String(s).replace(/'/g, "''") + "'";
   }
 
   function collectDetection() {
     var groups = groupsEl.querySelectorAll('.srb-group');
-    var result = {};
-
+    var result = Object.create(null);
+    if (!groups.length) throw new Error('Add at least one detection group.');
     groups.forEach(function (grp) {
-      var gName = grp.querySelector('.srb-group-name-input').value.trim() || 'selection';
+      var gName = grp.querySelector('.srb-group-name-input').value.trim();
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(gName) || /^(and|or|not|all|of|them|condition)$/.test(gName)) {
+        throw new Error('Use a unique identifier for each group, such as selection or filter.');
+      }
+      if (Object.prototype.hasOwnProperty.call(result, gName)) throw new Error('Duplicate group name: ' + gName);
       var logic = grp.querySelector('.srb-group-logic').value;
       var rows = grp.querySelectorAll('.srb-kv-row');
-
-      // Group fields by key+modifier
-      var fields = {};
+      var fields = Object.create(null);
       rows.forEach(function (row) {
         var key = row.querySelector('.srb-kv-key').value.trim();
         var mod = row.querySelector('.srb-kv-modifier').value;
         var val = row.querySelector('.srb-kv-val').value;
-        if (!key || !val) return;
-
+        if (!key && !val) return;
+        if (!key || !val) throw new Error('Each detection row needs a field and a value.');
+        if (!/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(key)) throw new Error('Use a plain field name such as CommandLine; select its modifier with the dropdown.');
         var fieldKey = mod === '=' ? key : key + '|' + mod;
         if (!fields[fieldKey]) fields[fieldKey] = [];
-        // Support pipe-separated multiple values in val input
-        val.split('|').forEach(function (v) {
-          var trimmed = v.trim();
-          if (trimmed) fields[fieldKey].push(trimmed);
-        });
+        // Each row is one literal value; regex alternation and pipe characters survive.
+        fields[fieldKey].push(val);
       });
-
+      if (!Object.keys(fields).length) throw new Error('Add a field and value to group ' + gName + '.');
       result[gName] = { fields: fields, logic: logic };
     });
-
     return result;
   }
 
   function buildDetectionYaml(detection, condition) {
     var lines = ['detection:'];
-    var groupKeys = Object.keys(detection);
-
-    groupKeys.forEach(function (gName) {
+    Object.keys(detection).forEach(function (gName) {
       var grp = detection[gName];
-      lines.push('  ' + gName + ':');
-      var fieldKeys = Object.keys(grp.fields);
-      if (!fieldKeys.length) return;
-
-      if (grp.logic === 'AND') {
-        // AND: list of maps
-        fieldKeys.forEach(function (fk) {
-          var vals = grp.fields[fk];
-          lines.push('    - ' + fk + ':');
-          vals.forEach(function (v) { lines.push('        - ' + yamlStr(v)); });
-        });
-      } else {
-        // OR / ALL: map of lists
-        fieldKeys.forEach(function (fk) {
-          var vals = grp.fields[fk];
-          if (vals.length === 1) {
-            lines.push('    ' + fk + ': ' + yamlStr(vals[0]));
-          } else {
-            lines.push('    ' + fk + ':');
-            vals.forEach(function (v) { lines.push('      - ' + yamlStr(v)); });
-          }
-        });
-      }
+      lines.push('    ' + gName + ':');
+      Object.keys(grp.fields).forEach(function (fk) {
+        var vals = grp.fields[fk];
+        // Sigma maps combine fields with AND; lists of maps combine them with OR.
+        var prefix = grp.logic === 'OR' ? '        - ' : '        ';
+        var valueIndent = grp.logic === 'OR' ? '              ' : '            ';
+        if (vals.length === 1 && fk.split('|').indexOf('all') === -1) lines.push(prefix + yamlStr(fk) + ': ' + yamlStr(vals[0]));
+        else {
+          lines.push(prefix + yamlStr(fk) + ':');
+          vals.forEach(function (v) { lines.push(valueIndent + '- ' + yamlStr(v)); });
+        }
+      });
     });
-
-    if (condition) {
-      lines.push('  condition: ' + condition);
-    }
+    if (condition) lines.push('    condition: ' + yamlStr(condition));
     return lines.join('\n');
   }
 
@@ -880,7 +850,10 @@ permalink: /tools/sigma-rule-builder/
       }
     }
     if (author) lines.push('author: ' + yamlStr(author));
-    if (date) lines.push('date: ' + date);
+    if (date) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, errors: ['Use YYYY-MM-DD for the date.'] };
+      lines.push('date: ' + yamlStr(date));
+    }
 
     // Tags
     var tags = [];
@@ -902,7 +875,9 @@ permalink: /tools/sigma-rule-builder/
     if (lsSvc) lines.push('  service: ' + lsSvc);
 
     // Detection
-    var det = collectDetection();
+    var det;
+    try { det = collectDetection(); }
+    catch (error) { return { ok: false, errors: [error.message] }; }
     lines.push(buildDetectionYaml(det, condition));
 
     // False positives
@@ -920,115 +895,27 @@ permalink: /tools/sigma-rule-builder/
     return { ok: true, yaml: lines.join('\n') };
   }
 
-  // ─── SIEM export ──────────────────────────────────────────────────────────
-  // Simplified translators based on Sigma detection structure
-  function exportToSplunk(det, condition) {
-    var parts = [];
-    Object.keys(det).forEach(function (gName) {
-      var grp = det[gName];
-      var fieldParts = [];
-      Object.keys(grp.fields).forEach(function (fk) {
-        var vals = grp.fields[fk];
-        // Extract field name (strip modifier suffix)
-        var field = fk.split('|')[0];
-        var mod = fk.includes('|') ? fk.split('|')[1] : 'contains';
-        var valExprs = vals.map(function (v) {
-          if (mod === 'startswith') return field + '="' + v + '*"';
-          if (mod === 'endswith')   return field + '="*' + v + '"';
-          if (mod === 're')          return 'match(' + field + ', "' + v.replace(/"/g, '\\"') + '")';
-          if (mod === '=')           return field + '="' + v.replace(/"/g, '\\"') + '"';
-          return field + '="*' + v + '*"';
-        });
-        fieldParts.push(valExprs.length === 1 ? valExprs[0] : '(' + valExprs.join(' OR ') + ')');
-      });
-      if (fieldParts.length) {
-        parts.push('(selection=' + gName + ' AND (' + fieldParts.join(grp.logic === 'AND' ? ' AND ' : ' OR ') + '))');
-      }
-    });
-    if (!parts.length) return '| search *  /* no detection fields — add field/value rows */';
-    return '| search ' + parts.join(' OR ');
-  }
-
-  function exportToKql(det, condition) {
-    var lines = [];
-    Object.keys(det).forEach(function (gName) {
-      var grp = det[gName];
-      var fieldParts = [];
-      Object.keys(grp.fields).forEach(function (fk) {
-        var vals = grp.fields[fk];
-        var field = fk.split('|')[0];
-        var mod = fk.includes('|') ? fk.split('|')[1] : 'contains';
-        var valExprs = vals.map(function (v) {
-          if (mod === 'startswith') return field + ' startswith "' + v.replace(/"/g, '\\"') + '"';
-          if (mod === 'endswith')   return field + ' endswith "' + v.replace(/"/g, '\\"') + '"';
-          if (mod === 're')          return field + ' matches regex "' + v.replace(/"/g, '\\"') + '"';
-          if (mod === '=')           return field + ' == "' + v.replace(/"/g, '\\"') + '"';
-          return field + ' contains "' + v.replace(/"/g, '\\"') + '"';
-        });
-        fieldParts.push(valExprs.length === 1 ? valExprs[0] : '(' + valExprs.join(grp.logic === 'AND' ? '\n    and ' : '\n    or ') + ')');
-      });
-      if (fieldParts.length) {
-        lines.push('// ' + gName);
-        lines.push('| where ' + fieldParts.join(grp.logic === 'AND' ? '\n    and ' : '\n    or '));
-      }
-    });
-    if (!lines.length) return 'SecurityEvent\n| where *  // no detection fields — add field/value rows';
-    return 'SecurityEvent\n' + lines.join('\n');
-  }
-
-  function exportToEsql(det, condition) {
-    var lines = [];
-    Object.keys(det).forEach(function (gName) {
-      var grp = det[gName];
-      var fieldParts = [];
-      Object.keys(grp.fields).forEach(function (fk) {
-        var vals = grp.fields[fk];
-        var field = fk.split('|')[0];
-        var mod = fk.includes('|') ? fk.split('|')[1] : 'contains';
-        var valExprs = vals.map(function (v) {
-          if (mod === 'startswith') return field + ' LIKE "' + v.replace(/"/g, '\\"') + '%"';
-          if (mod === 'endswith')   return field + ' LIKE "%' + v.replace(/"/g, '\\"') + '"';
-          if (mod === 're')          return field + ' RLIKE "' + v.replace(/"/g, '\\"') + '"';
-          if (mod === '=')           return field + ' == "' + v.replace(/"/g, '\\"') + '"';
-          return field + ' LIKE "%' + v.replace(/"/g, '\\"') + '%"';
-        });
-        fieldParts.push(valExprs.length === 1 ? valExprs[0] : '(' + valExprs.join(grp.logic === 'AND' ? ' AND ' : ' OR ') + ')');
-      });
-      if (fieldParts.length) {
-        lines.push('  // ' + gName + ': ' + fieldParts.join(grp.logic === 'AND' ? ' AND ' : ' OR '));
-      }
-    });
-    if (!lines.length) return 'FROM logs-*\n| WHERE true  // no detection fields — add field/value rows';
-    return 'FROM logs-*\n| WHERE\n' + lines.join(' OR\n');
-  }
-
-  // ─── Generate button ──────────────────────────────────────────────────────
-  generateBtn.addEventListener('click', function () {
-    errorEl.style.display = 'none';
-    errorEl.textContent = '';
+  // ─── Preview / validation ─────────────────────────────────────────────────
+  function refreshPreview(showErrors) {
     var result = buildYaml();
-    if (!result.ok) {
-      errorEl.textContent = result.errors.join(' ');
-      errorEl.style.display = '';
-      return;
-    }
-    lastYaml = result.yaml;
-    yamlPre.textContent = lastYaml;
-    exportOutput.style.display = 'none';
-    exportSel.value = '';
-  });
+    lastYaml = result.ok ? result.yaml : '';
+    yamlPre.textContent = lastYaml || '— complete the required fields and detection rows to generate YAML —';
+    copyYamlBtn.disabled = !result.ok;
+    downloadBtn.disabled = !result.ok;
+    errorEl.textContent = result.ok ? '' : result.errors.join(' ');
+    errorEl.style.display = !result.ok && showErrors ? '' : 'none';
+    return result.ok;
+  }
 
-  // ─── Live auto-update (debounced) ─────────────────────────────────────────
-  var updateTimer = null;
+  generateBtn.addEventListener('click', function () { refreshPreview(true); });
+
+  // Invalidate old output immediately; a copy/download always rebuilds current input.
   function scheduleUpdate() {
+    lastYaml = '';
+    copyYamlBtn.disabled = true;
+    downloadBtn.disabled = true;
     clearTimeout(updateTimer);
-    updateTimer = setTimeout(function () {
-      var result = buildYaml();
-      if (result.ok) {
-        lastYaml = result.yaml;
-        yamlPre.textContent = lastYaml;
-      }
-    }, 300);
+    updateTimer = setTimeout(function () { refreshPreview(false); }, 300);
   }
 
   [titleEl, descEl, statusEl, levelEl, authorEl, dateEl, tagsEl,
@@ -1036,65 +923,24 @@ permalink: /tools/sigma-rule-builder/
     el.addEventListener('input', scheduleUpdate);
     el.addEventListener('change', scheduleUpdate);
   });
-
   groupsEl.addEventListener('input', scheduleUpdate);
   groupsEl.addEventListener('change', scheduleUpdate);
 
-  // ─── Export selector ──────────────────────────────────────────────────────
-  exportSel.addEventListener('change', function () {
-    var fmt = exportSel.value;
-    if (!fmt) { exportOutput.style.display = 'none'; return; }
-    if (!lastYaml) {
-      var gen = buildYaml();
-      if (!gen.ok) { exportOutput.style.display = 'none'; return; }
-      lastYaml = gen.yaml;
-      yamlPre.textContent = lastYaml;
-    }
-
-    var det = collectDetection();
-    var condition = condEl.value.trim();
-    var query = '';
-    var labelText = '';
-
-    if (fmt === 'splunk') { query = exportToSplunk(det, condition); labelText = 'Splunk SPL'; }
-    else if (fmt === 'kql') { query = exportToKql(det, condition); labelText = 'KQL (Microsoft Sentinel)'; }
-    else if (fmt === 'esql') { query = exportToEsql(det, condition); labelText = 'ES|QL (Elastic)'; }
-
-    exportLabel.textContent = labelText;
-    exportPre.textContent = query;
-    exportOutput.style.display = '';
-  });
-
   // ─── Copy / Download ──────────────────────────────────────────────────────
   copyYamlBtn.addEventListener('click', function () {
-    if (!lastYaml) {
-      var gen = buildYaml();
-      if (!gen.ok) return;
-      lastYaml = gen.yaml;
-    }
+    if (!refreshPreview(true)) return;
     navigator.clipboard.writeText(lastYaml).then(function () {
       var orig = copyYamlBtn.textContent;
       copyYamlBtn.textContent = 'Copied!';
       setTimeout(function () { copyYamlBtn.textContent = orig; }, 1500);
-    });
-  });
-
-  copyExportBtn.addEventListener('click', function () {
-    var text = exportPre.textContent;
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(function () {
-      var orig = copyExportBtn.textContent;
-      copyExportBtn.textContent = 'Copied!';
-      setTimeout(function () { copyExportBtn.textContent = orig; }, 1500);
+    }).catch(function () {
+      errorEl.textContent = 'Clipboard access is unavailable. Select the preview text or download the YAML instead.';
+      errorEl.style.display = '';
     });
   });
 
   downloadBtn.addEventListener('click', function () {
-    if (!lastYaml) {
-      var gen = buildYaml();
-      if (!gen.ok) return;
-      lastYaml = gen.yaml;
-    }
+    if (!refreshPreview(true)) return;
     var rawTitle = titleEl.value.trim() || 'sigma-rule';
     var filename = rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.yml';
     var blob = new Blob([lastYaml], { type: 'text/yaml' });
@@ -1119,7 +965,7 @@ permalink: /tools/sigma-rule-builder/
     statusEl.value = 'experimental';
     levelEl.value = 'high';
     authorEl.value = 'Penumbra Forge';
-    dateEl.value = '2026/03/27';
+    dateEl.value = '2026-03-27';
     tagsEl.value = 'T1059.001, T1027.010, T1105';
     lsCatEl.value = 'process_creation';
     lsProdEl.value = 'windows';
@@ -1133,10 +979,10 @@ permalink: /tools/sigma-rule-builder/
       name: 'selection',
       logic: 'OR',
       rows: [
-        { key: 'CommandLine|contains', mod: 'contains', val: '-EncodedCommand' },
-        { key: 'CommandLine|contains', mod: 'contains', val: '-ExecutionPolicy Bypass' },
-        { key: 'CommandLine|contains', mod: 'contains', val: 'DownloadString' },
-        { key: 'CommandLine|contains', mod: 'contains', val: 'IEX(' }
+        { key: 'CommandLine', mod: 'contains', val: '-EncodedCommand' },
+        { key: 'CommandLine', mod: 'contains', val: '-ExecutionPolicy Bypass' },
+        { key: 'CommandLine', mod: 'contains', val: 'DownloadString' },
+        { key: 'CommandLine', mod: 'contains', val: 'IEX(' }
       ]
     });
 
@@ -1144,18 +990,12 @@ permalink: /tools/sigma-rule-builder/
       name: 'filter',
       logic: 'OR',
       rows: [
-        { key: 'Image|endswith', mod: 'endswith', val: '\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe' }
+        { key: 'Image', mod: 'endswith', val: '\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' }
       ]
     });
 
-    var gen = buildYaml();
-    if (gen.ok) {
-      lastYaml = gen.yaml;
-      yamlPre.textContent = lastYaml;
-    }
+    refreshPreview(true);
     errorEl.style.display = 'none';
-    exportOutput.style.display = 'none';
-    exportSel.value = '';
   });
 
   // ─── Clear ────────────────────────────────────────────────────────────────
@@ -1175,12 +1015,10 @@ permalink: /tools/sigma-rule-builder/
     falseposEl.value = '';
     while (groupsEl.firstChild) groupsEl.removeChild(groupsEl.firstChild);
     groupCounter = 0;
-    addGroup({ name: 'selection', logic: 'OR', rows: [{ key: '', mod: 'contains', val: '' }] });
+    addGroup({ name: 'selection', logic: 'AND', rows: [{ key: '', mod: 'contains', val: '' }] });
     lastYaml = '';
     yamlPre.textContent = '— fill in the form and click "Generate YAML" —';
     errorEl.style.display = 'none';
-    exportOutput.style.display = 'none';
-    exportSel.value = '';
   });
 
   // Trigger initial preview render with blank state

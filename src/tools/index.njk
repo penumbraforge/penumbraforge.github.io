@@ -1,119 +1,123 @@
 ---
 layout: base.njk
 title: "Developer & Security Tools — Penumbra Forge"
-description: "A collection of developer and security utilities. Search by task, browse a category, and see where your input goes before using a tool. No account required."
+description: "Inspect email headers, convert cryptographic keys, test regex performance, and work with security evidence. A selected collection of free tools that run in your browser."
 permalink: /tools/
 hideAtmosphere: true
 ---
 <link rel="stylesheet" href="/css/tools.css?v={{ assetv }}">
-<link rel="stylesheet" href="/css/tools-hub.css?v={{ assetv }}">
-
-{% set cats = [
-  { key: "security", label: "Security", note: "Inspect credentials, keys, and application security." },
-  { key: "intelligence", label: "Investigation", note: "Make sense of indicators, logs, and incident evidence." },
-  { key: "devops", label: "DevOps", note: "Work through configuration, containers, and automation." },
-  { key: "web", label: "Web & API", note: "Inspect requests and the details behind a website." },
-  { key: "encoding", label: "Encoding & data", note: "Convert, format, and inspect structured data." },
-  { key: "text", label: "Text", note: "Compare, count, and find patterns." },
-  { key: "media", label: "Media & creative", note: "Prepare images and visual assets." },
-  { key: "ai", label: "AI", note: "Local and selectable AI workflows, with routes labelled." }
-] %}
+<link rel="stylesheet" href="/css/tools-curated.css?v={{ assetv }}">
 {% set liveTools = [] %}
 {% for tool in tools %}{% if tool.status == "live" %}{% set liveTools = (liveTools.push(tool), liveTools) %}{% endif %}{% endfor %}
-
-{% macro card(tool) %}
-<article class="hub-card" data-cat="{{ tool.category }}" data-slug="{{ tool.slug }}" data-name="{{ tool.name }}" data-keywords="{{ (tool.keywords or []) | join(' ') }}"{% if tool.featured %} data-featured="1"{% endif %}{% if tool.isNew %} data-new="1"{% endif %}>
-  <a class="hub-card-link" href="/tools/{{ tool.slug }}/">
-    <div class="hub-card-top"><h3>{{ tool.name }}</h3><span class="hub-card-arrow" aria-hidden="true">↗</span></div>
-    <p>{{ tool.description }}</p>
-    <div class="hub-card-foot">
-      {% if tool.usesAiEngine %}<span class="hub-tag">AI · check route</span>{% elif tool.badge == "worker" %}<span class="hub-tag">Edge worker</span>{% elif tool.badge == "cloud" %}<span class="hub-tag">Network</span>{% else %}<span class="hub-tag hub-tag--local">Browser</span>{% endif %}
-      {% if tool.isNew %}<span class="hub-tag hub-tag--new">New</span>{% endif %}
-    </div>
+{% set selectedCount = toolCollection.featured.length %}
+{% for lane in toolCollection.lanes %}{% set selectedCount = selectedCount + lane.tools.length %}{% endfor %}
+{% macro pin(tool) %}
+<button type="button" class="pin-tool" data-pin="{{ tool.slug }}" data-name="{{ tool.name }}" aria-label="Pin {{ tool.name }}" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/></svg></button>
+{% endmacro %}
+{% macro row(tool, searchRow=false) %}
+<article class="tool-row"{% if searchRow %} data-search-row data-slug="{{ tool.slug }}" data-name="{{ tool.name }}" data-cat="{{ tool.category }}" data-keywords="{{ (tool.keywords or []) | join(' ') }}"{% if tool.featured %} data-featured="1"{% endif %}{% if tool.isNew %} data-new="1"{% endif %}{% endif %}>
+  <a href="/tools/{{ tool.slug }}/">
+    <div class="tool-row-title"><h3>{{ tool.name }}</h3></div>
+    <p class="tool-row-description">{{ tool.description }}</p>
+    <span class="tool-row-meta">{% if tool.usesAiEngine %}AI · check route{% elif tool.badge == "worker" %}Edge worker{% elif tool.badge == "cloud" %}Network{% else %}In your browser{% endif %}</span>
+    <span class="tool-row-arrow" aria-hidden="true">↗</span>
   </a>
-  <button type="button" class="hub-star" data-slug="{{ tool.slug }}" aria-label="Pin {{ tool.name }}" aria-pressed="false" title="Pin {{ tool.name }}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/></svg></button>
+  {{ pin(tool) }}
 </article>
 {% endmacro %}
-
 <div class="wb-page">
   {% include "header.njk" %}
-  <main class="hub" id="main-content">
-    <header class="hub-hero">
-      <div><p class="hub-kick">The utility collection / {{ liveTools.length }}</p><h1>Small tools.<br><span>Useful work.</span></h1></div>
-      <div class="hub-intro"><p class="hub-lede">For the work between projects: inspect a token, untangle a log, or format a file. Many tools run in your browser. Network and AI routes are labelled before use.</p><p class="hub-intro-meta">No account required <span aria-hidden="true">/</span> <a href="/tools/agents/">Available to agents ↗</a></p></div>
-      <div class="hub-searchwrap">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input type="search" class="hub-search" id="hubSearch" placeholder="Find a tool — try JSON, JWT, or logs" autocomplete="off" spellcheck="false" aria-label="Search tools" aria-controls="hubMain">
-        <button type="button" class="hub-run-hint" data-open-palette aria-label="Open command palette">Command bar <kbd>⌘K</kbd></button>
+  <main class="tool-collection" id="main-content">
+    <header class="collection-top">
+      <div class="collection-title">
+        <p class="collection-eyebrow">Penumbra Forge / The collection</p>
+        <h1>Tools</h1>
+        <p>A few good instruments for the work in front of you.<br>Free to use. No account. These {{ selectedCount }} run in your browser.</p>
       </div>
+      <form class="collection-search" action="/tools/all/" role="search">
+        <label for="collectionSearch">Find a tool in the full collection</label>
+        <input id="collectionSearch" type="search" name="q" placeholder="Email headers, keys, JSON…" autocomplete="off" spellcheck="false" aria-controls="collectionResults">
+        <button type="submit">Find</button>
+      </form>
     </header>
-
-    <div class="hub-mobile-filter">
-      <label for="hubFilter">Browse the collection</label>
-      <select id="hubFilter" aria-label="Filter tools" aria-controls="hubMain">
-        <optgroup label="Browse">
-          <option value="all">All {{ liveTools.length }} tools</option>
-          <option value="new">New</option>
-          <option value="featured">Featured</option>
-          <option value="pinned">Pinned</option>
-        </optgroup>
-        <optgroup label="By discipline">
-          {% for c in cats %}<option value="cat:{{ c.key }}">{{ c.label }}</option>{% endfor %}
-        </optgroup>
-        <optgroup label="By task">
-          <option value="col:ir">Incident response</option>
-          <option value="col:keys">Keys &amp; auth</option>
-          <option value="col:web">Web &amp; API</option>
-        </optgroup>
-      </select>
+    <div class="collection-toolbar">
+      <nav aria-label="Browse tools">
+        <button type="button" class="active" data-view="selected" aria-pressed="true" hidden>Selected</button>
+        <button type="button" data-view="pinned" aria-pressed="false" hidden>Pinned <span id="pinCount">0</span></button>
+        <a href="/tools/all/">Full index <span aria-hidden="true">↗</span></a>
+      </nav>
+      <p class="collection-count" id="collectionCount">{{ selectedCount }} selected tools</p>
     </div>
 
-    <div class="hub-body">
-      <aside class="hub-rail" id="hubRail" aria-label="Filter tools">
-        <div class="hub-rail-group">
-          <h2 class="hub-rail-label">Browse</h2>
-          <div class="hub-filter-list">
-            <button type="button" class="hub-rail-item active" data-filter="all" aria-pressed="true">All tools <span class="n">{{ liveTools.length }}</span></button>
-            <button type="button" class="hub-rail-item" data-filter="new" aria-pressed="false">New <span class="n" id="cntNew"></span></button>
-            <button type="button" class="hub-rail-item" data-filter="featured" aria-pressed="false">Featured <span class="n" id="cntFeat"></span></button>
-            <button type="button" class="hub-rail-item" data-filter="pinned" aria-pressed="false">Pinned <span class="n" id="cntPinned">0</span></button>
-          </div>
+    <div class="collection-curated" id="collectionCurated">
+      <section class="collection-feature" aria-labelledby="email-feature-title">
+        <div class="feature-copy">
+          <p class="specimen-label">01 / Trace a message</p>
+          <h2 id="email-feature-title">Email Header<br>Forensics</h2>
+          <p>Follow the route behind an email. Read delivery hops, authentication results, and mismatched identities in one place.</p>
+          <div class="feature-actions"><a class="tool-open" href="/tools/email-header-forensics/">Inspect email headers <span aria-hidden="true">↗</span></a>{{ pin({slug: 'email-header-forensics', name: 'Email Header Forensics'}) }}</div>
+          <p class="processing-note">Headers stay in your browser.</p>
         </div>
-        <div class="hub-rail-group">
-          <h2 class="hub-rail-label">By discipline</h2>
-          <div class="hub-filter-list">
-          {% for c in cats %}{% set n = [] %}{% for t in liveTools %}{% if t.category == c.key %}{% set n = (n.push(t), n) %}{% endif %}{% endfor %}{% if n.length %}
-            <button type="button" class="hub-rail-item" data-filter="cat:{{ c.key }}" aria-pressed="false">{{ c.label }} <span class="n">{{ n.length }}</span></button>
-          {% endif %}{% endfor %}
-          </div>
+        <div class="email-specimen" aria-label="Illustrative email header trace">
+          <div class="specimen-top"><span>MESSAGE TRACE</span><span>Synthetic example</span></div>
+          <dl class="email-meta"><dt>From</dt><dd>sender@example.com</dd><dt>To</dt><dd>you@example.net</dd></dl>
+          <ol class="mail-route">
+            <li><strong>mail.example.com</strong><span>Origin · 192.0.2.10</span></li>
+            <li><strong>relay.example.net</strong><span>Relay · 198.51.100.20</span></li>
+            <li><strong>mx.example.net</strong><span>Destination · 203.0.113.30</span></li>
+          </ol>
+          <div class="mail-auth"><span>SPF · pass</span><span>DKIM · pass</span><span>DMARC · pass</span></div>
+          <p class="specimen-caption">Results reported in the header. Not an independent verification of the sender.</p>
         </div>
-        <div class="hub-rail-group">
-          <h2 class="hub-rail-label">By task</h2>
-          <div class="hub-filter-list">
-            <button type="button" class="hub-rail-item" data-filter="col:ir" aria-pressed="false">Incident response</button>
-            <button type="button" class="hub-rail-item" data-filter="col:keys" aria-pressed="false">Keys & auth</button>
-            <button type="button" class="hub-rail-item" data-filter="col:web" aria-pressed="false">Web & API</button>
-          </div>
-        </div>
-        <p class="hub-rail-note">Pins stay in this browser.<br><a href="/tools/agents/">Tools for agents ↗</a></p>
-      </aside>
+      </section>
 
-      <div class="hub-main" id="hubMain">
-        <div class="hub-results-bar"><p id="hubResults" role="status" aria-live="polite">{{ liveTools.length }} tools</p><button type="button" id="hubReset" hidden>Clear filters ↗</button></div>
-        {% for c in cats %}
-          {% set ct = [] %}{% for t in liveTools %}{% if t.category == c.key %}{% set ct = (ct.push(t), ct) %}{% endif %}{% endfor %}
-          {% if ct.length %}
-          <section class="hub-section" data-section="{{ c.key }}" aria-labelledby="sec-{{ c.key }}">
-            <div class="hub-section-h"><div><h2 id="sec-{{ c.key }}">{{ c.label }}</h2><p>{{ c.note }}</p></div><span class="cnt" aria-label="{{ ct.length }} tools">{{ ct.length }}</span></div>
-            <div class="hub-grid">{% for t in ct %}{{ card(t) }}{% endfor %}</div>
-          </section>
-          {% endif %}
-        {% endfor %}
-        <div class="hub-empty" id="hubEmpty" hidden><h2>No tools match yet.</h2><p>Try a broader search or choose another category.</p><button type="button" id="hubEmptyReset">Show all tools ↗</button></div>
-        <div class="hub-footnote"><span>{{ stats.browserOnlyTools }} labelled browser-only</span><span>{{ stats.mcpTools }} operations over MCP</span><a href="https://github.com/penumbraforge/penumbraforge.github.io/issues">Report a tool issue ↗</a></div>
+      <div class="collection-pair">
+        <section class="tool-feature" aria-labelledby="keys-feature-title">
+          <div class="feature-copy">
+            <p class="specimen-label">02 / Work with keys</p>
+            <h2 id="keys-feature-title">Key Converter</h2>
+            <p>Move between JWK and PEM. Inspect key details or generate an RSA or EC key pair.</p>
+            <div class="feature-actions"><a class="tool-open" href="/tools/key-converter/">Convert a key <span aria-hidden="true">↗</span></a>{{ pin({slug: 'key-converter', name: 'Key Converter'}) }}</div>
+          </div>
+          <div class="tool-specimen"><span class="specimen-label">Formats, untangled</span><pre><code>JWK  ⇄  PEM
+
+RSA · EC
+Public · Private
+SPKI · PKCS#8</code></pre></div>
+        </section>
+        <section class="tool-feature" aria-labelledby="regex-feature-title">
+          <div class="feature-copy">
+            <p class="specimen-label">03 / Probe a pattern</p>
+            <h2 id="regex-feature-title">ReDoS Tester</h2>
+            <p>Time a regex against growing input in an isolated worker. Stop runaway tests without freezing the page.</p>
+            <div class="feature-actions"><a class="tool-open" href="/tools/redos-tester/">Test a pattern <span aria-hidden="true">↗</span></a>{{ pin({slug: 'redos-tester', name: 'ReDoS Tester'}) }}</div>
+          </div>
+          <div class="tool-specimen"><span class="specimen-label">A costly near-match</span><pre><code>/^(a+)+$/
+
+aaaaaaaaaaaaa!
+↳ failure suffix
+
+Bounded timing test</code></pre></div>
+        </section>
       </div>
+      {% for lane in toolCollection.lanes %}
+      <section class="collection-lane" aria-labelledby="lane-{{ loop.index }}">
+        <div class="lane-heading"><h2 id="lane-{{ loop.index }}">{{ lane.title }}</h2><p>{{ lane.description }}</p></div>
+        <div class="lane-tools">
+          {% for slug in lane.tools %}{% for tool in liveTools %}{% if tool.slug == slug %}{{ row(tool) }}{% endif %}{% endfor %}{% endfor %}
+        </div>
+      </section>
+      {% endfor %}
     </div>
+
+    <section class="collection-search-results" id="collectionResults" aria-label="Tool search results" hidden>
+      <div class="search-summary"><p id="searchCount" role="status" aria-live="polite"></p><button type="button" id="collectionReset">Back to selected tools</button></div>
+      <div class="search-list">{% for tool in liveTools %}{{ row(tool, true) }}{% endfor %}</div>
+      <div class="collection-empty" id="collectionEmpty" hidden><h2>No tools found.</h2><p>Try a broader search, or return to the selected collection.</p><button type="button" id="collectionEmptyReset">Show selected tools <span aria-hidden="true">↗</span></button></div>
+    </section>
+    <div class="collection-endcap"><h2>Need something specific?</h2><p>The full index keeps every utility within reach. Network and AI tools show their processing route.</p><a href="/tools/all/">Browse all {{ liveTools.length }} tools <span aria-hidden="true">↗</span></a></div>
+    <p class="collection-pin-note" id="pinNote" hidden>Pins stay in this browser.</p>
   </main>
   {% include "command-palette.njk" %}
 </div>
-<script defer src="/js/tools-directory.js?v={{ assetv }}"></script>
+<script defer src="/js/tools-curated.js?v={{ assetv }}"></script>

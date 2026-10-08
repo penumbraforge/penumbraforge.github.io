@@ -6,15 +6,15 @@ permalink: /tools/email-header-forensics/
 <div class="tool-group">
   <label for="ehf-input">Paste raw email headers</label>
   <p class="tool-hint">Copy from your email client: Gmail (Show Original), Outlook (View Message Source), or Thunderbird (View Source)</p>
-  <textarea id="ehf-input" rows="14" placeholder="Received: from mail-sor-f41.google.com (mail-sor-f41.google.com [209.85.220.41])
-        by mx.example.com with ESMTPS id abc123
-        for <user@example.com>;
-        Thu, 27 Mar 2026 10:15:30 -0700 (PDT)
-Authentication-Results: mx.example.com;
-       dkim=pass header.i=@example.com;
-       spf=pass (google.com: ...)
-From: John Doe <john@example.com>
-To: user@example.com
+  <textarea id="ehf-input" rows="14" placeholder="Received: from mail.sender.example (mail.sender.example [192.0.2.41])
+        by mx.recipient.example with ESMTPS id abc123
+        for <user@recipient.example>;
+        Fri, 27 Mar 2026 10:15:30 -0700 (PDT)
+Authentication-Results: mx.recipient.example;
+       dkim=pass header.i=@sender.example;
+       spf=pass (synthetic example)
+From: Example Sender <sender@sender.example>
+To: user@recipient.example
 Subject: Meeting Tomorrow
 ..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
 </div>
@@ -25,11 +25,13 @@ Subject: Meeting Tomorrow
   <button class="btn" id="ehf-clear-btn">Clear</button>
 </div>
 
+<p class="tool-hint">The example is synthetic, using reserved .example domains and documentation IP addresses.</p>
+
 <div id="ehf-empty" class="ehf-empty-msg">Paste email headers above and click "Analyze Headers".</div>
 
 <div id="ehf-results" style="display:none;">
 
-  <!-- Phishing Assessment -->
+  <!-- Message overview -->
   <div id="ehf-assessment" class="ehf-section"></div>
 
   <!-- Authentication Results -->
@@ -61,58 +63,23 @@ Subject: Meeting Tomorrow
     border-bottom: 1px solid var(--border,#2a2a3a);
   }
 
-  /* Assessment card */
+  /* Message overview */
   .ehf-verdict {
     border-radius: 8px;
     padding: 1.25rem;
     margin-bottom: 0.75rem;
     border: 1px solid var(--border,#2a2a3a);
   }
-  .ehf-verdict--safe {
-    background: rgba(34,197,94,0.07);
-    border-color: rgba(34,197,94,0.25);
-  }
-  .ehf-verdict--suspicious {
-    background: rgba(234,179,8,0.07);
-    border-color: rgba(234,179,8,0.25);
-  }
-  .ehf-verdict--phishing {
-    background: rgba(239,68,68,0.07);
-    border-color: rgba(239,68,68,0.25);
-  }
-  .ehf-verdict-label {
-    font-size: 1.1rem;
-    font-weight: 800;
-    margin-bottom: 0.25rem;
-  }
-  .ehf-verdict--safe .ehf-verdict-label { color: #4ade80; }
-  .ehf-verdict--suspicious .ehf-verdict-label { color: #fbbf24; }
-  .ehf-verdict--phishing .ehf-verdict-label { color: #f87171; }
-  .ehf-verdict-score {
-    font-size: 0.8125rem;
-    color: var(--text-2,#94a3b8);
-    margin-bottom: 0.75rem;
-  }
-  .ehf-verdict-reasons {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  .ehf-verdict-reasons li {
-    font-size: 0.8125rem;
-    color: var(--text-2,#94a3b8);
-    padding: 0.2rem 0;
-    padding-left: 1.25rem;
-    position: relative;
-  }
-  .ehf-verdict-reasons li::before {
-    position: absolute;
-    left: 0;
-    font-weight: 700;
-  }
-  .ehf-reason-bad::before { content: '\2717'; color: #f87171; }
-  .ehf-reason-warn::before { content: '\26A0'; color: #fbbf24; }
-  .ehf-reason-ok::before { content: '\2713'; color: #4ade80; }
+  .ehf-overview-counts { color: var(--text-2); font-size: 0.8125rem; margin-bottom: 0.75rem; }
+  .ehf-overview-list { display: grid; grid-template-columns: minmax(80px, auto) 1fr; gap: 0.5rem 1rem; font-size: 0.8125rem; }
+  .ehf-overview-list dt { color: var(--text-3); }
+  .ehf-overview-list dd { margin: 0; overflow-wrap: anywhere; }
+  .ehf-auth-record { border-top: 1px solid var(--border); padding: 1rem 0; }
+  .ehf-auth-record h3 { font-size: 0.875rem; margin: 0 0 0.5rem; }
+  .ehf-auth-source { font-size: 0.8125rem; overflow-wrap: anywhere; margin-bottom: 0.75rem; }
+  .ehf-auth-raw { margin-top: 0.75rem; font-size: 0.8125rem; }
+  .ehf-auth-raw pre { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 0.5rem; }
+  .ehf-auth-caveat { color: var(--text-2); font-size: 0.8125rem; line-height: 1.6; margin-bottom: 1rem; }
 
   /* Auth cards */
   .ehf-auth-grid {
@@ -148,6 +115,7 @@ Subject: Meeting Tomorrow
     font-size: 0.75rem;
     color: var(--text-3,#888);
     line-height: 1.4;
+    overflow-wrap: anywhere;
   }
 
   /* Hop timeline */
@@ -358,9 +326,6 @@ Subject: Meeting Tomorrow
     .ehf-verdict {
       padding: 1rem;
     }
-    .ehf-verdict-label {
-      font-size: 1rem;
-    }
     .ehf-copy-iocs {
       min-height: 44px;
     }
@@ -389,50 +354,51 @@ Subject: Meeting Tomorrow
   var iocsEl    = document.getElementById('ehf-iocs');
   var rawEl     = document.getElementById('ehf-raw');
 
-  /* ── Example phishing email headers ── */
+  /* ── Synthetic email headers — documentation addresses only ── */
   var EXAMPLE_HEADERS = [
-    'Return-Path: <bounce-9283742@promo-deals-store.xyz>',
-    'Received: from mx.victim-corp.com (mx.victim-corp.com [198.51.100.25])',
-    '        by internal-mail.victim-corp.com with ESMTPS id j7si9283742;',
-    '        Thu, 27 Mar 2026 10:15:45 -0700 (PDT)',
-    'Received: from smtp-out.suspicio.us (unknown [45.33.32.156])',
-    '        by mx.victim-corp.com with ESMTP id a1b2c3d4',
-    '        for <cfo@victim-corp.com>;',
-    '        Thu, 27 Mar 2026 10:15:30 -0700 (PDT)',
-    'Received: from localhost (ip-185-42-170-99.hosted.example [185.42.170.99])',
-    '        by smtp-out.suspicio.us with ESMTP id xyz789',
-    '        for <cfo@victim-corp.com>;',
-    '        Thu, 27 Mar 2026 10:14:18 -0700 (PDT)',
-    'Received: from [10.0.0.5] (unknown [192.168.1.100])',
+    'Return-Path: <bounce-9283742@billing-update.example>',
+    'Received: from mx.recipient.example (mx.recipient.example [198.51.100.25])',
+    '        by internal-mail.recipient.example with ESMTPS id j7si9283742;',
+    '        Fri, 27 Mar 2026 10:15:45 -0700 (PDT)',
+    'Received: from relay.example (unknown [203.0.113.156])',
+    '        by mx.recipient.example with ESMTP id a1b2c3d4',
+    '        for <cfo@recipient.example>;',
+    '        Fri, 27 Mar 2026 10:15:30 -0700 (PDT)',
+    'Received: from localhost (ip-192-0-2-99.hosted.example [192.0.2.99])',
+    '        by relay.example with ESMTP id xyz789',
+    '        for <cfo@recipient.example>;',
+    '        Fri, 27 Mar 2026 10:14:18 -0700 (PDT)',
+    'Received: from [192.0.2.5] (unknown [198.51.100.100])',
     '        by localhost with SMTP id local001;',
-    '        Thu, 27 Mar 2026 10:14:15 -0700 (PDT)',
-    'Authentication-Results: mx.victim-corp.com;',
-    '       dkim=fail (signature verification failed) header.d=paypa1-security.com header.s=sel1;',
-    '       spf=fail (mx.victim-corp.com: domain of bounce-9283742@promo-deals-store.xyz does not designate 45.33.32.156 as permitted sender) smtp.mailfrom=bounce-9283742@promo-deals-store.xyz;',
-    '       dmarc=fail (p=NONE dis=NONE) header.from=paypal.com',
-    'Received-SPF: fail (mx.victim-corp.com: domain of bounce-9283742@promo-deals-store.xyz does not designate 45.33.32.156 as permitted sender)',
-    'DKIM-Signature: v=1; a=rsa-sha256; d=paypa1-security.com; s=sel1; c=relaxed/relaxed;',
+    '        Fri, 27 Mar 2026 10:14:15 -0700 (PDT)',
+    'Authentication-Results: mx.recipient.example;',
+    '       dkim=fail (signature verification failed) header.d=signer.example header.s=sel1;',
+    '       spf=fail (mx.recipient.example: domain of bounce-9283742@billing-update.example does not designate 203.0.113.156 as permitted sender) smtp.mailfrom=bounce-9283742@billing-update.example;',
+    '       dmarc=fail (p=NONE dis=NONE) header.from=billing.example',
+    'Received-SPF: fail (mx.recipient.example: domain of bounce-9283742@billing-update.example does not designate 203.0.113.156 as permitted sender)',
+    'DKIM-Signature: v=1; a=rsa-sha256; d=signer.example; s=sel1; c=relaxed/relaxed;',
     '        h=from:to:subject:date:message-id;',
     '        bh=abc123def456ghi789jkl012mno345pqr678stu=;',
     '        b=FAKESIGNATUREDATA1234567890',
-    'From: "PayPal Security Team" <security@paypal.com>',
-    'Reply-To: verify-account-now@promo-deals-store.xyz',
-    'To: cfo@victim-corp.com',
+    'From: "Example Billing Team" <security@billing.example>',
+    'Reply-To: verify-account-now@billing-update.example',
+    'To: cfo@recipient.example',
     'Subject: =?UTF-8?B?VXJnZW50OiBZb3VyIGFjY291bnQgaGFzIGJlZW4gbGltaXRlZA==?=',
-    'Date: Thu, 27 Mar 2026 10:14:10 -0700',
-    'Message-ID: <fake-' + 'msg-92837' + '@promo-deals-store.xyz>',
+    'Date: Fri, 27 Mar 2026 10:14:10 -0700',
+    'Message-ID: <fake-' + 'msg-92837' + '@billing-update.example>',
     'MIME-Version: 1.0',
     'Content-Type: multipart/alternative; boundary="000000000000abc123def456"',
-    'X-Mailer: PHPMailer 5.2.27',
-    'X-Originating-IP: 185.42.170.99',
+    'X-Mailer: Synthetic Example Mailer',
+    'X-Originating-IP: 192.0.2.99',
     'X-Spam-Status: Yes, score=9.8 required=5.0',
     'X-Spam-Score: 98'
   ].join('\n');
 
   /* ── Header parser ── */
   function parseHeaders(raw) {
-    // Unfold continuation lines (lines starting with whitespace)
-    var unfolded = raw.replace(/\r\n/g, '\n').replace(/\n([ \t]+)/g, ' ');
+    // Only the first header block counts; body text must not create forged records.
+    var headerBlock = raw.replace(/\r\n?/g, '\n').replace(/^\n+/, '').split('\n\n')[0];
+    var unfolded = headerBlock.replace(/\n([ \t]+)/g, ' ');
     var lines = unfolded.split('\n');
     var headers = [];
     for (var i = 0; i < lines.length; i++) {
@@ -512,52 +478,91 @@ Subject: Meeting Tomorrow
   }
 
   /* ── Parse authentication results ── */
-  function parseAuth(headers) {
-    var auth = { spf: null, dkim: null, dmarc: null, raw: '' };
-
-    for (var i = 0; i < headers.length; i++) {
-      var key = headers[i].key.toLowerCase();
-      var val = headers[i].value;
-
-      if (key === 'authentication-results') {
-        auth.raw = val;
-
-        var spfMatch = val.match(/spf\s*=\s*(pass|fail|softfail|neutral|none|temperror|permerror)/i);
-        if (spfMatch) {
-          auth.spf = { result: spfMatch[1].toLowerCase() };
-          var spfDetail = val.match(/spf\s*=\s*\w+\s*\(([^)]*)\)/i);
-          auth.spf.detail = spfDetail ? spfDetail[1] : '';
-        }
-
-        var dkimMatch = val.match(/dkim\s*=\s*(pass|fail|none|neutral|temperror|permerror)/i);
-        if (dkimMatch) {
-          auth.dkim = { result: dkimMatch[1].toLowerCase() };
-          var dkimDetail = val.match(/dkim\s*=\s*\w+\s*\(([^)]*)\)/i);
-          auth.dkim.detail = dkimDetail ? dkimDetail[1] : '';
-          var dkimDomain = val.match(/header\.d=([^\s;]+)/i);
-          auth.dkim.domain = dkimDomain ? dkimDomain[1] : '';
-        }
-
-        var dmarcMatch = val.match(/dmarc\s*=\s*(pass|fail|none|bestguesspass)/i);
-        if (dmarcMatch) {
-          auth.dmarc = { result: dmarcMatch[1].toLowerCase() };
-          var dmarcDetail = val.match(/dmarc\s*=\s*\w+\s*\(([^)]*)\)/i);
-          auth.dmarc.detail = dmarcDetail ? dmarcDetail[1] : '';
-        }
+  // Split only outside comments and quoted strings. Method-looking text in a
+  // comment or property is not an independent authentication result.
+  function authParts(value) {
+    var parts = [];
+    var raw = '', clean = '';
+    var depth = 0, quoted = false, escaped = false, malformed = false;
+    for (var i = 0; i < value.length; i++) {
+      var c = value[i];
+      if (escaped) {
+        raw += c;
+        if (!depth) clean += c;
+        escaped = false;
+        continue;
       }
-
-      // Fallback: Received-SPF header
-      if (key === 'received-spf' && !auth.spf) {
-        var rspf = val.match(/^(pass|fail|softfail|neutral|none|temperror|permerror)/i);
-        if (rspf) {
-          auth.spf = { result: rspf[1].toLowerCase() };
-          var rspfDetail = val.match(/\(([^)]*)\)/);
-          auth.spf.detail = rspfDetail ? rspfDetail[1] : '';
-        }
+      if (c === '\\' && (depth || quoted)) {
+        raw += c;
+        if (!depth) clean += c;
+        escaped = true;
+        continue;
+      }
+      if (c === '"' && !depth) {
+        quoted = !quoted;
+        raw += c; clean += c;
+      } else if (c === '(' && !quoted) {
+        depth++;
+        raw += c;
+        if (depth === 1) clean += ' ';
+      } else if (c === ')' && !quoted) {
+        raw += c;
+        if (depth) depth--;
+        else { malformed = true; clean += c; }
+      } else if (c === ';' && !depth && !quoted) {
+        parts.push({ raw: raw.trim(), clean: clean.trim() });
+        raw = ''; clean = '';
+      } else {
+        raw += c;
+        if (!depth) clean += c;
       }
     }
+    parts.push({ raw: raw.trim(), clean: clean.trim() });
+    return { parts: parts, malformed: malformed || depth > 0 || quoted || escaped };
+  }
 
-    return auth;
+  function parseAuth(headers) {
+    var records = [];
+    headers.forEach(function (header, index) {
+      var kind = header.key.toLowerCase();
+      if (kind !== 'authentication-results' && kind !== 'received-spf') return;
+      var parsed = authParts(header.value);
+      var record = {
+        header: header.key, headerIndex: index + 1, kind: kind,
+        source: '', raw: header.value, claims: [], unparsed: [], warning: ''
+      };
+      if (parsed.malformed) {
+        record.warning = 'Unbalanced comments or quotes. No claims were parsed; inspect the raw field.';
+        records.push(record);
+        return;
+      }
+      if (kind === 'authentication-results') {
+        var identity = parsed.parts[0].clean.match(/^(?:"((?:\\.|[^"\\])*)"|([^\s;]+))(?:\s+\d+)?$/);
+        if (identity) record.source = (identity[1] !== undefined ? identity[1] : identity[2]).replace(/\\(.)/g, '$1');
+        else record.warning = 'The authserv-id could not be parsed. Inspect the raw field.';
+        parsed.parts.slice(1).forEach(function (part) {
+          if (!part.clean) return;
+          if (/^none$/i.test(part.clean)) {
+            record.claims.push({ method: 'none', result: 'none', raw: part.raw });
+            return;
+          }
+          var match = part.clean.match(/^([a-z][a-z0-9_-]*)(?:\/\d+)?\s*=\s*([a-z][a-z0-9_-]*)(?=\s|$)/i);
+          if (match) record.claims.push({ method: match[1].toLowerCase(), result: match[2].toLowerCase(), raw: part.raw });
+          else record.unparsed.push(part.raw);
+        });
+      } else {
+        // Received-SPF is its own record, never a fallback merged into another field.
+        var spf = parsed.parts[0].clean.match(/^(pass|fail|softfail|neutral|none|temperror|permerror)(?=\s|$)/i);
+        if (spf) record.claims.push({ method: 'spf', result: spf[1].toLowerCase(), raw: parsed.parts[0].raw });
+        else record.unparsed.push(parsed.parts[0].raw);
+        parsed.parts.forEach(function (part) {
+          var receiver = part.clean.match(/(?:^|\s)receiver\s*=\s*(?:"((?:\\.|[^"\\])*)"|([^\s;]+))/i);
+          if (receiver && !record.source) record.source = (receiver[1] !== undefined ? receiver[1] : receiver[2]).replace(/\\(.)/g, '$1');
+        });
+      }
+      records.push(record);
+    });
+    return records;
   }
 
   /* ── Extract IOCs ── */
@@ -572,7 +577,7 @@ Subject: Meeting Tomorrow
     var ipSet = {};
     while ((m = ipRe.exec(raw)) !== null) {
       var ip = m[1];
-      // Skip private ranges for highlighting but include in extraction
+      if (!ip.split('.').every(function (octet) { return Number(octet) <= 255; })) continue;
       if (!ipSet[ip]) {
         ipSet[ip] = true;
         ips.push(ip);
@@ -594,7 +599,9 @@ Subject: Meeting Tomorrow
     var domainSet = {};
     while ((m = domainRe.exec(raw)) !== null) {
       var d = m[1].toLowerCase();
-      // Filter out known noise
+      // Authentication property names are keys only when followed by '='.
+      // The same text may legitimately be a domain value elsewhere.
+      if (/^(smtp|header|body|policy)\.[a-z0-9_-]+$/.test(d) && /^\s*=/.test(raw.slice(domainRe.lastIndex))) continue;
       if (d.length > 4 && !domainSet[d] && !/^\d+\.\d+\.\d+\.\d+$/.test(d)) {
         domainSet[d] = true;
         domains.push(d);
@@ -602,204 +609,6 @@ Subject: Meeting Tomorrow
     }
 
     return { ips: ips, domains: domains, emails: emails };
-  }
-
-  /* ── Phishing assessment ── */
-  function assessPhishing(headers, auth, hops, iocs) {
-    var score = 0;
-    var reasons = [];
-
-    // 1. SPF fail
-    if (auth.spf) {
-      if (auth.spf.result === 'fail') {
-        score += 25;
-        reasons.push({ type: 'bad', text: 'Recorded result: the receiving server reported SPF fail' });
-      } else if (auth.spf.result === 'softfail') {
-        score += 15;
-        reasons.push({ type: 'warn', text: 'Recorded result: the receiving server reported SPF softfail' });
-      } else if (auth.spf.result === 'pass') {
-        reasons.push({ type: 'ok', text: 'Recorded result: the receiving server reported SPF pass' });
-      }
-    } else {
-      score += 10;
-      reasons.push({ type: 'warn', text: 'No SPF authentication result found in headers' });
-    }
-
-    // 2. DKIM fail
-    if (auth.dkim) {
-      if (auth.dkim.result === 'fail') {
-        score += 25;
-        reasons.push({ type: 'bad', text: 'Recorded result: the receiving server reported DKIM fail' });
-      } else if (auth.dkim.result === 'none') {
-        score += 10;
-        reasons.push({ type: 'warn', text: 'No DKIM signature present' });
-      } else if (auth.dkim.result === 'pass') {
-        reasons.push({ type: 'ok', text: 'Recorded result: the receiving server reported DKIM pass' });
-      }
-    } else {
-      score += 5;
-      reasons.push({ type: 'warn', text: 'No DKIM authentication result found' });
-    }
-
-    // 3. DMARC fail
-    if (auth.dmarc) {
-      if (auth.dmarc.result === 'fail') {
-        score += 20;
-        reasons.push({ type: 'bad', text: 'Recorded result: the receiving server reported DMARC fail' });
-      } else if (auth.dmarc.result === 'none') {
-        score += 5;
-        reasons.push({ type: 'warn', text: 'No DMARC policy found for sender domain' });
-      } else if (auth.dmarc.result === 'pass') {
-        reasons.push({ type: 'ok', text: 'Recorded result: the receiving server reported DMARC pass' });
-      }
-    }
-
-    // 4. Display name vs actual sender mismatch
-    var fromHeader = '';
-    var replyToHeader = '';
-    var returnPath = '';
-    for (var i = 0; i < headers.length; i++) {
-      var k = headers[i].key.toLowerCase();
-      if (k === 'from') fromHeader = headers[i].value;
-      if (k === 'reply-to') replyToHeader = headers[i].value;
-      if (k === 'return-path') returnPath = headers[i].value;
-    }
-
-    // Check display name vs email domain mismatch
-    var fromDisplayMatch = fromHeader.match(/^"?([^"<]+)"?\s*<([^>]+)>/);
-    if (fromDisplayMatch) {
-      var displayName = fromDisplayMatch[1].trim().toLowerCase();
-      var fromEmail = fromDisplayMatch[2].trim().toLowerCase();
-      var fromDomain = fromEmail.split('@')[1] || '';
-
-      // Check for known brand names in display that don't match domain
-      var brandNames = ['paypal', 'amazon', 'microsoft', 'apple', 'google', 'netflix', 'bank', 'wells fargo', 'chase', 'citibank'];
-      for (var b = 0; b < brandNames.length; b++) {
-        if (displayName.indexOf(brandNames[b]) !== -1 && fromDomain.indexOf(brandNames[b]) === -1) {
-          // Also check for typosquatting (e.g. paypa1 vs paypal)
-          score += 15;
-          reasons.push({ type: 'bad', text: 'Display name mentions "' + brandNames[b] + '" but sender domain is ' + fromDomain });
-          break;
-        }
-      }
-
-      // Check DKIM domain vs From domain mismatch
-      if (auth.dkim && auth.dkim.domain && auth.dkim.domain.toLowerCase() !== fromDomain) {
-        score += 10;
-        reasons.push({ type: 'warn', text: 'DKIM signing domain (' + auth.dkim.domain + ') differs from From domain (' + fromDomain + ')' });
-      }
-    }
-
-    // 5. Reply-To differs from From
-    if (replyToHeader) {
-      var replyEmail = replyToHeader.match(/<([^>]+)>/) || replyToHeader.match(/([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+)/);
-      var fromEmail2 = fromHeader.match(/<([^>]+)>/) || fromHeader.match(/([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+)/);
-      if (replyEmail && fromEmail2) {
-        var replyDomain = (replyEmail[1] || '').split('@')[1] || '';
-        var fromDomain2 = (fromEmail2[1] || '').split('@')[1] || '';
-        if (replyDomain && fromDomain2 && replyDomain.toLowerCase() !== fromDomain2.toLowerCase()) {
-          score += 15;
-          reasons.push({ type: 'bad', text: 'Reply-To domain (' + replyDomain + ') differs from From domain (' + fromDomain2 + ') \u2014 common phishing tactic' });
-        }
-      }
-    }
-
-    // 6. Return-Path differs from From
-    if (returnPath) {
-      var rpEmail = returnPath.match(/<([^>]+)>/) || returnPath.match(/([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+)/);
-      var fromEmail3 = fromHeader.match(/<([^>]+)>/) || fromHeader.match(/([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+)/);
-      if (rpEmail && fromEmail3) {
-        var rpDomain = (rpEmail[1] || '').split('@')[1] || '';
-        var fromDomain3 = (fromEmail3[1] || '').split('@')[1] || '';
-        if (rpDomain && fromDomain3 && rpDomain.toLowerCase() !== fromDomain3.toLowerCase()) {
-          score += 10;
-          reasons.push({ type: 'bad', text: 'Return-Path domain (' + rpDomain + ') differs from From domain (' + fromDomain3 + ')' });
-        }
-      }
-    }
-
-    // 7. Encoded subject (base64 encoded subjects can hide intent)
-    for (var j = 0; j < headers.length; j++) {
-      if (headers[j].key.toLowerCase() === 'subject') {
-        if (/=\?.*\?[Bb]\?/.test(headers[j].value)) {
-          score += 5;
-          var decoded = decodeEncodedSubject(headers[j].value);
-          reasons.push({ type: 'warn', text: 'Subject line is Base64 encoded: "' + decoded + '"' });
-        }
-        // Check for urgency keywords
-        var subjectLower = headers[j].value.toLowerCase();
-        var decoded2 = decodeEncodedSubject(headers[j].value).toLowerCase();
-        var checkSubject = subjectLower + ' ' + decoded2;
-        var urgentWords = ['urgent', 'immediate', 'suspended', 'limited', 'verify', 'confirm your', 'unusual activity', 'unauthorized'];
-        for (var u = 0; u < urgentWords.length; u++) {
-          if (checkSubject.indexOf(urgentWords[u]) !== -1) {
-            score += 5;
-            reasons.push({ type: 'warn', text: 'Subject contains urgency keyword: "' + urgentWords[u] + '"' });
-            break;
-          }
-        }
-        break;
-      }
-    }
-
-    // 8. Unusual routing (too many hops or suspicious hostnames)
-    if (hops.length > 6) {
-      score += 5;
-      reasons.push({ type: 'warn', text: 'Unusually high number of mail hops (' + hops.length + ')' });
-    }
-
-    // Check for suspicious TLDs in routing
-    var suspiciousTLDs = ['.xyz', '.top', '.buzz', '.club', '.icu', '.work', '.click'];
-    for (var t = 0; t < hops.length; t++) {
-      var hopFrom = (hops[t].from || '').toLowerCase();
-      for (var s = 0; s < suspiciousTLDs.length; s++) {
-        if (hopFrom.indexOf(suspiciousTLDs[s]) !== -1) {
-          score += 5;
-          reasons.push({ type: 'warn', text: 'Mail routed through server with suspicious TLD: ' + hops[t].from });
-          break;
-        }
-      }
-    }
-
-    // 9. X-Spam headers
-    for (var x = 0; x < headers.length; x++) {
-      var xk = headers[x].key.toLowerCase();
-      if (xk === 'x-spam-status' && /yes/i.test(headers[x].value)) {
-        score += 10;
-        reasons.push({ type: 'bad', text: 'Spam filter flagged this message (X-Spam-Status: Yes)' });
-      }
-      if (xk === 'x-mailer') {
-        var mailer = headers[x].value.toLowerCase();
-        if (mailer.indexOf('phpmailer') !== -1 || mailer.indexOf('swiftmailer') !== -1) {
-          score += 5;
-          reasons.push({ type: 'warn', text: 'Sent via ' + headers[x].value + ' \u2014 commonly used in phishing campaigns' });
-        }
-      }
-    }
-
-    // Cap score at 100
-    if (score > 100) score = 100;
-
-    var verdict;
-    if (score >= 60) verdict = 'phishing';
-    else if (score >= 30) verdict = 'suspicious';
-    else verdict = 'safe';
-
-    return { score: score, verdict: verdict, reasons: reasons };
-  }
-
-  function decodeEncodedSubject(s) {
-    return s.replace(/=\?([^?]+)\?([BbQq])\?([^?]+)\?=/g, function (_, charset, encoding, data) {
-      if (encoding.toUpperCase() === 'B') {
-        try { return atob(data); } catch (e) { return data; }
-      }
-      if (encoding.toUpperCase() === 'Q') {
-        return data.replace(/_/g, ' ').replace(/=([0-9A-Fa-f]{2})/g, function (__, hex) {
-          return String.fromCharCode(parseInt(hex, 16));
-        });
-      }
-      return data;
-    });
   }
 
   /* ── Format delay ── */
@@ -821,59 +630,42 @@ Subject: Meeting Tomorrow
   }
 
   /* ── Render functions ── */
-  function renderAssessment(assessment) {
-    var verdictLabel = { safe: 'LOW HEURISTIC SCORE', suspicious: 'MEDIUM HEURISTIC SCORE', phishing: 'HIGH HEURISTIC SCORE' };
-    var html = '<div class="ehf-section-title">Header triage score</div>';
-    html += '<div class="ehf-verdict ehf-verdict--' + assessment.verdict + '">';
-    html += '<div class="ehf-verdict-label">' + verdictLabel[assessment.verdict] + '</div>';
-    html += '<div class="ehf-verdict-score">Rule score: ' + assessment.score + ' / 100. This parses supplied headers; it does not verify DNS, signatures, or message safety.</div>';
-    html += '<ul class="ehf-verdict-reasons">';
-    for (var i = 0; i < assessment.reasons.length; i++) {
-      var r = assessment.reasons[i];
-      html += '<li class="ehf-reason-' + r.type + '">' + escHtml(r.text) + '</li>';
-    }
-    html += '</ul></div>';
+  function renderOverview(headers, hops, auth) {
+    var html = '<div class="ehf-section-title">Message overview</div><div class="ehf-verdict">';
+    html += '<p class="ehf-overview-counts">' + headers.length + ' header fields · ' + hops.length + ' routing hops · ' + auth.length + ' authentication fields</p>';
+    html += '<dl class="ehf-overview-list">';
+    headers.forEach(function (header) {
+      if (['from', 'reply-to', 'return-path', 'to', 'subject', 'date'].indexOf(header.key.toLowerCase()) !== -1) {
+        html += '<dt>' + escHtml(header.key) + '</dt><dd>' + escHtml(header.value) + '</dd>';
+      }
+    });
+    html += '</dl></div>';
     assessEl.innerHTML = html;
   }
 
-  function renderAuth(auth) {
-    var html = '<div class="ehf-section-title">Authentication-Results claims (not independently verified)</div>';
-    html += '<div class="ehf-auth-grid">';
-
-    var protocols = [
-      { key: 'spf', label: 'SPF', explain: { pass: 'Receiving server recorded SPF pass', fail: 'Receiving server recorded SPF fail', softfail: 'Receiving server recorded SPF softfail', none: 'Receiving server recorded no SPF result', neutral: 'Receiving server recorded SPF neutral', temperror: 'Receiving server recorded a temporary SPF error', permerror: 'Receiving server recorded a permanent SPF error' } },
-      { key: 'dkim', label: 'DKIM', explain: { pass: 'Receiving server recorded DKIM pass', fail: 'Receiving server recorded DKIM fail', none: 'Receiving server recorded no DKIM signature', neutral: 'Receiving server recorded DKIM neutral', temperror: 'Receiving server recorded a temporary DKIM error', permerror: 'Receiving server recorded a permanent DKIM error' } },
-      { key: 'dmarc', label: 'DMARC', explain: { pass: 'Receiving server recorded DMARC pass', fail: 'Receiving server recorded DMARC fail', none: 'Receiving server recorded no DMARC result', bestguesspass: 'Receiving server recorded DMARC bestguesspass' } }
-    ];
-
-    for (var p = 0; p < protocols.length; p++) {
-      var proto = protocols[p];
-      var data = auth[proto.key];
-      var result = data ? data.result : 'not found';
-      var cssClass = 'ehf-auth-none';
-      if (result === 'pass') cssClass = 'ehf-auth-pass';
-      else if (result === 'fail') cssClass = 'ehf-auth-fail';
-      else if (result === 'softfail') cssClass = 'ehf-auth-softfail';
-      else if (result === 'neutral') cssClass = 'ehf-auth-neutral';
-
-      var explain = '';
-      if (data && proto.explain[data.result]) {
-        explain = proto.explain[data.result];
-      } else if (!data) {
-        explain = 'No ' + proto.label + ' result found in Authentication-Results header';
-      }
-
-      html += '<div class="ehf-auth-card">';
-      html += '<div class="ehf-auth-proto">' + proto.label + '</div>';
-      html += '<div class="ehf-auth-result ' + cssClass + '">' + escHtml(result.toUpperCase()) + '</div>';
-      if (data && data.detail) {
-        html += '<div class="ehf-auth-detail" style="margin-bottom:0.25rem;font-style:italic;">' + escHtml(data.detail) + '</div>';
-      }
-      html += '<div class="ehf-auth-detail">' + escHtml(explain) + '</div>';
+  function renderAuth(records) {
+    var html = '<div class="ehf-section-title">Recorded authentication claims</div>';
+    html += '<p class="ehf-auth-caveat">Each field is shown separately in source order. The claimed server name and PASS/FAIL text can be forged; trust depends on which fields your receiving mail system inserted. This tool does not verify that source, DNS, or signatures, and does not combine records into a safety verdict. <a href="https://datatracker.ietf.org/doc/html/rfc8601#section-1.2" target="_blank" rel="noopener noreferrer">About the trust boundary</a>.</p>';
+    if (!records.length) html += '<p class="ehf-auth-detail">No Authentication-Results or Received-SPF fields found.</p>';
+    records.forEach(function (record, index) {
+      html += '<article class="ehf-auth-record"><h3>Record ' + (index + 1) + ' · ' + escHtml(record.header) + ' · header field ' + record.headerIndex + '</h3>';
+      html += '<p class="ehf-auth-source">Claimed ' + (record.kind === 'received-spf' ? 'receiver' : 'authserv-id') + ': <code>' + escHtml(record.source || 'not parsed / not stated') + '</code></p>';
+      if (record.warning) html += '<p class="ehf-auth-caveat">' + escHtml(record.warning) + '</p>';
+      html += '<div class="ehf-auth-grid">';
+      record.claims.forEach(function (claim) {
+        var cssClass = 'ehf-auth-none';
+        if (claim.result === 'pass') cssClass = 'ehf-auth-pass';
+        else if (claim.result === 'fail') cssClass = 'ehf-auth-fail';
+        else if (claim.result === 'softfail') cssClass = 'ehf-auth-softfail';
+        html += '<div class="ehf-auth-card"><div class="ehf-auth-proto">' + escHtml(claim.method === 'none' ? 'Authentication' : claim.method.toUpperCase()) + '</div>';
+        html += '<div class="ehf-auth-result ' + cssClass + '">Reported ' + escHtml(claim.result.toUpperCase()) + '</div>';
+        html += '<div class="ehf-auth-detail">' + escHtml(claim.raw) + '</div></div>';
+      });
       html += '</div>';
-    }
-
-    html += '</div>';
+      if (!record.claims.length) html += '<p class="ehf-auth-detail">No method result was parsed from this field. Missing data is not an authentication failure.</p>';
+      if (record.unparsed.length) html += '<p class="ehf-auth-detail">' + record.unparsed.length + ' clause(s) could not be interpreted. Inspect the original below.</p>';
+      html += '<details class="ehf-auth-raw"><summary>Original header field</summary><pre>' + escHtml(record.header + ': ' + record.raw) + '</pre></details></article>';
+    });
     authEl.innerHTML = html;
   }
 
@@ -1024,10 +816,9 @@ Subject: Meeting Tomorrow
     var headers = parseHeaders(raw);
     var hops = parseHops(headers);
     var auth = parseAuth(headers);
-    var iocs = extractIOCs(raw);
-    var assessment = assessPhishing(headers, auth, hops, iocs);
+    var iocs = extractIOCs(headers.map(function (header) { return header.key + ': ' + header.value; }).join('\n'));
 
-    renderAssessment(assessment);
+    renderOverview(headers, hops, auth);
     renderAuth(auth);
     renderTimeline(hops);
     renderIOCs(iocs);

@@ -1,0 +1,8 @@
+{
+  "featured": ["email-header-forensics", "key-converter", "redos-tester"],
+  "lanes": [
+    { "title": "Follow the evidence", "description": "Turn raw security data into something you can work with.", "tools": ["sigma-rule-builder", "ioc-workbench", "passkey-inspector"] },
+    { "title": "Make data readable", "description": "Unpack a payload. Find a value. Get the timestamp right.", "tools": ["json-formatter", "base64-encoder", "epoch-converter"] },
+    { "title": "Prepare for the web", "description": "Strip metadata, reduce file sizes, and check legibility.", "tools": ["exif-scrubber", "image-converter", "contrast-lab"] }
+  ]
+}
