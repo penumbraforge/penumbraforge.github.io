@@ -9,61 +9,32 @@
 .wb-page {
   --wb-line: color-mix(in oklab, var(--border) 82%, transparent);
   --wb-line-bright: color-mix(in oklab, var(--accent) 32%, var(--border));
-  --wb-ink: #f2eff8;
+  --wb-ink: var(--text-1);
   --wb-panel: color-mix(in oklab, var(--surface-1) 78%, transparent);
   --wb-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  background:
-    radial-gradient(115% 70% at 82% -10%, color-mix(in oklab, var(--accent) 7%, transparent), transparent 55%),
-    var(--surface-0);
+  background: var(--surface-0);
   min-height: 100vh;
   position: relative;
 }
-.wb-page::after { /* film grain, matches homepage */
-  content: ""; position: fixed; inset: 0; z-index: 90; pointer-events: none;
-  opacity: 0.4; mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* ---------- Topbar (unified with homepage fx aesthetic) ---------- */
-.wb-top {
-  display: flex; align-items: stretch;
-  border-bottom: 1px solid var(--wb-line);
-  position: sticky; top: 0; z-index: 60;
-  background: color-mix(in oklab, var(--surface-0) 80%, transparent);
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
-}
-.wb-brand {
-  display: flex; align-items: center; gap: 12px;
-  padding: 16px 26px; border-right: 1px solid var(--wb-line);
-  font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 3.5px;
-  text-transform: uppercase; color: var(--wb-ink); white-space: nowrap;
-}
-.wb-dot {
-  width: 13px; height: 13px; border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #14101f, #000 70%);
-  box-shadow: 0 0 0 1.5px color-mix(in oklab, var(--accent) 75%, transparent), 0 0 12px 2px color-mix(in oklab, var(--accent) 50%, transparent);
-  flex-shrink: 0;
-}
-.wb-top nav { display: flex; align-items: stretch; margin-left: auto; }
-.wb-top nav a {
-  display: flex; align-items: center; padding: 0 20px;
-  border-left: 1px solid var(--wb-line);
-  font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.4px;
-  text-transform: uppercase; color: var(--text-2);
-  transition: color 160ms, background 160ms;
-}
-.wb-top nav a:hover, .wb-top nav a.active { color: var(--wb-ink); background: color-mix(in oklab, var(--accent) 8%, transparent); }
-.wb-open-palette {
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 18px; border: 0; border-left: 1px solid var(--wb-line);
-  background: none; color: var(--text-2); cursor: pointer;
-  font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px;
-}
-.wb-open-palette:hover { color: var(--wb-ink); background: color-mix(in oklab, var(--accent) 8%, transparent); }
-.wb-open-palette kbd {
-  font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
-  border: 1px solid var(--wb-line); border-radius: 3px; padding: 2px 6px;
+/* Dark working surfaces preserve each tool's existing color-coded output. */
+.wb-page .tool-content, .ai-modal, .wb-page .cp {
+  --surface-0: #0e1215;
+  --surface-1: #161c20;
+  --surface-2: #1d2529;
+  --text-1: #eef0ed;
+  --text-2: #bbc4be;
+  --text-3: #a1aca5;
+  --accent: #afc2b3;
+  --accent-strong: #d5e3d5;
+  --sage: #b3c5a9;
+  --slate: #a6b7be;
+  --border: #38443f;
+  --wb-line: #38443f;
+  --wb-line-bright: #74877a;
+  --wb-ink: #eef0ed;
+  --wb-panel: #161c20;
+  color: var(--text-1);
+  color-scheme: dark;
 }
 
 /* ---------- Layout ---------- */
@@ -82,12 +53,12 @@
 .wb-head { padding: 18px 0 8px; display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
 .wb-head-main { flex: 1; min-width: 260px; }
 .wb-head h1 {
-  font-family: var(--font-display); font-size: clamp(30px, 4vw, 46px);
-  font-weight: 300; letter-spacing: -0.03em; color: var(--wb-ink);
+  font-family: var(--font-display); font-size: clamp(30px, 3.7vw, 42px);
+  font-weight: 500; letter-spacing: -0.045em; color: var(--wb-ink);
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
 }
 .wb-chip {
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em; text-transform: none;
   color: var(--accent); border: 1px solid var(--wb-line-bright);
   padding: 5px 10px; border-radius: 2px; align-self: center;
 }
@@ -117,7 +88,7 @@
 .wb-page .tool-content::before { display: none; } /* drop the old accent line */
 
 .wb-page .tool-content label {
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 2.5px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .05em;
   text-transform: uppercase; color: var(--slate); margin-bottom: 9px; font-weight: 400;
 }
 
@@ -130,7 +101,7 @@
 .wb-page .tool-content input[type="search"],
 .wb-page .tool-content input:not([type]),
 .wb-page .tool-content select {
-  background: #06060d;
+  background: #101518;
   border: 1px solid var(--wb-line);
   border-radius: 3px;
   color: var(--wb-ink);
@@ -149,13 +120,14 @@
 .wb-page .tool-content textarea { min-height: 150px; resize: vertical; }
 
 .wb-page .tool-content .output-area {
-  background: #06060d; border: 1px solid var(--wb-line); border-radius: 3px;
+  background: #101518; border: 1px solid var(--wb-line); border-radius: 3px;
   color: var(--text-1); font-family: var(--font-mono); font-size: 12px;
   padding: 16px; line-height: 1.75;
 }
 
 /* buttons */
 .wb-page .tool-content .btn {
+  min-height: 42px;
   font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.6px;
   color: var(--wb-ink); background: color-mix(in oklab, var(--accent) 6%, transparent);
   border: 1px solid var(--wb-line); border-radius: 2px; padding: 9px 18px; cursor: pointer;
@@ -168,6 +140,14 @@
   border-color: var(--accent); color: #17121f; font-weight: 600;
 }
 .wb-page .tool-content .btn--primary:hover { box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--accent) 60%, transparent); color: #17121f; }
+.wb-page .tool-content .btn--copy { position: static; inset: auto; }
+/* Only legacy output boxes use a corner copy control. Panel bars and action
+   rows keep their buttons in flow, including the JSON workbench query row. */
+.wb-page .tool-content .output-area > .btn--copy {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
 .wb-page .tool-content .btn--copy.copied { color: var(--sage); border-color: color-mix(in oklab, var(--sage) 35%, transparent); background: color-mix(in oklab, var(--sage) 8%, transparent); }
 
 /* segmented control */
@@ -231,7 +211,7 @@
 /* ---------- New optional components (upgraded tools opt in) ---------- */
 .wb-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @container (max-width: 620px) { .wb-split { grid-template-columns: 1fr; } }
-.wb-panel { border: 1px solid var(--wb-line); border-radius: 4px; background: #06060d; overflow: hidden; }
+.wb-panel { border: 1px solid var(--wb-line); border-radius: 4px; background: #101518; overflow: hidden; }
 .wb-panel-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 9px 13px; border-bottom: 1px solid var(--wb-line);
@@ -253,13 +233,13 @@
 .wb-toast {
   position: fixed; bottom: 24px; left: 50%; translate: -50% 0; z-index: 200;
   background: #12121e; border: 1px solid var(--wb-line-bright); border-radius: 4px;
-  padding: 12px 20px; font-family: var(--font-mono); font-size: 12px; color: var(--wb-ink);
+  padding: 12px 20px; font-family: var(--font-mono); font-size: 12px; color: #eef0ed;
   box-shadow: 0 20px 50px -20px rgba(0,0,0,0.9); opacity: 0; pointer-events: none;
   transition: opacity 220ms, translate 220ms var(--wb-ease);
 }
 .wb-toast.show { opacity: 1; translate: -50% -6px; }
 
-.wb-page ::selection { background: color-mix(in oklab, var(--accent) 38%, transparent); color: #fff; }
+.wb-page ::selection { background: color-mix(in oklab, var(--accent) 38%, transparent); color: var(--wb-ink); }
 
 @media (max-width: 720px) {
   .wb-top nav { display: none; }
@@ -293,7 +273,7 @@
 .ai-seg button.on { background: var(--accent); color: #17121f; }
 .ai-fields { padding: 16px 18px; display: grid; gap: 6px; }
 .ai-fields label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--slate); margin-top: 8px; }
-.ai-fields input, .ai-fields select { background: #06060d; border: 1px solid var(--wb-line); border-radius: 3px; color: var(--wb-ink); font-family: var(--font-mono); font-size: 13px; padding: 11px 13px; outline: none; }
+.ai-fields input, .ai-fields select { background: #101518; border: 1px solid var(--wb-line); border-radius: 3px; color: var(--wb-ink); font-family: var(--font-mono); font-size: 13px; padding: 11px 13px; outline: none; }
 .ai-fields input:focus, .ai-fields select:focus { border-color: color-mix(in oklab, var(--accent) 45%, transparent); }
 .ai-hint { font-size: 12px; line-height: 1.6; color: var(--text-3); margin-top: 10px; }
 .ai-hint code { font-family: var(--font-mono); font-size: 11px; color: var(--accent); background: color-mix(in oklab, var(--accent) 8%, transparent); padding: 1px 5px; border-radius: 2px; }
@@ -305,7 +285,7 @@
 .ai-save { margin-left: auto; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: #17121f; background: linear-gradient(180deg, var(--accent-strong), var(--accent)); border: 0; border-radius: 2px; padding: 9px 20px; cursor: pointer; }
 
 /* chat widget */
-.ai-chat { margin-top: 16px; display: flex; flex-direction: column; height: min(62vh, 620px); border: 1px solid var(--wb-line); border-radius: 6px; background: #06060d; overflow: hidden; }
+.ai-chat { margin-top: 16px; display: flex; flex-direction: column; height: min(62vh, 620px); border: 1px solid var(--wb-line); border-radius: 6px; background: #101518; overflow: hidden; }
 .ai-log { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
 .ai-msg { display: flex; }
 .ai-msg.ai-user { justify-content: flex-end; }
@@ -316,7 +296,7 @@
 .ai-status.working::after { content: "▍"; animation: ai-blink 1s steps(2) infinite; color: var(--accent); }
 @keyframes ai-blink { 50% { opacity: 0; } }
 .ai-inputrow { display: flex; gap: 10px; padding: 12px; border-top: 1px solid var(--wb-line); background: #0b0b14; align-items: flex-end; }
-.ai-in { flex: 1; resize: none; background: #06060d; border: 1px solid var(--wb-line); border-radius: 4px; color: var(--wb-ink); font-family: var(--font-sans); font-size: 14px; padding: 12px 14px; outline: none; line-height: 1.5; max-height: 200px; }
+.ai-in { flex: 1; resize: none; background: #101518; border: 1px solid var(--wb-line); border-radius: 4px; color: var(--wb-ink); font-family: var(--font-sans); font-size: 14px; padding: 12px 14px; outline: none; line-height: 1.5; max-height: 200px; }
 .ai-in:focus { border-color: color-mix(in oklab, var(--accent) 45%, transparent); }
 .ai-send { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: #17121f; background: linear-gradient(180deg, var(--accent-strong), var(--accent)); border: 0; border-radius: 4px; padding: 12px 22px; cursor: pointer; }
 .ai-send:disabled { opacity: 0.5; cursor: default; }
@@ -337,7 +317,7 @@
 .ai-md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .ai-md code { font-family: var(--font-mono); font-size: 0.88em; background: color-mix(in oklab, var(--accent) 12%, transparent); color: var(--accent-strong); padding: 1px 5px; border-radius: 3px; }
 .ai-md blockquote { border-left: 2px solid color-mix(in oklab, var(--accent) 45%, transparent); padding-left: 12px; margin: 0 0 10px; color: var(--text-2); }
-.ai-code { position: relative; margin: 0 0 12px; background: #06060d; border: 1px solid var(--wb-line); border-radius: 6px; overflow: hidden; }
+.ai-code { position: relative; margin: 0 0 12px; background: #101518; border: 1px solid var(--wb-line); border-radius: 6px; overflow: hidden; }
 .ai-code code { display: block; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; color: #d7d2e6; background: none; padding: 14px 15px; overflow-x: auto; white-space: pre; border-radius: 0; }
 .ai-code[data-lang]::before { content: attr(data-lang); position: absolute; top: 0; right: 0; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--slate); padding: 5px 9px; border-left: 1px solid var(--wb-line); border-bottom: 1px solid var(--wb-line); border-bottom-left-radius: 5px; }
 .ai-streaming::after { content: "▍"; color: var(--accent); animation: ai-blink 1s steps(2) infinite; margin-left: 1px; }
@@ -364,3 +344,59 @@
 /* Tame oversized agent-authored primary buttons for a refined feel */
 .wb-page .tool-content button { font-family: var(--font-sans); }
 .wb-page .tool-content .btn, .wb-page .tool-content button.btn { font-weight: 500; }
+
+/* Mineral studio shell, with the work itself in a quiet dark panel. */
+.wb-shell { max-width: var(--page-width, 1280px); padding-inline: var(--page-gutter, clamp(22px, 4.7vw, 60px)); padding-bottom: 64px; }
+.wb-breadcrumb { flex-wrap: wrap; padding-top: 26px; font-size: 11px; line-height: 1.8; }
+.wb-breadcrumb a { min-height: 32px; display: inline-flex; align-items: center; }
+.wb-head { padding: 20px 0 16px; gap: 24px; }
+.wb-head-main { min-width: min(260px, 100%); }
+.wb-head h1 { margin: 0; line-height: 1.2; }
+.wb-about { font-size: 14px; line-height: 1.8; max-width: 78ch; }
+.wb-chip { border-color: var(--border); color: var(--text-2); padding: 4px 8px; }
+.wb-toolbar { padding-top: 4px; }
+.wb-tbtn { min-height: 44px; font: 12px var(--font-sans); padding-inline: 14px; }
+.wb-tbtn:hover { background: var(--surface-1); }
+.wb-note { border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; padding: 17px 0 0; margin-top: 9px; }
+.wb-note svg { color: var(--accent); }
+.wb-note p { font-size: 12px; line-height: 1.8; max-width: 108ch; }
+.wb-page .tool-content { margin-top: 24px; padding: clamp(18px, 2.7vw, 32px); background: var(--wb-panel); box-shadow: 0 16px 35px -28px #1e242866; border-color: #38443f; }
+.wb-page .tool-content label { color: var(--text-2); }
+.wb-page .tool-content :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.wb-page .tool-content :is(input, select, textarea) { max-width: 100%; }
+.wb-page .tool-content select { color-scheme: dark; }
+.wb-page .tool-content .btn:hover { color: var(--text-1); }
+.wb-page .tool-content .btn--primary:hover, .wb-page .tool-content .btn--generate:hover { color: #171c19; }
+.wb-related { margin-top: 38px; }
+.wb-related-label { letter-spacing: .04em; font-size: 11px; font-weight: 400; color: var(--text-3); }
+.wb-related-label::after { background: var(--border); }
+.wb-related-grid { gap: 24px; }
+.wb-related-card { border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; padding: 17px 0; }
+.wb-related-card:hover { translate: none; border-color: var(--accent); }
+.wb-related-card h3 { font-size: 14px; font-weight: 600; color: var(--text-1); margin: 0 0 7px; }
+.wb-related-card p { color: var(--text-2); font-size: 12px; line-height: 1.8; }
+.wb-help { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 30px; border-top: 1px solid var(--border); padding-top: 19px; font: 11px/1.8 var(--font-mono); color: var(--text-3); }
+.wb-help a { color: var(--accent-strong); text-decoration: underline; text-underline-offset: 4px; }
+.wb-page > .footer { margin-top: 0; }
+.wb-page :is(a, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.wb-toast { color: #eef0ed; background: #1e2428; border-color: #607466; max-width: calc(100vw - 40px); overflow-wrap: anywhere; }
+.ai-bar { background: var(--surface-1); margin-top: 8px; }
+.ai-shield { color: var(--accent); }
+.ai-bar-cog { min-height: 40px; }
+.ai-modal { max-height: calc(100dvh - 40px); overflow-y: auto; }
+.ai-modal :is(button, input, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ai-modal .ai-x { min-width: 40px; min-height: 40px; }
+@media (max-width: 600px) {
+  .wb-shell { padding-inline: 22px; }
+  .wb-head { gap: 15px; }
+  .wb-head h1 { display: block; }
+  .wb-chip { display: table; margin-top: 14px; }
+  .wb-about { font-size: 13px; }
+  .wb-page .tool-content { padding: 18px; }
+  .wb-related-grid { grid-template-columns: 1fr; gap: 0; }
+  .wb-note p { font-size: 11px; }
+  .wb-toolbar { padding-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wb-page *, .wb-page *::after, .wb-page *::before, .ai-modal * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

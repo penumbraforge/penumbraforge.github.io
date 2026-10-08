@@ -2,19 +2,29 @@
 permalink: /vexes/
 ---
 
-<section class="vx-hero" aria-labelledby="hero-title">
-  <div class="vx-wrap">
-    <h1 class="vx-hero-product" id="hero-title">vexes</h1>
-    <div class="vx-hero-badge">{% if versions.vexes.version == versions.vexes.sourceVersion %}v{{ versions.vexes.version }}{% else %}npm v{{ versions.vexes.version }} · source v{{ versions.vexes.sourceVersion }}{% endif %} · experimental</div>
-    <p class="vx-hero-tagline">OSV advisory matches and heuristic evidence for review</p>
-    <p class="vx-hero-desc">vexes is an experimental local CLI that matches dependencies against OSV advisories and surfaces heuristic npm/PyPI supply-chain evidence for human review. It supports ten ecosystems for advisory scanning, emits JSON and SARIF, and has no external runtime npm dependencies. It is pre-1.0, has not been externally audited, and is not proven to stop real-world attacks.</p>
-    <div class="vx-hero-actions">
-      <a href="https://github.com/penumbraforge/vexes" class="vx-btn vx-btn-outline" rel="noopener noreferrer" target="_blank">Source and current README</a>
-      <a href="/vexes/wiki/" class="vx-btn vx-btn-subtle">Wiki</a>
-      <a href="#install" class="vx-btn vx-btn-subtle">Quick Start &#8595;</a>
+<header class="product-intro vx-hero" aria-labelledby="hero-title">
+  <div class="product-intro-copy">
+    <p class="editorial-kicker">02 / Dependency tooling</p>
+    <h1 id="hero-title">Vexes<span class="product-title-stop" aria-hidden="true">.</span></h1>
+    <p class="product-intro-tagline">Know what you depend on.</p>
+    <p class="product-intro-description">OSV advisory matches and heuristic supply-chain evidence, gathered for human review.</p>
+    <div class="product-actions">
+      <a class="product-action-primary" href="#install">Run a check <span aria-hidden="true">↓</span></a>
+      <a href="/vexes/wiki/">Documentation <span aria-hidden="true">→</span></a>
+      <a href="https://github.com/penumbraforge/vexes" rel="noopener noreferrer" target="_blank">Source <span aria-hidden="true">↗</span></a>
     </div>
   </div>
-</section>
+  <aside class="product-record" aria-label="Vexes project details">
+    <dl>
+      <div><dt>npm release</dt><dd>v{{ versions.vexes.version }} · Experimental</dd></div>
+      {% if versions.vexes.version != versions.vexes.sourceVersion %}<div><dt>Source</dt><dd>v{{ versions.vexes.sourceVersion }}</dd></div>{% endif %}
+      <div><dt>Runtime</dt><dd>Node.js {{ versions.vexes.node }}+</dd></div>
+      <div><dt>Outputs</dt><dd>Text / JSON / SARIF</dd></div>
+    </dl>
+    <p>Local CLI with advisory scanning across ten ecosystems, heuristic npm/PyPI evidence, and no external runtime npm dependencies. Normal scans contact OSV; analysis may contact registries.</p>
+    <p>Pre-1.0, with no external audit. Results can be incomplete and are not proven to stop real-world attacks.</p>
+  </aside>
+</header>
 
 <section class="vx-section" id="install" aria-labelledby="install-title">
   <div class="vx-wrap">

@@ -1,197 +1,38 @@
 ---
 layout: base.njk
+title: "Penumbra Forge — Open software. Useful tools."
+description: "Open-source security software, developer utilities, and tools for coding agents. Explore the projects, try a utility, or read the source."
 hideAtmosphere: true
+headerTone: dark
 ---
 <link rel="stylesheet" href="/css/home.css?v={{ assetv }}">
-
-{% from "icons.njk" import icon %}
-
-{% set liveTools = [] %}
-{% for tool in tools %}{% if tool.status == "live" %}{% set liveTools = (liveTools.push(tool), liveTools) %}{% endif %}{% endfor %}
-
-<div class="fx-progress" id="fxProgress" aria-hidden="true"></div>
-
-{# Header sits outside .fx-body: that element clips overflow-x, which silently
-   kills position:sticky for anything inside it. Inside the frame the homepage
-   nav both scrolled away and sat ~inset from where every other page puts it. #}
 {% include "header.njk" %}
-
-<div class="fx-body">
-<div class="fx-frame">
-
-  <section class="fx-hero" id="fxHero">
-    <div class="fx-hero-scrim" aria-hidden="true"></div>
-    <div class="fx-hero-eclipse" aria-hidden="true"></div>
-    <div class="fx-hero-inner">
-      <p class="fx-kicker reveal">One-person software studio</p>
-      <h1 class="reveal"><span class="fx-line">Developer and security tools</span><span class="fx-line"><span class="fx-accent">with visible boundaries.</span></span></h1>
-      <p class="fx-hero-sub reveal">Penumbra Forge is a one-person studio. I maintain a catalog of mostly small browser-delivered utilities and a few larger software projects. Many work locally; each page labels whether its active route stays in the browser, uses an edge worker, contacts a third party, or sends input to a selected AI endpoint. Most projects are early.</p>
-      <div class="fx-hero-actions reveal">
-        <a href="/tools/" class="fx-btn fx-btn--solid"><span>Browse small utilities</span></a>
-        <a href="https://github.com/penumbraforge" target="_blank" rel="noopener" class="fx-btn"><span>Source on GitHub</span></a>
-      </div>
-    </div>
-  </section>
-
-  <div class="fx-ticker" aria-hidden="true">
-    <div class="fx-ticker-track">
-      {%- for tool in liveTools -%}<a href="/tools/{{ tool.slug }}/" tabindex="-1">{{ tool.name }}</a>{%- endfor -%}
-    </div>
-    <div class="fx-ticker-track">
-      {%- for tool in liveTools -%}<a href="/tools/{{ tool.slug }}/" tabindex="-1">{{ tool.name }}</a>{%- endfor -%}
-    </div>
+<main id="main-content">
+<div id="penumbra-studio">
+<section class="studio-intro" aria-labelledby="studio-heading">
+  <div class="intro-atmosphere" aria-hidden="true"><span class="hero-eclipse"></span></div>
+  <div class="intro-main">
+    <div class="intro-identity"><span class="micro">PENUMBRA FORGE<span>INDEPENDENT SOFTWARE</span></span></div>
+    <h1 id="studio-heading">Open software.<br><span>Useful tools.</span></h1>
+    <p>Security software, developer utilities, and tools for coding agents. Built in the open, with source to inspect and ideas to build on.</p>
+    <div class="intro-links"><a class="intro-primary" href="#selected-work">Explore the projects <span aria-hidden="true">↘</span></a><a href="/tools/">Use the tools <span aria-hidden="true">↗</span></a></div>
   </div>
-
-  <div class="fx-section-head reveal">
-    <span class="fx-index">01</span>
-    <h2>Larger projects</h2>
-    <span class="fx-rule"></span>
-    <span class="fx-count">{{ products | length }} current projects</span>
-  </div>
-
-  <div class="fx-bento">
-    <div class="fx-cell fx-cell--gate reveal">
-      <div class="fx-cell-meta"><span>Secret-pattern scanning</span><span class="fx-status fx-status--dev">experimental</span></div>
-      <h3>Gate</h3>
-      <p>An experimental local CLI that looks for secret-like patterns in source files and git history. It can install a repository-local pre-commit hook and attempt bounded source rewrites. Pattern matching can produce false positives and misses.</p>
-      <div class="fx-term">
-        <div class="fx-term-bar">illustrative — gate scan --staged</div>
-        <pre><span class="hl-dim">$</span> <span class="hl-key">gate scan --staged</span>
-
-<span class="hl-warn">&#x2718;</span> <span class="hl-str">config/db.yml</span><span class="hl-dim">:12</span>  credential-shaped value
-  <span class="hl-dim">matched value redacted from terminal output</span>
-
-<span class="hl-str">1 pattern finding</span> <span class="hl-dim">— inspect the staged diff</span></pre>
-      </div>
-      <a href="/gate/" class="fx-cell-link">Explore Gate <span>&rarr;</span></a>
-    </div>
-
-    <div class="fx-cell fx-cell--librarian reveal">
-      <div class="fx-cell-meta"><span>MCP skills server</span><span class="fx-status fx-status--dev">experimental</span></div>
-      <h3>mcp-librarian</h3>
-      <p>A local Markdown skill library for MCP-speaking clients. BM25 search stays local; web research and pack operations are network tools. Ed25519 status is recorded during indexing, but load responses do not enforce it.</p>
-      <div class="fx-featlist"><span>opt-in auto-research</span><span>indexed integrity status</span><span>no external runtime packages</span><span>persistent skills</span></div>
-      <a href="/librarian/" class="fx-cell-link">Explore Librarian <span>&rarr;</span></a>
-    </div>
-
-    <div class="fx-cell fx-cell--vexes reveal">
-      <div class="fx-cell-meta"><span>Dependency scanning</span><span class="fx-status fx-status--dev">experimental</span></div>
-      <h3>vexes</h3>
-      <p>Matches dependencies against OSV across {{ versions.vexes.ecosystems }} ecosystems and, for npm/PyPI, flags selected code and registry evidence worth reviewing. Heuristics are not verdicts. Still experimental and unproven against real-world attacks.</p>
-      <div class="fx-featlist"><span>bounded analysis</span><span>explicit npm guard</span><span>{{ versions.vexes.ecosystems }} ecosystems</span><span>zero external runtime npm deps</span></div>
-      <a href="/vexes/" class="fx-cell-link">Explore vexes <span>&rarr;</span></a>
-    </div>
-
-    <div class="fx-cell fx-cell--umbra reveal">
-      <span class="fx-ghost" aria-hidden="true">{{ icon("crescent", 96) }}</span>
-      <div class="fx-cell-meta"><span>Local AI prototype</span><span class="fx-status fx-status--dev">private prototype</span></div>
-      <h3>Umbra</h3>
-      <p>A private, unreleased local AI application being developed on Apple Silicon with MLX. A working prototype exists, but there is no public build or supported release yet.</p>
-      <div class="fx-featlist"><span>Apple Silicon</span><span>MLX</span><span>desktop interface</span><span>no public release</span></div>
-      <a href="/umbra/" class="fx-cell-link">Explore Umbra <span>&rarr;</span></a>
-    </div>
-  </div>
-
-  <div class="fx-section-head reveal">
-    <span class="fx-index">02</span>
-    <h2>Local AI</h2>
-    <span class="fx-rule"></span>
-    <span class="fx-count">two public routes + one private prototype</span>
-  </div>
-
-  <div class="fx-principles">
-    <div class="fx-principle reveal">
-      <span class="fx-glyph">{{ icon("crescent") }}</span>
-      <h3>In your browser</h3>
-      <p>The five model-backed site tools can use a small quantized model in the browser over WebGPU. Model files download from their host; prompts stay in the tab in this mode. Small models, so expect modest quality.</p>
-    </div>
-    <div class="fx-principle reveal">
-      <span class="fx-glyph">{{ icon("home") }}</span>
-      <h3>On your machine</h3>
-      <p>Those model-backed tools can point at Ollama, LM Studio, or another OpenAI-compatible endpoint on localhost. If you enter a remote endpoint instead, that operator receives the model input.</p>
-    </div>
-    <div class="fx-principle reveal">
-      <span class="fx-glyph">{{ icon("chip") }}</span>
-      <h3>In the Umbra prototype</h3>
-      <p>Umbra's private development build runs local models through Apple MLX on an Apple Silicon Mac. There is no public build or supported hardware matrix yet.</p>
-    </div>
-  </div>
-
-  <div class="fx-section-head reveal">
-    <span class="fx-index">03</span>
-    <h2>Tools</h2>
-    <span class="fx-rule"></span>
-    <span class="fx-count">{{ liveTools.length }} mostly small utilities</span>
-  </div>
-
-  <div class="fx-tools-grid">
-    <a href="/tools/passkey-inspector/" class="fx-tool fx-tool--new reveal"><h4>Passkey Inspector</h4><p>Decode WebAuthn attestation &amp; COSE keys.</p><span class="fx-runtime">browser</span></a>
-    <a href="/tools/entropy-xray/" class="fx-tool fx-tool--new reveal"><h4>Entropy X-ray</h4><p>Look at byte entropy to spot packed or encrypted data.</p><span class="fx-runtime">browser</span></a>
-    <a href="/tools/key-converter/" class="fx-tool fx-tool--new reveal"><h4>Key Converter</h4><p>JWK ↔ PEM, generate keypairs locally.</p><span class="fx-runtime">browser</span></a>
-    <a href="/tools/jwt-attack/" class="fx-tool reveal"><h4>JWT Attack Workbench</h4><p>Try common JWT attack classes against a token.</p><span class="fx-runtime">browser</span></a>
-    <a href="/tools/site-score/" class="fx-tool reveal"><h4>Site Score</h4><p>Check a URL for common security headers.</p><span class="fx-runtime fx-runtime--edge">edge worker</span></a>
-    <a href="/tools/env-analyzer/" class="fx-tool reveal"><h4>.env Exposure Analyzer</h4><p>See what a leaked .env file would expose.</p><span class="fx-runtime">browser</span></a>
-    <a href="/tools/redos-tester/" class="fx-tool reveal"><h4>ReDoS Tester</h4><p>Check a regex for catastrophic backtracking.</p><span class="fx-runtime">browser</span></a>
-    <a href="/tools/ioc-workbench/" class="fx-tool reveal"><h4>IOC Workbench</h4><p>Extract &amp; defang indicators from reports.</p><span class="fx-runtime">browser</span></a>
-  </div>
-  <a href="/tools/" class="fx-tools-cta reveal">View all {{ liveTools.length }} utilities &rarr;</a>
-
-  <div class="fx-section-head reveal">
-    <span class="fx-index">04</span>
-    <h2>How these are built</h2>
-    <span class="fx-rule"></span>
-    <span class="fx-count">the short version</span>
-  </div>
-
-  <div class="fx-principles">
-    <div class="fx-principle reveal">
-      <span class="fx-glyph">{{ icon("shield") }}</span>
-      <h3>Client-side by default</h3>
-      <p>Most tools do their work in the page. A few need the network to do their job — those are labelled, so you know before you paste anything in.</p>
-    </div>
-    <div class="fx-principle reveal">
-      <span class="fx-glyph">{{ icon("terminal") }}</span>
-      <h3>Dependencies are attack surface</h3>
-      <p>Mostly built on platform APIs — Web Crypto, Workers, Node built-ins — with few or no third-party packages. Fewer moving parts to trust or keep patched.</p>
-    </div>
-    <div class="fx-principle reveal">
-      <span class="fx-glyph">{{ icon("search") }}</span>
-      <h3>Visible source, explicit licenses</h3>
-      <p>The website source is public to inspect but uses a source-visible, all-rights-reserved license. Gate, vexes, and mcp-librarian publish their own open-source licenses. No accounts; analytics are limited to aggregate traffic measurement.</p>
-    </div>
-  </div>
-
+  <nav class="intro-directory" aria-label="Explore Penumbra Forge">
+    <span class="micro">FIND YOUR STARTING POINT</span>
+    <a href="/tools/"><span class="intro-route-number" aria-hidden="true">01</span><span><strong>Developer utilities</strong><span>Format, inspect, encode, convert.</span></span><span class="intro-route-arrow" aria-hidden="true">↗</span></a>
+    <a href="#selected-work"><span class="intro-route-number" aria-hidden="true">02</span><span><strong>Open-source projects</strong><span>Security, dependencies, agent knowledge.</span></span><span class="intro-route-arrow" aria-hidden="true">↘</span></a>
+    <a href="https://github.com/penumbraforge" target="_blank" rel="noreferrer"><span class="intro-route-number" aria-hidden="true">03</span><span><strong>Inside the code</strong><span>Read the source. Follow the work.</span></span><span class="intro-route-arrow" aria-hidden="true">↗</span></a>
+  </nav>
+</section>
+<section class="day" id="selected-work" aria-label="Selected work">
+<div class="work-intro"><div class="micro">01 — SELECTED WORK</div><div><h2>Useful at the surface.<br> <span>Considered underneath.</span></h2><p>Public software and ongoing experiments.<br> Each one starts with something worth understanding.</p></div></div>
+<article class="gate-study" aria-labelledby="gate-title"><div class="gate-copy"><div class="project-meta"><span class="micro">FEATURED PROJECT</span><span class="status">Experimental</span></div><h3 id="gate-title">Gate<span class="tiny-number">01</span></h3><p class="project-purpose">Secret scanning,<br> with context.</p><p class="project-description">A local CLI that looks for secret-like patterns in source files and Git history. Findings give you a place to investigate.</p><div class="project-links"><a href="/gate/" class="cursor-interaction">Explore Gate <span aria-hidden="true">↗</span></a><a href="https://github.com/penumbraforge/gate" target="_blank" rel="noreferrer" class="subtle-link cursor-interaction">Source ↗</a></div><div class="micro gate-caption">CLI / APACHE-2.0 / DEVELOPER SECURITY</div></div>
+<div class="gate-artifact"><div class="artifact-top"><span class="micro">A FINDING, IN CONTEXT</span><div class="artifact-toggle" aria-label="Gate study view"><button class="cursor-interaction" type="button" data-view="example" aria-pressed="true">Example</button><button class="cursor-interaction" type="button" data-view="reasoning" aria-pressed="false">The thinking</button></div></div><div class="artifact-body" aria-live="polite"><div class="example-view"><div class="file-row"><span>src / config.ts</span><span>staged change</span></div><div class="source-lines"><div><span>10</span><code>const endpoint = '/api';</code></div><div class="flag-line"><span>11</span><code>const token = '[REDACTED]';</code><span class="flag-symbol" aria-hidden="true">↳</span></div><div><span>12</span><code>connect(endpoint, token);</code></div></div><div class="finding-row"><span class="finding-index">01</span><div><h4>Inspect before you act.</h4><p>A pattern match needs context.<br> Review the value, scope, and next step.</p></div></div></div><div class="reasoning-view" hidden><span class="micro">THE DESIGN PROBLEM</span><h4>Detection is the start<br> of a decision.</h4><p>A useful finding should make its location and context clear. The value can stay redacted while the developer decides what to do.</p><p class="limit-note">Pattern matching can miss credentials and produce false positives. Automatic changes need review.</p></div></div><div class="artifact-bottom"><span>Interface study · synthetic example</span><span class="artifact-mark" aria-hidden="true">PF / 01</span></div></div></article>
+<div class="other-work"><article class="secondary-project"><div class="project-meta"><span class="micro">02 / DEPENDENCY TOOLING</span><span class="status">Experimental</span></div><div class="secondary-heading"><h3>Vexes</h3><a href="/vexes/" class="circle-link cursor-interaction" aria-label="Explore Vexes">↗</a></div><p>Dependency evidence, in context.</p><div class="dependency-specimen" aria-label="Package evidence review workflow"><span class="dependency-node">Package</span><span class="dependency-line" aria-hidden="true"></span><span class="dependency-node">Evidence</span><span class="dependency-line" aria-hidden="true"></span><span class="dependency-node final-node">Review</span></div><div class="project-detail">Registry and bounded source inspection.<br> Findings stay open to human review.</div></article>
+<article class="secondary-project librarian-project"><div class="project-meta"><span class="micro">03 / AGENT KNOWLEDGE</span><span class="status">Experimental</span></div><div class="secondary-heading"><h3>Librarian</h3><a href="/librarian/" class="circle-link cursor-interaction" aria-label="Explore Librarian">↗</a></div><p>Local knowledge for coding agents.</p><div class="library-specimen" aria-label="Local knowledge retrieval"><span>search</span><div><span class="library-bar bar-a"></span><span class="library-bar bar-b"></span><span class="library-bar bar-c"></span></div><span>load</span></div><div class="project-detail">A searchable local Markdown skill library.<br> Relevant context, with its source in view.</div></article></div>
+<div class="tool-strip"><div><span class="micro">THE SMALLER THINGS</span><p>Tools for the work between projects.</p></div><a href="/tools/" class="cursor-interaction">Open the utility collection <span aria-hidden="true">↗</span></a></div>
+</section>
+<section class="studio-note" id="studio-note"><div><span class="micro">02 — THE PRACTICE</span><h2>Curiosity in the systems.<br> <span>Care in the experience.</span></h2></div><div class="studio-bio"><p>I’m Shadoe. My background spans web development and information security. Penumbra Forge is where those interests meet.</p><p>I care about what happens underneath, and about every small decision someone encounters on the surface.</p><a href="/about/" class="cursor-interaction">More about the studio ↗</a></div></section>
 </div>
-</div>
-
-{% include "command-palette.njk" %}
-
-<script>
-/* ---- Scroll progress ---- */
-(function () {
-  var bar = document.getElementById('fxProgress');
-  if (!bar) return;
-  var ticking = false;
-  function upd() {
-    var h = document.documentElement.scrollHeight - innerHeight;
-    var p = h > 0 ? Math.min(1, scrollY / h) : 0;
-    bar.style.setProperty('--p', p.toFixed(4));
-    ticking = false;
-  }
-  addEventListener('scroll', function () { if (!ticking) { requestAnimationFrame(upd); ticking = true; } }, { passive: true });
-  upd();
-})();
-
-/* ---- Bento cursor glow ---- */
-(function () {
-  if (matchMedia('(hover: none)').matches) return;
-  document.querySelectorAll('.fx-cell').forEach(function (cell) {
-    cell.addEventListener('pointermove', function (e) {
-      var r = cell.getBoundingClientRect();
-      cell.style.setProperty('--mx', (e.clientX - r.left) + 'px');
-      cell.style.setProperty('--my', (e.clientY - r.top) + 'px');
-    });
-  });
-})();
-
-</script>
+</main>
+<script defer src="/js/home.js?v={{ assetv }}"></script>

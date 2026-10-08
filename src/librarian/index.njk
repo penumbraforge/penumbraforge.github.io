@@ -2,21 +2,29 @@
 permalink: /librarian/
 ---
 
-<!-- HERO -->
-<section class="lib-hero" aria-labelledby="hero-title">
-  <div class="lib-wrap">
-    <h1 class="lib-hero-product" id="hero-title">mcp-librarian</h1>
-    <div class="lib-hero-badge">v{{ versions.librarian.version }}</div>
-    <p class="lib-hero-tagline">A local Markdown skill library for MCP clients</p>
-    <p class="lib-hero-desc">An experimental MCP server that keeps skills on disk and builds an in-memory BM25 index. Search results identify matching sections; <code>load_section</code> returns one section, while <code>find_and_load</code> and <code>load_skill</code> return the full file. If a signing key is present, supported writes re-sign the library. Integrity status is calculated during startup or rebuild, but current load responses do not enforce it.</p>
-    <p class="lib-hero-desc">Version {{ versions.librarian.version }} has no external runtime npm dependencies and is Apache-2.0. Web research and community-pack operations make network requests; automatic research from <code>find_and_load</code> is off by default.</p>
-    <div class="lib-hero-actions">
-      <a href="https://github.com/penumbraforge/mcp-librarian" class="lib-btn lib-btn-outline" rel="noopener noreferrer" target="_blank">View on GitHub</a>
-      <a href="/librarian/wiki/" class="lib-btn lib-btn-subtle">Wiki</a>
-      <a href="#install" class="lib-btn lib-btn-subtle">Quick Start &#8595;</a>
+<!-- PROJECT INTRO -->
+<header class="product-intro lib-hero" aria-labelledby="hero-title">
+  <div class="product-intro-copy">
+    <p class="editorial-kicker">03 / Agent knowledge</p>
+    <h1 id="hero-title">Librarian<span class="product-title-stop" aria-hidden="true">.</span></h1>
+    <p class="product-intro-tagline">Useful context, within reach.</p>
+    <p class="product-intro-description">A local Markdown skill library for MCP clients. Search matching sections, then load a section or the full file.</p>
+    <div class="product-actions">
+      <a class="product-action-primary" href="#install">Set up Librarian <span aria-hidden="true">↓</span></a>
+      <a href="/librarian/wiki/">Documentation <span aria-hidden="true">→</span></a>
+      <a href="https://github.com/penumbraforge/mcp-librarian" rel="noopener noreferrer" target="_blank">Source <span aria-hidden="true">↗</span></a>
     </div>
   </div>
-</section>
+  <aside class="product-record" aria-label="Librarian project details">
+    <dl>
+      <div><dt>Package</dt><dd>mcp-librarian · v{{ versions.librarian.version }}</dd></div>
+      <div><dt>Status</dt><dd>Experimental</dd></div>
+      <div><dt>License</dt><dd>Apache-2.0</dd></div>
+    </dl>
+    <p>Skills stay on disk with an in-memory BM25 index and no external runtime npm dependencies. Web research and community-pack operations use the network; automatic research is off by default.</p>
+    <p>Supported writes re-sign the library when a signing key is present. Integrity status is calculated during startup or rebuild; current load responses do not enforce it.</p>
+  </aside>
+</header>
 
 <!-- QUICK START -->
 <section class="lib-section" id="install" aria-labelledby="install-title">

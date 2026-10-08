@@ -13,7 +13,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ toolData.name }} — Free Online Tool | Penumbra Forge">
 <meta name="twitter:description" content="{{ toolData.longDescription }}">
-<meta name="theme-color" content="#050509">
+<meta name="theme-color" content="#e9ebe6">
 {% endblock %}
 
 {% block headExtra %}<link rel="stylesheet" href="/css/tools.css?v={{ assetv }}">
@@ -57,11 +57,11 @@
 
   {% include "header.njk" %}
 
-  <div class="wb-shell">
+  <main class="wb-shell" id="main-content">
     <nav class="wb-breadcrumb" aria-label="Breadcrumb">
       <a href="/tools/">Tools</a><span class="sep">/</span>
       <a href="/tools/?cat={{ toolData.category }}">{{ toolData.category | capitalize }}</a><span class="sep">/</span>
-      <span class="cur">{{ toolData.name }}</span>
+      <span class="cur" aria-current="page">{{ toolData.name }}</span>
     </nav>
 
     <div class="wb-head">
@@ -72,11 +72,11 @@
         <p class="wb-about">{{ toolData.longDescription }}</p>
       </div>
       <div class="wb-toolbar">
-        <button class="wb-tbtn" id="wbFav" aria-pressed="false" title="Pin to favorites">
+        <button class="wb-tbtn" type="button" id="wbFav" aria-label="Pin {{ toolData.name }}" aria-pressed="false" title="Pin to favorites">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
           <span id="wbFavLabel">Pin</span>
         </button>
-        <button class="wb-tbtn" id="wbShare" title="Copy link to this tool">
+        <button class="wb-tbtn" type="button" id="wbShare" aria-label="Copy link to {{ toolData.name }}" title="Copy link to this tool">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>
           Share
         </button>
@@ -89,10 +89,6 @@
       <p><strong>Check the selected engine.</strong> In-browser WebGPU keeps prompts in the page after model files download. Local-server mode sends input to the URL you configure, which may be local or remote. API-key mode sends input to the configured provider, whose privacy and retention terms apply.</p>
     </div>{% endif %}
 
-    <div class="tool-content">
-      {{ content | safe }}
-    </div>
-
     {% if not toolData.usesAiEngine %}
     <div class="wb-note">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/><path d="M9 12l2 2 4-4"/></svg>
@@ -100,15 +96,19 @@
     </div>
     {% endif %}
 
+    <div class="tool-content">
+      {{ content | safe }}
+    </div>
+
     {% if toolData.relatedTools and toolData.relatedTools.length %}
     <section class="wb-related">
-      <div class="wb-related-label">Related tools</div>
+      <h2 class="wb-related-label">Keep working</h2>
       <div class="wb-related-grid">
         {% for relatedSlug in toolData.relatedTools %}
           {% set relatedTool = tools | find("slug", relatedSlug) %}
           {% if relatedTool and relatedTool.status == "live" %}
           <a href="/tools/{{ relatedTool.slug }}/" class="wb-related-card">
-            <h4>{{ relatedTool.name }}</h4>
+            <h3>{{ relatedTool.name }} <span aria-hidden="true">↗</span></h3>
             <p>{{ relatedTool.description }}</p>
           </a>
           {% endif %}
@@ -116,17 +116,10 @@
       </div>
     </section>
     {% endif %}
-  </div>
+    <div class="wb-help"><span>Something unexpected?</span><a href="https://github.com/penumbraforge/penumbraforge.github.io/issues">Report a tool issue ↗</a></div>
+  </main>
 
-  <footer class="wb-foot">
-    <span>&copy; 2026 Penumbra Forge · no account required · network use labelled</span>
-    <div class="links">
-      <a href="/tools/">All tools</a>
-      <a href="/blog/">Blog</a>
-      <a href="https://github.com/penumbraforge">GitHub</a>
-      <a href="/privacy.html">Privacy</a>
-    </div>
-  </footer>
+  {% include "footer.njk" %}
 
   {% include "command-palette.njk" %}
   <div class="wb-toast" id="wbToast" role="status" aria-live="polite"></div>
@@ -140,7 +133,7 @@
 (function () {
   var slug = document.querySelector('.wb-page').getAttribute('data-slug');
 
-  function get(k){ try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch(e){ return []; } }
+  function get(k){ try { var value = JSON.parse(localStorage.getItem(k) || '[]'); return Array.isArray(value) ? value : []; } catch(e){ return []; } }
   function set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
   function toast(msg){ var t=document.getElementById('wbToast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove('show');},1800); }
 
@@ -151,7 +144,7 @@
   // favorites
   var favBtn = document.getElementById('wbFav'), favLabel = document.getElementById('wbFavLabel');
   function isFav(){ return get('pf:favs').indexOf(slug) !== -1; }
-  function paint(){ var on=isFav(); favBtn.classList.toggle('is-on', on); favBtn.setAttribute('aria-pressed', String(on)); favLabel.textContent = on ? 'Pinned' : 'Pin'; }
+  function paint(){ var on=isFav(); favBtn.classList.toggle('is-on', on); favBtn.setAttribute('aria-pressed', String(on)); favLabel.textContent = on ? 'Pinned' : 'Pin'; favBtn.setAttribute('aria-label', (on ? 'Unpin ' : 'Pin ') + {{ toolData.name | dump | safe }}); }
   paint();
   favBtn.addEventListener('click', function(){
     var f = get('pf:favs'); var i = f.indexOf(slug);

@@ -21,7 +21,7 @@
   <meta name="twitter:image" content="{{ site.url }}/og-image.png">
   <meta name="twitter:title" content="{{ title or site.title }}">
   <meta name="twitter:description" content="{{ description or site.description }}">
-  <meta name="theme-color" content="#050509">
+  <meta name="theme-color" content="#e9ebe6">
   {% endblock %}
 
   <!-- Favicon -->
@@ -36,10 +36,13 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/css/style.css?v={{ assetv }}">
+
+  <link rel="stylesheet" href="/css/studio.css?v={{ assetv }}">
+  <link rel="stylesheet" href="/css/editorial.css?v={{ assetv }}">
 
   <!-- Speculation Rules — prerender internal pages on hover for instant navigation -->
   <script type="speculationrules">
@@ -83,6 +86,7 @@
   {% endblock %}
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
   {% block body %}
   {% if not hideAtmosphere %}
   <!-- Atmosphere — one static painted layer, no JS, no repaint cost -->
@@ -96,76 +100,7 @@
   </div>
   {% endblock %}
 
-  <!-- Scroll reveal.
-       Content is visible by default; this script opts into hiding it and is
-       responsible for showing it again. Anything already on screen is revealed
-       up front rather than waiting on an observer callback, so a throttled or
-       non-firing observer can never leave the page blank. -->
-  <script>
-  (function() {
-    var els = document.querySelectorAll('.reveal');
-    if (!els.length) return;
-
-    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced || !('IntersectionObserver' in window)) {
-      els.forEach(function(el) { el.classList.add('visible'); });
-      return;
-    }
-
-    document.documentElement.classList.add('js-reveal');
-
-    var observer = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
-    var vh = window.innerHeight || document.documentElement.clientHeight;
-    els.forEach(function(el) {
-      if (el.getBoundingClientRect().top < vh) el.classList.add('visible');
-      else observer.observe(el);
-    });
-  })();
-  </script>
-
-  <!-- Mobile nav — full-height sheet, scroll-locked, focus-aware -->
-  <script>
-  (function() {
-    var header = document.getElementById('site-header');
-    var toggle = header && header.querySelector('.site-header-toggle');
-    if (!header || !toggle) return;
-
-    function setOpen(open) {
-      header.classList.toggle('open', open);
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      document.body.classList.toggle('nav-locked', open);
-    }
-
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.addEventListener('click', function() {
-      setOpen(!header.classList.contains('open'));
-    });
-
-    header.querySelectorAll('nav a').forEach(function(link) {
-      link.addEventListener('click', function() { setOpen(false); });
-    });
-
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && header.classList.contains('open')) {
-        setOpen(false);
-        toggle.focus();
-      }
-    });
-
-    // Leaving the mobile band with the sheet open would strand the scroll lock.
-    window.matchMedia('(min-width: 900px)').addEventListener('change', function(e) {
-      if (e.matches) setOpen(false);
-    });
-  })();
-  </script>
+  <script defer src="/js/site-nav.js?v={{ assetv }}"></script>
 
   <!-- Site console — summoned with ⌘` / Ctrl+` -->
   <script defer src="/js/console.js?v={{ assetv }}"></script>

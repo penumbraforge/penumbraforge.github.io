@@ -1,681 +1,128 @@
-/* ============================================================
-   PENUMBRA FORGE — Home
-   Cinematic instrument panel. Living eclipse, hairline grid,
-   oversized display type. Classes prefixed .fx-.
-   ============================================================ */
 
-:root {
-  --fx-line: color-mix(in oklab, var(--border) 78%, transparent);
-  --fx-line-bright: color-mix(in oklab, var(--accent) 30%, var(--border));
-  --fx-ink: #f2eff8;
-  --fx-ease: cubic-bezier(0.16, 1, 0.3, 1);
-}
 
-/* ---------- Shell ---------- */
-.fx-body {
-  position: relative;
-  min-height: 100vh;
-  background:
-    radial-gradient(120% 80% at 78% -20%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 55%),
-    radial-gradient(90% 60% at -10% 110%, color-mix(in oklab, #4a3d6b 12%, transparent), transparent 60%),
-    var(--surface-0);
-  overflow-x: clip;
-}
+#penumbra-studio *{box-sizing:border-box}
+#penumbra-studio a{color:inherit;text-decoration:none}
+#penumbra-studio button{font:inherit;color:inherit}
+#penumbra-studio p{margin:0}
+#penumbra-studio .micro{font:11px/1.7 'IBM Plex Mono',monospace;letter-spacing:.5px;color:var(--night-muted)}
 
-/* Film grain */
-.fx-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 95;
-  pointer-events: none;
-  opacity: 0.42;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.055'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
+#penumbra-studio .day{background:var(--paper);color:var(--ink);padding:54px var(--page-gutter) 0;position:relative}
+#penumbra-studio .day .micro{color:var(--muted)}
+#penumbra-studio .work-intro{display:grid;grid-template-columns:1fr 2.1fr;gap:30px;align-items:start;padding-bottom:43px}
+#penumbra-studio .work-intro h2{font-size:36px;font-weight:500;line-height:1.18;letter-spacing:-1.5px;margin:0 0 21px}
+#penumbra-studio .work-intro h2 span{color:var(--muted)}
+#penumbra-studio .work-intro p{font-size:13px;line-height:1.8;color:var(--muted)}
+#penumbra-studio .gate-study{border-top:1px solid var(--rule);display:grid;grid-template-columns:1fr 1.5fr;gap:44px;padding:30px 0 46px}
+#penumbra-studio .project-meta{display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap}
+#penumbra-studio .status{font:11px 'IBM Plex Mono',monospace;color:var(--muted);border:1px solid var(--rule);border-radius:3px;padding:4px 6px}
+#penumbra-studio .gate-copy h3{font-size:76px;font-weight:500;letter-spacing:-4.8px;line-height:1;margin:28px 0 25px;display:flex;align-items:flex-start;gap:16px}
+#penumbra-studio .tiny-number{font:11px 'IBM Plex Mono',monospace;color:var(--muted);padding-top:12px;letter-spacing:0}
+#penumbra-studio .project-purpose{font-size:20px;letter-spacing:-.6px;line-height:1.45;margin-bottom:17px}
+#penumbra-studio .project-description{font-size:14px;line-height:1.8;color:var(--muted);max-width:305px}
+#penumbra-studio .project-links{display:flex;gap:30px;align-items:center;margin-top:21px;font-size:12px}
+#penumbra-studio .project-links a{display:flex;gap:24px;align-items:center;min-height:44px}
+#penumbra-studio .project-links a:first-child{border-bottom:1px solid var(--ink)}
+#penumbra-studio .subtle-link{color:var(--muted)}
+#penumbra-studio .gate-caption{margin-top:25px;font-size:11px}
+#penumbra-studio .gate-artifact{background:var(--raised);border-radius:3px;align-self:center;box-shadow:0 18px 30px -23px color-mix(in srgb,var(--ink) 35%,transparent);margin-top:16px;border:1px solid color-mix(in srgb,var(--rule) 60%,transparent)}
+#penumbra-studio .artifact-top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+#penumbra-studio .artifact-top .micro{font-size:11px}
+#penumbra-studio .artifact-toggle{display:flex;gap:2px}
+#penumbra-studio .artifact-toggle button{font-size:11px;border:0;background:transparent;color:var(--muted);padding:8px 9px;min-height:32px;border-radius:2px}
+#penumbra-studio .artifact-toggle button[aria-pressed=true]{background:var(--ink);color:var(--raised)}
+#penumbra-studio .artifact-body{padding:24px 22px;min-height:320px;display:grid}
+#penumbra-studio .artifact-body>div{grid-area:1/1;min-width:0}
+#penumbra-studio .artifact-body>div[hidden]{display:block;visibility:hidden;pointer-events:none}
+#penumbra-studio .file-row{display:flex;justify-content:space-between;gap:14px;font:11px 'IBM Plex Mono',monospace;color:var(--muted);margin-bottom:28px}
+#penumbra-studio .source-lines>div{display:flex;align-items:baseline;gap:16px;padding:8px 9px;margin:0 -9px;font:12px/1.6 'IBM Plex Mono',monospace}
+#penumbra-studio .source-lines>div>span:first-child{font-size:11px;color:var(--muted);min-width:16px;flex-shrink:0}
+#penumbra-studio code{font:inherit;color:inherit;background:transparent;padding:0;border:0;border-radius:0;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
+#penumbra-studio .flag-line{background:color-mix(in srgb,var(--accent) 12%,transparent);box-shadow:inset 2px 0 var(--accent)}
+#penumbra-studio .flag-symbol{margin-left:auto;color:var(--accent)}
+#penumbra-studio .finding-row{margin-top:30px;padding-top:21px;border-top:1px solid var(--rule);display:flex;gap:15px}
+#penumbra-studio .finding-index{font:11px 'IBM Plex Mono',monospace;padding-top:3px;color:var(--muted)}
+#penumbra-studio h4{font-size:15px;font-weight:500;letter-spacing:-.25px;margin:0 0 9px;line-height:1.4}
+#penumbra-studio .finding-row p{font-size:12px;line-height:1.75;color:var(--muted)}
+#penumbra-studio .reasoning-view h4{font-size:25px;letter-spacing:-.8px;margin:18px 0}
+#penumbra-studio .reasoning-view p{font-size:13px;line-height:1.8;margin:0 0 19px;max-width:390px}
+#penumbra-studio .reasoning-view .limit-note{font-size:12px;color:var(--muted)}
+#penumbra-studio .artifact-bottom{padding:15px 22px;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted)}
+#penumbra-studio .artifact-mark{font:11px 'IBM Plex Mono',monospace;white-space:nowrap}
+#penumbra-studio .other-work{display:grid;grid-template-columns:1fr 1fr;gap:44px}
+#penumbra-studio .secondary-project{padding:27px 0 32px;border-top:1px solid var(--rule)}
+#penumbra-studio .secondary-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:20px 0 11px}
+#penumbra-studio .secondary-heading h3{font-size:45px;font-weight:500;letter-spacing:-2px;line-height:1.2;margin:0}
+#penumbra-studio .circle-link{display:grid;place-items:center;width:42px;height:42px;border:1px solid var(--rule);border-radius:50%;font-size:22px;transition:background 180ms,color 180ms,transform 180ms}
+#penumbra-studio .circle-link:hover{background:var(--ink);color:var(--raised);transform:rotate(3deg)}
+#penumbra-studio .secondary-project>p{font-size:14px;color:var(--muted)}
+#penumbra-studio .dependency-specimen{display:flex;align-items:center;gap:0;min-height:124px;margin:20px 0;padding:0 20px;background:color-mix(in srgb,var(--raised) 55%,transparent)}
+#penumbra-studio .dependency-node{font:11px 'IBM Plex Mono',monospace;padding:9px 8px;border:1px solid var(--rule);background:var(--paper);border-radius:2px}
+#penumbra-studio .dependency-line{height:1px;flex:1;background:var(--rule);min-width:12px}
+#penumbra-studio .final-node{border-color:var(--accent);color:var(--accent)}
+#penumbra-studio .library-specimen{min-height:124px;display:flex;align-items:center;justify-content:space-between;gap:25px;background:var(--ink);color:var(--raised);padding:23px 25px;margin:20px 0;font:11px 'IBM Plex Mono',monospace}
+#penumbra-studio .library-specimen>div{flex:1;display:grid;gap:10px}
+#penumbra-studio .library-bar{height:4px;border-radius:1px;background:color-mix(in srgb,var(--raised) 22%,transparent);display:block}
+#penumbra-studio .bar-a{width:83%}#penumbra-studio .bar-b{width:100%;background:var(--paper)}#penumbra-studio .bar-c{width:64%}
+#penumbra-studio .project-detail{font-size:14px;line-height:1.8;color:var(--muted)}
+#penumbra-studio .tool-strip{display:flex;justify-content:space-between;align-items:center;gap:24px;border-top:1px solid var(--rule);padding:29px 0 35px}
+#penumbra-studio .tool-strip p{font-size:15px;margin-top:7px;letter-spacing:-.2px}
+#penumbra-studio .tool-strip a{display:flex;align-items:center;gap:35px;font-size:12px;min-height:44px}
+#penumbra-studio .studio-note{display:grid;grid-template-columns:1.3fr 1fr;gap:45px;padding:50px var(--page-gutter) 43px;border-bottom:1px solid var(--night-rule)}
+#penumbra-studio .studio-note h2{font-size:28px;font-weight:500;letter-spacing:-1px;line-height:1.35;margin:25px 0 0}
+#penumbra-studio .studio-note h2 span{color:var(--night-muted)}
+#penumbra-studio .studio-bio p{font-size:14px;line-height:1.9;color:var(--night-muted);margin-bottom:17px}
+#penumbra-studio .studio-bio a{display:inline-flex;align-items:center;min-height:44px;font-size:12px;border-bottom:1px solid var(--night-rule)}
 
-/* Scroll progress hairline (top of viewport) */
-.fx-progress {
-  position: fixed;
-  top: 0; left: 0;
-  height: 2px;
-  width: 100%;
-  transform: scaleX(var(--p, 0));
-  transform-origin: 0 50%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
-  z-index: 100;
-  box-shadow: 0 0 12px color-mix(in oklab, var(--accent) 60%, transparent);
-}
+@media(prefers-reduced-motion:reduce){#penumbra-studio *,#penumbra-studio *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(max-width:750px){#penumbra-studio .day{padding:40px 28px 0}#penumbra-studio .work-intro{grid-template-columns:1fr 2fr;gap:25px}#penumbra-studio .work-intro h2{font-size:28px}#penumbra-studio .gate-study{gap:25px;grid-template-columns:1fr 1.3fr}#penumbra-studio .artifact-top{padding:16px}#penumbra-studio .artifact-body{padding:24px 16px;min-height:320px}#penumbra-studio .file-row{flex-wrap:wrap}#penumbra-studio .source-lines>div{gap:10px}#penumbra-studio .artifact-bottom{padding:15px 16px;flex-wrap:wrap}#penumbra-studio .other-work{gap:26px}#penumbra-studio .dependency-specimen{padding:0 12px}#penumbra-studio .dependency-node{font-size:11px;padding:8px 6px}#penumbra-studio .studio-note{padding:40px 28px;gap:25px}}
+@media(max-width:500px){#penumbra-studio .day{padding:31px 21px 0}#penumbra-studio .work-intro{grid-template-columns:1fr;gap:23px;padding-bottom:27px}#penumbra-studio .work-intro h2{font-size:27px;letter-spacing:-1px;line-height:1.25;margin-bottom:17px}#penumbra-studio .work-intro p{font-size:13px}#penumbra-studio .work-intro p br{display:none}#penumbra-studio .gate-study{grid-template-columns:1fr;gap:24px;padding:22px 0 31px}#penumbra-studio .gate-copy h3{font-size:67px;margin:24px 0 21px}#penumbra-studio .project-purpose{font-size:21px}#penumbra-studio .project-description{font-size:14px;max-width:none}#penumbra-studio .gate-artifact{margin-top:0}#penumbra-studio .artifact-top .micro{font-size:11px}#penumbra-studio .artifact-toggle button{min-height:44px}#penumbra-studio .artifact-body{min-height:0}#penumbra-studio .source-lines>div{font-size:12px}#penumbra-studio .flag-symbol{display:none}#penumbra-studio .reasoning-view h4{font-size:24px}#penumbra-studio .other-work{grid-template-columns:1fr;gap:0}#penumbra-studio .secondary-project{padding:24px 0 27px}#penumbra-studio .secondary-heading h3{font-size:42px}#penumbra-studio .secondary-project .project-meta .micro{font-size:11px}#penumbra-studio .circle-link{width:44px;height:44px}#penumbra-studio .dependency-node{font-size:11px;padding:8px}#penumbra-studio .dependency-specimen{padding:0 15px}#penumbra-studio .tool-strip{display:grid;grid-template-columns:1fr;gap:15px;padding:24px 0 27px}#penumbra-studio .tool-strip a{justify-content:space-between}#penumbra-studio .studio-note{grid-template-columns:1fr;gap:25px;padding:31px 21px}#penumbra-studio .studio-note h2{font-size:26px}#penumbra-studio .studio-bio p{font-size:14px}}
 
-.fx-frame {
-  max-width: var(--frame-max);
-  margin: 0 auto;
-  border-inline: 1px solid var(--fx-line);
-  position: relative;
-  z-index: 1;
+/* Company opening: identity, proposition, and useful paths into the work. */
+#penumbra-studio {
+  --night:#0a0d10;--light:#eef0f3;--night-muted:#a9b3b2;--night-rule:#30383b;
+  --paper:#e9ebe6;--ink:#1e2428;--muted:#606966;--rule:#bfc6bd;--raised:#f3f4f0;--accent:#435e4e;
+  font:14px/1.7 var(--font-sans);color:var(--ink);background:var(--paper);
+  max-width:1280px;margin:auto;
 }
-
-/* ---------- Top bar ---------- */
-.fx-topbar {
-  display: flex;
-  align-items: stretch;
-  border-bottom: 1px solid var(--fx-line);
-  position: sticky;
-  top: 0;
-  z-index: 80;
-  background: color-mix(in oklab, var(--surface-0) 78%, transparent);
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
-}
-
-.fx-wordmark {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 19px 30px;
-  border-right: 1px solid var(--fx-line);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 4px;
-  color: var(--fx-ink);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.fx-eclipse-dot {
-  position: relative;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #14101f, #000 70%);
-  box-shadow:
-    0 0 0 1.5px color-mix(in oklab, var(--accent) 75%, transparent),
-    0 0 14px 2px color-mix(in oklab, var(--accent) 55%, transparent);
-  flex-shrink: 0;
-}
-.fx-eclipse-dot::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  border: 1px solid transparent;
-  background: conic-gradient(from 0deg, transparent, color-mix(in oklab, var(--accent) 70%, transparent), transparent 55%) border-box;
-  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  animation: fx-spin 8s linear infinite;
-}
-
-@keyframes fx-spin { to { transform: rotate(360deg); } }
-
-.fx-nav { display: flex; align-items: stretch; margin-left: auto; }
-
-.fx-nav a {
-  display: flex;
-  align-items: center;
-  padding: 0 22px;
-  border-left: 1px solid var(--fx-line);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text-2);
-  transition: color 180ms, background 180ms;
-  position: relative;
-}
-.fx-nav a::after {
-  content: "";
-  position: absolute;
-  left: 22px; right: 22px; bottom: 0;
-  height: 1px;
-  background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-  transition: transform 260ms var(--fx-ease);
-}
-.fx-nav a:hover { color: var(--fx-ink); }
-.fx-nav a:hover::after { transform: scaleX(1); }
-
-.fx-nav a.fx-nav-cta {
-  color: var(--surface-0);
-  background: var(--accent);
-  font-weight: 600;
-}
-.fx-nav a.fx-nav-cta:hover { background: var(--accent-strong); color: var(--surface-0); }
-.fx-nav a.fx-nav-cta::after { display: none; }
-
-.fx-menu-btn { display: none; }
-
-/* ---------- Hero ---------- */
-.fx-hero {
-  position: relative;
-  min-height: clamp(560px, 82vh, 900px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: clamp(48px, 7vw, 110px) clamp(28px, 5vw, 72px);
-  overflow: clip;
-  isolation: isolate;
-}
-
-.fx-hero-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 1400ms ease;
-}
-.fx-hero-canvas.ready { opacity: 1; }
-
-/* CSS fallback eclipse (no WebGL / reduced motion) */
-.fx-hero-eclipse {
-  position: absolute;
-  top: 50%; right: clamp(16px, 4vw, 96px);
-  translate: 0 -50%;
-  width: clamp(240px, 33vw, 480px);
-  aspect-ratio: 1;
-  z-index: -1;
-  pointer-events: none;
-}
-.fx-hero.webgl .fx-hero-eclipse { display: none; }
-/* Corona. Light is the only thing here allowed to be soft — the 30px blur
-   that used to cover the whole element turned the eclipse into a mauve smudge,
-   which read as unfinished next to the site's hairlines and mono labels.
-   The asymmetric sweep rotates slowly so the corona breathes rather than sits. */
-.fx-hero-eclipse::before {
-  content: "";
-  position: absolute; inset: -13%;
-  border-radius: 50%;
-  /* Two concentric hairline orbits. A border and an offset outline are each
-     exactly 1px at any size — box-shadow spread rings can't do this, because
-     the transparent "gap" layers don't mask the filled rings beneath them. */
-  border: 1px solid color-mix(in oklab, var(--line-bright) 55%, transparent);
-  outline: 1px solid color-mix(in oklab, var(--line) 65%, transparent);
-  outline-offset: clamp(22px, 3.6vw, 44px);
-  /* No wide conic wash here: at these opacities it rendered as a grey haze
-     that muddied the rim instead of reading as light. The only illumination
-     is the rim and its own tight bloom. */
-  background: none;
-}
-
-/* The disc: hard-edged, with a razor rim and concentric hairline orbits —
-   an instrument diagram, not a glow. Orbits are box-shadow spread rings, so
-   they stay exactly 1px at any size. */
-.fx-hero-eclipse::after {
-  content: "";
-  position: absolute; inset: 0;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle,
-      transparent 0 48.4%,
-      color-mix(in oklab, #fff 62%, var(--accent-strong)) 48.7%,
-      color-mix(in oklab, var(--accent-strong) 70%, transparent) 49.6%,
-      color-mix(in oklab, var(--accent) 26%, transparent) 51%,
-      transparent 54%),
-    radial-gradient(circle at 42% 38%, #0b0b15, #050509 66%);
-  box-shadow:
-    0 0 22px 1px color-mix(in oklab, var(--accent-strong) 26%, transparent),
-    0 0 70px 10px color-mix(in oklab, var(--accent) 12%, transparent);
-}
-
-.fx-hero-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: linear-gradient(102deg,
-    var(--surface-0) 6%,
-    color-mix(in oklab, var(--surface-0) 78%, transparent) 32%,
-    color-mix(in oklab, var(--surface-0) 30%, transparent) 50%,
-    transparent 64%);
-}
-/* Full width on small screens; the eclipse only needs room from ~900px up.
-   Capped in px, not ch: this container is set in the 14px body font while the
-   headline inside it is 76px, so a ch cap sized the wrong text entirely and
-   forced the H1 to wrap mid-phrase. */
-.fx-hero-inner { max-width: 100%; position: relative; z-index: 2; }
-
-@media (min-width: 900px) {
-  .fx-hero-inner { max-width: min(1100px, 72%); }
-}
-.fx-hero-inner::before {
-  content: "";
-  position: absolute;
-  inset: -50px -120px -40px -140px;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(130% 100% at 22% 42%, color-mix(in oklab, var(--surface-0) 66%, transparent), transparent 68%);
-}
-
-.fx-kicker {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 4px;
-  text-transform: uppercase;
-  color: var(--slate);
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  margin-bottom: clamp(22px, 3vw, 38px);
-}
-.fx-kicker::before {
-  content: "";
-  width: 40px; height: 1px;
-  background: linear-gradient(90deg, var(--accent), transparent);
-}
-
-.fx-hero h1 {
-  font-family: var(--font-display);
-  font-optical-sizing: auto;
-  font-size: clamp(36px, 5.4vw, 76px);
-  font-weight: 300;
-  line-height: 1.02;
-  letter-spacing: -0.02em;
-  color: var(--fx-ink);
-  /* The .fx-line spans already author the line breaks — an extra ch cap here
-     only forced each authored line to wrap again. */
-  text-wrap: balance;
-  text-shadow: 0 2px 40px rgba(5,5,9,0.85), 0 1px 3px rgba(5,5,9,0.6);
-}
-.fx-hero h1 .fx-line { display: block; }
-.fx-hero h1 .fx-accent {
-  color: transparent;
-  background: linear-gradient(102deg, #efe9fb 0%, var(--accent-strong) 40%, var(--accent) 62%, #7c68a6 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-.fx-hero-sub {
-  margin-top: clamp(26px, 3vw, 42px);
-  max-width: 58ch;
-  font-size: clamp(15px, 1.4vw, 17px);
-  line-height: 1.75;
-  color: var(--text-2);
-  text-wrap: pretty;
-}
-
-.fx-hero-actions { display: flex; gap: 14px; margin-top: 38px; flex-wrap: wrap; }
-
-.fx-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 15px 30px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  border: 1px solid var(--fx-line);
-  color: var(--fx-ink);
-  overflow: hidden;
-  transition: border-color 220ms, color 220ms, transform 400ms var(--fx-ease);
-  will-change: transform;
-}
-.fx-btn > span { position: relative; z-index: 1; }
-.fx-btn::before {
-  content: "";
-  position: absolute; inset: 0;
-  background: radial-gradient(120px circle at var(--bx, 50%) var(--by, 50%), color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
-  opacity: 0;
-  transition: opacity 300ms;
-}
-.fx-btn:hover::before { opacity: 1; }
-.fx-btn:hover { border-color: var(--accent); color: #fff; }
-
-.fx-btn--solid {
-  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
-  border-color: var(--accent);
-  color: #17121f;
-  font-weight: 600;
-}
-.fx-btn--solid::before { background: radial-gradient(120px circle at var(--bx,50%) var(--by,50%), rgba(255,255,255,.5), transparent 70%); }
-.fx-btn--solid:hover { color: #17121f; box-shadow: 0 12px 44px -12px color-mix(in oklab, var(--accent) 70%, transparent); }
-
-/* Hero corner ticks (blueprint feel) */
-.fx-hero::before, .fx-hero::after {
-  content: "";
-  position: absolute;
-  width: 14px; height: 14px;
-  border: 1px solid var(--fx-line-bright);
-  z-index: 2;
-  pointer-events: none;
-}
-.fx-hero::before { left: 18px; bottom: 18px; border-right: 0; border-top: 0; }
-.fx-hero::after { right: 18px; bottom: 18px; border-left: 0; border-top: 0; }
-
-/* ---------- Ticker ---------- */
-.fx-ticker {
-  border-block: 1px solid var(--fx-line);
-  overflow: hidden;
-  display: flex;
-  user-select: none;
-  background: color-mix(in oklab, var(--surface-1) 40%, transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-          mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-}
-.fx-ticker-track {
-  display: flex;
-  flex-shrink: 0;
-  animation: fx-marquee 160s linear infinite;
-  will-change: transform;
-}
-.fx-ticker:hover .fx-ticker-track { animation-play-state: paused; }
-@keyframes fx-marquee { to { transform: translateX(-100%); } }
-
-.fx-ticker a {
-  display: flex;
-  align-items: center;
-  gap: 40px;
-  padding: 15px 40px 15px 0;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text-3);
-  white-space: nowrap;
-  transition: color 150ms;
-}
-.fx-ticker a::after { content: "◆"; font-size: 6px; color: color-mix(in oklab, var(--accent) 50%, transparent); }
-.fx-ticker a:hover { color: var(--accent-strong); }
-
-/* ---------- Section head ---------- */
-.fx-section-head {
-  display: flex;
-  align-items: baseline;
-  gap: 22px;
-  padding: clamp(56px, 7vw, 96px) clamp(28px, 5vw, 72px) 36px;
-}
-.fx-index {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 2px;
-  color: var(--accent);
-}
-.fx-section-head h2 {
-  font-family: var(--font-display);
-  font-size: clamp(30px, 4.4vw, 54px);
-  font-weight: 300;
-  letter-spacing: -0.03em;
-  color: var(--fx-ink);
-}
-.fx-section-head .fx-rule { flex: 1; height: 1px; background: var(--fx-line); align-self: center; }
-.fx-section-head .fx-count {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: var(--text-3);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-/* ---------- Bento ---------- */
-.fx-bento {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  border-top: 1px solid var(--fx-line);
-}
-.fx-cell {
-  position: relative;
-  padding: 38px clamp(28px, 3vw, 40px) 40px;
-  border-bottom: 1px solid var(--fx-line);
-  border-right: 1px solid var(--fx-line);
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  overflow: clip;
-  transition: background 300ms;
-}
-.fx-cell:hover { background: color-mix(in oklab, var(--accent) 4%, transparent); }
-.fx-cell::before {
-  content: "";
-  position: absolute; inset: 0;
-  opacity: 0;
-  transition: opacity 400ms;
-  background: radial-gradient(460px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--accent) 9%, transparent), transparent 60%);
-  pointer-events: none;
-}
-.fx-cell:hover::before { opacity: 1; }
-
-.fx-cell--gate { grid-column: span 7; }
-.fx-cell--librarian { grid-column: span 5; border-right: 0; }
-.fx-cell--vexes { grid-column: span 5; }
-.fx-cell--umbra { grid-column: span 7; border-right: 0; }
-.fx-cell--umbra {
-  background: radial-gradient(70rem 26rem at 82% 130%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 62%);
-}
-
-.fx-cell-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--slate);
-}
-.fx-status { display: inline-flex; align-items: center; gap: 7px; color: var(--sage); }
-.fx-status::before {
-  content: ""; width: 6px; height: 6px; border-radius: 50%;
-  background: currentColor; box-shadow: 0 0 9px currentColor;
-  animation: fx-pulse 2.4s ease-in-out infinite;
-}
-@keyframes fx-pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
-.fx-status--dev { color: var(--accent); }
-
-.fx-cell h3 {
-  font-family: var(--font-display);
-  font-size: clamp(28px, 3vw, 42px);
-  font-weight: 300;
-  letter-spacing: -0.025em;
-  color: var(--fx-ink);
-}
-.fx-cell > p { font-size: 14.5px; line-height: 1.72; color: var(--text-2); max-width: 54ch; }
-
-.fx-featlist { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
-.fx-featlist span {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.6px;
-  color: var(--text-2);
-  border: 1px solid var(--fx-line);
-  padding: 6px 11px;
-  transition: border-color 200ms, color 200ms;
-}
-.fx-cell:hover .fx-featlist span { border-color: var(--fx-line-bright); }
-
-.fx-cell-link {
-  margin-top: auto;
-  padding-top: 20px;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--accent);
-  display: inline-flex; align-items: center; gap: 8px;
-  width: fit-content;
-}
-.fx-cell-link span { transition: transform 300ms var(--fx-ease); }
-.fx-cell-link:hover { color: var(--accent-strong); }
-.fx-cell-link:hover span { transform: translateX(5px); }
-
-.fx-term {
-  margin-top: 6px;
-  border: 1px solid var(--fx-line);
-  background: color-mix(in oklab, #06060d 82%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in oklab, #fff 4%, transparent);
-}
-.fx-term-bar {
-  display: flex; align-items: center; gap: 9px;
-  padding: 10px 15px;
-  border-bottom: 1px solid var(--fx-line);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 1px;
-  color: var(--text-3);
-}
-.fx-term-bar::before {
-  content: ""; width: 7px; height: 7px; border-radius: 50%;
-  background: var(--sage); box-shadow: 0 0 7px var(--sage);
-}
-.fx-term pre {
-  padding: 17px 19px;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  line-height: 1.8;
-  overflow-x: auto;
-  color: var(--text-2);
-}
-.fx-term .hl-dim { color: var(--text-3); }
-.fx-term .hl-key { color: var(--accent); }
-.fx-term .hl-str { color: var(--sage); }
-.fx-term .hl-warn { color: #e0a458; }
-
-/* Ghost glyph in umbra cell */
-.fx-cell--umbra .fx-ghost svg {
-  width: clamp(200px, 26vw, 380px);
-  height: auto;
-  stroke-width: 0.4;
-}
-
-.fx-cell--umbra .fx-ghost {
-  position: absolute;
-  right: -2%; bottom: -34%;
-  color: color-mix(in oklab, var(--accent) 8%, transparent);
-  line-height: 0;
-  pointer-events: none;
-  user-select: none;
-}
-
-/* ---------- Tools strip ---------- */
-.fx-tools-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--fx-line); counter-reset: fxtool; }
-.fx-tool {
-  position: relative;
-  padding: 28px clamp(22px,2vw,28px) 26px;
-  border-right: 1px solid var(--fx-line);
-  border-bottom: 1px solid var(--fx-line);
-  display: flex; flex-direction: column; gap: 10px;
-  counter-increment: fxtool;
-  transition: background 220ms, transform 300ms var(--fx-ease);
-}
-.fx-tool:nth-child(4n) { border-right: 0; }
-.fx-tool::before {
-  content: counter(fxtool, decimal-leading-zero);
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 1px;
-  color: var(--text-3); opacity: 0.65;
-}
-.fx-tool::after {
-  content: "→";
-  position: absolute; top: 26px; right: 24px;
-  color: var(--accent);
-  opacity: 0; transform: translateX(-6px);
-  transition: opacity 240ms, transform 240ms var(--fx-ease);
-  font-family: var(--font-mono);
-}
-.fx-tool:hover { background: color-mix(in oklab, var(--accent) 6%, transparent); }
-.fx-tool:hover::after { opacity: 1; transform: translateX(0); }
-.fx-tool h4 { font-family: var(--font-sans); font-size: 14.5px; font-weight: 500; color: var(--fx-ink); letter-spacing: -0.1px; }
-.fx-tool p { font-size: 12.5px; line-height: 1.6; color: var(--text-3); }
-.fx-tool .fx-runtime {
-  margin-top: auto; padding-top: 12px;
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--sage);
-}
-.fx-tool .fx-runtime--edge { color: var(--slate); }
-.fx-tool--new h4::after {
-  content: "NEW";
-  font-family: var(--font-mono);
-  font-size: 8px; letter-spacing: 1px;
-  color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
-  padding: 2px 5px; margin-left: 8px; vertical-align: middle;
-  border-radius: 2px;
-}
-
-.fx-tools-cta {
-  display: flex; align-items: center; justify-content: center; gap: 12px;
-  padding: 24px;
-  border-bottom: 1px solid var(--fx-line);
-  font-family: var(--font-mono);
-  font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase;
-  color: var(--accent);
-  transition: background 220ms, color 220ms, letter-spacing 300ms;
-}
-.fx-tools-cta:hover { background: color-mix(in oklab, var(--accent) 10%, transparent); color: var(--accent-strong); letter-spacing: 3.5px; }
-
-/* ---------- Principles ---------- */
-.fx-principles { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--fx-line); }
-.fx-principle {
-  padding: 40px clamp(28px,3vw,36px) 46px;
-  border-right: 1px solid var(--fx-line);
-  display: grid; gap: 15px; align-content: start;
-  transition: background 260ms;
-}
-.fx-principle:last-child { border-right: 0; }
-.fx-principle:hover { background: color-mix(in oklab, var(--accent) 4%, transparent); }
-.fx-principle .fx-glyph {
-  color: var(--accent);
-  border: 1px solid var(--fx-line-bright);
-  width: 34px; height: 34px;
-  display: grid; place-items: center;
-}
-.fx-principle .fx-glyph svg { width: 18px; height: 18px; }
-.fx-principle h3 { font-family: var(--font-display); font-size: 22px; font-weight: 350; letter-spacing: -0.015em; color: var(--fx-ink); }
-.fx-principle p { font-size: 13.5px; line-height: 1.78; color: var(--text-2); }
-
-/* ---------- Reveal ---------- */
-.reveal { transition: opacity 800ms var(--fx-ease), transform 800ms var(--fx-ease), filter 800ms var(--fx-ease); }
-
-.js-reveal .reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  filter: blur(6px);
-}
-.reveal.visible { opacity: 1; transform: none; filter: none; }
-.fx-bento .reveal.visible:nth-child(2) { transition-delay: 60ms; }
-.fx-bento .reveal.visible:nth-child(3) { transition-delay: 120ms; }
-.fx-bento .reveal.visible:nth-child(4) { transition-delay: 180ms; }
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal { opacity: 1; transform: none; filter: none; transition: none; }
-  .fx-ticker-track, .fx-eclipse-dot::after, .fx-hero-eclipse::before, .fx-status::before { animation: none; }
-}
-
-.fx-body ::selection { background: color-mix(in oklab, var(--accent) 38%, transparent); color: #fff; }
-
-/* ---------- Responsive ---------- */
-@media (max-width: 1040px) {
-  .fx-cell--gate, .fx-cell--librarian, .fx-cell--vexes, .fx-cell--umbra { grid-column: span 12; border-right: 0; }
-  .fx-tools-grid { grid-template-columns: repeat(2, 1fr); }
-  .fx-tool:nth-child(4n) { border-right: 1px solid var(--fx-line); }
-  .fx-tool:nth-child(2n) { border-right: 0; }
-  .fx-principles { grid-template-columns: 1fr; }
-  .fx-principle { border-right: 0; border-bottom: 1px solid var(--fx-line); }
-  .fx-principle:last-child { border-bottom: 0; }
-}
-@media (max-width: 720px) {
-  .fx-frame { border-inline: 0; }
-  .fx-nav { display: none; }
-  .fx-nav.open {
-    display: flex; position: fixed; inset: 58px 0 auto 0;
-    flex-direction: column; background: var(--surface-0);
-    border-bottom: 1px solid var(--fx-line); z-index: 79;
-  }
-  .fx-nav.open a { padding: 17px 30px; border-left: 0; border-top: 1px solid var(--fx-line); }
-  .fx-menu-btn {
-    display: flex; align-items: center; margin-left: auto;
-    padding: 0 24px; border: 0; border-left: 1px solid var(--fx-line);
-    background: none; color: var(--fx-ink); cursor: pointer;
-  }
-  .fx-hero { min-height: 78vh; }
-  .fx-hero h1 { font-size: clamp(44px, 14vw, 76px); }
-  .fx-tools-grid { grid-template-columns: 1fr; }
-  .fx-tool, .fx-tool:nth-child(4n) { border-right: 0; }
-  .fx-section-head { flex-wrap: wrap; }
-  .fx-hero-eclipse { right: -30%; opacity: 0.7; }
-}
+#penumbra-studio .studio-intro {--ink:#edf0eb;--muted:#b1bcb6;--rule:#485352;--raised:#252c2d;--accent:#d7e1ce;position:relative;isolation:isolate;color:var(--ink);background:#252c2d;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:clamp(36px,7vw,100px);align-items:end;padding:48px var(--page-gutter) 56px;}
+#penumbra-studio .intro-identity {display:flex;align-items:center;gap:13px;margin-bottom:25px;}
+#penumbra-studio .intro-identity .micro {color:var(--ink);font-size:10px;line-height:1.8;letter-spacing:.7px;}
+#penumbra-studio .intro-identity .micro>span {display:block;color:var(--muted);font-size:9px;letter-spacing:.5px;}
+#penumbra-studio .studio-intro::before {content:'';position:absolute;inset:0;z-index:-2;background:#252c2d;box-shadow:0 0 0 100vmax #252c2d;clip-path:inset(0 -100vmax);pointer-events:none;}
+#penumbra-studio .intro-atmosphere {position:absolute;inset:0;overflow:hidden;z-index:-1;pointer-events:none;}
+#penumbra-studio .hero-eclipse {position:absolute;width:360px;aspect-ratio:1;border-radius:50%;right:7%;top:22px;background:radial-gradient(circle at 38% 58%,#22292a 36%,#202727 74%,#28302f 100%);box-shadow:inset -1px 1px 0 #a1aea044,3px -3px 2px -2px #bec5af80,13px -11px 32px -22px #d0d1ae99;}
+#penumbra-studio .hero-eclipse::before {content:'';position:absolute;inset:-15px;border-radius:50%;background:conic-gradient(from 190deg,transparent 0deg 154deg,#bbc3a620 197deg,#d3d8bf2c 228deg,transparent 277deg);filter:blur(12px);z-index:-1;}
+#penumbra-studio .hero-eclipse::after {content:'';position:absolute;width:4px;height:4px;border-radius:50%;top:49px;right:53px;background:#c1c7b4;box-shadow:0 0 13px 3px #c5cdb178;opacity:.65;}
+#penumbra-studio .studio-intro a:focus-visible {outline-color:#d7e1ce;}
+.site-header--dark,.site-header--dark.open {--text-1:#edf0eb;--text-2:#b1bcb6;--accent:#d7e1ce;--border:#485352;background:#252c2df7;border-bottom-color:#3c4645;color:#edf0eb;}
+.site-header--dark .site-header-mark {background:#1c2324;box-shadow:inset -2px 0 0 #b2bca5,1px -.5px 0 .5px #778879;}
+.site-header--dark a:focus-visible,.site-header--dark button:focus-visible {outline-color:#d7e1ce;}
+#penumbra-studio h1 {font:500 clamp(42px,5vw,64px)/1.08 var(--font-display);letter-spacing:-2.8px;color:var(--ink);margin:0 0 23px;white-space:normal;}
+#penumbra-studio h1 span {color:var(--muted);}
+#penumbra-studio .intro-main>p {font-size:15px;line-height:1.85;color:var(--muted);max-width:49ch;margin:0;}
+#penumbra-studio .intro-links {display:flex;align-items:center;gap:26px;flex-wrap:wrap;margin-top:27px;}
+#penumbra-studio .intro-links a {min-height:46px;display:flex;align-items:center;gap:24px;font-size:12px;border-bottom:1px solid var(--rule);transition:color 160ms,border-color 160ms,background 160ms;}
+#penumbra-studio .intro-links .intro-primary {background:var(--ink);color:var(--raised);border:1px solid var(--ink);border-radius:3px;padding:0 17px;}
+#penumbra-studio .intro-links .intro-primary:hover {background:var(--accent);border-color:var(--accent);color:var(--raised);}
+#penumbra-studio .intro-directory {display:block;padding-bottom:1px;}
+#penumbra-studio .intro-directory>.micro {display:block;color:var(--muted);font-size:10px;margin-bottom:17px;}
+#penumbra-studio .intro-directory>a {display:grid;grid-template-columns:20px minmax(0,1fr) 16px;gap:13px;align-items:start;padding:20px 0;border-top:1px solid var(--rule);text-decoration:none;}
+#penumbra-studio .intro-directory>a:last-child {border-bottom:1px solid var(--rule);}
+#penumbra-studio .intro-route-number {font:10px/1.8 var(--font-mono);color:var(--muted);padding-top:2px;}
+#penumbra-studio .intro-directory strong {display:block;font-size:14px;font-weight:500;line-height:1.5;}
+#penumbra-studio .intro-directory strong+span {display:block;font-size:11px;line-height:1.7;color:var(--muted);margin-top:5px;}
+#penumbra-studio .intro-route-arrow {font-size:18px;line-height:1.3;transition:transform 160ms;}
+#penumbra-studio .intro-directory>a:hover .intro-route-arrow {transform:translate(2px,-2px);}
+#penumbra-studio .day {padding-top:35px;border-top:1px solid var(--rule);}
+#penumbra-studio .studio-note {background:var(--night);color:var(--light);}
+#penumbra-studio .studio-note .micro {color:var(--night-muted);}
+#penumbra-studio .studio-note a:focus-visible {outline-color:#c1d3c1;}
+#penumbra-studio a:hover {color:var(--accent);}
+#penumbra-studio .studio-note a:hover {color:#eef0f3;}
+#penumbra-studio .artifact-toggle button {cursor:pointer;}
+@media(min-width:1281px){#penumbra-studio .studio-intro,#penumbra-studio .day,#penumbra-studio .studio-note{padding-inline:60px;}}
+@media(max-width:750px){#penumbra-studio .studio-intro{padding:36px 28px 42px;gap:34px;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);}#penumbra-studio h1{font-size:44px;letter-spacing:-1.9px;}#penumbra-studio .intro-main>p{font-size:14px;}#penumbra-studio .intro-directory>a{grid-template-columns:minmax(0,1fr) 16px;gap:8px;padding:17px 0;}#penumbra-studio .intro-route-number{display:none;}#penumbra-studio .intro-links{gap:17px;}#penumbra-studio .intro-links a{gap:16px;}}
+@media(max-width:600px){#penumbra-studio .studio-intro{padding:30px 22px 34px;grid-template-columns:1fr;gap:31px;}#penumbra-studio .intro-identity{margin-bottom:22px;}#penumbra-studio h1{font-size:clamp(40px,10vw,54px);letter-spacing:-2px;line-height:1.1;margin-bottom:20px;}#penumbra-studio .intro-main>p{font-size:14px;max-width:45ch;}#penumbra-studio .intro-links{margin-top:23px;gap:20px;}#penumbra-studio .intro-links a{gap:14px;}#penumbra-studio .intro-links .intro-primary{padding-inline:13px;}#penumbra-studio .intro-directory>.micro{margin-bottom:10px;}#penumbra-studio .intro-directory>a{grid-template-columns:18px minmax(0,1fr) 16px;padding:13px 0;gap:10px;}#penumbra-studio .intro-route-number{display:block;}#penumbra-studio .intro-directory strong{font-size:13px;}#penumbra-studio .intro-directory strong+span{margin-top:2px;}#penumbra-studio .day{padding-top:30px;}}
+@media(max-width:360px){#penumbra-studio .intro-links{column-gap:10px;}}
+@media(max-width:750px){#penumbra-studio .hero-eclipse{width:300px;right:-30px;top:35px;}}
+@media(max-width:600px){#penumbra-studio .hero-eclipse{width:280px;right:-105px;top:5px;opacity:.75;}}

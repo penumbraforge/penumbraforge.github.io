@@ -6,9 +6,11 @@ permalink: /tools/agents/
 hideAtmosphere: true
 ---
 <link rel="stylesheet" href="/css/tools.css?v={{ assetv }}">
+<link rel="stylesheet" href="/css/secondary.css?v={{ assetv }}">
 
-<div class="wb-page">
-  {% include "header.njk" %}
+{% include "header.njk" %}
+
+<main id="main-content" class="wb-page agents-page" tabindex="-1">
 
   <div class="wb-shell">
     <nav class="wb-breadcrumb" aria-label="Breadcrumb"><a href="/tools/">Tools</a><span class="sep">/</span><span class="cur">For AI agents</span></nav>
@@ -70,38 +72,21 @@ window.PF_RESULT   <span class="hl-dim">// { tool, ok, output, data }</span></pr
     <section class="wb-related">
       <div class="wb-related-label">Tools currently exposed over MCP</div>
       <div class="wb-mcp-grid" id="mcpGrid"></div>
+      <noscript><p class="agents-fallback">Enable JavaScript to view the registry here, or read the <a href="/tools/index.json">machine-readable tool index</a>.</p></noscript>
     </section>
 
     <div class="wb-note">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L3 7v6c0 5.25 3.75 10.1 9 11 5.25-.9 9-5.75 9-11V7l-9-5z"/><path d="M9 12l2 2 4-4"/></svg>
       <p><strong>Where your input goes.</strong> The local MCP process handles non-model utility functions on your machine; tools marked <code>net</code> contact their documented destinations. The hosted MCP worker receives tool arguments and may be covered by ordinary hosting/security logs. Do not send sensitive input without checking the selected tool's route.</p>
     </div>
+    <div class="agents-resources">
+      <p>Routes labelled · cookie-free aggregate analytics</p>
+      <nav aria-label="Agent resources"><a href="/tools/">All tools</a><a href="/llms.txt">llms.txt</a><a href="/tools/index.json">index.json</a><a href="https://github.com/penumbraforge">GitHub</a></nav>
+    </div>
   </div>
 
-  <footer class="wb-foot">
-    <span>&copy; 2026 Penumbra Forge · routes labelled · cookie-free aggregate analytics</span>
-    <div class="links"><a href="/tools/">All tools</a><a href="/llms.txt">llms.txt</a><a href="/tools/index.json">index.json</a><a href="https://github.com/penumbraforge">GitHub</a></div>
-  </footer>
   <div class="wb-toast" id="wbToast" role="status" aria-live="polite"></div>
-</div>
-
-<style>
-.wb-agents { display: grid; gap: 14px; margin-top: 26px; }
-.wb-agent-card { border: 1px solid var(--wb-line); border-radius: 6px; background: var(--wb-panel); padding: 26px 28px; position: relative; overflow: hidden; }
-.wb-agent-n { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2px; color: var(--accent); }
-.wb-agent-card h2 { font-family: var(--font-display); font-size: 26px; font-weight: 300; letter-spacing: -0.02em; color: var(--wb-ink); margin: 6px 0 10px; }
-.wb-agent-card > p { font-size: 14px; line-height: 1.7; color: var(--text-2); max-width: 70ch; margin-bottom: 16px; }
-.wb-agent-card code { font-family: var(--font-mono); font-size: 0.9em; color: var(--accent); }
-.wb-agent-card .wb-panel { margin-top: 10px; }
-.wb-agent-card pre { margin: 0; padding: 14px 16px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; color: var(--text-1); overflow-x: auto; cursor: pointer; }
-.wb-agent-card pre[data-copy]:hover { background: color-mix(in oklab, var(--accent) 6%, transparent); }
-.wb-agent-card .hl-dim { color: var(--text-3); }
-.wb-mcp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-.wb-mcp-tool { border: 1px solid var(--wb-line); border-radius: 3px; padding: 11px 13px; background: #06060d; }
-.wb-mcp-tool b { font-family: var(--font-mono); font-size: 12px; color: var(--accent); display: block; }
-.wb-mcp-net { font-family: var(--font-mono); font-size: 8px; letter-spacing: 1px; color: var(--slate); border: 1px solid var(--wb-line); padding: 1px 4px; border-radius: 2px; vertical-align: middle; }
-.wb-mcp-tool span { font-size: 11px; color: var(--text-3); line-height: 1.4; display: block; margin-top: 3px; }
-</style>
+</main>
 
 <script src="/js/tool-io.js"></script>
 <script type="module">
@@ -111,13 +96,31 @@ var grid = document.getElementById('mcpGrid');
 function card(k, reg, net) { return '<div class="wb-mcp-tool"><b>' + k + (net ? ' <span class="wb-mcp-net">net</span>' : '') + '</b><span>' + reg[k].description + '</span></div>'; }
 grid.innerHTML = Object.keys(TOOLS).map(function (k) { return card(k, TOOLS); }).join('')
   + Object.keys(NET_TOOLS).map(function (k) { return card(k, NET_TOOLS, true); }).join('');
-// click-to-copy code blocks
+// Keep the existing code-block action and give it an explicit keyboard target.
 document.querySelectorAll('pre[data-copy]').forEach(function (pre) {
-  pre.addEventListener('click', function () {
-    var t = pre.textContent.replace(/^#.*$/gm, '').trim();
-    if (navigator.clipboard) navigator.clipboard.writeText(t);
-    var toast = document.getElementById('wbToast'); toast.textContent = 'Copied'; toast.classList.add('show');
-    clearTimeout(toast._t); toast._t = setTimeout(function () { toast.classList.remove('show'); }, 1500);
-  });
+  var button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'agents-copy';
+  button.textContent = 'Copy';
+  button.setAttribute('aria-label', 'Copy command');
+  pre.parentElement.querySelector('.wb-panel-bar').appendChild(button);
+  async function copyCommand() {
+    var toast = document.getElementById('wbToast');
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(pre.textContent.replace(/^#.*$/gm, '').trim());
+      toast.textContent = 'Copied to clipboard';
+      button.textContent = 'Copied';
+    } catch (error) {
+      toast.textContent = 'Copy unavailable. Select the command text to copy it manually.';
+    }
+    toast.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { toast.classList.remove('show'); }, 3000);
+    clearTimeout(button._t);
+    button._t = setTimeout(function () { button.textContent = 'Copy'; }, 2000);
+  }
+  button.addEventListener('click', copyCommand);
+  pre.addEventListener('click', copyCommand);
 });
 </script>

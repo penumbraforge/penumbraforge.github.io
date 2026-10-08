@@ -2,23 +2,28 @@
 permalink: /gate/
 ---
 
-<!-- HERO -->
-<header class="gate-hero" id="top">
-  <div class="reveal">
-    <h1 class="gate-hero-name">gate</h1>
+<!-- PROJECT INTRO -->
+<header class="product-intro gate-hero" id="top">
+  <div class="product-intro-copy">
+    <p class="editorial-kicker">01 / Developer security</p>
+    <h1>Gate<span class="product-title-stop" aria-hidden="true">.</span></h1>
+    <p class="product-intro-tagline">A pause before the commit.</p>
+    <p class="product-intro-description">A command-line scanner that looks for hardcoded secrets and helps you move them out.</p>
+    <div class="product-actions">
+      <a class="product-action-primary" href="#quick-start">Run a scan <span aria-hidden="true">↓</span></a>
+      <a href="/gate/wiki/">Documentation <span aria-hidden="true">→</span></a>
+      <a href="https://github.com/penumbraforge/gate" target="_blank" rel="noopener">Source <span aria-hidden="true">↗</span></a>
+    </div>
   </div>
-  <div class="reveal" style="transition-delay: 0.1s;">
-    <p class="gate-hero-tagline">A command-line scanner that looks for hardcoded secrets and helps you move them out.</p>
-  </div>
-  <div class="reveal" style="transition-delay: 0.2s;">
-    <p class="gate-hero-sub">Free. Runs on your machine. No account or intentional product telemetry. Opt-in credential verification and update checks use documented network endpoints.</p>
-  </div>
-  <div class="reveal" style="transition-delay: 0.25s;">
-    <p class="gate-hero-sub">Experimental 2.x software with no published external security or efficacy audit. Detection is pattern-based, so it will produce false positives and miss things. Read any fix before you commit it.</p>
-  </div>
-  <div class="reveal" style="transition-delay: 0.3s;">
-    <p class="gate-hero-sub"><a href="/gate/wiki/">Documentation</a>&ensp;&middot;&ensp;<a href="https://github.com/penumbraforge/gate" target="_blank" rel="noopener">GitHub</a></p>
-  </div>
+  <aside class="product-record" aria-label="Gate project details">
+    <dl>
+      <div><dt>Release</dt><dd>v{{ versions.gate.version }} · Experimental</dd></div>
+      <div><dt>Runtime</dt><dd>Node.js {{ versions.gate.node }}+</dd></div>
+      <div><dt>License</dt><dd>Apache-2.0</dd></div>
+    </dl>
+    <p>Free. Runs on your machine. No account or intentional product telemetry. Opt-in credential verification and update checks use documented network endpoints.</p>
+    <p>Experimental 2.x software with no published external security or efficacy audit. Detection is pattern-based, so it will produce false positives and miss things. Read any fix before you commit it.</p>
+  </aside>
 </header>
 
 <!-- QUICK START -->

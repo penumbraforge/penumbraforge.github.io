@@ -1,7 +1,7 @@
 ---
 layout: base.njk
-title: "Blog — Penumbra Forge"
-description: "Technical write-ups on security engineering, tool architecture, and lessons from incident response."
+title: "Notes — Penumbra Forge"
+description: "Engineering notes, release records, and corrections from the work at Penumbra Forge."
 permalink: /blog/
 ---
 
@@ -9,24 +9,29 @@ permalink: /blog/
 
 {% include "header.njk" %}
 
-<div class="blog-page">
-  <div class="blog-hero">
-    <div class="blog-hero-label">Blog</div>
-    <h1>Building in the open</h1>
-    <p class="blog-hero-sub">Write-ups on security engineering, how these tools are built, and things I've run into at work.</p>
-  </div>
+<main class="blog-page blog-index" id="main-content">
+  <nav class="editorial-breadcrumb" aria-label="Breadcrumb"><a href="/">Studio</a><span aria-hidden="true">/</span><span>Notes</span></nav>
+  <header class="blog-hero">
+    <div class="editorial-kicker">The working record</div>
+    <h1>Notes from<br>the work.</h1>
+    <p class="blog-hero-sub">Engineering notes, release records, and corrections. How these tools are built, where they stand, and what has changed.</p>
+    <a class="blog-feed-link" href="/feed.xml">Follow via RSS <span aria-hidden="true">↗</span></a>
+  </header>
 
+  <div class="blog-index-label"><span class="editorial-kicker">All notes</span><span class="editorial-kicker">Newest first</span></div>
+  <div class="blog-post-list">
   {%- for post in collections.blog | reverse %}{% if post.data.cardTitle %}
-  <a href="{{ post.url }}" class="blog-post-card">
-    <div class="blog-post-meta">
-      <span class="blog-post-date">{{ post.data.date | postDate }}</span>
-      {%- for tag in post.data.postTags %}
-      <span class="blog-post-tag">{{ tag }}</span>
-      {%- endfor %}
-      <span class="blog-post-read">{{ post.data.readTime }}</span>
-    </div>
-    <div class="blog-post-title">{{ post.data.cardTitle }}</div>
-    <p class="blog-post-excerpt">{{ post.data.excerpt }}</p>
-  </a>
+    <a href="{{ post.url }}" class="blog-post-card">
+      <div class="blog-post-meta">
+        <span class="blog-post-date">{{ post.data.date | postDate }}</span>
+        <span class="blog-post-read">{{ post.data.readTime }}</span>
+        <span class="blog-post-tags">{%- for tag in post.data.postTags %}<span class="blog-post-tag">{{ tag }}</span>{%- endfor %}</span>
+      </div>
+      <div class="blog-post-summary">
+        <h2 class="blog-post-title">{{ post.data.cardTitle }} <span aria-hidden="true">→</span></h2>
+        <p class="blog-post-excerpt">{{ post.data.excerpt }}</p>
+      </div>
+    </a>
   {% endif %}{%- endfor %}
-</div>
+  </div>
+</main>

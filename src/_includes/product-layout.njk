@@ -34,7 +34,10 @@
 
   {% include "header.njk" %}
 
-  <main class="product-main">
+  <main class="product-main" id="main-content">
+    <nav class="editorial-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Studio</a><span aria-hidden="true">/</span><span>{{ productName | capitalize }}</span>
+    </nav>
     {{ content | safe }}
   </main>
 
